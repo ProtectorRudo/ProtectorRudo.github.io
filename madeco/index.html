@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>MADECO · Tablero de objetivos</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#edf3f8;background:#07111f;--bg:#07111f;--panel:#0c1828;--panel2:#101f32;--line:#203047;--text:#edf3f8;--muted:#8fa2ba;--accent:#4dd4ac;--accent2:#3bbf99;--danger:#ff7f88}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 75% 0,#0e2540 0,transparent 35%),var(--bg)}button,input,textarea{font:inherit}button{cursor:pointer}
+.hidden{display:none!important}.shell{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
+aside{border-right:1px solid var(--line);padding:28px 18px;display:flex;flex-direction:column;background:#081321dd;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:12px;padding:0 8px 28px}.mark{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),#78e3c5);color:#052119;font-weight:900;font-size:19px;box-shadow:0 10px 40px #41d1a42c}.brand strong{letter-spacing:.08em}.brand span{display:block;color:var(--muted);font-size:12px}
+nav{display:flex;flex-direction:column;gap:8px}.navbtn,.logout{border:0;background:transparent;color:var(--muted);padding:12px 14px;border-radius:11px;text-align:left}.navbtn:hover,.navbtn.active,.logout:hover{background:#132238;color:#fff}.navbtn.active{box-shadow:inset 3px 0 var(--accent)}
+.sidebottom{margin-top:auto}.sync{font-size:12px;color:var(--muted);padding:12px}.logout{width:100%}
+main{padding:42px 48px 70px;max-width:1600px;width:100%;margin:0 auto}header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:32px}
+h1,h2,p{margin-top:0}h1{font-size:30px;margin-bottom:7px}h2{font-size:20px;margin-bottom:6px}.eyebrow,.label{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:#7f93ac;font-weight:800}.muted{color:var(--muted);margin-bottom:0}
+.actions{display:flex;gap:10px}.primary,.secondary{border-radius:11px;padding:11px 16px;border:1px solid transparent;font-weight:800}.primary{background:var(--accent);color:#052019}.primary:hover{background:#68dfbd}.secondary{background:#101e30;color:#dce6f2;border-color:#273851}.secondary:hover{background:#152740}
+.hero{background:linear-gradient(135deg,#10213a,#0b1a2b);border:1px solid #263a55;border-radius:22px;padding:28px 30px;box-shadow:0 18px 55px #0004}.herotop,.herobottom{display:flex;justify-content:space-between;align-items:flex-end}.money{display:flex;align-items:baseline;gap:12px;margin-top:8px}.money strong{font-size:38px;letter-spacing:-.04em}.money span,.herobottom{color:var(--muted)}.percent{font-size:48px;font-weight:850;color:var(--accent);letter-spacing:-.05em}.track,.milebar{height:9px;background:#1b2b40;border-radius:999px;overflow:hidden;margin:24px 0 14px}.track>div,.milebar>div{height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--accent2),#74e1c2)}.herobottom{font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:16px 0}.stat{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}.stat .label{display:block}.stat strong{display:block;font-size:20px;margin:10px 0 5px}.stat small{color:var(--muted)}
+.two{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px}.panelhead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}.link{border:0;background:transparent;color:var(--accent);padding:5px 0}.milestones{display:flex;flex-direction:column;gap:9px}.mile{display:grid;grid-template-columns:38px 170px 1fr;align-items:center;gap:10px;padding:10px;border-radius:11px;background:#0e1c2d}.mileicon{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#172943;color:#90a3bb;font-size:12px;font-weight:800}.mile.done .mileicon{background:#15372f;color:var(--accent)}.milecopy{display:flex;flex-direction:column}.milecopy b{font-size:13px}.milecopy span{font-size:11px;color:var(--muted)}.milebar{margin:0;height:6px}.pace{border-radius:14px;padding:18px;background:#2b1c24;border:1px solid #50303a;margin:14px 0}.pace.good{background:#102d29;border-color:#1e4c42}.pacebig{font-size:22px;font-weight:850;margin-bottom:7px}.pace p{margin:0;color:#aebdcd;font-size:13px;line-height:1.55}
+.board{display:flex;flex-direction:column;gap:10px}.goalrow{display:grid;grid-template-columns:56px 1fr 180px;align-items:center;padding:17px 18px;background:#0e1b2c;border:1px solid #1d2d43;border-radius:13px}.goalrow.done{background:#0f2726;border-color:#1d4942}.goalrow span{color:var(--muted);font-size:12px}.goalrow>strong{text-align:right}
+.history{border:1px solid var(--line);border-radius:13px;overflow:hidden}.hhead,.hrow{display:grid;grid-template-columns:210px 210px 1fr;gap:12px;padding:13px 16px}.hhead{background:#112139;color:#8fa2ba;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.hrow{border-top:1px solid var(--line);font-size:13px}.hrow span{color:#a9b7c8}.empty{display:grid;place-items:center;color:var(--muted);min-height:240px;border:1px dashed #2a3b52;border-radius:14px}
+.authwrap{min-height:100vh;display:grid;place-items:center;padding:24px}.auth{width:420px;background:#0d1929;border:1px solid #253952;border-radius:22px;padding:30px;box-shadow:0 30px 100px #0007}.auth .mark{width:54px;height:54px;font-size:25px;margin-bottom:20px}.field{display:flex;flex-direction:column;gap:7px;font-size:12px;color:#a9b7c8;margin:14px 0}.field input,.field textarea,.editmile input{width:100%;background:#071320;border:1px solid #2a3a51;color:#edf4fb;border-radius:10px;padding:11px 12px;outline:none}.field textarea{min-height:90px}.field input:focus,.field textarea:focus,.editmile input:focus{border-color:var(--accent)}.notice{font-size:12px;color:#ffc1c6;background:#331e24;border:1px solid #5b3038;border-radius:9px;padding:10px;margin:12px 0}
+.modalbg{position:fixed;inset:0;background:#02070dcc;display:grid;place-items:center;z-index:20}.modal{width:560px;max-height:88vh;overflow:auto;background:#0c1828;border:1px solid #2a3d56;border-radius:20px;padding:22px;box-shadow:0 30px 100px #000a}.modal.wide{width:760px}.modalhead{display:flex;justify-content:space-between;align-items:center}.modalhead button{border:0;background:transparent;color:#8fa2ba;font-size:22px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.modalactions{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}.editmiles{display:flex;flex-direction:column;gap:9px}.editmile{display:grid;grid-template-columns:30px 1fr 180px 32px;gap:8px;align-items:center}.editmile button{border:0;background:transparent;color:#8fa2ba}.toast{position:fixed;right:28px;bottom:28px;background:#eaf7f3;color:#09251e;padding:13px 17px;border-radius:12px;font-weight:750;box-shadow:0 15px 50px #0007;z-index:30}
+@media(max-width:1100px){.shell{grid-template-columns:190px 1fr}main{padding:28px}.stats{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="auth" class="authwrap">
+  <div class="auth">
+    <div class="mark">M</div>
+    <p class="eyebrow">MADECO</p><h1>Tablero de objetivos</h1>
+    <p class="muted">El mismo objetivo, sincronizado entre las cuatro PCs.</p>
+    <div id="authNotice" class="notice hidden"></div>
+    <label class="field">Email<input id="email" type="email" autocomplete="username"/></label>
+    <label class="field">Contraseña<input id="password" type="password" minlength="6" autocomplete="current-password"/></label>
+    <button id="loginBtn" class="primary" style="width:100%;margin-top:8px">Ingresar</button>
+    <button id="signupBtn" class="link" style="width:100%;margin-top:10px">Primera vez: crear cuenta MADECO</button>
+  </div>
+</div>
+
+<div id="app" class="shell hidden">
+<aside>
+  <div class="brand"><div class="mark">M</div><div><strong>MADECO</strong><span>Objetivos</span></div></div>
+  <nav>
+    <button class="navbtn active" data-tab="dashboard">◉ &nbsp; Dashboard</button>
+    <button class="navbtn" data-tab="milestones">⚑ &nbsp; Mini objetivos</button>
+    <button class="navbtn" data-tab="history">↻ &nbsp; Historial</button>
+  </nav>
+  <div class="sidebottom"><div class="sync">☁ Sincronizado en la nube</div><button id="logoutBtn" class="logout">Salir</button></div>
+</aside>
+<main>
+<header><div><p class="eyebrow">TABLERO DE DIRECCIÓN</p><h1 id="title">Facturación MADECO</h1><p class="muted" id="dates"></p></div><div class="actions"><button id="editGoalBtn" class="secondary">Editar objetivo</button><button id="progressBtn" class="primary">+ Actualizar progreso</button></div></header>
+<section id="dashboardTab">
+  <div class="hero"><div class="herotop"><div><span class="label">PROGRESO TOTAL</span><div class="money"><strong id="currentAmount">$0</strong><span id="targetInline">de $0</span></div></div><div class="percent" id="percent">0%</div></div><div class="track"><div id="progressBar" style="width:0%"></div></div><div class="herobottom"><span>Faltan <b id="remaining">$0</b></span><span id="daysLeft">0 días restantes</span></div></div>
+  <div class="stats">
+    <div class="stat"><span class="label">Próximo hito</span><strong id="nextMilestone">—</strong><small id="nextMilestoneSub">—</small></div>
+    <div class="stat"><span class="label">Ritmo necesario / mes</span><strong id="neededMonth">—</strong><small id="neededDay">—</small></div>
+    <div class="stat"><span class="label">Fecha objetivo</span><strong id="targetDateStat">—</strong><small id="targetDateSub">—</small></div>
+    <div class="stat"><span class="label">Ritmo actual</span><strong id="actualMonth">—</strong><small id="paceText">—</small></div>
+  </div>
+  <div class="two">
+    <div class="panel"><div class="panelhead"><div><span class="label">CAMINO A LA META</span><h2>Mini objetivos</h2></div><button class="link" data-goto="milestones">Ver todos</button></div><div id="milestonePreview" class="milestones"></div></div>
+    <div class="panel"><span class="label">PROYECCIÓN</span><h2>¿Cómo venimos?</h2><div id="paceBox" class="pace"><div id="paceBig" class="pacebig">Sin historial suficiente</div><p id="paceDesc">Agregá avances para medir el ritmo real.</p></div></div>
+  </div>
+</section>
+<section id="milestonesTab" class="hidden"><div class="panel"><div class="panelhead"><div><span class="label">CAMINO A LA META</span><h2>Mini objetivos</h2></div><button id="editMilestonesBtn" class="secondary">Editar mini objetivos</button></div><div id="milestoneBoard" class="board"></div></div></section>
+<section id="historyTab" class="hidden"><div class="panel"><div class="panelhead"><div><span class="label">REGISTRO</span><h2>Historial de avances</h2></div><button id="progressBtn2" class="primary">+ Actualizar progreso</button></div><div id="historyTable"></div></div></section>
+</main>
+</div>
+
+<div id="goalModal" class="modalbg hidden"><div class="modal"><div class="modalhead"><h2>Editar objetivo</h2><button data-close="goalModal">×</button></div>
+<div class="formgrid"><label class="field">Nombre<input id="gTitle"/></label><label class="field">Objetivo final<input id="gTarget" type="number" min="1"/></label><label class="field">Monto inicial<input id="gStartAmount" type="number" min="0"/></label><label class="field">Monto actual<input id="gCurrent" type="number" min="0"/></label><label class="field">Fecha inicio<input id="gStartDate" type="date"/></label><label class="field">Fecha objetivo<input id="gTargetDate" type="date"/></label></div>
+<div class="modalactions"><button class="secondary" data-close="goalModal">Cancelar</button><button id="saveGoalBtn" class="primary">Guardar</button></div></div></div>
+
+<div id="progressModal" class="modalbg hidden"><div class="modal"><div class="modalhead"><h2>Actualizar progreso</h2><button data-close="progressModal">×</button></div>
+<label class="field">Monto actual<input id="pAmount" type="number" min="0"/></label><label class="field">Nota<textarea id="pNote" placeholder="Ej.: cerramos una venta importante"></textarea></label>
+<div class="modalactions"><button class="secondary" data-close="progressModal">Cancelar</button><button id="saveProgressBtn" class="primary">Guardar avance</button></div></div></div>
+
+<div id="mileModal" class="modalbg hidden"><div class="modal wide"><div class="modalhead"><h2>Editar mini objetivos</h2><button data-close="mileModal">×</button></div><div id="mileEditor" class="editmiles"></div><button id="addMileBtn" class="secondary" style="margin-top:12px">+ Agregar mini objetivo</button><div class="modalactions"><button class="secondary" data-close="mileModal">Cancelar</button><button id="saveMileBtn" class="primary">Guardar mini objetivos</button></div></div></div>
+<div id="toast" class="toast hidden"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const SUPABASE_URL='https://zfjvnwtmakxdkqgyrjek.supabase.co';
+const SUPABASE_KEY='sb_publishable_F4cY4-NWL4nOJx6fR0lEzQ_RB0MMTvI';
+const sb=createClient(SUPABASE_URL,SUPABASE_KEY);
+let state={session:null,goal:null,milestones:[],history:[],channel:null,tab:'dashboard'};
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(Number(n||0));
+const fmt=s=>s?new Intl.DateTimeFormat('es-AR',{day:'2-digit',month:'short',year:'numeric'}).format(new Date(s+'T12:00:00')):'—';
+const days=(a,b)=>Math.max(0,Math.ceil((new Date(b)-new Date(a))/86400000));
+function toast(t){const e=$('toast');e.textContent=t;e.classList.remove('hidden');setTimeout(()=>e.classList.add('hidden'),2800)}
+function authNotice(t){const e=$('authNotice');e.textContent=t;e.classList.toggle('hidden',!t)}
+function showModal(id,show=true){$(id).classList.toggle('hidden',!show)}
+function tab(name){state.tab=name;['dashboard','milestones','history'].forEach(x=>$(x+'Tab').classList.toggle('hidden',x!==name));document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===name))}
+async function ensureGoal(){
+ const uid=state.session.user.id;
+ let q=await sb.from('goals').select('*').order('created_at',{ascending:true}).limit(1);
+ if(q.error) throw q.error;
+ if(q.data.length){state.goal=q.data[0];return}
+ const today=new Date().toISOString().slice(0,10), end=new Date();end.setFullYear(end.getFullYear()+1);
+ const ins=await sb.from('goals').insert({title:'Facturación MADECO',start_date:today,target_date:end.toISOString().slice(0,10),starting_amount:0,current_amount:0,target_amount:300000000}).select().single();
+ if(ins.error) throw ins.error; state.goal=ins.data;
+ const ms=[3000000,10000000,25000000,50000000,100000000,200000000,300000000].map((v,i)=>({goal_id:state.goal.id,label:'Meta '+(i+1),target_amount:v,sort_order:i}));
+ await sb.from('milestones').insert(ms);
+}
+async function load(){
+ await ensureGoal();
+ const [m,h]=await Promise.all([
+  sb.from('milestones').select('*').eq('goal_id',state.goal.id).order('target_amount'),
+  sb.from('progress_entries').select('*').eq('goal_id',state.goal.id).order('created_at',{ascending:false})
+ ]);
+ if(m.error)throw m.error;if(h.error)throw h.error;state.milestones=m.data||[];state.history=h.data||[];render();subscribe();
+}
+function subscribe(){
+ if(state.channel) sb.removeChannel(state.channel);
+ state.channel=sb.channel('madeco-'+state.goal.id).on('postgres_changes',{event:'*',schema:'public',table:'goals',filter:'id=eq.'+state.goal.id},reload).on('postgres_changes',{event:'*',schema:'public',table:'milestones',filter:'goal_id=eq.'+state.goal.id},reload).on('postgres_changes',{event:'*',schema:'public',table:'progress_entries',filter:'goal_id=eq.'+state.goal.id},reload).subscribe();
+}
+async function reload(){const g=await sb.from('goals').select('*').eq('id',state.goal.id).single();if(!g.error)state.goal=g.data;const m=await sb.from('milestones').select('*').eq('goal_id',state.goal.id).order('target_amount');if(!m.error)state.milestones=m.data;const h=await sb.from('progress_entries').select('*').eq('goal_id',state.goal.id).order('created_at',{ascending:false});if(!h.error)state.history=h.data;render()}
+function render(){
+ const g=state.goal;if(!g)return;
+ $('title').textContent=g.title;$('dates').textContent='Del '+fmt(g.start_date)+' al '+fmt(g.target_date);
+ const progress=Math.min(100,Math.max(0,Number(g.current_amount)/Math.max(1,Number(g.target_amount))*100));const rem=Math.max(0,Number(g.target_amount)-Number(g.current_amount));
+ const today=new Date().toISOString().slice(0,10), total=Math.max(1,days(g.start_date,g.target_date)), elapsed=Math.min(total,days(g.start_date,today)), left=days(today,g.target_date), needDay=left?rem/left:rem, needMonth=needDay*30.4375, gain=Number(g.current_amount)-Number(g.starting_amount), actualDay=elapsed?gain/elapsed:0, actualMonth=actualDay*30.4375, paceOk=elapsed>0&&actualDay>=needDay;
+ $('currentAmount').textContent=money(g.current_amount);$('targetInline').textContent='de '+money(g.target_amount);$('percent').textContent=(progress<10?progress.toFixed(1):progress.toFixed(0))+'%';$('progressBar').style.width=progress+'%';$('remaining').textContent=money(rem);$('daysLeft').textContent=left.toLocaleString('es-AR')+' días restantes';
+ const next=state.milestones.find(m=>Number(g.current_amount)<Number(m.target_amount));$('nextMilestone').textContent=next?money(next.target_amount):'Objetivo alcanzado';$('nextMilestoneSub').textContent=next?money(Math.max(0,Number(next.target_amount)-Number(g.current_amount)))+' por recorrer':'¡Meta completa!';
+ $('neededMonth').textContent=money(needMonth);$('neededDay').textContent=money(needDay)+' por día';$('targetDateStat').textContent=fmt(g.target_date);$('targetDateSub').textContent=left+' días disponibles';$('actualMonth').textContent=elapsed?money(actualMonth):'Sin historial';$('paceText').textContent=elapsed?(paceOk?'Por encima del ritmo necesario':'Por debajo del ritmo necesario'):'Agregá un avance para medirlo';
+ $('paceBox').classList.toggle('good',paceOk);$('paceBig').textContent=elapsed?(paceOk?'Ritmo saludable':'Hay que acelerar'):'Sin historial suficiente';$('paceDesc').textContent=elapsed?(paceOk?'El avance registrado supera el ritmo necesario para la fecha objetivo.':'El ritmo actual está por debajo del necesario. El tablero irá recalculando cuánto hace falta acelerar.'):'Agregá avances para medir el ritmo real.';
+ const preview=state.milestones.slice(0,6).map((m,i)=>{const done=Number(g.current_amount)>=Number(m.target_amount), pct=Math.min(100,Number(g.current_amount)/Math.max(1,Number(m.target_amount))*100);return '<div class="mile '+(done?'done':'')+'"><div class="mileicon">'+(done?'✓':(i+1))+'</div><div class="milecopy"><b>'+escapeHtml(m.label)+'</b><span>'+money(m.target_amount)+'</span></div><div class="milebar"><div style="width:'+pct+'%"></div></div></div>'}).join('');
+ $('milestonePreview').innerHTML=preview||'<div class="empty">Todavía no hay mini objetivos.</div>';
+ $('milestoneBoard').innerHTML=state.milestones.map((m,i)=>{const done=Number(g.current_amount)>=Number(m.target_amount);return '<div class="goalrow '+(done?'done':'')+'"><div>'+(done?'✓':'0'+(i+1))+'</div><div><b>'+escapeHtml(m.label)+'</b><span>'+(done?'Completado':'Pendiente')+'</span></div><strong>'+money(m.target_amount)+'</strong></div>'}).join('')||'<div class="empty">Todavía no hay mini objetivos.</div>';
+ $('historyTable').innerHTML=state.history.length?'<div class="history"><div class="hhead"><div>Fecha</div><div>Monto</div><div>Nota</div></div>'+state.history.map(h=>'<div class="hrow"><div>'+new Intl.DateTimeFormat('es-AR',{dateStyle:'medium',timeStyle:'short'}).format(new Date(h.created_at))+'</div><strong>'+money(h.amount)+'</strong><span>'+escapeHtml(h.note||'—')+'</span></div>').join('')+'</div>':'<div class="empty">Todavía no hay avances registrados.</div>';
+}
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+async function login(){authNotice('');const email=$('email').value.trim(),password=$('password').value;const r=await sb.auth.signInWithPassword({email,password});if(r.error){authNotice(r.error.message);return}state.session=r.data.session;await enter()}
+async function signup(){authNotice('');const email=$('email').value.trim(),password=$('password').value;if(!email||password.length<6){authNotice('Ingresá un email y una contraseña de al menos 6 caracteres.');return}const r=await sb.auth.signUp({email,password});if(r.error){authNotice(r.error.message);return}if(!r.data.session){authNotice('Cuenta creada. Revisá tu email para confirmarla y después ingresá.');return}state.session=r.data.session;await enter()}
+async function enter(){$('auth').classList.add('hidden');$('app').classList.remove('hidden');await load()}
+$('loginBtn').onclick=()=>login().catch(e=>authNotice(e.message));$('signupBtn').onclick=()=>signup().catch(e=>authNotice(e.message));$('logoutBtn').onclick=async()=>{await sb.auth.signOut();location.reload()};
+document.querySelectorAll('.navbtn').forEach(b=>b.onclick=()=>tab(b.dataset.tab));document.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>tab(b.dataset.goto));document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>showModal(b.dataset.close,false));
+function openGoal(){const g=state.goal;$('gTitle').value=g.title;$('gTarget').value=g.target_amount;$('gStartAmount').value=g.starting_amount;$('gCurrent').value=g.current_amount;$('gStartDate').value=g.start_date;$('gTargetDate').value=g.target_date;showModal('goalModal')}
+$('editGoalBtn').onclick=openGoal;$('saveGoalBtn').onclick=async()=>{const upd={title:$('gTitle').value.trim()||'Facturación MADECO',target_amount:Number($('gTarget').value),starting_amount:Number($('gStartAmount').value),current_amount:Number($('gCurrent').value),start_date:$('gStartDate').value,target_date:$('gTargetDate').value,updated_at:new Date().toISOString()};if(upd.target_amount<=0){toast('El objetivo debe ser mayor a cero');return}const r=await sb.from('goals').update(upd).eq('id',state.goal.id).select().single();if(r.error){toast(r.error.message);return}state.goal=r.data;showModal('goalModal',false);render();toast('Objetivo actualizado')};
+function openProgress(){$('pAmount').value=state.goal.current_amount;$('pNote').value='';showModal('progressModal')}
+$('progressBtn').onclick=openProgress;$('progressBtn2').onclick=openProgress;$('saveProgressBtn').onclick=async()=>{const amount=Number($('pAmount').value),note=$('pNote').value.trim();if(Number.isNaN(amount)||amount<0){toast('Ingresá un monto válido');return}const a=await sb.from('progress_entries').insert({goal_id:state.goal.id,amount,note});if(a.error){toast(a.error.message);return}const g=await sb.from('goals').update({current_amount:amount,updated_at:new Date().toISOString()}).eq('id',state.goal.id);if(g.error){toast(g.error.message);return}showModal('progressModal',false);toast('Progreso actualizado');await reload()};
+function renderEditor(){ $('mileEditor').innerHTML=state.milestones.map((m,i)=>'<div class="editmile" data-i="'+i+'"><span>'+(i+1)+'</span><input class="mlabel" value="'+escapeHtml(m.label)+'"/><input class="mamount" type="number" min="0" value="'+Number(m.target_amount)+'"/><button class="mdelete">×</button></div>').join('');document.querySelectorAll('.mdelete').forEach(b=>b.onclick=()=>{const i=Number(b.parentElement.dataset.i);state.milestones.splice(i,1);renderEditor()})}
+$('editMilestonesBtn').onclick=()=>{renderEditor();showModal('mileModal')};$('addMileBtn').onclick=()=>{state.milestones.push({label:'Nuevo hito',target_amount:Number(state.goal.current_amount)});renderEditor()};
+$('saveMileBtn').onclick=async()=>{const rows=[...document.querySelectorAll('.editmile')].map((r,i)=>({goal_id:state.goal.id,label:r.querySelector('.mlabel').value.trim()||('Meta '+(i+1)),target_amount:Number(r.querySelector('.mamount').value),sort_order:i})).sort((a,b)=>a.target_amount-b.target_amount);const d=await sb.from('milestones').delete().eq('goal_id',state.goal.id);if(d.error){toast(d.error.message);return}if(rows.length){const ins=await sb.from('milestones').insert(rows);if(ins.error){toast(ins.error.message);return}}showModal('mileModal',false);toast('Mini objetivos guardados');await reload()};
+const s=await sb.auth.getSession();if(s.data.session){state.session=s.data.session;await enter()}
+</script>
+</body></html>
