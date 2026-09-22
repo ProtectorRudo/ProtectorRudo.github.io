@@ -23,6 +23,46 @@ h1,h2,p{margin-top:0}h1{font-size:30px;margin-bottom:7px}h2{font-size:20px;margi
 .authwrap{min-height:100vh;display:grid;place-items:center;padding:24px}.auth{width:420px;background:#0d1929;border:1px solid #253952;border-radius:22px;padding:30px;box-shadow:0 30px 100px #0007}.auth .mark{width:54px;height:54px;font-size:25px;margin-bottom:20px}.field{display:flex;flex-direction:column;gap:7px;font-size:12px;color:#a9b7c8;margin:14px 0}.field input,.field textarea,.editmile input{width:100%;background:#071320;border:1px solid #2a3a51;color:#edf4fb;border-radius:10px;padding:11px 12px;outline:none}.field textarea{min-height:90px}.field input:focus,.field textarea:focus,.editmile input:focus{border-color:var(--accent)}.notice{font-size:12px;color:#ffc1c6;background:#331e24;border:1px solid #5b3038;border-radius:9px;padding:10px;margin:12px 0}
 .modalbg{position:fixed;inset:0;background:#02070dcc;display:grid;place-items:center;z-index:20}.modal{width:560px;max-height:88vh;overflow:auto;background:#0c1828;border:1px solid #2a3d56;border-radius:20px;padding:22px;box-shadow:0 30px 100px #000a}.modal.wide{width:760px}.modalhead{display:flex;justify-content:space-between;align-items:center}.modalhead button{border:0;background:transparent;color:#8fa2ba;font-size:22px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.modalactions{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}.editmiles{display:flex;flex-direction:column;gap:9px}.editmile{display:grid;grid-template-columns:30px 1fr 180px 32px;gap:8px;align-items:center}.editmile button{border:0;background:transparent;color:#8fa2ba}.toast{position:fixed;right:28px;bottom:28px;background:#eaf7f3;color:#09251e;padding:13px 17px;border-radius:12px;font-weight:750;box-shadow:0 15px 50px #0007;z-index:30}
 @media(max-width:1100px){.shell{grid-template-columns:190px 1fr}main{padding:28px}.stats{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
+
+/* MADECO light theme v0.5 */
+:root{color:#17324d;background:#f5f7fb;--bg:#f5f7fb;--panel:#ffffff;--panel2:#f8fbff;--line:#d9e2ec;--text:#17324d;--muted:#6f8398;--accent:#29b388;--accent2:#1d9d76;--danger:#d45061}
+body{background:radial-gradient(circle at top right,rgba(41,179,136,.08),transparent 28%),linear-gradient(180deg,#fbfdff,#f4f7fb 45%,#eef3f8 100%);color:var(--text)}
+aside{background:#fff;border-right-color:var(--line);box-shadow:8px 0 24px rgba(17,38,63,.03)}
+nav .navbtn,.logout{color:var(--muted)}
+nav .navbtn:hover,nav .navbtn.active,.logout:hover{background:#eff6fb;color:var(--text)}
+.primary{background:var(--accent);color:#fff}.primary:hover{background:#1d9d76}
+.secondary{background:#fff;color:var(--text);border-color:#c8d5e3}.secondary:hover{background:#f7fafc}
+.hero,.panel,.stat,.auth,.modal{background:#fff;border-color:var(--line);box-shadow:0 14px 40px rgba(17,38,63,.08)}
+.hero{background:#fff}
+.money span,.herobottom,.muted,.stat small{color:var(--muted)}
+.percent,.link{color:#1d9d76}
+.track,.milebar{background:#e8eef4}
+.track>div,.milebar>div{background:linear-gradient(90deg,#73e0bf,#29b388)}
+.stat{background:#fff}
+.mile,.goalrow{background:#f8fbff;border:1px solid #e4edf5}
+.mileicon{background:#e9f1f8;color:#64809c}
+.mile.done .mileicon{background:#e8faf4;color:#1d9d76}
+.goalrow.done{background:#e8faf4;border-color:#bde6d8}
+.pace{background:#fff1f3;border-color:#efc8cf}.pace.good{background:#e8faf4;border-color:#bde6d8}
+.pace p{color:#49627a}
+.hhead{background:#f5f8fc;color:#7d92a8}.hrow{border-top-color:var(--line)}.hrow span{color:#577087}
+.empty{background:#fbfdff;border-color:#c8d5e3;color:var(--muted)}
+.authwrap{background:transparent}.auth{background:#fff}.field{color:#62788f}
+.field input,.field textarea,.editmile input{background:#fff;border-color:#c8d5e3;color:var(--text)}
+.field input:focus,.field textarea:focus,.editmile input:focus{border-color:#29b388;box-shadow:0 0 0 3px rgba(41,179,136,.12)}
+.notice{color:#d45061;background:#fff1f3;border-color:#efc8cf}
+.modalbg{background:rgba(15,23,42,.22);backdrop-filter:blur(4px)}
+.modal{background:#fff}.modalhead button,.editmile button{color:#8ca0b3}
+.toast{background:#153b2f;color:#fff}
+.summarygrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}
+.focuscard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 14px 40px rgba(17,38,63,.08)}
+.focuscard strong{display:block;font-size:28px;margin:8px 0 6px;color:var(--text)}
+.focuscard small{color:var(--muted)}
+.focuscard.good{background:#e8faf4;border-color:#bde6d8}.focuscard.warn{background:#fff8e8;border-color:#f0d37a}.focuscard.neutral{background:#f4fbf8;border-color:#c7e8da}
+.summarychip{display:inline-flex;align-items:center;gap:8px;background:#f8fbff;border:1px solid var(--line);color:var(--text);border-radius:999px;padding:8px 12px;font-size:13px;margin-top:10px}
+.summarychip b{color:#1d9d76}
+@media(max-width:1100px){.summarygrid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -58,12 +98,24 @@ h1,h2,p{margin-top:0}h1{font-size:30px;margin-bottom:7px}h2{font-size:20px;margi
     <div class="stat"><span class="label">Fecha objetivo</span><strong id="targetDateStat">—</strong><small id="targetDateSub">—</small></div>
     <div class="stat"><span class="label">Ritmo actual</span><strong id="actualMonth">—</strong><small id="paceText">—</small></div>
   </div>
+  <div class="summarygrid">
+    <div class="focuscard">
+      <span class="label">Subtotal de mini objetivos</span>
+      <strong id="milestonesSubtotal">$0</strong>
+      <small>Suma de todos los mini objetivos cargados.</small>
+    </div>
+    <div id="subtotalDiffCard" class="focuscard neutral">
+      <span class="label">Diferencia vs objetivo grande</span>
+      <strong id="subtotalDiff">Exacto</strong>
+      <small id="subtotalDiffText">Comparación entre el subtotal y el objetivo principal.</small>
+    </div>
+  </div>
   <div class="two">
-    <div class="panel"><div class="panelhead"><div><span class="label">CAMINO A LA META</span><h2>Mini objetivos</h2></div><button class="link" data-goto="milestones">Ver todos</button></div><div id="milestonePreview" class="milestones"></div></div>
+    <div class="panel"><div class="panelhead"><div><span class="label">CAMINO A LA META</span><h2>Mini objetivos</h2><div class="summarychip"><span>Subtotal</span><b id="milestonesSubtotalDash">$0</b></div></div><button class="link" data-goto="milestones">Ver todos</button></div><div id="milestonePreview" class="milestones"></div></div>
     <div class="panel"><span class="label">PROYECCIÓN</span><h2>¿Cómo venimos?</h2><div id="paceBox" class="pace"><div id="paceBig" class="pacebig">Sin historial suficiente</div><p id="paceDesc">Agregá avances para medir el ritmo real.</p></div></div>
   </div>
 </section>
-<section id="milestonesTab" class="hidden"><div class="panel"><div class="panelhead"><div><span class="label">CAMINO A LA META</span><h2>Mini objetivos</h2></div><button id="editMilestonesBtn" class="secondary">Editar mini objetivos</button></div><div id="milestoneBoard" class="board"></div></div></section>
+<section id="milestonesTab" class="hidden"><div class="panel"><div class="panelhead"><div><span class="label">CAMINO A LA META</span><h2>Mini objetivos</h2><div class="summarychip"><span>Subtotal</span><b id="milestonesSubtotalFull">$0</b></div><div class="summarychip"><span>Diferencia vs objetivo</span><b id="milestonesDiffFull">Exacto</b></div></div><button id="editMilestonesBtn" class="secondary">Editar mini objetivos</button></div><div id="milestoneBoard" class="board"></div></div></section>
 <section id="historyTab" class="hidden"><div class="panel"><div class="panelhead"><div><span class="label">REGISTRO</span><h2>Historial de avances</h2></div><button id="progressBtn2" class="primary">+ Actualizar progreso</button></div><div id="historyTable"></div></div></section>
 </main>
 </div>
@@ -147,6 +199,18 @@ async function login(){
 }
 function render(){
  const g=state.goal;if(!g)return;
+ const milestonesSubtotal=state.milestones.reduce((sum,m)=>sum+Number(m.target_amount||0),0);
+ const subtotalVsGoal=milestonesSubtotal-Number(g.target_amount||0);
+ $('milestonesSubtotal').textContent=money(milestonesSubtotal);
+ $('milestonesSubtotalDash').textContent=money(milestonesSubtotal);
+ $('milestonesSubtotalFull').textContent=money(milestonesSubtotal);
+ const diffLabel=subtotalVsGoal===0?'Exacto':(subtotalVsGoal>0?'+ ':'- ')+money(Math.abs(subtotalVsGoal));
+ $('subtotalDiff').textContent=diffLabel;
+ $('milestonesDiffFull').textContent=diffLabel;
+ const diffCard=$('subtotalDiffCard');
+ diffCard.classList.remove('good','warn','neutral');
+ diffCard.classList.add(subtotalVsGoal===0?'neutral':subtotalVsGoal>0?'good':'warn');
+ $('subtotalDiffText').textContent=subtotalVsGoal===0?'El subtotal coincide exactamente con el objetivo principal.':subtotalVsGoal>0?'Los mini objetivos superan el objetivo grande.':'Los mini objetivos todavía están por debajo del objetivo grande.';
  $('title').textContent=g.title;$('dates').textContent='Del '+fmt(g.start_date)+' al '+fmt(g.target_date);
  const progress=Math.min(100,Math.max(0,Number(g.current_amount)/Math.max(1,Number(g.target_amount))*100));
  const rem=Math.max(0,Number(g.target_amount)-Number(g.current_amount));
