@@ -30,12 +30,11 @@ h1,h2,p{margin-top:0}h1{font-size:30px;margin-bottom:7px}h2{font-size:20px;margi
   <div class="auth">
     <div class="mark">M</div>
     <p class="eyebrow">MADECO</p><h1>Tablero de objetivos</h1>
-    <p class="muted">El mismo objetivo, sincronizado entre las cuatro PCs.</p>
+    <p class="muted">Un único tablero compartido entre las cuatro PCs.</p>
     <div id="authNotice" class="notice hidden"></div>
-    <label class="field">Email<input id="email" type="email" autocomplete="username"/></label>
-    <label class="field">Contraseña<input id="password" type="password" minlength="6" autocomplete="current-password"/></label>
-    <button id="loginBtn" class="primary" style="width:100%;margin-top:8px">Ingresar</button>
-    <button id="signupBtn" class="link" style="width:100%;margin-top:10px">Primera vez: crear cuenta MADECO</button>
+    <label class="field">Clave MADECO<input id="accessKey" type="password" autocomplete="current-password" placeholder="Ingresá la clave interna"/></label>
+    <button id="loginBtn" class="primary" style="width:100%;margin-top:8px">Entrar a MADECO</button>
+    <p class="muted" style="font-size:12px;margin-top:14px">La clave queda guardada solo en esta PC.</p>
   </div>
 </div>
 
@@ -80,71 +79,72 @@ h1,h2,p{margin-top:0}h1{font-size:30px;margin-bottom:7px}h2{font-size:20px;margi
 <div id="mileModal" class="modalbg hidden"><div class="modal wide"><div class="modalhead"><h2>Editar mini objetivos</h2><button data-close="mileModal">×</button></div><div id="mileEditor" class="editmiles"></div><button id="addMileBtn" class="secondary" style="margin-top:12px">+ Agregar mini objetivo</button><div class="modalactions"><button class="secondary" data-close="mileModal">Cancelar</button><button id="saveMileBtn" class="primary">Guardar mini objetivos</button></div></div></div>
 <div id="toast" class="toast hidden"></div>
 
-<script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-const SUPABASE_URL='https://zfjvnwtmakxdkqgyrjek.supabase.co';
-const SUPABASE_KEY='sb_publishable_F4cY4-NWL4nOJx6fR0lEzQ_RB0MMTvI';
-const sb=createClient(SUPABASE_URL,SUPABASE_KEY);
-let state={session:null,goal:null,milestones:[],history:[],channel:null,tab:'dashboard'};
+<script>
+const API='https://zfjvnwtmakxdkqgyrjek.supabase.co/functions/v1/madeco-api';
+let state={key:'',goal:null,milestones:[],history:[],tab:'dashboard',poll:null};
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(Number(n||0));
 const fmt=s=>s?new Intl.DateTimeFormat('es-AR',{day:'2-digit',month:'short',year:'numeric'}).format(new Date(s+'T12:00:00')):'—';
 const days=(a,b)=>Math.max(0,Math.ceil((new Date(b)-new Date(a))/86400000));
-function toast(t){const e=$('toast');e.textContent=t;e.classList.remove('hidden');setTimeout(()=>e.classList.add('hidden'),2800)}
+const escapeHtml=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+function toast(t){const e=$('toast');e.textContent=t;e.classList.remove('hidden');setTimeout(()=>e.classList.add('hidden'),2600)}
 function authNotice(t){const e=$('authNotice');e.textContent=t;e.classList.toggle('hidden',!t)}
 function showModal(id,show=true){$(id).classList.toggle('hidden',!show)}
 function tab(name){state.tab=name;['dashboard','milestones','history'].forEach(x=>$(x+'Tab').classList.toggle('hidden',x!==name));document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===name))}
-async function ensureGoal(){
- const uid=state.session.user.id;
- let q=await sb.from('goals').select('*').order('created_at',{ascending:true}).limit(1);
- if(q.error) throw q.error;
- if(q.data.length){state.goal=q.data[0];return}
- const today=new Date().toISOString().slice(0,10), end=new Date();end.setFullYear(end.getFullYear()+1);
- const ins=await sb.from('goals').insert({title:'Facturación MADECO',start_date:today,target_date:end.toISOString().slice(0,10),starting_amount:0,current_amount:0,target_amount:300000000}).select().single();
- if(ins.error) throw ins.error; state.goal=ins.data;
- const ms=[3000000,10000000,25000000,50000000,100000000,200000000,300000000].map((v,i)=>({goal_id:state.goal.id,label:'Meta '+(i+1),target_amount:v,sort_order:i}));
- await sb.from('milestones').insert(ms);
+async function api(method='GET',body=null){
+  const r=await fetch(API,{method,headers:{'Content-Type':'application/json','x-madeco-key':state.key},body:body?JSON.stringify(body):null,cache:'no-store'});
+  let data={}; try{data=await r.json()}catch{}
+  if(!r.ok) throw new Error(data.error||'No se pudo conectar con MADECO');
+  return data;
 }
-async function load(){
- await ensureGoal();
- const [m,h]=await Promise.all([
-  sb.from('milestones').select('*').eq('goal_id',state.goal.id).order('target_amount'),
-  sb.from('progress_entries').select('*').eq('goal_id',state.goal.id).order('created_at',{ascending:false})
- ]);
- if(m.error)throw m.error;if(h.error)throw h.error;state.milestones=m.data||[];state.history=h.data||[];render();subscribe();
+async function load(silent=false){
+  try{
+    const d=await api('GET');
+    state.goal=d.goal;state.milestones=d.milestones||[];state.history=d.history||[];
+    render();
+    if(!silent){$('auth').classList.add('hidden');$('app').classList.remove('hidden')}
+  }catch(e){
+    if(!silent) throw e;
+  }
 }
-function subscribe(){
- if(state.channel) sb.removeChannel(state.channel);
- state.channel=sb.channel('madeco-'+state.goal.id).on('postgres_changes',{event:'*',schema:'public',table:'goals',filter:'id=eq.'+state.goal.id},reload).on('postgres_changes',{event:'*',schema:'public',table:'milestones',filter:'goal_id=eq.'+state.goal.id},reload).on('postgres_changes',{event:'*',schema:'public',table:'progress_entries',filter:'goal_id=eq.'+state.goal.id},reload).subscribe();
+async function login(){
+  authNotice('');
+  const key=$('accessKey').value.trim();
+  if(!key){authNotice('Ingresá la clave MADECO.');return}
+  state.key=key;
+  try{
+    await load(false);
+    localStorage.setItem('madeco_key',key);
+    clearInterval(state.poll);state.poll=setInterval(()=>load(true),8000);
+  }catch(e){state.key='';authNotice(e.message)}
 }
-async function reload(){const g=await sb.from('goals').select('*').eq('id',state.goal.id).single();if(!g.error)state.goal=g.data;const m=await sb.from('milestones').select('*').eq('goal_id',state.goal.id).order('target_amount');if(!m.error)state.milestones=m.data;const h=await sb.from('progress_entries').select('*').eq('goal_id',state.goal.id).order('created_at',{ascending:false});if(!h.error)state.history=h.data;render()}
 function render(){
  const g=state.goal;if(!g)return;
  $('title').textContent=g.title;$('dates').textContent='Del '+fmt(g.start_date)+' al '+fmt(g.target_date);
- const progress=Math.min(100,Math.max(0,Number(g.current_amount)/Math.max(1,Number(g.target_amount))*100));const rem=Math.max(0,Number(g.target_amount)-Number(g.current_amount));
+ const progress=Math.min(100,Math.max(0,Number(g.current_amount)/Math.max(1,Number(g.target_amount))*100));
+ const rem=Math.max(0,Number(g.target_amount)-Number(g.current_amount));
  const today=new Date().toISOString().slice(0,10), total=Math.max(1,days(g.start_date,g.target_date)), elapsed=Math.min(total,days(g.start_date,today)), left=days(today,g.target_date), needDay=left?rem/left:rem, needMonth=needDay*30.4375, gain=Number(g.current_amount)-Number(g.starting_amount), actualDay=elapsed?gain/elapsed:0, actualMonth=actualDay*30.4375, paceOk=elapsed>0&&actualDay>=needDay;
  $('currentAmount').textContent=money(g.current_amount);$('targetInline').textContent='de '+money(g.target_amount);$('percent').textContent=(progress<10?progress.toFixed(1):progress.toFixed(0))+'%';$('progressBar').style.width=progress+'%';$('remaining').textContent=money(rem);$('daysLeft').textContent=left.toLocaleString('es-AR')+' días restantes';
  const next=state.milestones.find(m=>Number(g.current_amount)<Number(m.target_amount));$('nextMilestone').textContent=next?money(next.target_amount):'Objetivo alcanzado';$('nextMilestoneSub').textContent=next?money(Math.max(0,Number(next.target_amount)-Number(g.current_amount)))+' por recorrer':'¡Meta completa!';
  $('neededMonth').textContent=money(needMonth);$('neededDay').textContent=money(needDay)+' por día';$('targetDateStat').textContent=fmt(g.target_date);$('targetDateSub').textContent=left+' días disponibles';$('actualMonth').textContent=elapsed?money(actualMonth):'Sin historial';$('paceText').textContent=elapsed?(paceOk?'Por encima del ritmo necesario':'Por debajo del ritmo necesario'):'Agregá un avance para medirlo';
  $('paceBox').classList.toggle('good',paceOk);$('paceBig').textContent=elapsed?(paceOk?'Ritmo saludable':'Hay que acelerar'):'Sin historial suficiente';$('paceDesc').textContent=elapsed?(paceOk?'El avance registrado supera el ritmo necesario para la fecha objetivo.':'El ritmo actual está por debajo del necesario. El tablero irá recalculando cuánto hace falta acelerar.'):'Agregá avances para medir el ritmo real.';
- const preview=state.milestones.slice(0,6).map((m,i)=>{const done=Number(g.current_amount)>=Number(m.target_amount), pct=Math.min(100,Number(g.current_amount)/Math.max(1,Number(m.target_amount))*100);return '<div class="mile '+(done?'done':'')+'"><div class="mileicon">'+(done?'✓':(i+1))+'</div><div class="milecopy"><b>'+escapeHtml(m.label)+'</b><span>'+money(m.target_amount)+'</span></div><div class="milebar"><div style="width:'+pct+'%"></div></div></div>'}).join('');
- $('milestonePreview').innerHTML=preview||'<div class="empty">Todavía no hay mini objetivos.</div>';
+ $('milestonePreview').innerHTML=state.milestones.slice(0,6).map((m,i)=>{const done=Number(g.current_amount)>=Number(m.target_amount),pct=Math.min(100,Number(g.current_amount)/Math.max(1,Number(m.target_amount))*100);return '<div class="mile '+(done?'done':'')+'"><div class="mileicon">'+(done?'✓':(i+1))+'</div><div class="milecopy"><b>'+escapeHtml(m.label)+'</b><span>'+money(m.target_amount)+'</span></div><div class="milebar"><div style="width:'+pct+'%"></div></div></div>'}).join('')||'<div class="empty">Todavía no hay mini objetivos.</div>';
  $('milestoneBoard').innerHTML=state.milestones.map((m,i)=>{const done=Number(g.current_amount)>=Number(m.target_amount);return '<div class="goalrow '+(done?'done':'')+'"><div>'+(done?'✓':'0'+(i+1))+'</div><div><b>'+escapeHtml(m.label)+'</b><span>'+(done?'Completado':'Pendiente')+'</span></div><strong>'+money(m.target_amount)+'</strong></div>'}).join('')||'<div class="empty">Todavía no hay mini objetivos.</div>';
  $('historyTable').innerHTML=state.history.length?'<div class="history"><div class="hhead"><div>Fecha</div><div>Monto</div><div>Nota</div></div>'+state.history.map(h=>'<div class="hrow"><div>'+new Intl.DateTimeFormat('es-AR',{dateStyle:'medium',timeStyle:'short'}).format(new Date(h.created_at))+'</div><strong>'+money(h.amount)+'</strong><span>'+escapeHtml(h.note||'—')+'</span></div>').join('')+'</div>':'<div class="empty">Todavía no hay avances registrados.</div>';
 }
-function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
-async function login(){authNotice('');const email=$('email').value.trim(),password=$('password').value;const r=await sb.auth.signInWithPassword({email,password});if(r.error){authNotice(r.error.message);return}state.session=r.data.session;await enter()}
-async function signup(){authNotice('');const email=$('email').value.trim(),password=$('password').value;if(!email||password.length<6){authNotice('Ingresá un email y una contraseña de al menos 6 caracteres.');return}const r=await sb.auth.signUp({email,password});if(r.error){authNotice(r.error.message);return}if(!r.data.session){authNotice('Cuenta creada. Revisá tu email para confirmarla y después ingresá.');return}state.session=r.data.session;await enter()}
-async function enter(){$('auth').classList.add('hidden');$('app').classList.remove('hidden');await load()}
-$('loginBtn').onclick=()=>login().catch(e=>authNotice(e.message));$('signupBtn').onclick=()=>signup().catch(e=>authNotice(e.message));$('logoutBtn').onclick=async()=>{await sb.auth.signOut();location.reload()};
+$('loginBtn').onclick=login;
+$('accessKey').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
+$('logoutBtn').onclick=()=>{localStorage.removeItem('madeco_key');location.reload()};
 document.querySelectorAll('.navbtn').forEach(b=>b.onclick=()=>tab(b.dataset.tab));document.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>tab(b.dataset.goto));document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>showModal(b.dataset.close,false));
 function openGoal(){const g=state.goal;$('gTitle').value=g.title;$('gTarget').value=g.target_amount;$('gStartAmount').value=g.starting_amount;$('gCurrent').value=g.current_amount;$('gStartDate').value=g.start_date;$('gTargetDate').value=g.target_date;showModal('goalModal')}
-$('editGoalBtn').onclick=openGoal;$('saveGoalBtn').onclick=async()=>{const upd={title:$('gTitle').value.trim()||'Facturación MADECO',target_amount:Number($('gTarget').value),starting_amount:Number($('gStartAmount').value),current_amount:Number($('gCurrent').value),start_date:$('gStartDate').value,target_date:$('gTargetDate').value,updated_at:new Date().toISOString()};if(upd.target_amount<=0){toast('El objetivo debe ser mayor a cero');return}const r=await sb.from('goals').update(upd).eq('id',state.goal.id).select().single();if(r.error){toast(r.error.message);return}state.goal=r.data;showModal('goalModal',false);render();toast('Objetivo actualizado')};
+$('editGoalBtn').onclick=openGoal;
+$('saveGoalBtn').onclick=async()=>{const goal={title:$('gTitle').value.trim()||'Facturación MADECO',target_amount:Number($('gTarget').value),starting_amount:Number($('gStartAmount').value),current_amount:Number($('gCurrent').value),start_date:$('gStartDate').value,target_date:$('gTargetDate').value};if(goal.target_amount<=0){toast('El objetivo debe ser mayor a cero');return}try{await api('POST',{action:'save_goal',goal});showModal('goalModal',false);await load(true);toast('Objetivo actualizado')}catch(e){toast(e.message)}};
 function openProgress(){$('pAmount').value=state.goal.current_amount;$('pNote').value='';showModal('progressModal')}
-$('progressBtn').onclick=openProgress;$('progressBtn2').onclick=openProgress;$('saveProgressBtn').onclick=async()=>{const amount=Number($('pAmount').value),note=$('pNote').value.trim();if(Number.isNaN(amount)||amount<0){toast('Ingresá un monto válido');return}const a=await sb.from('progress_entries').insert({goal_id:state.goal.id,amount,note});if(a.error){toast(a.error.message);return}const g=await sb.from('goals').update({current_amount:amount,updated_at:new Date().toISOString()}).eq('id',state.goal.id);if(g.error){toast(g.error.message);return}showModal('progressModal',false);toast('Progreso actualizado');await reload()};
-function renderEditor(){ $('mileEditor').innerHTML=state.milestones.map((m,i)=>'<div class="editmile" data-i="'+i+'"><span>'+(i+1)+'</span><input class="mlabel" value="'+escapeHtml(m.label)+'"/><input class="mamount" type="number" min="0" value="'+Number(m.target_amount)+'"/><button class="mdelete">×</button></div>').join('');document.querySelectorAll('.mdelete').forEach(b=>b.onclick=()=>{const i=Number(b.parentElement.dataset.i);state.milestones.splice(i,1);renderEditor()})}
+$('progressBtn').onclick=openProgress;$('progressBtn2').onclick=openProgress;
+$('saveProgressBtn').onclick=async()=>{const amount=Number($('pAmount').value),note=$('pNote').value.trim();if(!Number.isFinite(amount)||amount<0){toast('Ingresá un monto válido');return}try{await api('POST',{action:'add_progress',amount,note});showModal('progressModal',false);await load(true);toast('Progreso actualizado')}catch(e){toast(e.message)}};
+function renderEditor(){$('mileEditor').innerHTML=state.milestones.map((m,i)=>'<div class="editmile" data-i="'+i+'"><span>'+(i+1)+'</span><input class="mlabel" value="'+escapeHtml(m.label)+'"/><input class="mamount" type="number" min="0" value="'+Number(m.target_amount)+'"/><button class="mdelete">×</button></div>').join('');document.querySelectorAll('.mdelete').forEach(b=>b.onclick=()=>{state.milestones.splice(Number(b.parentElement.dataset.i),1);renderEditor()})}
 $('editMilestonesBtn').onclick=()=>{renderEditor();showModal('mileModal')};$('addMileBtn').onclick=()=>{state.milestones.push({label:'Nuevo hito',target_amount:Number(state.goal.current_amount)});renderEditor()};
-$('saveMileBtn').onclick=async()=>{const rows=[...document.querySelectorAll('.editmile')].map((r,i)=>({goal_id:state.goal.id,label:r.querySelector('.mlabel').value.trim()||('Meta '+(i+1)),target_amount:Number(r.querySelector('.mamount').value),sort_order:i})).sort((a,b)=>a.target_amount-b.target_amount);const d=await sb.from('milestones').delete().eq('goal_id',state.goal.id);if(d.error){toast(d.error.message);return}if(rows.length){const ins=await sb.from('milestones').insert(rows);if(ins.error){toast(ins.error.message);return}}showModal('mileModal',false);toast('Mini objetivos guardados');await reload()};
-const s=await sb.auth.getSession();if(s.data.session){state.session=s.data.session;await enter()}
+$('saveMileBtn').onclick=async()=>{const milestones=[...document.querySelectorAll('.editmile')].map((r,i)=>({label:r.querySelector('.mlabel').value.trim()||('Meta '+(i+1)),target_amount:Number(r.querySelector('.mamount').value)})).sort((a,b)=>a.target_amount-b.target_amount);try{await api('POST',{action:'save_milestones',milestones});showModal('mileModal',false);await load(true);toast('Mini objetivos guardados')}catch(e){toast(e.message)}};
+const remembered=localStorage.getItem('madeco_key');if(remembered){state.key=remembered;$('accessKey').value=remembered;load(false).then(()=>{state.poll=setInterval(()=>load(true),8000)}).catch(()=>{localStorage.removeItem('madeco_key');state.key='';authNotice('La clave guardada ya no es válida.')})}
 </script>
 </body></html>
