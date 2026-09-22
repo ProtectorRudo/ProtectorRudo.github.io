@@ -63,6 +63,25 @@ nav .navbtn:hover,nav .navbtn.active,.logout:hover{background:#eff6fb;color:var(
 .summarychip b{color:#1d9d76}
 @media(max-width:1100px){.summarygrid{grid-template-columns:1fr}}
 
+
+/* MADECO orange theme v0.6 */
+:root{--accent:#f28c28;--accent2:#d86f0c}
+body{background:radial-gradient(circle at top right,rgba(242,140,40,.11),transparent 28%),linear-gradient(180deg,#fffdf9,#f8f6f2 45%,#f1f3f6 100%)}
+.mark{background:linear-gradient(135deg,#ffc173,#f28c28);color:#4a2600;box-shadow:0 10px 40px rgba(242,140,40,.22)}
+.primary{background:#f28c28;color:#fff}.primary:hover{background:#d86f0c}
+.percent,.link,.summarychip b{color:#d86f0c}
+.track>div,.milebar>div{background:linear-gradient(90deg,#ffc173,#f28c28)}
+.field input:focus,.field textarea:focus,.editmile input:focus{border-color:#f28c28;box-shadow:0 0 0 3px rgba(242,140,40,.14)}
+.mile.done .mileicon{background:#fff1df;color:#c86500}
+.goalrow.done{background:#fff5e9;border-color:#f4c994}
+.focuscard.good,.focuscard.neutral{background:#fff6eb;border-color:#f3c995}
+.pace.good{background:#fff6eb;border-color:#f3c995}
+.statusbtn{border:1px solid #e5b87b;background:#fff8ef;color:#9a5a13;border-radius:999px;padding:8px 12px;font-weight:800;cursor:pointer;white-space:nowrap}
+.statusbtn:hover{background:#fff0dc}
+.statusbtn.done{background:#f28c28;border-color:#f28c28;color:#fff}
+.goalrow{grid-template-columns:56px 1fr 180px 120px;gap:10px}
+@media(max-width:900px){.goalrow{grid-template-columns:46px 1fr}.goalrow>strong,.goalrow>.statusbtn{grid-column:2;text-align:left;justify-self:start}}
+
 </style>
 </head>
 <body>
@@ -174,6 +193,10 @@ async function api(method='GET',body=null){
     await rpc('madeco_save_milestones',{p_key:state.key,p_rows:body.milestones||[]});
     return {ok:true};
   }
+  if(body.action==='toggle_milestone') {
+    await rpc('madeco_toggle_milestone',{p_key:state.key,p_id:body.id,p_completed:!!body.completed});
+    return {ok:true};
+  }
   throw new Error('Acción no válida');
 }
 async function load(silent=false){
@@ -197,6 +220,13 @@ async function login(){
     clearInterval(state.poll);state.poll=setInterval(()=>load(true),8000);
   }catch(e){state.key='';authNotice(e.message)}
 }
+async function toggleMilestoneStatus(id,completed){
+  try{
+    await api('POST',{action:'toggle_milestone',id,completed});
+    await load(true);
+    toast(completed?'Mini objetivo marcado como completo':'Mini objetivo marcado como pendiente');
+  }catch(e){toast(e.message)}
+}
 function render(){
  const g=state.goal;if(!g)return;
  const milestonesSubtotal=state.milestones.reduce((sum,m)=>sum+Number(m.target_amount||0),0);
@@ -216,11 +246,12 @@ function render(){
  const rem=Math.max(0,Number(g.target_amount)-Number(g.current_amount));
  const today=new Date().toISOString().slice(0,10), total=Math.max(1,days(g.start_date,g.target_date)), elapsed=Math.min(total,days(g.start_date,today)), left=days(today,g.target_date), needDay=left?rem/left:rem, needMonth=needDay*30.4375, gain=Number(g.current_amount)-Number(g.starting_amount), actualDay=elapsed?gain/elapsed:0, actualMonth=actualDay*30.4375, paceOk=elapsed>0&&actualDay>=needDay;
  $('currentAmount').textContent=money(g.current_amount);$('targetInline').textContent='de '+money(g.target_amount);$('percent').textContent=(progress<10?progress.toFixed(1):progress.toFixed(0))+'%';$('progressBar').style.width=progress+'%';$('remaining').textContent=money(rem);$('daysLeft').textContent=left.toLocaleString('es-AR')+' días restantes';
- const next=state.milestones.find(m=>Number(g.current_amount)<Number(m.target_amount));$('nextMilestone').textContent=next?money(next.target_amount):'Objetivo alcanzado';$('nextMilestoneSub').textContent=next?money(Math.max(0,Number(next.target_amount)-Number(g.current_amount)))+' por recorrer':'¡Meta completa!';
+ const next=state.milestones.find(m=>!m.completed);$('nextMilestone').textContent=next?money(next.target_amount):'Objetivo alcanzado';$('nextMilestoneSub').textContent=next?(escapeHtml(next.label)+' · pendiente'):'¡Todos completos!';
  $('neededMonth').textContent=money(needMonth);$('neededDay').textContent=money(needDay)+' por día';$('targetDateStat').textContent=fmt(g.target_date);$('targetDateSub').textContent=left+' días disponibles';$('actualMonth').textContent=elapsed?money(actualMonth):'Sin historial';$('paceText').textContent=elapsed?(paceOk?'Por encima del ritmo necesario':'Por debajo del ritmo necesario'):'Agregá un avance para medirlo';
  $('paceBox').classList.toggle('good',paceOk);$('paceBig').textContent=elapsed?(paceOk?'Ritmo saludable':'Hay que acelerar'):'Sin historial suficiente';$('paceDesc').textContent=elapsed?(paceOk?'El avance registrado supera el ritmo necesario para la fecha objetivo.':'El ritmo actual está por debajo del necesario. El tablero irá recalculando cuánto hace falta acelerar.'):'Agregá avances para medir el ritmo real.';
- $('milestonePreview').innerHTML=state.milestones.slice(0,6).map((m,i)=>{const done=Number(g.current_amount)>=Number(m.target_amount),pct=Math.min(100,Number(g.current_amount)/Math.max(1,Number(m.target_amount))*100);return '<div class="mile '+(done?'done':'')+'"><div class="mileicon">'+(done?'✓':(i+1))+'</div><div class="milecopy"><b>'+escapeHtml(m.label)+'</b><span>'+money(m.target_amount)+'</span></div><div class="milebar"><div style="width:'+pct+'%"></div></div></div>'}).join('')||'<div class="empty">Todavía no hay mini objetivos.</div>';
- $('milestoneBoard').innerHTML=state.milestones.map((m,i)=>{const done=Number(g.current_amount)>=Number(m.target_amount);return '<div class="goalrow '+(done?'done':'')+'"><div>'+(done?'✓':'0'+(i+1))+'</div><div><b>'+escapeHtml(m.label)+'</b><span>'+(done?'Completado':'Pendiente')+'</span></div><strong>'+money(m.target_amount)+'</strong></div>'}).join('')||'<div class="empty">Todavía no hay mini objetivos.</div>';
+ $('milestonePreview').innerHTML=state.milestones.slice(0,6).map((m,i)=>{const done=!!m.completed,pct=Math.min(100,Number(g.current_amount)/Math.max(1,Number(m.target_amount))*100);return '<div class="mile '+(done?'done':'')+'"><div class="mileicon">'+(done?'✓':(i+1))+'</div><div class="milecopy"><b>'+escapeHtml(m.label)+'</b><span>'+money(m.target_amount)+' · '+(done?'Completo':'Pendiente')+'</span></div><div class="milebar"><div style="width:'+pct+'%"></div></div></div>'}).join('')||'<div class="empty">Todavía no hay mini objetivos.</div>';
+ $('milestoneBoard').innerHTML=state.milestones.map((m,i)=>{const done=!!m.completed;return '<div class="goalrow '+(done?'done':'')+'"><div>'+(done?'✓':'0'+(i+1))+'</div><div><b>'+escapeHtml(m.label)+'</b><span>'+(done?'Marcado manualmente como completo':'Pendiente')+'</span></div><strong>'+money(m.target_amount)+'</strong><button class="statusbtn '+(done?'done':'')+'" data-id="'+m.id+'" data-next="'+(!done)+'">'+(done?'Completo':'Pendiente')+'</button></div>'}).join('')||'<div class="empty">Todavía no hay mini objetivos.</div>';
+ document.querySelectorAll('.statusbtn').forEach(btn=>btn.onclick=()=>toggleMilestoneStatus(btn.dataset.id,btn.dataset.next==='true'));
  $('historyTable').innerHTML=state.history.length?'<div class="history"><div class="hhead"><div>Fecha</div><div>Monto</div><div>Nota</div></div>'+state.history.map(h=>'<div class="hrow"><div>'+new Intl.DateTimeFormat('es-AR',{dateStyle:'medium',timeStyle:'short'}).format(new Date(h.created_at))+'</div><strong>'+money(h.amount)+'</strong><span>'+escapeHtml(h.note||'—')+'</span></div>').join('')+'</div>':'<div class="empty">Todavía no hay avances registrados.</div>';
 }
 $('loginBtn').onclick=login;
@@ -233,9 +264,9 @@ $('saveGoalBtn').onclick=async()=>{const goal={title:$('gTitle').value.trim()||'
 function openProgress(){$('pAmount').value=state.goal.current_amount;$('pNote').value='';showModal('progressModal')}
 $('progressBtn').onclick=openProgress;$('progressBtn2').onclick=openProgress;
 $('saveProgressBtn').onclick=async()=>{const amount=Number($('pAmount').value),note=$('pNote').value.trim();if(!Number.isFinite(amount)||amount<0){toast('Ingresá un monto válido');return}try{await api('POST',{action:'add_progress',amount,note});showModal('progressModal',false);await load(true);toast('Progreso actualizado')}catch(e){toast(e.message)}};
-function renderEditor(){$('mileEditor').innerHTML=state.milestones.map((m,i)=>'<div class="editmile" data-i="'+i+'"><span>'+(i+1)+'</span><input class="mlabel" value="'+escapeHtml(m.label)+'"/><input class="mamount" type="number" min="0" value="'+Number(m.target_amount)+'"/><button class="mdelete">×</button></div>').join('');document.querySelectorAll('.mdelete').forEach(b=>b.onclick=()=>{state.milestones.splice(Number(b.parentElement.dataset.i),1);renderEditor()})}
-$('editMilestonesBtn').onclick=()=>{renderEditor();showModal('mileModal')};$('addMileBtn').onclick=()=>{state.milestones.push({label:'Nuevo hito',target_amount:Number(state.goal.current_amount)});renderEditor()};
-$('saveMileBtn').onclick=async()=>{const milestones=[...document.querySelectorAll('.editmile')].map((r,i)=>({label:r.querySelector('.mlabel').value.trim()||('Meta '+(i+1)),target_amount:Number(r.querySelector('.mamount').value)})).sort((a,b)=>a.target_amount-b.target_amount);try{await api('POST',{action:'save_milestones',milestones});showModal('mileModal',false);await load(true);toast('Mini objetivos guardados')}catch(e){toast(e.message)}};
+function renderEditor(){$('mileEditor').innerHTML=state.milestones.map((m,i)=>'<div class="editmile" data-i="'+i+'" data-completed="'+(!!m.completed)+'"><span>'+(i+1)+'</span><input class="mlabel" value="'+escapeHtml(m.label)+'"/><input class="mamount" type="number" min="0" value="'+Number(m.target_amount)+'"/><button class="mdelete">×</button></div>').join('');document.querySelectorAll('.mdelete').forEach(b=>b.onclick=()=>{state.milestones.splice(Number(b.parentElement.dataset.i),1);renderEditor()})}
+$('editMilestonesBtn').onclick=()=>{renderEditor();showModal('mileModal')};$('addMileBtn').onclick=()=>{state.milestones.push({label:'Nuevo hito',target_amount:Number(state.goal.current_amount),completed:false});renderEditor()};
+$('saveMileBtn').onclick=async()=>{const milestones=[...document.querySelectorAll('.editmile')].map((r,i)=>({label:r.querySelector('.mlabel').value.trim()||('Meta '+(i+1)),target_amount:Number(r.querySelector('.mamount').value),completed:r.dataset.completed==='true'})).sort((a,b)=>a.target_amount-b.target_amount);try{await api('POST',{action:'save_milestones',milestones});showModal('mileModal',false);await load(true);toast('Mini objetivos guardados')}catch(e){toast(e.message)}};
 const remembered=localStorage.getItem('madeco_key');if(remembered){state.key=remembered;$('accessKey').value=remembered;load(false).then(()=>{state.poll=setInterval(()=>load(true),8000)}).catch(()=>{localStorage.removeItem('madeco_key');state.key='';authNotice('La clave guardada ya no es válida.')})}
 </script>
 </body></html>
