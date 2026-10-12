@@ -1,0 +1,94 @@
+name: Publicar La Ultima Funcion en GitHub Pages
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publicar-la-ultima-funcion.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: la-ultima-funcion-pages-publish
+  cancel-in-progress: false
+jobs:
+  publicacion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Descargar sitio existente sin cambiar portada ni Madeco
+        uses: actions/checkout@v4
+        with:
+          path: website
+          persist-credentials: true
+      - name: Descargar rama del juego publicada en Tehiceesto
+        uses: actions/checkout@v4
+        with:
+          repository: ProtectorRudo/Tehiceesto
+          ref: juego-la-ultima-funcion
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar dependencias del juego
+        working-directory: source/games/la-ultima-funcion
+        run: npm install --no-audit --no-fund
+      - name: Compilar modelos GLB texturas PBR y React Three.js
+        working-directory: source/games/la-ultima-funcion
+        run: npm run build -- --base /la-ultima-funcion/
+      - name: Ajustar todas las rutas de modelos y materiales para la subcarpeta
+        working-directory: source/games/la-ultima-funcion
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFile,writeFile,readdir} from 'node:fs/promises';
+          const prefix='/la-ultima-funcion';
+          const file='dist/models/manifest.json';
+          const manifest=JSON.parse(await readFile(file,'utf8'));
+          for(const key of Object.keys(manifest.assets||{})){
+            const path=manifest.assets[key];
+            if(typeof path==='string'&&path.startsWith('/')) manifest.assets[key]=prefix+path;
+          }
+          for(const values of Object.values(manifest.materials||{})){
+            for(const key of Object.keys(values||{})){
+              const path=values[key];
+              if(typeof path==='string'&&path.startsWith('/')) values[key]=prefix+path;
+            }
+          }
+          await writeFile(file,JSON.stringify(manifest,null,2));
+          for(const filename of await readdir('dist/assets')){
+            if(!filename.endsWith('.js'))continue;
+            const name='dist/assets/'+filename;
+            let code=await readFile(name,'utf8');
+            code=code.replaceAll('/models/manifest.json',prefix+'/models/manifest.json');
+            await writeFile(name,code);
+          }
+          if(!manifest.assets?.usher)throw Error('Falta el actor 3D profesional');
+          console.log('Sitio listo con modelo humano',manifest.assets.usher);
+          NODE
+      - name: Publicar exclusivamente en la carpeta del escape room
+        run: |
+          rm -rf website/la-ultima-funcion
+          mkdir -p website/la-ultima-funcion
+          cp -a source/games/la-ultima-funcion/dist/. website/la-ultima-funcion/
+          touch website/.nojekyll
+          git -C website config user.name 'github-actions[bot]'
+          git -C website config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C website add la-ultima-funcion .nojekyll
+          if git -C website diff --cached --quiet; then
+            echo 'Los archivos públicos ya estaban actualizados.'
+          else
+            git -C website commit -m 'deploy: La Ultima Funcion 3D Premium'
+            git -C website push origin HEAD:main
+          fi
+      - name: Confirmar archivos y entrada HTML publicada en GitHub
+        run: |
+          test -s website/la-ultima-funcion/index.html
+          test -s website/la-ultima-funcion/models/manifest.json
+          node --input-type=module <<'NODE'
+          import {readFile} from 'node:fs/promises';
+          const html=await readFile('website/la-ultima-funcion/index.html','utf8');
+          if(!html.includes('/la-ultima-funcion/assets/'))throw Error('La base de Vite no se aplicó');
+          console.log('Verificado: /la-ultima-funcion/ con assets, manifest y HTML.');
+          NODE
