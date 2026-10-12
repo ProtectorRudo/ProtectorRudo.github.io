@@ -1,0 +1,23 @@
+{
+  "source": "Poly Haven CC0",
+  "credit": "https://polyhaven.com/license",
+  "assets": {
+    "armchair": "/la-ultima-funcion/models/armchair/ArmChair_01_1k.gltf",
+    "chandelier": "/la-ultima-funcion/models/chandelier/Chandelier_01_1k.gltf",
+    "grandfatherClock": "/la-ultima-funcion/models/grandfather_clock/vintage_grandfather_clock_01_1k.gltf",
+    "sideTable": "/la-ultima-funcion/models/side_table/side_table_tall_01_1k.gltf",
+    "mantelClock": "/la-ultima-funcion/models/mantel_clock/mantel_clock_01_1k.gltf",
+    "marbleBust": "/la-ultima-funcion/models/marble_bust/marble_bust_01_1k.gltf",
+    "projector": "/la-ultima-funcion/models/projector/filmstrip_projector_8mm_1k.gltf",
+    "victorianConsole": "/la-ultima-funcion/models/victorian_console/ClassicConsole_01_1k.gltf",
+    "ornateSideTable": "/la-ultima-funcion/models/ornate_side_table/ClassicNightstand_01_1k.gltf",
+    "usher": "/la-ultima-funcion/models/usher/usher-mobile.glb"
+  },
+  "materials": {
+    "velvet": {
+      "color": "/la-ultima-funcion/materials/velvet/color.jpg",
+      "normal": "/la-ultima-funcion/materials/velvet/normal.jpg",
+      "arm": "/la-ultima-funcion/materials/velvet/arm.jpg"
+    }
+  }
+}
