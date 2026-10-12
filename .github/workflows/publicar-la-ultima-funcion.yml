@@ -92,3 +92,17 @@ jobs:
           if(!html.includes('/la-ultima-funcion/assets/'))throw Error('La base de Vite no se aplicó');
           console.log('Verificado: /la-ultima-funcion/ con assets, manifest y HTML.');
           NODE
+
+      - name: Verificar que la versión nueva incluye la prueba de código
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFile,readdir} from 'node:fs/promises';
+          const path='website/la-ultima-funcion/assets';
+          const bundles=(await readdir(path)).filter(file=>file.endsWith('.js'));
+          const compiled=(await Promise.all(bundles.map(file=>readFile(path+'/'+file,'utf8')))).join('\\n');
+          if(!compiled.includes('Para que el proyector funcione, el tiempo es la clave'))
+            throw Error('El juego desplegado no incluye la nueva pista de enfoque');
+          if(!compiled.includes('PROBAR CÓDIGO'))
+            throw Error('El juego desplegado no incluye la prueba de combinación');
+          console.log('Pista, botón de prueba y recursos compilados verificados.');
+          NODE
