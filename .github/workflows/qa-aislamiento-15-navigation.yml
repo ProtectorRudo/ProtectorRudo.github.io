@@ -34,10 +34,9 @@ jobs:
         run: |
           node --input-type=module <<'JS'
           import assert from 'node:assert/strict';
-          import {createRequire} from 'node:module';
-          const require=createRequire(import.meta.url);
+          import {Vector3} from './source/node_modules/three/build/three.module.js';
           const {canStand,slide,findPath,clearSight}=await import('file:///tmp/isolation-navigation.mjs');
-          const vec=(x,z)=>({x,y:0,z});
+          const vec=(x,z)=>new Vector3(x,0,z);
           assert.equal(canStand(0,2.85,2,.3),false,'Urgencias bed must be solid');
           assert.equal(canStand(0,0,1,.3),true,'Main hallway must be clear');
           assert.equal(canStand(1,4.04,-12.8,.3),false,'Isolation pod must be solid');
