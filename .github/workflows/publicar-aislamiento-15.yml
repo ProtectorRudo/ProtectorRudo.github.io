@@ -1,5 +1,5 @@
 name: Publicar Aislamiento 15 en GitHub Pages
-# Revision de fuente: 7c4038ba7a0b5005d69f08011c34998f96617110
+# Revision de fuente: 8ce4e170b550151ac29b2710d491d3789a138922
 on:
   push:
     branches: [main]
@@ -105,9 +105,37 @@ jobs:
             'https://www.innerscene.com/api/library/patient-transport-stretcher-3ff4d512/download' \
             -o website/aislamiento-15/models/transport-stretcher.glb
           cp website/la-ultima-funcion/models/usher/usher-mobile.glb website/aislamiento-15/models/warden.glb
+          # Animated CC0 adult MakeHuman/MPFB with 7 genuine skeletal clips,
+          # authored by Innerscene. Optimize embedded images for mobile while
+          # leaving joints and animation streams intact (no Meshopt extension).
+          curl --fail --location --retry 3 --connect-timeout 12 --max-time 160 \
+            'https://www.innerscene.com/api/library/locomotion-collection-harper-3d-person-animated-797e1e2a/download' \
+            -o /tmp/celador-human-original.glb
+          npx --yes @gltf-transform/cli@4.5.1 resize \
+            /tmp/celador-human-original.glb /tmp/celador-human-resized.glb \
+            --width 1024 --height 1024
+          npx --yes @gltf-transform/cli@4.5.1 webp \
+            /tmp/celador-human-resized.glb website/aislamiento-15/models/warden-human.glb \
+            --quality 80
           node --input-type=module <<'JS'
           import {readFile} from 'node:fs/promises';
-          for(const name of ['hospital-bed-flat.glb','hospital-bed-raised.glb','medical-headwall.glb','supply-cart.glb','vital-monitor.glb','exam-light.glb','privacy-curtain.glb','transport-stretcher.glb','warden.glb']) {
+          const bytes=await readFile('website/aislamiento-15/models/warden-human.glb');
+          if(bytes.toString('ascii',0,4)!=='glTF')throw Error('Celador humano GLB inválido');
+          const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+          const length=view.getUint32(12,true);
+          const type=view.getUint32(16,true);
+          if(type!==0x4e4f534a)throw Error('Modelo GLB carece de chunk JSON');
+          const json=JSON.parse(new TextDecoder().decode(bytes.subarray(20,20+length)));
+          if(!json.skins?.length||!json.animations?.length||json.animations.length<3)
+            throw Error('Celador GLB no conserva esqueleto y clips múltiples');
+          if(bytes.length>10000000)
+            throw Error('Modelo humano excede presupuesto móvil de 10MB');
+          console.log('Celador premium:',json.skins.length,'skeleton(s),',
+            json.animations.length,'animation clips,',Math.round(bytes.length/1024),'KB');
+          JS
+          node --input-type=module <<'JS'
+          import {readFile} from 'node:fs/promises';
+          for(const name of ['hospital-bed-flat.glb','hospital-bed-raised.glb','medical-headwall.glb','supply-cart.glb','vital-monitor.glb','exam-light.glb','privacy-curtain.glb','transport-stretcher.glb','warden.glb','warden-human.glb']) {
             const bytes=await readFile('website/aislamiento-15/models/'+name);
             if(bytes.toString('ascii',0,4)!=='glTF'||bytes.length<20000)throw Error('GLB corrupto: '+name);
             if(bytes.length>12000000)throw Error('GLB demasiado pesado: '+name);
@@ -124,6 +152,7 @@ jobs:
           test -s website/aislamiento-15/models/hospital-bed-flat.glb
           test -s website/aislamiento-15/models/medical-headwall.glb
           test -s website/aislamiento-15/models/warden.glb
+          test -s website/aislamiento-15/models/warden-human.glb
           test -s website/aislamiento-15/models/supply-cart.glb
           test -s website/aislamiento-15/models/vital-monitor.glb
           node --input-type=module <<'JS'
