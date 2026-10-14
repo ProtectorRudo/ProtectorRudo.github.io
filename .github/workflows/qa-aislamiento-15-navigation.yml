@@ -1,5 +1,5 @@
 name: Aislamiento 15 - Stalker nav and collisions
-# Regression gate for physical obstacles and door transitions.
+# Regression gate for physical obstacles, gas station and door transitions, Oct 14 2026.
 on:
   push:
     branches: [main]
@@ -44,7 +44,7 @@ jobs:
           assert.equal(canStand(0,0,-6.37,.3),true,'Doorway must be reachable');
           assert.equal(canStand(0,2.5,-6.37,.3),false,'Wall beside door must block player');
           const tests=[
-            [1,vec(-3.4,-17.3),vec(-3.6,-8.3)],
+            [1,vec(-1.5,-17.3),vec(-3.6,-8.3)],
             [2,vec(0,-22.7),vec(-3.8,-30.95)],
             [0,vec(0,3),vec(-2.3,-4)]
           ];
