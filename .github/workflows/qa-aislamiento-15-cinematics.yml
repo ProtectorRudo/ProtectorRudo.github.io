@@ -1,5 +1,5 @@
 name: Aislamiento 15 - Visual audit of all 3D chambers
-# Cinematic audit: batched-helix-console-20261014
+# Cinematic audit: optimized-controls-side-oxygen-20261014
 on:
   push:
     branches: [main]
@@ -109,7 +109,7 @@ jobs:
               // Instrumented test camera is separate from the published experience.
               for(const detail of [
                 {name:'triage-terminal',index:0,x:-2.82,z:4.5,t:135},
-                {name:'oxygen-regulator',index:1,x:-.12,z:-16.1,t:380},
+                {name:'oxygen-regulator',index:1,x:-2.9,z:-14.95,t:380},
                 {name:'containment-switchboard',index:2,x:3.7,z:-22.4,t:720}
               ]) {
                 await page.evaluate(({index,x,z,t})=>{
