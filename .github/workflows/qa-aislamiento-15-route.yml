@@ -1,0 +1,126 @@
+name: Aislamiento 15 - full 3-room gameplay QA
+# Changed gameplay: 7cd698d65cfbfeaba616f612bb8effae5bd72a19
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/qa-aislamiento-15-route.yml'
+permissions:
+  contents: read
+jobs:
+  full-escape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ProtectorRudo/viralio
+          path: source
+      - uses: actions/checkout@v4
+        with:
+          path: website
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+      - name: Install exact dependencies
+        working-directory: source
+        run: npm ci --no-audit --no-fund
+      - name: Validate TypeScript
+        working-directory: source
+        run: npm run typecheck
+      - name: Install Chromium
+        working-directory: source
+        run: npx playwright install --with-deps chromium
+      - name: Compile private test-only instrumented game
+        run: |
+          mkdir -p isolation-qa-site/aislamiento-15/models
+          cp website/aislamiento-15/models/*.glb isolation-qa-site/aislamiento-15/models/
+          node --input-type=module <<'NODE'
+          import {readFile,writeFile} from 'node:fs/promises';
+          const name='source/src/app/aislamiento-15/IsolationGame.tsx';
+          const original=await readFile(name,'utf8');
+          const anchor='    worldRef.current = world;';
+          if(!original.includes(anchor))throw Error('Runtime test injection target changed');
+          const instrumented=original.replace(anchor,anchor+'\n    (window as any).__isoWorld = world;\n    (window as any).__isoAct = interactWith;');
+          await writeFile('source/src/app/aislamiento-15/IsolationGame.qa.tsx',instrumented);
+          await writeFile('source/isolation-qa-entry.tsx',[
+            'import React from "react";',
+            'import { createRoot } from "react-dom/client";',
+            'import IsolationGame from "./src/app/aislamiento-15/IsolationGame.qa";',
+            'createRoot(document.getElementById("root")!).render(<IsolationGame />);'
+          ].join('\n'));
+          NODE
+          cd source
+          npx --yes esbuild@0.25.10 isolation-qa-entry.tsx --bundle --format=esm --target=es2022 --minify --outdir=../isolation-qa-site/aislamiento-15
+          cat > ../isolation-qa-site/aislamiento-15/index.html <<'HTML'
+          <!DOCTYPE html>
+          <html lang="es"><head>
+          <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+          <title>Aislamiento test, not production</title><link rel="stylesheet" href="./isolation-qa-entry.css">
+          <script type="module" src="./isolation-qa-entry.js"></script></head><body style="margin:0"><div id="root"></div></body></html>
+          HTML
+      - name: Solve actual UI gameplay through all chambers
+        run: |
+          python3 -m http.server 8878 --directory isolation-qa-site >/tmp/isolation-qa-http.log 2>&1 &
+          cat > source/isolation-run-through.mjs <<'JS'
+          import assert from 'node:assert/strict';
+          import {chromium} from 'playwright';
+          const browser=await chromium.launch({headless:true,args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+          let page;
+          try {
+            page=await browser.newPage({viewport:{width:1100,height:760}});
+            const pageErrors=[];
+            page.on('pageerror',e=>pageErrors.push(e.message));
+            await page.goto('http://127.0.0.1:8878/aislamiento-15/',{waitUntil:'domcontentloaded'});
+            await page.waitForFunction(() => !!window.__isoWorld && !!window.__isoAct,{timeout:30000});
+            await page.getByRole('button',{name:/COMENZAR AISLAMIENTO/}).click();
+            async function invoke(...ids) {return page.evaluate(ids=>{for(const id of ids)window.__isoAct(id);},ids);}
+            async function snapshot(){return page.evaluate(()=>{const w=window.__isoWorld; return {
+              room:w.room,hasFuse:w.hasFuse,fusePlaced:w.fusePlaced,hasBadge:w.hasBadge,readTriage:w.readTriage,
+              relays:[...w.relays],firstDoor:w.firstDoor,oxygenCells:[...w.oxygenCells],oxygenInstalled:w.oxygenInstalled,
+              valves:[...w.valves],secondDoor:w.secondDoor,foundLog:w.foundLog,breakers:[...w.breakers],won:w.won
+            };});}
+            await invoke('fuse','fusebox','badge','triage');
+            await page.getByRole('button',{name:/MEMORIZAR PRIORIDADES/}).click();
+            await invoke('relay-0');
+            assert.equal((await snapshot()).relays.length,0,'Wrong relay should reset sequence');
+            await invoke('relay-1','relay-0','relay-2');
+            assert.deepEqual((await snapshot()).relays,[1,0,2]);
+            await invoke('terminal');
+            await page.getByRole('button',{name:'4',exact:true}).click();
+            await page.getByRole('button',{name:'2',exact:true}).click();
+            await page.getByRole('button',{name:'7',exact:true}).click();
+            await page.getByRole('button',{name:'CONFIRMAR'}).click();
+            assert.equal((await snapshot()).firstDoor,true);
+            await page.evaluate(()=>{
+              const w=window.__isoWorld;w.player.set(0,1.64,-6.28);w.keys.add('KeyW');
+              w.tick(.05,150,.2);w.keys.delete('KeyW');
+            });
+            await page.getByText('AISLAMIENTO',{exact:true}).first().waitFor();
+            assert.equal((await snapshot()).room,1,'Transition to isolation');
+            await invoke('cell-alpha','cell-beta','regulator');
+            assert.equal((await snapshot()).oxygenInstalled,true);
+            await invoke('valve-blue','valve-green','valve-red','extractor');
+            assert.equal((await snapshot()).secondDoor,true);
+            await page.evaluate(()=>{
+              const w=window.__isoWorld;w.player.set(0,1.64,-19.28);w.keys.add('KeyW');
+              w.tick(.05,430,.48);w.keys.delete('KeyW');
+            });
+            assert.equal((await snapshot()).room,2,'Transition to containment');
+            await invoke('log');
+            await page.getByRole('button',{name:/HE ENTENDIDO/}).click();
+            await invoke('breaker-0','breaker-2');
+            assert.deepEqual((await snapshot()).breakers,[true,false,true]);
+            await invoke('speaker');
+            await page.getByRole('button',{name:/RECHAZAR COMUNICACIÓN/}).click();
+            await invoke('escape');
+            assert.equal((await snapshot()).won,true,'Evacuation should succeed');
+            await page.getByRole('heading',{name:/ESTÁS/}).waitFor();
+            assert.deepEqual(pageErrors,[],'No JavaScript runtime errors');
+            console.log('PASS: full route Urgencias -> Aislamiento -> Contención -> evacuación; physical puzzles and logic verified');
+          } finally {await browser.close();}
+          JS
+          node source/isolation-run-through.mjs
