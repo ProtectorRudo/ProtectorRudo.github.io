@@ -153,5 +153,16 @@ jobs:
             echo 'La versión pública ya está actualizada.'
           else
             git -C website commit -m 'deploy: Aislamiento 15 escape room Three.js premium'
-            git -C website push origin HEAD:main
+            # Another workflow may commit to main during this build. Rebase rather than
+            # force-push: preserve every other escape room and the Pages settings.
+            for attempt in 1 2 3 4; do
+              git -C website fetch origin main
+              git -C website rebase origin/main
+              if git -C website push origin HEAD:main; then
+                echo 'Deployment published safely at attempt' "$attempt"
+                break
+              fi
+              if [ "$attempt" -eq 4 ]; then exit 1; fi
+              sleep 2
+            done
           fi
