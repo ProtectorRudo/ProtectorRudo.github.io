@@ -1,5 +1,5 @@
 name: Publicar Aislamiento 15 en GitHub Pages
-# Revision de fuente: 9850d06c179d23e25046e431cbd478077ecae23e
+# Revision de fuente: 9b07a5f7914f528e25bf55ff204136c63a3f39e8
 on:
   push:
     branches: [main]
