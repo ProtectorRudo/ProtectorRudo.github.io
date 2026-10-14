@@ -1,5 +1,5 @@
 name: Aislamiento 15 - Visual audit of all 3D chambers
-# Cinematic audit: puzzle-closeups-20261014
+# Cinematic audit: correctly-oriented-instruments-20261014
 on:
   push:
     branches: [main]
