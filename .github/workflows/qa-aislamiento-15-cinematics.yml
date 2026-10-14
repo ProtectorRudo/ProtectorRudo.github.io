@@ -1,5 +1,5 @@
 name: Aislamiento 15 - Visual audit of all 3D chambers
-# Cinematic audit: b1b59f3f1a2f9ce7116c0b1f8126229f0dbab4a2
+# Cinematic audit: closeup-celador-20261014
 on:
   push:
     branches: [main]
@@ -105,7 +105,26 @@ jobs:
                 console.log('AUDIT_CAPTURE_'+config.name.toUpperCase()+'_'+room.name.toUpperCase()+'='+img.toString('base64'));
                 console.log('AUDIT_SCREENSHOT',path, img.length);
               }
-              if(config.name==='mobile')assert(await page.locator('.iso-joystick').isVisible(),'Touch controls not visible');
+              // Close-up verification of the bespoke mask on the animated GLB.
+              await page.evaluate(()=>{
+                const w=window.__isoAuditWorld;
+                w.room=1;
+                w.player.set(0,1.64,-13.5);
+                w.enemy.position.set(0,0,-16.1);
+                w.enemy.rotation.y=0;
+                w.nextThreatAt=0;
+                w.yaw=0;w.pitch=0;
+                w.showRoom();
+                w.tick(.016,400,.45);
+              });
+              await page.waitForTimeout(700);
+              await page.addStyleTag({content:'.iso-broadcast{display:none!important}.iso-threat-meter{display:none!important}'});
+              const celadorImage=await page.screenshot({
+                path:'visual-cinema-evidence/'+config.name+'-celador.jpg',type:'jpeg',quality:78,
+                timeout:90000,animations:'disabled'
+              });
+              console.log('AUDIT_CREATURE_'+config.name.toUpperCase()+'='+celadorImage.toString('base64'));
+                            if(config.name==='mobile')assert(await page.locator('.iso-joystick').isVisible(),'Touch controls not visible');
               if(errors.length)throw Error(config.name+': '+errors.join(' | '));
               if(assets.filter(a=>a[1]===200).length<9)throw Error('Missing hospital GLB model: '+JSON.stringify(assets));
               console.log('AUDIT_MODELS_'+config.name.toUpperCase()+'='+JSON.stringify(assets));
