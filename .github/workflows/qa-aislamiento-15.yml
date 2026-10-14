@@ -47,8 +47,11 @@ jobs:
               {name:'mobile',viewport:{width:390,height:844},isMobile:true,hasTouch:true},
             ]) {
               const page=await browser.newPage(config);
-              const errors=[];
+              const errors=[],glbResponses=[];
               page.on('pageerror',err=>errors.push(err.message));
+              page.on('response',response => {
+                if(response.url().includes('/aislamiento-15/models/')) glbResponses.push({name: response.url().split('/').pop(),status: response.status()});
+              });
               const response=await page.goto('http://127.0.0.1:8876/aislamiento-15/',{waitUntil:'networkidle',timeout:30000});
               if(!response?.ok())throw Error(config.name+' HTML not served');
               await page.getByRole('button',{name:/COMENZAR AISLAMIENTO/}).waitFor({timeout:15000});
@@ -61,7 +64,13 @@ jobs:
               const canvas=page.locator('canvas');
               const rect=await canvas.boundingBox();
               if(!rect||rect.width<300||rect.height<500)throw Error(config.name+' world canvas size invalid');
+              await page.waitForTimeout(3500);
               await page.screenshot({path:'visual-qa-evidence/isolation-game-'+config.name+'.png'});
+              const jpeg=await page.screenshot({type:'jpeg',quality:42});
+              console.log('SCENE_IMAGE_'+config.name.toUpperCase()+'='+jpeg.toString('base64'));
+              console.log('ASSET_RESPONSES_'+config.name.toUpperCase()+'='+JSON.stringify(glbResponses));
+              if(glbResponses.some(x=>x.status>=400)) failures.push(config.name+': some medical GLBs failed to load');
+              if(glbResponses.length<3) failures.push(config.name+': expected 3 or more GLBs, loaded '+glbResponses.length);
               if(errors.length)failures.push(config.name+': '+errors.join(' | '));
               console.log(config.name,{timer,alert,canvas:{width:rect.width,height:rect.height},errors});
               if(config.name==='mobile' && !await page.locator('.iso-joystick').isVisible())failures.push('mobile joystick not visible');
