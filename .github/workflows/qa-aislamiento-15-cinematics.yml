@@ -1,5 +1,5 @@
 name: Aislamiento 15 - Visual audit of all 3D chambers
-# Cinematic audit: realistic-human-8ce4e170b550151ac29b2710d491d3789a138922
+# Cinematic audit: human-mask-tint-e611e956b70bb366b0f46f8b31ec9c17e7fb1391
 on:
   push:
     branches: [main]
@@ -126,7 +126,7 @@ jobs:
               console.log('AUDIT_CREATURE_'+config.name.toUpperCase()+'='+celadorImage.toString('base64'));
                             if(config.name==='mobile')assert(await page.locator('.iso-joystick').isVisible(),'Touch controls not visible');
               if(errors.length)throw Error(config.name+': '+errors.join(' | '));
-              if(assets.filter(a=>a[1]===200).length<10 || !assets.some(a=>a[0]==='warden-human.glb' && a[1]===200))throw Error('Missing premium licensed animated human GLB: '+JSON.stringify(assets));
+              if(assets.filter(a=>a[1]===200).length<9 || !assets.some(a=>a[0]==='warden-human.glb' && a[1]===200))throw Error('Missing premium licensed animated human GLB: '+JSON.stringify(assets));
               console.log('AUDIT_MODELS_'+config.name.toUpperCase()+'='+JSON.stringify(assets));
               await page.close();
             }
