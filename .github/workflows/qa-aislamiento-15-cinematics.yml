@@ -1,5 +1,5 @@
 name: Aislamiento 15 - Visual audit of all 3D chambers
-# Cinematic audit: closeup-celador-20261014
+# Cinematic audit: mask-normalization-7c4038ba7a0b5005d69f08011c34998f96617110
 on:
   push:
     branches: [main]
