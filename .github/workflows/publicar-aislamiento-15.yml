@@ -1,0 +1,107 @@
+name: Publicar Aislamiento 15 en GitHub Pages
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publicar-aislamiento-15.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: aislamiento15-pages-publish
+  cancel-in-progress: false
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Conservar el sitio y las salas existentes
+        uses: actions/checkout@v4
+        with:
+          path: website
+          persist-credentials: true
+
+      - name: Descargar el código original de Viralio
+        uses: actions/checkout@v4
+        with:
+          repository: ProtectorRudo/viralio
+          ref: main
+          path: source
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: source/package-lock.json
+
+      - name: Instalar dependencias exactas de React y Three.js
+        working-directory: source
+        run: npm ci --no-audit --no-fund
+
+      - name: Verificar tipos TypeScript del juego completo
+        working-directory: source
+        run: npm run typecheck
+
+      - name: Generar la aplicación estática jugable
+        run: |
+          mkdir -p website/aislamiento-15
+          cat > source/isolation-static-entry.tsx <<'TSX'
+          import React from "react";
+          import { createRoot } from "react-dom/client";
+          import IsolationGame from "./src/app/aislamiento-15/IsolationGame";
+          createRoot(document.getElementById("root")!).render(<IsolationGame />);
+          TSX
+          cd source
+          npx --yes esbuild@0.25.10 isolation-static-entry.tsx --bundle --minify --format=esm --target=es2022 --outdir=../website/aislamiento-15 --log-level=info
+          cp public/aislamiento-15/cover.svg ../website/aislamiento-15/cover.svg
+          cat > ../website/aislamiento-15/index.html <<'HTML'
+          <!doctype html>
+          <html lang="es">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+              <meta name="theme-color" content="#0b1113">
+              <meta name="description" content="AISLAMIENTO 15: escape room 3D de terror con 3 salas, 15 minutos para escapar y una anomalía que no quiere dejarte salir. Una creación original de Viralio.">
+              <title>AISLAMIENTO 15 — Escape 3D de Viralio</title>
+              <link rel="icon" type="image/svg+xml" href="./cover.svg">
+              <link rel="stylesheet" href="./isolation-static-entry.css">
+              <script defer type="module" src="./isolation-static-entry.js"></script>
+            </head>
+            <body style="margin:0;background:#0b1113">
+              <div id="root"></div>
+              <noscript>Esta experiencia requiere JavaScript, WebGL2 y un navegador actualizado.</noscript>
+            </body>
+          </html>
+          HTML
+
+      - name: Auditar que se publica juego real, no una portada
+        run: |
+          test -s website/aislamiento-15/index.html
+          test -s website/aislamiento-15/isolation-static-entry.js
+          test -s website/aislamiento-15/isolation-static-entry.css
+          test -s website/aislamiento-15/cover.svg
+          node --input-type=module <<'JS'
+          import {readFile} from 'node:fs/promises';
+          const source=await readFile('website/aislamiento-15/isolation-static-entry.js','utf8');
+          for(const value of ["AISLAMIENTO 15","URGENCIAS","CONTENCIÓN","WebGLRenderer","QUINCE"]) {
+            if(value==="QUINCE")continue;
+            if(!source.includes(value))throw new Error('Falta código jugable: '+value);
+          }
+          const css=await readFile('website/aislamiento-15/isolation-static-entry.css','utf8');
+          if(!css.includes('.iso-joystick'))throw Error('Sin control táctil');
+          console.log('Juego 3D, tres salas, React, controles y archivos estáticos verificados');
+          JS
+
+      - name: Publicar únicamente aislamiento-15 sin alterar las otras experiencias
+        run: |
+          git -C website config user.name 'github-actions[bot]'
+          git -C website config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          touch website/.nojekyll
+          git -C website add aislamiento-15 .nojekyll
+          if git -C website diff --cached --quiet; then
+            echo 'La versión pública ya está actualizada.'
+          else
+            git -C website commit -m 'deploy: Aislamiento 15 escape room Three.js premium'
+            git -C website push origin HEAD:main
+          fi
