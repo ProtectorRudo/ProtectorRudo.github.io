@@ -1,0 +1,123 @@
+name: Aislamiento 15 - Visual audit of all 3D chambers
+# Cinematic audit: 9b07a5f7914f528e25bf55ff204136c63a3f39e8
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/qa-aislamiento-15-cinematics.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect-world:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ProtectorRudo/viralio
+          path: source
+      - uses: actions/checkout@v4
+        with:
+          path: website
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+      - name: Install and typecheck
+        working-directory: source
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+      - name: Install Chromium
+        working-directory: source
+        run: npx playwright install --with-deps chromium
+      - name: Compile isolated visual-testing version
+        run: |
+          mkdir -p visual-qa-site/aislamiento-15/models
+          cp website/aislamiento-15/models/*.glb visual-qa-site/aislamiento-15/models/
+          node --input-type=module <<'JS'
+          import {readFile,writeFile} from 'node:fs/promises';
+          const from='source/src/app/aislamiento-15/IsolationGame.tsx';
+          const source=await readFile(from,'utf8');
+          const needle='    worldRef.current = world;';
+          if(!source.includes(needle))throw Error('Private QA instrumentation anchor absent');
+          const out=source.replace(needle,needle+'\n    (window as any).__isoAuditWorld = world;');
+          await writeFile('source/src/app/aislamiento-15/IsolationGame.visualqa.tsx',out);
+          await writeFile('source/isolation-visualqa-entry.tsx',
+            'import React from "react";\nimport {createRoot} from "react-dom/client";\nimport Game from "./src/app/aislamiento-15/IsolationGame.visualqa";\ncreateRoot(document.getElementById("root")!).render(<Game/>);');
+          JS
+          cd source
+          npx --yes esbuild@0.25.10 isolation-visualqa-entry.tsx --bundle --minify --format=esm --target=es2022 --outdir=../visual-qa-site/aislamiento-15
+          cat > ../visual-qa-site/aislamiento-15/index.html <<'HTML'
+          <!doctype html><html lang="es"><head>
+          <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+          <link rel="stylesheet" href="./isolation-visualqa-entry.css">
+          <script type="module" defer src="./isolation-visualqa-entry.js"></script></head>
+          <body style="margin:0;background:#050b0d"><div id="root"></div></body></html>
+          HTML
+      - name: Photograph all three rooms on desktop and portrait mobile
+        run: |
+          python3 -m http.server 8896 --directory visual-qa-site >/tmp/isolation-cinema-server.log 2>&1 &
+          cat > source/isolation-cinema-screenshots.mjs <<'JS'
+          import {chromium} from 'playwright';
+          import {mkdir,stat} from 'node:fs/promises';
+          import assert from 'node:assert/strict';
+          const browser=await chromium.launch({headless:true,args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--enable-webgl']});
+          const layouts=[
+            {name:'desktop',viewport:{width:1280,height:720},isMobile:false,hasTouch:false},
+            {name:'mobile',viewport:{width:390,height:844},isMobile:true,hasTouch:true}
+          ];
+          await mkdir('visual-cinema-evidence',{recursive:true});
+          const rooms=[
+            {name:'urgencias',index:0,playerZ:3.8,t:110},
+            {name:'aislamiento',index:1,playerZ:-9.1,t:310},
+            {name:'contencion',index:2,playerZ:-22.3,t:710}
+          ];
+          try {
+            for(const config of layouts){
+              const page=await browser.newPage(config);
+              const errors=[],assets=[];
+              page.on('pageerror',e=>errors.push(e.message));
+              page.on('response',response=>{
+                if(response.url().includes('/aislamiento-15/models/'))assets.push([response.url().split('/').pop(),response.status()]);
+              });
+              const response=await page.goto('http://127.0.0.1:8896/aislamiento-15/',{waitUntil:'networkidle',timeout:45000});
+              assert(response?.ok(),'Entry page error');
+              await page.waitForFunction(()=>!!window.__isoAuditWorld,{timeout:30000});
+              await page.getByRole('button',{name:/COMENZAR AISLAMIENTO/}).click();
+              for(const room of rooms){
+                await page.evaluate(({index,playerZ,t})=>{
+                  const w=window.__isoAuditWorld;
+                  w.room=index;
+                  w.player.set(0,1.64,playerZ);
+                  w.yaw=0;w.pitch=0;
+                  if(index===1) w.enemy.position.set(3.1,0,-16.0);
+                  if(index===2) w.enemy.position.set(4.2,0,-31.0);
+                  w.showRoom();
+                  w.tick(.016,t,t/900);
+                },room);
+                await page.waitForTimeout(1400);
+                const path='visual-cinema-evidence/'+config.name+'-'+room.name+'.jpg';
+                const img=await page.screenshot({path,type:'jpeg',quality:72,timeout:90000,animations:'disabled'});
+                assert((await stat(path)).size>18000,'Screenshot suspiciously empty: '+path);
+                console.log('AUDIT_CAPTURE_'+config.name.toUpperCase()+'_'+room.name.toUpperCase()+'='+img.toString('base64'));
+                console.log('AUDIT_SCREENSHOT',path, img.length);
+              }
+              if(config.name==='mobile')assert(await page.locator('.iso-joystick').isVisible(),'Touch controls not visible');
+              if(errors.length)throw Error(config.name+': '+errors.join(' | '));
+              if(assets.filter(a=>a[1]===200).length<9)throw Error('Missing hospital GLB model: '+JSON.stringify(assets));
+              console.log('AUDIT_MODELS_'+config.name.toUpperCase()+'='+JSON.stringify(assets));
+              await page.close();
+            }
+          } finally {await browser.close();}
+          console.log('PASS: 3 real WebGL rooms photographed on desktop and portrait mobile without JS errors.');
+          JS
+          node source/isolation-cinema-screenshots.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: helix-visual-audit-3-rooms-desktop-mobile
+          path: visual-cinema-evidence/*
+          if-no-files-found: warn
