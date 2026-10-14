@@ -1,5 +1,5 @@
 name: Aislamiento 15 - Visual audit of all 3D chambers
-# Cinematic audit: instrumented-premium-hardware-20261014
+# Cinematic audit: puzzle-closeups-20261014
 on:
   push:
     branches: [main]
@@ -104,6 +104,34 @@ jobs:
                 assert((await stat(path)).size>18000,'Screenshot suspiciously empty: '+path);
                 console.log('AUDIT_CAPTURE_'+config.name.toUpperCase()+'_'+room.name.toUpperCase()+'='+img.toString('base64'));
                 console.log('AUDIT_SCREENSHOT',path, img.length);
+              }
+              // Detailed physical hardware audit from true eye-height in both viewports.
+              // Instrumented test camera is separate from the published experience.
+              for(const detail of [
+                {name:'triage-terminal',index:0,x:-2.82,z:4.5,t:135},
+                {name:'oxygen-regulator',index:1,x:-.12,z:-16.1,t:380},
+                {name:'containment-switchboard',index:2,x:3.7,z:-22.4,t:720}
+              ]) {
+                await page.evaluate(({index,x,z,t})=>{
+                  const w=window.__isoAuditWorld;
+                  w.room=index;
+                  w.player.set(x,1.64,z);
+                  w.yaw=0;w.pitch=0;
+                  w.showRoom();
+                  w.tick(.016,t,t/900);
+                },detail);
+                await page.addStyleTag({content:'.iso-broadcast,.iso-chapter-card,.iso-threat-meter{display:none!important}'});
+                await page.waitForTimeout(400);
+                const detailShot=await page.screenshot({
+                  path:'visual-cinema-evidence/'+config.name+'-'+detail.name+'.jpg',
+                  type:'jpeg',quality:72,timeout:90000,animations:'disabled'
+                });
+                console.log('AUDIT_DETAIL_'+config.name.toUpperCase()+'_'+detail.name.toUpperCase().replaceAll('-','_')+'='+detailShot.toString('base64'));
+                const stats=await page.evaluate(()=>{
+                  const w=window.__isoAuditWorld;
+                  return {drawCalls:w.renderer.info.render.calls,triangles:w.renderer.info.render.triangles};
+                });
+                console.log('AUDIT_STATS_'+config.name.toUpperCase()+'_'+detail.name.toUpperCase()+'='+JSON.stringify(stats));
               }
               // Close-up verification of the bespoke mask on the animated GLB.
               await page.evaluate(()=>{
