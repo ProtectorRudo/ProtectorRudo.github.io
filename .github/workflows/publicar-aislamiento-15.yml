@@ -1,5 +1,5 @@
 name: Publicar Aislamiento 15 en GitHub Pages
-# Revision de fuente: 4ffa426eef5dce6872e8ebd0a2557d5ed99d577d
+# Revision de fuente: b89ba8cfa060d780547464193d253d6bd2bba78d
 on:
   push:
     branches: [main]
@@ -76,12 +76,39 @@ jobs:
           </html>
           HTML
 
+      - name: Integrar modelos hospitalarios GLB CC0 y enemigo esquelético propio
+        run: |
+          set -euo pipefail
+          mkdir -p website/aislamiento-15/models
+          curl --fail --location --retry 3 --connect-timeout 12 --max-time 120 \
+            'https://www.innerscene.com/api/library/hospital-bed-flat-mattress-44fc9faf/download' \
+            -o website/aislamiento-15/models/hospital-bed-flat.glb
+          curl --fail --location --retry 3 --connect-timeout 12 --max-time 120 \
+            'https://www.innerscene.com/api/library/hospital-bed-raised-backrest-6bb95542/download' \
+            -o website/aislamiento-15/models/hospital-bed-raised.glb
+          curl --fail --location --retry 3 --connect-timeout 12 --max-time 120 \
+            'https://www.innerscene.com/api/library/patient-room-headwall-services-unit-536f71cf/download' \
+            -o website/aislamiento-15/models/medical-headwall.glb
+          cp website/la-ultima-funcion/models/usher/usher-mobile.glb website/aislamiento-15/models/warden.glb
+          node --input-type=module <<'JS'
+          import {readFile} from 'node:fs/promises';
+          for(const name of ['hospital-bed-flat.glb','hospital-bed-raised.glb','medical-headwall.glb','warden.glb']) {
+            const bytes=await readFile('website/aislamiento-15/models/'+name);
+            if(bytes.toString('ascii',0,4)!=='glTF'||bytes.length<20000)throw Error('GLB corrupto: '+name);
+            if(bytes.length>12000000)throw Error('GLB demasiado pesado: '+name);
+            console.log(name, (bytes.length/1024).toFixed(0), 'KB', 'validado');
+          }
+          JS
+
       - name: Auditar que se publica juego real, no una portada
         run: |
           test -s website/aislamiento-15/index.html
           test -s website/aislamiento-15/isolation-static-entry.js
           test -s website/aislamiento-15/isolation-static-entry.css
           test -s website/aislamiento-15/cover.svg
+          test -s website/aislamiento-15/models/hospital-bed-flat.glb
+          test -s website/aislamiento-15/models/medical-headwall.glb
+          test -s website/aislamiento-15/models/warden.glb
           node --input-type=module <<'JS'
           import {readFile,stat} from 'node:fs/promises';
           const original = await readFile('source/src/app/aislamiento-15/IsolationWorld.ts','utf8');
