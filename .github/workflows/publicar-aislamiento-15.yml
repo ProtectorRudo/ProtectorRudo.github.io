@@ -1,5 +1,5 @@
 name: Publicar Aislamiento 15 en GitHub Pages
-# Revision de fuente: 44d7e1e6bc9463d7f2285b4ab1e20ce0716b6806
+# Revision de fuente: instrumented-premium-hardware-20261014
 on:
   push:
     branches: [main]
