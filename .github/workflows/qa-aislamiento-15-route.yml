@@ -1,5 +1,5 @@
 name: Aislamiento 15 - full 3-room gameplay QA
-# Changed gameplay: human-avatar-8ce4e170b550151ac29b2710d491d3789a138922
+# Changed gameplay: instrumented-premium-hardware-20261014
 on:
   workflow_dispatch:
   push:
