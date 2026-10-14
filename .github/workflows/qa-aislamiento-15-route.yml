@@ -1,5 +1,5 @@
 name: Aislamiento 15 - full 3-room gameplay QA
-# Changed gameplay: batched-helix-console-20261014
+# Changed gameplay: sideoxygen-physical-toggle-20261014
 on:
   workflow_dispatch:
   push:
