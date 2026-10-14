@@ -1,4 +1,5 @@
 name: QA navegador real - Aislamiento 15
+# Last QA target: fca97f6531dcdde046e200528ec9879f8140b693
 on:
   push:
     branches: [main]
