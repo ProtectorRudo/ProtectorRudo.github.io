@@ -55,7 +55,7 @@ jobs:
               const response=await page.goto('http://127.0.0.1:8876/aislamiento-15/',{waitUntil:'networkidle',timeout:30000});
               if(!response?.ok())throw Error(config.name+' HTML not served');
               await page.getByRole('button',{name:/COMENZAR AISLAMIENTO/}).waitFor({timeout:15000});
-              await page.screenshot({path:'visual-qa-evidence/isolation-intro-'+config.name+'.png'});
+              await page.screenshot({path:'visual-qa-evidence/isolation-intro-'+config.name+'.png',timeout:90000,animations:'disabled'});
               await page.getByRole('button',{name:/COMENZAR AISLAMIENTO/}).click();
               await page.getByRole('timer').waitFor({timeout:12000});
               await page.waitForTimeout(1500);
@@ -65,8 +65,9 @@ jobs:
               const rect=await canvas.boundingBox();
               if(!rect||rect.width<300||rect.height<500)throw Error(config.name+' world canvas size invalid');
               await page.waitForTimeout(3500);
-              await page.screenshot({path:'visual-qa-evidence/isolation-game-'+config.name+'.png'});
-              const jpeg=await page.screenshot({type:'jpeg',quality:42});
+              console.log('ASSET_RESPONSES_'+config.name.toUpperCase()+'='+JSON.stringify(glbResponses));
+              await page.screenshot({path:'visual-qa-evidence/isolation-game-'+config.name+'.png',timeout:90000,animations:'disabled'});
+              const jpeg=await page.screenshot({type:'jpeg',quality:42,timeout:90000,animations:'disabled'});
               console.log('SCENE_IMAGE_'+config.name.toUpperCase()+'='+jpeg.toString('base64'));
               console.log('ASSET_RESPONSES_'+config.name.toUpperCase()+'='+JSON.stringify(glbResponses));
               if(glbResponses.some(x=>x.status>=400)) failures.push(config.name+': some medical GLBs failed to load');
