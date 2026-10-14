@@ -1,0 +1,79 @@
+name: QA navegador real - Aislamiento 15
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'aislamiento-15/**'
+      - '.github/workflows/qa-aislamiento-15.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  chrome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: website
+      - uses: actions/checkout@v4
+        with:
+          repository: ProtectorRudo/viralio
+          ref: main
+          path: source
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: source/package-lock.json
+      - name: Install test runner
+        run: npm ci --no-audit --no-fund
+        working-directory: source
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: source
+      - name: Test desktop and mobile gameplay and capture evidence
+        run: |
+          python3 -m http.server 8876 --directory website >/tmp/iso-server.log 2>&1 &
+          cat > source/isolation-browser-check.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import { mkdir } from 'node:fs/promises';
+          const browser=await chromium.launch({headless:true,args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--enable-webgl']});
+          let failures=[];
+          await mkdir('visual-qa-evidence',{recursive:true});
+          try {
+            for(const config of [
+              {name:'desktop',viewport:{width:1440,height:900},isMobile:false,hasTouch:false},
+              {name:'mobile',viewport:{width:390,height:844},isMobile:true,hasTouch:true},
+            ]) {
+              const page=await browser.newPage(config);
+              const errors=[];
+              page.on('pageerror',err=>errors.push(err.message));
+              const response=await page.goto('http://127.0.0.1:8876/aislamiento-15/',{waitUntil:'networkidle',timeout:30000});
+              if(!response?.ok())throw Error(config.name+' HTML not served');
+              await page.getByRole('button',{name:/COMENZAR AISLAMIENTO/}).waitFor({timeout:15000});
+              await page.screenshot({path:'visual-qa-evidence/isolation-intro-'+config.name+'.png'});
+              await page.getByRole('button',{name:/COMENZAR AISLAMIENTO/}).click();
+              await page.getByRole('timer').waitFor({timeout:12000});
+              await page.waitForTimeout(1500);
+              const timer=await page.getByRole('timer').innerText();
+              const alert=await page.locator('.iso-broadcast').innerText().catch(()=> '');
+              const canvas=page.locator('canvas');
+              const rect=await canvas.boundingBox();
+              if(!rect||rect.width<300||rect.height<500)throw Error(config.name+' world canvas size invalid');
+              await page.screenshot({path:'visual-qa-evidence/isolation-game-'+config.name+'.png'});
+              if(errors.length)failures.push(config.name+': '+errors.join(' | '));
+              console.log(config.name,{timer,alert,canvas:{width:rect.width,height:rect.height},errors});
+              if(config.name==='mobile' && !await page.locator('.iso-joystick').isVisible())failures.push('mobile joystick not visible');
+              await page.close();
+            }
+          } finally {await browser.close();}
+          if(failures.length)throw Error(failures.join('\n'));
+          JS
+          node source/isolation-browser-check.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aislamiento15-desktop-mobile
+          path: visual-qa-evidence/isolation-*.png
+          if-no-files-found: warn
