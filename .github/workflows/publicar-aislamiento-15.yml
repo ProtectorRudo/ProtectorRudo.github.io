@@ -82,15 +82,20 @@ jobs:
           test -s website/aislamiento-15/isolation-static-entry.css
           test -s website/aislamiento-15/cover.svg
           node --input-type=module <<'JS'
-          import {readFile} from 'node:fs/promises';
-          const source=await readFile('website/aislamiento-15/isolation-static-entry.js','utf8');
-          for(const value of ["AISLAMIENTO 15","URGENCIAS","CONTENCIÓN","WebGLRenderer","QUINCE"]) {
-            if(value==="QUINCE")continue;
-            if(!source.includes(value))throw new Error('Falta código jugable: '+value);
+          import {readFile,stat} from 'node:fs/promises';
+          const original = await readFile('source/src/app/aislamiento-15/IsolationWorld.ts','utf8');
+          const logic = await readFile('source/src/app/aislamiento-15/IsolationGame.tsx','utf8');
+          const js = await stat('website/aislamiento-15/isolation-static-entry.js');
+          const css = await readFile('website/aislamiento-15/isolation-static-entry.css','utf8');
+          for (const token of ['GLTFLoader','WebGLRenderer','buildEmergency','buildIsolation','buildContainment','getFocus']) {
+            if(!original.includes(token))throw new Error('Falta implementación 3D: '+token);
           }
-          const css=await readFile('website/aislamiento-15/isolation-static-entry.css','utf8');
+          for (const token of ['SECONDS = 900','chooseVoice','interactWith','onCaught','onChamber']) {
+            if(!logic.includes(token))throw new Error('Falta gameplay: '+token);
+          }
+          if(js.size < 400000)throw Error('Bundle 3D demasiado pequeño');
           if(!css.includes('.iso-joystick'))throw Error('Sin control táctil');
-          console.log('Juego 3D, tres salas, React, controles y archivos estáticos verificados');
+          console.log('React + Three.js, 3 sectores, cronómetro, amenaza, enigmas y controles presentes.');
           JS
 
       - name: Publicar únicamente aislamiento-15 sin alterar las otras experiencias
