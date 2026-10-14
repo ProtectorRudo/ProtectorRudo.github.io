@@ -1,5 +1,5 @@
 name: Aislamiento 15 - Visual audit of all 3D chambers
-# Cinematic audit: headbone-bind-44d7e1e6bc9463d7f2285b4ab1e20ce0716b6806
+# Cinematic audit: instrumented-premium-hardware-20261014
 on:
   push:
     branches: [main]
