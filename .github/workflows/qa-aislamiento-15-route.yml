@@ -1,5 +1,5 @@
 name: Aislamiento 15 - full 3-room gameplay QA
-# Changed gameplay: a4ba23f0fcc0997d89373fdd92c69070412d829f
+# Changed gameplay: 9850d06c179d23e25046e431cbd478077ecae23e
 on:
   workflow_dispatch:
   push:
@@ -85,14 +85,20 @@ jobs:
             };});}
             await invoke('fuse','fusebox','badge','triage');
             await page.getByRole('button',{name:/MEMORIZAR PRIORIDADES/}).click();
-            await invoke('relay-0');
+            const pattern=await page.evaluate(()=>({
+              relays:[...window.__isoWorld.relayPattern],
+              valves:[...window.__isoWorld.valvePattern],
+              digits:[...window.__isoWorld.triageDigits]
+            }));
+            const wrongRelay=[0,1,2].find(n=>n!==pattern.relays[0]);
+            await invoke('relay-'+wrongRelay);
             assert.equal((await snapshot()).relays.length,0,'Wrong relay should reset sequence');
-            await invoke('relay-1','relay-0','relay-2');
-            assert.deepEqual((await snapshot()).relays,[1,0,2]);
+            await invoke(...pattern.relays.map(n=>'relay-'+n));
+            assert.deepEqual((await snapshot()).relays,pattern.relays);
             await invoke('terminal');
-            await page.getByRole('button',{name:'4',exact:true}).click();
-            await page.getByRole('button',{name:'2',exact:true}).click();
-            await page.getByRole('button',{name:'7',exact:true}).click();
+            for(const number of pattern.digits) {
+              await page.getByRole('button',{name:String(number),exact:true}).click();
+            }
             await page.getByRole('button',{name:'CONFIRMAR'}).click();
             assert.equal((await snapshot()).firstDoor,true);
             await page.evaluate(()=>{
@@ -103,7 +109,7 @@ jobs:
             assert.equal((await snapshot()).room,1,'Transition to isolation');
             await invoke('cell-alpha','cell-beta','regulator');
             assert.equal((await snapshot()).oxygenInstalled,true);
-            await invoke('valve-blue','valve-green','valve-red','extractor');
+            await invoke(...pattern.valves.map(c=>'valve-'+c),'extractor');
             assert.equal((await snapshot()).secondDoor,true);
             await page.evaluate(()=>{
               const w=window.__isoWorld;w.player.set(0,1.64,-19.28);w.keys.add('KeyW');
