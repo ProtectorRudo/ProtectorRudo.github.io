@@ -89,10 +89,25 @@ jobs:
           curl --fail --location --retry 3 --connect-timeout 12 --max-time 120 \
             'https://www.innerscene.com/api/library/patient-room-headwall-services-unit-536f71cf/download' \
             -o website/aislamiento-15/models/medical-headwall.glb
+          curl --fail --location --retry 3 --connect-timeout 12 --max-time 120 \
+            'https://www.innerscene.com/api/library/three-shelf-medical-supply-cart-45cc326c/download' \
+            -o website/aislamiento-15/models/supply-cart.glb
+          curl --fail --location --retry 3 --connect-timeout 12 --max-time 120 \
+            'https://www.innerscene.com/api/library/vital-signs-monitor-on-roll-stand-83c9b7fa/download' \
+            -o website/aislamiento-15/models/vital-monitor.glb
+          curl --fail --location --retry 3 --connect-timeout 12 --max-time 120 \
+            'https://www.innerscene.com/api/library/mobile-examination-light-65ace7fb/download' \
+            -o website/aislamiento-15/models/exam-light.glb
+          curl --fail --location --retry 3 --connect-timeout 12 --max-time 120 \
+            'https://www.innerscene.com/api/library/privacy-curtain-and-ceiling-track-0353bfbc/download' \
+            -o website/aislamiento-15/models/privacy-curtain.glb
+          curl --fail --location --retry 3 --connect-timeout 12 --max-time 120 \
+            'https://www.innerscene.com/api/library/patient-transport-stretcher-3ff4d512/download' \
+            -o website/aislamiento-15/models/transport-stretcher.glb
           cp website/la-ultima-funcion/models/usher/usher-mobile.glb website/aislamiento-15/models/warden.glb
           node --input-type=module <<'JS'
           import {readFile} from 'node:fs/promises';
-          for(const name of ['hospital-bed-flat.glb','hospital-bed-raised.glb','medical-headwall.glb','warden.glb']) {
+          for(const name of ['hospital-bed-flat.glb','hospital-bed-raised.glb','medical-headwall.glb','supply-cart.glb','vital-monitor.glb','exam-light.glb','privacy-curtain.glb','transport-stretcher.glb','warden.glb']) {
             const bytes=await readFile('website/aislamiento-15/models/'+name);
             if(bytes.toString('ascii',0,4)!=='glTF'||bytes.length<20000)throw Error('GLB corrupto: '+name);
             if(bytes.length>12000000)throw Error('GLB demasiado pesado: '+name);
@@ -109,6 +124,8 @@ jobs:
           test -s website/aislamiento-15/models/hospital-bed-flat.glb
           test -s website/aislamiento-15/models/medical-headwall.glb
           test -s website/aislamiento-15/models/warden.glb
+          test -s website/aislamiento-15/models/supply-cart.glb
+          test -s website/aislamiento-15/models/vital-monitor.glb
           node --input-type=module <<'JS'
           import {readFile,stat} from 'node:fs/promises';
           const original = await readFile('source/src/app/aislamiento-15/IsolationWorld.ts','utf8');
