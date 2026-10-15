@@ -1,5 +1,5 @@
 name: Aislamiento 15 - Visual audit of all 3D chambers
-# Cinematic audit: optimized-controls-side-oxygen-20261014
+# Cinematic audit: signage-pinch-fps-20261015
 on:
   push:
     branches: [main]
