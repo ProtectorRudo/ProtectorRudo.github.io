@@ -1,5 +1,5 @@
 name: Aislamiento 15 - Visual audit of all 3D chambers
-# Cinematic audit: signage-pinch-fps-20261015
+# Cinematic audit: pinch-gesture-mobile-20261015
 on:
   push:
     branches: [main]
@@ -152,7 +152,21 @@ jobs:
                 timeout:90000,animations:'disabled'
               });
               console.log('AUDIT_CREATURE_'+config.name.toUpperCase()+'='+celadorImage.toString('base64'));
-                            if(config.name==='mobile')assert(await page.locator('.iso-joystick').isVisible(),'Touch controls not visible');
+                            if(config.name==='mobile'){
+                assert(await page.locator('.iso-joystick').isVisible(),'Touch controls not visible');
+                const cdps=await page.context().newCDPSession(page);
+                await cdps.send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:2});
+                await page.evaluate(()=>window.__isoAuditWorld.setZoom(72));
+                const touches=(a,b)=>[a,b].map(([x,y],i)=>({x,y,id:i+1}));
+                await cdps.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:touches([142,465],[224,465])});
+                await cdps.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:touches([100,465],[266,465])});
+                await cdps.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:touches([80,465],[285,465])});
+                await cdps.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+                const zoom=await page.evaluate(()=>window.__isoAuditWorld.zoom);
+                assert(zoom<70,'Pinch-to-zoom failed on real browser touch input: '+zoom);
+                console.log('AUDIT_PINCH_ZOOM_MOBILE='+zoom);
+                await cdps.detach();
+              }
               if(errors.length)throw Error(config.name+': '+errors.join(' | '));
               if(assets.filter(a=>a[1]===200).length<9 || !assets.some(a=>a[0]==='warden-human.glb' && a[1]===200))throw Error('Missing premium licensed animated human GLB: '+JSON.stringify(assets));
               console.log('AUDIT_MODELS_'+config.name.toUpperCase()+'='+JSON.stringify(assets));
