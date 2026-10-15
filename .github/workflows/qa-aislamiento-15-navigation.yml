@@ -25,6 +25,9 @@ jobs:
       - name: Install exact dependency versions
         working-directory: source
         run: npm ci --no-audit --no-fund
+      - name: Verify F-08 clearance regression
+        working-directory: source
+        run: npx vitest run tests/aislamiento15-fixtures.test.ts
       - name: Compile actual collision and nav source
         run: |
           cd source
