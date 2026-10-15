@@ -1,5 +1,5 @@
 name: Publicar Aislamiento 15 en GitHub Pages
-# Revision de fuente: 92fe0b13287220f306820b9f12420981ab7a73eb
+# Revision de fuente: 594ca695bf2f913cdf038c3b88465a3a626d62e4 — F-08 accesible, gabinete reubicado
 on:
   push:
     branches: [main]
