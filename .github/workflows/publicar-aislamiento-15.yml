@@ -1,5 +1,5 @@
 name: Publicar Aislamiento 15 en GitHub Pages
-# Revision de fuente: fair-gameplay-side-wall-signs-20261015
+# Revision de fuente: cumulative-background-45s-budget-20261015
 on:
   push:
     branches: [main]
