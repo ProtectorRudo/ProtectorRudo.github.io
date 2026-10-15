@@ -1,5 +1,5 @@
 name: Aislamiento 15 - Visual audit of all 3D chambers
-# Cinematic audit: side-wall-legibility-closeups-20261015
+# Cinematic audit: local-report-and-15min-mobile-finish-20261015
 on:
   push:
     branches: [main]
@@ -43,7 +43,7 @@ jobs:
           const source=await readFile(from,'utf8');
           const needle='    worldRef.current = world;';
           if(!source.includes(needle))throw Error('Private QA instrumentation anchor absent');
-          const out=source.replace(needle,needle+'\n    (window as any).__isoAuditWorld = world;');
+          const out=source.replace(needle,needle+'\n    (window as any).__isoAuditWorld = world;\n    (window as any).__isoAuditTimer = (seconds: number) => { startAtRef.current = Date.now() - seconds * 1000; penaltyRef.current = 0; };');
           await writeFile('source/src/app/aislamiento-15/IsolationGame.visualqa.tsx',out);
           await writeFile('source/isolation-visualqa-entry.tsx',
             'import React from "react";\nimport {createRoot} from "react-dom/client";\nimport Game from "./src/app/aislamiento-15/IsolationGame.visualqa";\ncreateRoot(document.getElementById("root")!).render(<Game/>);');
@@ -177,6 +177,20 @@ jobs:
               if(errors.length)throw Error(config.name+': '+errors.join(' | '));
               if(assets.filter(a=>a[1]===200).length<9 || !assets.some(a=>a[0]==='warden-human.glb' && a[1]===200))throw Error('Missing premium licensed animated human GLB: '+JSON.stringify(assets));
               console.log('AUDIT_MODELS_'+config.name.toUpperCase()+'='+JSON.stringify(assets));
+              if(config.name==='mobile'){
+                await page.evaluate(()=>window.__isoAuditTimer(903));
+                await page.getByRole('heading',{name:/EL TIEMPO/}).waitFor({timeout:11000});
+                const reportCTA=page.getByRole('button',{name:/COPIAR INFORME DE PRUEBA/});
+                await reportCTA.waitFor();
+                const ctaBox=await reportCTA.boundingBox();
+                assert(ctaBox && ctaBox.width>130,'Playtest report button too small');
+                const ending=await page.screenshot({
+                  path:'visual-cinema-evidence/mobile-final-sellado.jpg',
+                  type:'jpeg',quality:76,timeout:90000
+                });
+                console.log('AUDIT_MOBILE_ENDGAME='+ending.toString('base64'));
+                console.log('AUDIT_REPORT_CTA_BOX='+JSON.stringify(ctaBox));
+              }
               await page.close();
             }
           } finally {await browser.close();}
