@@ -123,6 +123,10 @@ jobs:
           assert((await stat('evidence/source.webm')).size>100000,'Empty recording');
           JS
           node source/film-real-gameplay.mjs
+      - name: Install FFmpeg codec for cross-platform MP4
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
       - name: Encode small H.264 real gameplay teaser for Safari and Android
         run: |
           mkdir -p website/aislamiento-15/media
