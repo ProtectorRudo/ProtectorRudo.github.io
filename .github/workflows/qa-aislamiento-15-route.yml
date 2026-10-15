@@ -1,5 +1,5 @@
 name: Aislamiento 15 - full 3-room gameplay QA
-# Changed gameplay: physical-target-reachability-20261014
+# Changed gameplay: pause-progressive-clues-audit-20261015
 on:
   workflow_dispatch:
   push:
@@ -78,7 +78,30 @@ jobs:
             await page.goto('http://127.0.0.1:8878/aislamiento-15/',{waitUntil:'domcontentloaded'});
             await page.waitForFunction(() => !!window.__isoWorld && !!window.__isoAct,{timeout:30000});
             await page.getByRole('button',{name:/COMENZAR AISLAMIENTO/}).click();
+            await page.locator('.iso-hint-button').click();
+            await page.getByText('PISTA 1 DE 3 PARA ESTE OBJETIVO').waitFor();
+            const firstHint=await page.locator('.iso-panel > p').first().innerText();
+            assert(!firstHint.includes('mostrador'),'First hint should not reveal object location');
+            await page.getByRole('button',{name:/REVELAR UNA PISTA MÁS CLARA/}).click();
+            await page.getByText('PISTA 2 DE 3 PARA ESTE OBJETIVO').waitFor();
+            await page.getByRole('button',{name:/REVELAR UNA PISTA MÁS CLARA/}).click();
+            await page.getByText('PISTA 3 DE 3 PARA ESTE OBJETIVO').waitFor();
+            await page.getByRole('button',{name:/VOLVER A LA SALA/}).click();
+            console.log('PASS: graded 3-level help does not spoil puzzles on first request');
             async function invoke(...ids) {return page.evaluate(ids=>{for(const id of ids)window.__isoAct(id);},ids);}
+            const backgroundSafety=await page.evaluate(()=>{
+              const w=window.__isoWorld;
+              Object.defineProperty(document,'hidden',{configurable:true,value:true});
+              document.dispatchEvent(new Event('visibilitychange'));
+              const paused=w.running===false;
+              Object.defineProperty(document,'hidden',{configurable:true,value:false});
+              document.dispatchEvent(new Event('visibilitychange'));
+              delete document.hidden;
+              return {paused,resumed:w.running===true};
+            });
+            assert.deepEqual(backgroundSafety,{paused:true,resumed:true},
+              'Mobile app interruption must suspend and resume the scene');
+            console.log('PASS: mobile background interruption freezes pursuer and resumes gameplay');
             const sign=await page.evaluate(()=>window.__isoWorld.getSignText('sign-0'));
             assert(sign && sign.length>0,'Physical hospital signs have accessible text');
             await invoke('sign-0');
@@ -135,7 +158,9 @@ jobs:
             console.log('ACCESSIBILITY_AUDIT='+JSON.stringify(inspection));
             assert.deepEqual(inspection.failures,[],'Unreachable/non-raycastable 3D puzzle target');
             await invoke('fuse','fusebox','badge','triage');
+            await page.waitForFunction(()=>window.__isoWorld.inspecting===true);
             await page.getByRole('button',{name:/MEMORIZAR PRIORIDADES/}).click();
+            await page.waitForFunction(()=>window.__isoWorld.inspecting===false);
             const pattern=await page.evaluate(()=>({
               relays:[...window.__isoWorld.relayPattern],
               valves:[...window.__isoWorld.valvePattern],
@@ -168,7 +193,19 @@ jobs:
             });
             assert.equal((await snapshot()).room,2,'Transition to containment');
             await invoke('log');
+            await page.waitForFunction(()=>window.__isoWorld.inspecting===true);
+            const safeExamination=await page.evaluate(()=>{
+              const w=window.__isoWorld;
+              const prevAttack=w.enemyLastAttack;
+              w.enemy.position.set(w.player.x,0,w.player.z+.3);
+              w.nextThreatAt=0;
+              w.eventAt=-1;
+              w.tick(.05,600,.67);
+              return {before:prevAttack,after:w.enemyLastAttack};
+            });
+            assert.equal(safeExamination.after,safeExamination.before,'Stalker must not attack while reading records');
             await page.getByRole('button',{name:/HE ENTENDIDO/}).click();
+            await page.waitForFunction(()=>window.__isoWorld.inspecting===false);
             await invoke('breaker-0','breaker-2');
             assert.deepEqual((await snapshot()).breakers,[true,false,true]);
             await invoke('speaker');
