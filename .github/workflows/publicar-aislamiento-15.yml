@@ -1,5 +1,5 @@
 name: Publicar Aislamiento 15 en GitHub Pages
-# Revision de fuente: signage-pinch-fps-20261015
+# Revision de fuente: corrected-readable-signage-pinch-benchmark-20261015
 on:
   push:
     branches: [main]
