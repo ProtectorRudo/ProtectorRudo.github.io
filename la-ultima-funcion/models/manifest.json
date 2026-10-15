@@ -3,7 +3,7 @@
   "credit": "https://polyhaven.com/license · https://www.innerscene.com/tools/library",
   "assets": {
     "armchair": "/la-ultima-funcion/models/armchair/ArmChair_01_1k.gltf",
-    "chandelier": "/la-ultima-funcion/models/premium/premium-ph-crystal-chandelier.glb64",
+    "chandelier": "/la-ultima-funcion/models/premium/premium-ph-crystal-chandelier.glb",
     "grandfatherClock": "/la-ultima-funcion/models/grandfather_clock/vintage_grandfather_clock_01_1k.gltf",
     "sideTable": "/la-ultima-funcion/models/side_table/side_table_tall_01_1k.gltf",
     "mantelClock": "/la-ultima-funcion/models/mantel_clock/mantel_clock_01_1k.gltf",
@@ -12,10 +12,10 @@
     "victorianConsole": "/la-ultima-funcion/models/victorian_console/ClassicConsole_01_1k.gltf",
     "ornateSideTable": "/la-ultima-funcion/models/ornate_side_table/ClassicNightstand_01_1k.gltf",
     "usher": "/la-ultima-funcion/models/usher/usher-mobile.glb",
-    "premiumSconce": "/la-ultima-funcion/models/premium/industrial-wall-sconce.glb64",
-    "premiumMirror": "/la-ultima-funcion/models/premium/victorian-arched-mirror.glb64",
-    "premiumLantern": "/la-ultima-funcion/models/premium/premium-ph-wood-lantern.glb64",
-    "premiumNightstand": "/la-ultima-funcion/models/premium/victorian-nightstand.glb64"
+    "premiumSconce": "/la-ultima-funcion/models/premium/industrial-wall-sconce.glb",
+    "premiumMirror": "/la-ultima-funcion/models/premium/victorian-arched-mirror.glb",
+    "premiumLantern": "/la-ultima-funcion/models/premium/premium-ph-wood-lantern.glb",
+    "premiumNightstand": "/la-ultima-funcion/models/premium/victorian-nightstand.glb"
   },
   "materials": {
     "velvet": {
@@ -24,5 +24,5 @@
       "arm": "/la-ultima-funcion/materials/velvet/arm.jpg"
     }
   },
-  "deliveryNote": "Los nuevos modelos GLB locales se sirven en base64 .glb64 para compatibilidad con el canal de publicación GitHub Pages; el cargador Three.js los decodifica bajo demanda, con cache y fallback. No hay dependencias externas en runtime."
+  "deliveryNote": "Five licensed native GLB files delivered locally via GitHub Pages. GLTFLoader loads directly and caches models; no base64 decode or external dependency at runtime."
 }
