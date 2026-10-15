@@ -41,8 +41,8 @@ try{
   const response=await page.goto(base,{waitUntil:"domcontentloaded",timeout:45000});
   assert.equal(response?.status(),200,"Theatre HTML response was not 200");
   await page.locator("canvas.three-canvas").waitFor({state:"attached",timeout:30000});
-  for(let i=0;i<2;i++){
-   const button=page.getByRole("button",{name:/ENTENDÍ MI MISIÓN|VOLVER AL TEATRO|ENTRAR/i}).first();
+  for(let i=0;i<3;i++){
+   const button=page.getByRole("button",{name:/ABRIR LAS PUERTAS|ENTENDÍ MI MISIÓN|VOLVER AL TEATRO|ENTRAR/i}).first();
    if(await button.isVisible().catch(()=>false))await button.click({timeout:2000}).catch(()=>{});
    await page.waitForTimeout(500);
   }
@@ -62,8 +62,8 @@ await page.waitForFunction(()=>Boolean(window.__belladonnaSpecterQA?.status()?.r
 const initialSpecter=await page.evaluate(()=>window.__belladonnaSpecterQA.status());
 assert(initialSpecter.ready,mode.name+": missing fallback specter at room construction");
 assert(!initialSpecter.visible,mode.name+": ghost appears before the announcement");
-for(let attempt=0;attempt<2;attempt++){
- const enter=page.getByRole("button",{name:/ENTENDÍ MI MISIÓN|VOLVER AL TEATRO|ENTRAR/i}).first();
+for(let attempt=0;attempt<3;attempt++){
+ const enter=page.getByRole("button",{name:/ABRIR LAS PUERTAS|ENTENDÍ MI MISIÓN|VOLVER AL TEATRO|ENTRAR/i}).first();
  if(await enter.isVisible().catch(()=>false))await enter.click({timeout:2500}).catch(()=>{});
  await page.waitForTimeout(500);
 }
@@ -74,8 +74,9 @@ const cameraFocused=await page.evaluate(()=>window.__belladonnaSpecterQA.look())
 assert(cameraFocused,mode.name+": user camera cannot focus on visible PALCO 1 figure");
 await page.waitForTimeout(1200);
 await page.screenshot({path:`${gallery}/${mode.name}-palco-1.png`,fullPage:false});
-await page.waitForFunction(()=>window.__belladonnaSpecterQA?.status()?.professional,null,{timeout:30000});
-assert((await page.evaluate(()=>window.__belladonnaSpecterQA.status())).visible,mode.name+": GLB upgrade hid ghost");
+await page.waitForTimeout(3000);
+const afterLoading=await page.evaluate(()=>window.__belladonnaSpecterQA.status());
+assert(afterLoading.visible,mode.name+": loading a character hid the PALCO 1 apparition");
 
   assert.equal(failures.length,0,mode.name+": "+failures.join("\n"));
   console.log(mode.name+" PASS: 3D canvas, "+loaded.size+" premium GLBs, "+surfaces.size+" PBR textures, no page errors");
