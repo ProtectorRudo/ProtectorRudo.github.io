@@ -46,3 +46,19 @@ Licencias generales: [Poly Haven CC0](https://polyhaven.com/license) y ficha ind
 - **Verificación:** `tests/premium-integrity.mjs` inspecciona GLB2, rutas, geometrías, imágenes incrustadas, mapas WebP, límites de descarga y mecánicas conservadas. `tests/premium-browser-smoke.mjs` abre un servidor local y usa Chromium WebGL en escritorio y Android vertical, captura pantallas y detecta errores de carga. La acción `.github/workflows/theatre-premium-qa.yml` los ejecuta cuando hay cambios.
 - **Validación directa del repositorio 15/10/2026:** cinco GLB nativos válidos y seis archivos WebP válidos; peso total de archivos PBR + GLB nuevos **5.71 MB**. Sintaxis JavaScript revisada. La prueba visual Chromium y el recorrido completo son requisitos de aceptación independientes: no afirmar sus resultados sin ejecutar y leer sus informes.
 
+
+## Corrección de la aparición del palco 1 — 15/10/2026
+
+**Fallo real diagnosticado:** `boxSpecter` se creaba solamente dentro de `useUsherGLB()`. La advertencia `palco_aparicion` y el susurro se emitían aunque el modelo 3D del Acomodador no hubiera terminado de cargar o hubiera fallado. Así, el jugador recibía mensajes de peligro con el palco vacío.
+
+**Correcciones en `assets/index-theatre-specter-fix-20261015.js`:**
+
+- `buildUsher()` crea de manera sincrónica una figura espectral visible solo después de la señal correspondiente, reutilizando el modelo del Acomodador inicial; se mantiene como recurso de respaldo si la descarga falla.
+- Al terminar `useUsherGLB()`, la figura provisional se sustituye por el personaje GLB esquelético profesional, sin duplicar fantasmas ni interferir con las colisiones y acertijos.
+- Se reajusta la ubicación frente a los cortinajes del palco 1, la iluminación sin sombras adicionales, el contraste del traje y su movimiento sutil; el personaje ya no depende de una URL externa en el momento de lanzar el susto.
+- `triggerBoxSpecter()` corre antes del evento `electricidad`, no después: el aviso llega cuando existe un personaje visible.
+- Los susurros solo dicen `No levantes la vista al PALCO 1` si la figura está realmente visible. Antes de eso se escucha un aviso general del teatro.
+- `getSpecterStatus()` informa `ready`, `visible`, `professional`, `cue`, `chasing`. Con `?diagnostico` se dispone de una interfaz de QA limitada para disparar la fase de la aparición, enfocar el palco y observar el estado, sin revelar ni modificar combinaciones de acertijos.
+- `tests/premium-integrity.mjs` comprueba la inicialización, sincronización y el enlace a la nueva versión. `tests/premium-browser-smoke.mjs` dispone de casos para Android vertical y escritorio que comprueban la aparición provisional, el reemplazo GLB y capturan una imagen del palco al estar enfocado.
+
+**Verificación realizada:** cambios integrados en GitHub `main`, sintaxis de JS válida y referencias verificadas en HTML. **Pendiente de certificación:** ejecutar QA con Chromium, confirmar capturas reales y completar prueba en celular, sin inventar FPS o afirmar resultados visuales no comprobados.
