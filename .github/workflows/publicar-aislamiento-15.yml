@@ -1,5 +1,5 @@
 name: Publicar Aislamiento 15 en GitHub Pages
-# Revision de fuente: camera-projection-no-resize-20261015
+# Revision de fuente: launch-audit-pause-progressive-20261015
 on:
   push:
     branches: [main]
