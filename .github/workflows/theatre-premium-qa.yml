@@ -1,0 +1,55 @@
+name: Belladonna 3D premium QA
+
+on:
+  push:
+    paths:
+      - "la-ultima-funcion/**"
+      - ".github/workflows/theatre-premium-qa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: belladonna-premium-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-and-capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - name: Checkout production content
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Print Node version
+        run: node --version
+
+      - name: Verify PBR files, GLB geometry, manifest and preserved mechanics
+        run: |
+          node --check la-ultima-funcion/assets/index-theatre-premium-v2-20261015.js
+          node --check la-ultima-funcion/tests/premium-integrity.mjs
+          node la-ultima-funcion/tests/premium-integrity.mjs
+
+      - name: Install pinned Chromium smoke runner
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts --no-fund --no-audit playwright@1.56.0
+          npx playwright install --with-deps chromium
+
+      - name: Run local production-shaped desktop and Android portrait WebGL tests
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/belladonna-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" || true' EXIT
+          node la-ultima-funcion/tests/premium-browser-smoke.mjs
+
+      - name: Save actual desktop / Android screenshots and server logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: belladonna-premium-visual-qa
+          path: |
+            la-ultima-funcion/qa-artifacts/*.png
+            /tmp/belladonna-http.log
+          if-no-files-found: ignore
+          retention-days: 14
