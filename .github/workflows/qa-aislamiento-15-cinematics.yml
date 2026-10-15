@@ -1,5 +1,5 @@
 name: Aislamiento 15 - Visual audit of all 3D chambers
-# Cinematic audit: launch-audit-pause-progressive-20261015
+# Cinematic audit: readable-physical-clues-20261015
 on:
   push:
     branches: [main]
