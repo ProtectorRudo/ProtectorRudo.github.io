@@ -54,6 +54,29 @@ try{
   assert(canvas.width>150&&canvas.height>150,mode.name+": 3D canvas not visible");
   for(const item of required)assert(loaded.has(item),mode.name+": premium GLB not loaded: "+item);
   for(const mat of ["wood_floor","rough_plaster_broken"])for(const map of ["color","normal","arm"])assert(surfaces.has(mat+"-"+map+".webp"),mode.name+": PBR map not loaded: "+mat+"-"+map);
+  
+// Regression: the warning must never describe an empty VIP box.
+// The spectral stand-in is created synchronously, then replaced by the animated human GLB.
+await page.goto(base+"?diagnostico",{waitUntil:"domcontentloaded",timeout:45000});
+await page.waitForFunction(()=>Boolean(window.__belladonnaSpecterQA?.status()?.ready),null,{timeout:30000});
+const initialSpecter=await page.evaluate(()=>window.__belladonnaSpecterQA.status());
+assert(initialSpecter.ready,mode.name+": missing fallback specter at room construction");
+assert(!initialSpecter.visible,mode.name+": ghost appears before the announcement");
+for(let attempt=0;attempt<2;attempt++){
+ const enter=page.getByRole("button",{name:/ENTENDÍ MI MISIÓN|VOLVER AL TEATRO|ENTRAR/i}).first();
+ if(await enter.isVisible().catch(()=>false))await enter.click({timeout:2500}).catch(()=>{});
+ await page.waitForTimeout(500);
+}
+await page.evaluate(()=>window.__belladonnaSpecterQA.show());
+const specter=await page.evaluate(()=>window.__belladonnaSpecterQA.status());
+assert(specter.visible&&specter.cue,mode.name+": PALCO 1 is empty while the warning is active");
+const cameraFocused=await page.evaluate(()=>window.__belladonnaSpecterQA.look());
+assert(cameraFocused,mode.name+": user camera cannot focus on visible PALCO 1 figure");
+await page.waitForTimeout(1200);
+await page.screenshot({path:`${gallery}/${mode.name}-palco-1.png`,fullPage:false});
+await page.waitForFunction(()=>window.__belladonnaSpecterQA?.status()?.professional,null,{timeout:30000});
+assert((await page.evaluate(()=>window.__belladonnaSpecterQA.status())).visible,mode.name+": GLB upgrade hid ghost");
+
   assert.equal(failures.length,0,mode.name+": "+failures.join("\n"));
   console.log(mode.name+" PASS: 3D canvas, "+loaded.size+" premium GLBs, "+surfaces.size+" PBR textures, no page errors");
   await ctx.close();
