@@ -7,13 +7,17 @@ const game=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const read=p=>readFileSync(path.join(game,p));
 const manifest=JSON.parse(read("models/manifest.json").toString("utf8"));
 const html=read("index.html").toString("utf8");
-const entry="assets/index-theatre-premium-v2-20261015.js";
+const entry="assets/index-theatre-specter-fix-20261015.js";
 const script=read(entry).toString("utf8");
 
 assert(html.includes(entry), "The published HTML does not use premium JS");
 for(const needle of ["buildSeats()","buildPanels()","buildStage()","buildUsher()","buildPrivateBoxes()","buildEntranceDoors()","loadDecorManifest()"]) {
  assert(script.includes(needle),"Existing puzzle/scene engine missing: "+needle);
 }
+assert(script.includes("ensureBoxSpecter()"),"No guaranteed fallback specter: Palco 1 apparition could be empty");
+assert(script.includes("getSpecterStatus()"),"Specter diagnostics missing");
+assert(script.includes("this.triggerBoxSpecter(),this.events.onEvent(\"electricidad\")"),"Warning may fire before ghost exists");
+assert(script.includes("n.current?.getSpecterStatus()?.visible"),"Whisper may claim a non-visible specter");
 assert(script.includes("EXT_texture_webp"),"Bundled Three.js GLTFLoader lacks WebP texture support");
 assert(script.includes("KHR_mesh_quantization"),"Bundled Three.js GLTFLoader lacks quantized mesh support");
 
