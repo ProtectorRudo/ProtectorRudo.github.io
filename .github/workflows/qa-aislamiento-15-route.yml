@@ -1,5 +1,5 @@
 name: Aislamiento 15 - full 3-room gameplay QA
-# Changed gameplay: corrected-playtest-report-timer-and-retry-20261015
+# Regression QA: full three-room playtest and F-08 physical interaction — 20261015
 on:
   workflow_dispatch:
   push:
