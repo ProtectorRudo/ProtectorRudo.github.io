@@ -1,5 +1,5 @@
 name: Aislamiento 15 - Visual audit of all 3D chambers
-# Cinematic audit: readable-physical-clues-20261015
+# Cinematic audit: side-wall-legibility-closeups-20261015
 on:
   push:
     branches: [main]
@@ -110,13 +110,20 @@ jobs:
               for(const detail of [
                 {name:'triage-terminal',index:0,x:-2.82,z:4.5,t:135},
                 {name:'oxygen-regulator',index:1,x:-2.9,z:-14.95,t:380},
-                {name:'containment-switchboard',index:2,x:3.7,z:-22.4,t:720}
+                {name:'containment-switchboard',index:2,x:3.7,z:-22.4,t:720},
+                {name:'purge-side-notice',index:1,x:-2.5,z:-16.3,t:380,aimX:-5.12,aimY:2.45,aimZ:-17.6},
+                {name:'breaker-side-notice',index:2,x:-2.5,z:-27.1,t:720,aimX:-5.12,aimY:2.43,aimZ:-29.25}
               ]) {
-                await page.evaluate(({index,x,z,t})=>{
+                await page.evaluate(({index,x,z,t,aimX,aimY,aimZ})=>{
                   const w=window.__isoAuditWorld;
                   w.room=index;
                   w.player.set(x,1.64,z);
                   w.yaw=0;w.pitch=0;
+                  if(aimX!==undefined){
+                    const dx=aimX-x,dz=aimZ-z,dy=aimY-1.64;
+                    w.yaw=Math.atan2(-dx,-dz);
+                    w.pitch=Math.atan2(dy,Math.hypot(dx,dz));
+                  }
                   w.showRoom();
                   w.tick(.016,t,t/900);
                 },detail);
