@@ -45,6 +45,20 @@ for(const [key,id] of Object.entries(required)){
  total+=buffer.length;
  console.log(`OK ${id}: ${buffer.length} bytes, ${json.meshes.length} meshes, ${json.materials.length} materials`);
 }
+const pbrMaterials=["wood_floor","rough_plaster_broken"];
+let pbrBytes=0;
+for(const id of pbrMaterials){
+ for(const part of ["color","normal","arm"]){
+  const file=`materials/premium/${id}-${part}.webp`;
+  const b=read(file);
+  assert.equal(b.toString("ascii",0,4),"RIFF","Invalid WebP RIFF: "+file);
+  assert.equal(b.toString("ascii",8,12),"WEBP","Invalid WebP format: "+file);
+  pbrBytes+=b.length;
+ }
+ assert(script.includes(`applyPremiumSurface`),"PBR loader missing");
+ assert(script.includes(id),"PBR material not used: "+id);
+}
+assert(pbrBytes<3.5*1024*1024,"Mobile PBR texture budget exceeded: "+pbrBytes);
 assert(total<4.3*1024*1024,"Mobile premium asset budget exceeded: "+total);
 assert(statSync(path.join(game,entry)).size<1.2*1024*1024,"Excessively heavy JavaScript bundle");
 console.log(`OK: theatre 3D assets, source paths and legacy puzzle functions verified. ${(total/1024/1024).toFixed(2)} MiB premium GLB total.`);
