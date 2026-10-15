@@ -1,5 +1,5 @@
 name: Aislamiento 15 - full 3-room gameplay QA
-# Changed gameplay: sign-access-pinch-fps-audit-20261015
+# Changed gameplay: physical-target-reachability-20261014
 on:
   workflow_dispatch:
   push:
@@ -44,7 +44,8 @@ jobs:
           const original=await readFile(name,'utf8');
           const anchor='    worldRef.current = world;';
           if(!original.includes(anchor))throw Error('Runtime test injection target changed');
-          const instrumented=original.replace(anchor,anchor+'\n    (window as any).__isoWorld = world;\n    (window as any).__isoAct = interactWith;');
+          const instrumented='import { canStand } from "./ChamberNavigation";\n'+
+            original.replace(anchor,anchor+'\n    (window as any).__isoWorld = world;\n    (window as any).__isoAct = interactWith;\n    (window as any).__isoCanStand = canStand;');
           await writeFile('source/src/app/aislamiento-15/IsolationGame.qa.tsx',instrumented);
           await writeFile('source/isolation-qa-entry.tsx',[
             'import React from "react";',
@@ -97,6 +98,42 @@ jobs:
               relays:[...w.relays],firstDoor:w.firstDoor,oxygenCells:[...w.oxygenCells],oxygenInstalled:w.oxygenInstalled,
               valves:[...w.valves],secondDoor:w.secondDoor,foundLog:w.foundLog,breakers:[...w.breakers],won:w.won
             };});}
+            const inspection=await page.evaluate(()=>{
+              const w=window.__isoWorld,stand=window.__isoCanStand;
+              const initial=w.player.clone(),initialRoom=w.room;
+              const failures=[],success=[];
+              w.scene.updateMatrixWorld(true);
+              for(const t of w.targets.filter(t=>!t.id.startsWith('sign-'))){
+                w.room=t.room;
+                w.showRoom();
+                const point=t.object.getWorldPosition(w.player.clone());
+                let reach=false;
+                for(const radius of [1.0,1.45,2.0,2.5]){
+                  if(reach)break;
+                  for(let n=0;n<24;n++){
+                    const angle=n*Math.PI/12;
+                    const cx=point.x+Math.cos(angle)*radius;
+                    const cz=point.z+Math.sin(angle)*radius;
+                    if(!stand(t.room,cx,cz,.3))continue;
+                    const origin=w.player.clone().set(cx,1.64,cz);
+                    w.camera.position.copy(origin);
+                    w.camera.lookAt(point);
+                    w.camera.updateMatrixWorld(true);
+                    if(w.hitAt(0,0)?.id===t.id){reach=true;break;}
+                  }
+                }
+                if(reach)success.push(t.id);
+                else failures.push({id:t.id,room:t.room,position:[point.x,point.z]});
+              }
+              w.room=initialRoom;
+              w.showRoom();
+              w.player.copy(initial);
+              w.camera.position.copy(initial);
+              w.camera.rotation.set(w.pitch,w.yaw,0,'YXZ');
+              return {success,failures};
+            });
+            console.log('ACCESSIBILITY_AUDIT='+JSON.stringify(inspection));
+            assert.deepEqual(inspection.failures,[],'Unreachable/non-raycastable 3D puzzle target');
             await invoke('fuse','fusebox','badge','triage');
             await page.getByRole('button',{name:/MEMORIZAR PRIORIDADES/}).click();
             const pattern=await page.evaluate(()=>({
