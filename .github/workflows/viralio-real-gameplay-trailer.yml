@@ -131,7 +131,7 @@ jobs:
         run: |
           mkdir -p website/aislamiento-15/media
           ffmpeg -hide_banner -loglevel error -y \
-            -i evidence/source.webm -vf 'fps=24,scale=960:540:flags=lanczos,format=yuv420p' \
+            -i evidence/source.webm -t 18 -vf 'fps=24,scale=960:540:flags=lanczos,format=yuv420p' \
             -an -c:v libx264 -preset fast -crf 24 -movflags +faststart \
             website/aislamiento-15/media/trailer-real.mp4
           python3 - <<'PY'
