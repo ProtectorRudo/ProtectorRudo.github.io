@@ -1,5 +1,5 @@
 name: Aislamiento 15 - full 3-room gameplay QA
-# Changed gameplay: clear-critical-hospital-signs-20261015
+# Changed gameplay: cumulative-background-budget-20261015
 on:
   workflow_dispatch:
   push:
@@ -45,7 +45,7 @@ jobs:
           const anchor='    worldRef.current = world;';
           if(!original.includes(anchor))throw Error('Runtime test injection target changed');
           const instrumented='import { canStand } from "./ChamberNavigation";\n'+
-            original.replace(anchor,anchor+'\n    (window as any).__isoWorld = world;\n    (window as any).__isoAct = interactWith;\n    (window as any).__isoCanStand = canStand;');
+            original.replace(anchor,anchor+'\n    (window as any).__isoWorld = world;\n    (window as any).__isoAct = interactWith;\n    (window as any).__isoCanStand = canStand;\n    (window as any).__isoPauseDebug = { used: () => backgroundGraceUsedRef.current, backdate: (ms: number) => { backgroundAtRef.current = Date.now() - ms; }, restoreClock: (ms: number) => { startAtRef.current -= ms; } };');
           await writeFile('source/src/app/aislamiento-15/IsolationGame.qa.tsx',instrumented);
           await writeFile('source/isolation-qa-entry.tsx',[
             'import React from "react";',
@@ -90,18 +90,35 @@ jobs:
             console.log('PASS: graded 3-level help does not spoil puzzles on first request');
             async function invoke(...ids) {return page.evaluate(ids=>{for(const id of ids)window.__isoAct(id);},ids);}
             const backgroundSafety=await page.evaluate(()=>{
-              const w=window.__isoWorld;
-              Object.defineProperty(document,'hidden',{configurable:true,value:true});
-              document.dispatchEvent(new Event('visibilitychange'));
-              const paused=w.running===false;
-              Object.defineProperty(document,'hidden',{configurable:true,value:false});
-              document.dispatchEvent(new Event('visibilitychange'));
+              const w=window.__isoWorld, debug=window.__isoPauseDebug;
+              const startingCredit=debug.used();
+              const simulateInterruption=(ms)=>{
+                Object.defineProperty(document,'hidden',{configurable:true,value:true});
+                document.dispatchEvent(new Event('visibilitychange'));
+                const paused=w.running===false;
+                debug.backdate(ms);
+                Object.defineProperty(document,'hidden',{configurable:true,value:false});
+                document.dispatchEvent(new Event('visibilitychange'));
+                return {paused,resumed:w.running===true};
+              };
+              const first=simulateInterruption(30000);
+              const usedAfterFirst=debug.used()-startingCredit;
+              const second=simulateInterruption(30000);
+              const totalUsed=debug.used()-startingCredit;
               delete document.hidden;
-              return {paused,resumed:w.running===true};
+              // Fake only the elapsed background time, not the game itself.
+              debug.restoreClock(totalUsed);
+              return {first,second,usedAfterFirst,totalUsed};
             });
-            assert.deepEqual(backgroundSafety,{paused:true,resumed:true},
-              'Mobile app interruption must suspend and resume the scene');
-            console.log('PASS: mobile background interruption freezes pursuer and resumes gameplay');
+            assert.equal(backgroundSafety.first.paused,true);
+            assert.equal(backgroundSafety.first.resumed,true);
+            assert.equal(backgroundSafety.second.paused,true);
+            assert.equal(backgroundSafety.second.resumed,true);
+            assert(backgroundSafety.usedAfterFirst>=30000 && backgroundSafety.usedAfterFirst<30100,
+              'First interrupted interval should grant about 30 seconds');
+            assert.equal(backgroundSafety.totalUsed,45000,
+              'Multiple interruptions must share ONE cumulative 45s budget');
+            console.log('PASS: cumulative 45-second courtesy budget resists repeated app switching');
             const sign=await page.evaluate(()=>window.__isoWorld.getSignText('sign-0'));
             assert(sign && sign.length>0,'Physical hospital signs have accessible text');
             await invoke('sign-0');
