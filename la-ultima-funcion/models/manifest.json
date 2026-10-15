@@ -1,9 +1,9 @@
 {
-  "source": "Poly Haven CC0",
-  "credit": "https://polyhaven.com/license",
+  "source": "Poly Haven e Innerscene · CC0",
+  "credit": "https://polyhaven.com/license · https://www.innerscene.com/tools/library",
   "assets": {
     "armchair": "/la-ultima-funcion/models/armchair/ArmChair_01_1k.gltf",
-    "chandelier": "/la-ultima-funcion/models/chandelier/Chandelier_01_1k.gltf",
+    "chandelier": "/la-ultima-funcion/models/premium/premium-ph-crystal-chandelier.glb64",
     "grandfatherClock": "/la-ultima-funcion/models/grandfather_clock/vintage_grandfather_clock_01_1k.gltf",
     "sideTable": "/la-ultima-funcion/models/side_table/side_table_tall_01_1k.gltf",
     "mantelClock": "/la-ultima-funcion/models/mantel_clock/mantel_clock_01_1k.gltf",
@@ -11,7 +11,11 @@
     "projector": "/la-ultima-funcion/models/projector/filmstrip_projector_8mm_1k.gltf",
     "victorianConsole": "/la-ultima-funcion/models/victorian_console/ClassicConsole_01_1k.gltf",
     "ornateSideTable": "/la-ultima-funcion/models/ornate_side_table/ClassicNightstand_01_1k.gltf",
-    "usher": "/la-ultima-funcion/models/usher/usher-mobile.glb"
+    "usher": "/la-ultima-funcion/models/usher/usher-mobile.glb",
+    "premiumSconce": "/la-ultima-funcion/models/premium/industrial-wall-sconce.glb64",
+    "premiumMirror": "/la-ultima-funcion/models/premium/victorian-arched-mirror.glb64",
+    "premiumLantern": "/la-ultima-funcion/models/premium/premium-ph-wood-lantern.glb64",
+    "premiumNightstand": "/la-ultima-funcion/models/premium/victorian-nightstand.glb64"
   },
   "materials": {
     "velvet": {
@@ -19,5 +23,6 @@
       "normal": "/la-ultima-funcion/materials/velvet/normal.jpg",
       "arm": "/la-ultima-funcion/materials/velvet/arm.jpg"
     }
-  }
+  },
+  "deliveryNote": "Los nuevos modelos GLB locales se sirven en base64 .glb64 para compatibilidad con el canal de publicación GitHub Pages; el cargador Three.js los decodifica bajo demanda, con cache y fallback. No hay dependencias externas en runtime."
 }
