@@ -25,9 +25,14 @@ try{
   const page=await ctx.newPage();
   const failures=[];
   const loaded=new Set();
+  const surfaces=new Set();
   page.on("pageerror",e=>failures.push("Page error: "+e.message));
-  page.on("console",m=>{if(m.type()==="error"||/Decorado glTF no disponible|No se pudo cargar todo el decorado/.test(m.text()))failures.push("Console: "+m.text())});
+  page.on("console",m=>{if(m.type()==="error"||/Decorado glTF no disponible|No se pudo cargar todo el decorado|Superficie PBR de teatro no disponible/.test(m.text()))failures.push("Console: "+m.text())});
   page.on("response",r=>{
+   if(r.url().includes("/materials/premium/")){
+    if(r.status()===200)surfaces.add(r.url().split("/").pop());
+    else failures.push("PBR texture HTTP "+r.status()+": "+r.url());
+   }
    if(r.url().includes("/models/premium/")){
     if(r.status()===200)loaded.add(r.url().split("/").pop());
     else failures.push("Premium HTTP "+r.status()+": "+r.url());
@@ -48,8 +53,9 @@ try{
   });
   assert(canvas.width>150&&canvas.height>150,mode.name+": 3D canvas not visible");
   for(const item of required)assert(loaded.has(item),mode.name+": premium GLB not loaded: "+item);
+  for(const mat of ["wood_floor","rough_plaster_broken"])for(const map of ["color","normal","arm"])assert(surfaces.has(mat+"-"+map+".webp"),mode.name+": PBR map not loaded: "+mat+"-"+map);
   assert.equal(failures.length,0,mode.name+": "+failures.join("\n"));
-  console.log(mode.name+" PASS: 3D canvas, "+loaded.size+" premium GLBs, no page errors");
+  console.log(mode.name+" PASS: 3D canvas, "+loaded.size+" premium GLBs, "+surfaces.size+" PBR textures, no page errors");
   await ctx.close();
  }
 }finally{await browser.close()}
