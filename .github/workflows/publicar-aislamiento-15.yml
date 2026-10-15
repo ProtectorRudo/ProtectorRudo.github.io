@@ -1,5 +1,5 @@
 name: Publicar Aislamiento 15 en GitHub Pages
-# Revision de fuente: cumulative-background-45s-budget-20261015
+# Revision de fuente: 92fe0b13287220f306820b9f12420981ab7a73eb
 on:
   push:
     branches: [main]
