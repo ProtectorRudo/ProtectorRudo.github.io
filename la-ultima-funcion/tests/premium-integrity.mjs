@@ -7,7 +7,7 @@ const game=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const read=p=>readFileSync(path.join(game,p));
 const manifest=JSON.parse(read("models/manifest.json").toString("utf8"));
 const html=read("index.html").toString("utf8");
-const entry="assets/index-theatre-specter-fix-20261015.js";
+const entry="assets/index-theatre-grounded-20261015.js";
 const script=read(entry).toString("utf8");
 
 assert(html.includes(entry), "The published HTML does not use premium JS");
@@ -16,6 +16,12 @@ for(const needle of ["buildSeats()","buildPanels()","buildStage()","buildUsher()
 }
 assert(script.includes("ensureBoxSpecter()"),"No guaranteed fallback specter: Palco 1 apparition could be empty");
 assert(script.includes("getSpecterStatus()"),"Specter diagnostics missing");
+assert(script.includes("Mesita apoyada en el suelo · fusible 1968"),"Fuse pedestal is not floor-mounted");
+assert(script.includes("this.fuseCabinetFallback=h"),"Fuse table must remain separate from pickup");
+assert(script.includes("this.loadDecorGLTF(n.assets.premiumNightstand,[-5.7,.36,-8.4],.72,0)"),"Missing premium replacement of fuse cabinet");
+assert(script.includes("p:[-.36,.25,.28]")&&script.includes("p:[.36,.25,.28]"),"Audience seats require all four grounded legs");
+assert(!script.includes("new Rt(.1,.012,37)"),"Floating floor strips should not be present");
+assert(script.includes('["marbleBust",[7.8,1.06,-13.8]'),"Bust still floats above its side table");
 assert(script.includes("this.triggerBoxSpecter(),this.events.onEvent(\"electricidad\")"),"Warning may fire before ghost exists");
 assert(script.includes("n.current?.getSpecterStatus()?.visible"),"Whisper may claim a non-visible specter");
 assert(script.includes("EXT_texture_webp"),"Bundled Three.js GLTFLoader lacks WebP texture support");

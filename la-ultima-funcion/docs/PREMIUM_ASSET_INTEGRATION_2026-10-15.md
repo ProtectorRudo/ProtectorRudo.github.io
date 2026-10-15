@@ -62,3 +62,15 @@ Licencias generales: [Poly Haven CC0](https://polyhaven.com/license) y ficha ind
 - `tests/premium-integrity.mjs` comprueba la inicialización, sincronización y el enlace a la nueva versión. `tests/premium-browser-smoke.mjs` dispone de casos para Android vertical y escritorio que comprueban la aparición provisional, el reemplazo GLB y capturan una imagen del palco al estar enfocado.
 
 **Verificación realizada:** cambios integrados en GitHub `main`, sintaxis de JS válida y referencias verificadas en HTML. **Pendiente de certificación:** ejecutar QA con Chromium, confirmar capturas reales y completar prueba en celular, sin inventar FPS o afirmar resultados visuales no comprobados.
+
+## Tercera fase: corrección de objetos flotantes (captura Android 15/10/2026)
+
+La captura de una persona jugando a 2:05 restantes mostró un fusible gigante sobre una base que flotaba, butacas sin apoyo completo y rayas geométricas antinaturales en el suelo. Se aplicaron correcciones a la escena real en `assets/index-theatre-grounded-20261015.js`.
+
+- **Fusible:** pasó de 53 cm de largo a un cuerpo de porcelana de 30 cm, con dos terminales metálicos y soporte físico. La pieza clicable tiene un volumen transparente de toque más amplio; recogerla no elimina su mesa.
+- **Mesita:** reemplazo profesional `victorian-nightstand.glb` ya local y CC0, colocado con la base tocando el suelo. Mientras el modelo carga existe un mueble provisional con cuatro patas y superficie. El mueble permanece al retirar el fusible.
+- **Butacas:** cada una ahora tiene cuatro patas físicas y un travesaño de arriostramiento, manteniendo `InstancedMesh` para limitar llamadas a GPU.
+- **Muebles decorativos:** se bajaron a ras del suelo los sillones y las mesas victorianas; el busto descansa sobre su mesa. Apliques y espejos se acercaron al muro al que pertenecen.
+- **Piso:** retiradas 32 rayas procedurales elevadas que interferían con la textura PBR de madera.
+- **Lógica del juego:** sin cambios al orden de acertijos, códigos, temporizador, sonidos ni recolectar/instalar fusible. Se preservó la mejora previa del fantasma del palco 1 y su aviso sincronizado.
+- **Pruebas:** syntax check JavaScript + verificaciones de integridad del repositorio en `tests/premium-integrity.mjs` y navegador desktop/Android mediante `theatre-premium-qa.yml`. Los tests automatizados de navegador y revisión humana de capturas siguen siendo criterios de aceptación, no deben darse por exitosos sin su reporte.

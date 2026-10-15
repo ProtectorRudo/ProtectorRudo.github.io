@@ -27,7 +27,7 @@ jobs:
 
       - name: Verify PBR files, GLB geometry, manifest and preserved mechanics
         run: |
-          node --check la-ultima-funcion/assets/index-theatre-specter-fix-20261015.js
+          node --check la-ultima-funcion/assets/index-theatre-grounded-20261015.js
           node --check la-ultima-funcion/tests/premium-integrity.mjs
           node la-ultima-funcion/tests/premium-integrity.mjs
 
