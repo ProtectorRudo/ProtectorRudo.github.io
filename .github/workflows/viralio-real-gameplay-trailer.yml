@@ -1,0 +1,169 @@
+name: Viralio - vídeo auténtico de gameplay 3D
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/viralio-real-gameplay-trailer.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: viralio-real-gameplay-trailer
+  cancel-in-progress: false
+jobs:
+  film:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: website
+      - uses: actions/checkout@v4
+        with:
+          repository: ProtectorRudo/viralio
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+      - name: Install real Three.js renderer and Chromium
+        working-directory: source
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Build real game scene for cinematography
+        run: |
+          mkdir -p stage/aislamiento-15/models evidence
+          cp website/aislamiento-15/models/*.glb stage/aislamiento-15/models/
+          node --input-type=module <<'JS'
+          import {readFile,writeFile} from 'node:fs/promises';
+          const filename='source/src/app/aislamiento-15/IsolationGame.tsx';
+          const original=await readFile(filename,'utf8');
+          const anchor='    worldRef.current = world;';
+          if(!original.includes(anchor))throw Error('3D source changed');
+          await writeFile('source/src/app/aislamiento-15/IsolationGame.film.tsx',original.replace(
+            anchor,anchor+'\n    (window as any).__filmWorld = world;'
+          ));
+          await writeFile('source/film-entry.tsx',
+            'import React from "react";\nimport {createRoot} from "react-dom/client";\nimport Game from "./src/app/aislamiento-15/IsolationGame.film";\ncreateRoot(document.getElementById("root")!).render(<Game/>);');
+          JS
+          cd source
+          npx --yes esbuild@0.25.10 film-entry.tsx --bundle --minify --format=esm \
+            --target=es2022 --outdir=../stage/aislamiento-15
+          cat > ../stage/aislamiento-15/index.html <<'HTML'
+          <!doctype html><html lang="es"><head><meta charset="utf-8">
+          <meta name="viewport" content="width=device-width,initial-scale=1">
+          <link rel="stylesheet" href="./film-entry.css">
+          <script type="module" defer src="./film-entry.js"></script></head>
+          <body style="margin:0;background:#050b0d"><div id="root"></div></body></html>
+          HTML
+      - name: Record three genuine WebGL hospital chambers
+        run: |
+          python3 -m http.server 8894 --directory stage >/tmp/film-server.log 2>&1 &
+          cat > source/film-real-gameplay.mjs <<'JS'
+          import {chromium} from 'playwright';
+          import {copyFile,mkdir,stat} from 'node:fs/promises';
+          import assert from 'node:assert/strict';
+          await mkdir('evidence/video',{recursive:true});
+          const browser=await chromium.launch({headless:true,args:[
+            '--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--enable-webgl'
+          ]});
+          const context=await browser.newContext({
+            viewport:{width:1120,height:630},
+            recordVideo:{dir:'evidence/video',size:{width:1120,height:630}}
+          });
+          const page=await context.newPage();
+          const errors=[],models=[];
+          page.on('pageerror',e=>errors.push(e.message));
+          page.on('response',r=>{
+            if(r.url().includes('/models/')&&r.status()===200)models.push(r.url().split('/').pop());
+          });
+          try {
+            await page.goto('http://127.0.0.1:8894/aislamiento-15/',
+              {waitUntil:'networkidle',timeout:60000});
+            await page.waitForFunction(()=>!!window.__filmWorld,{timeout:30000});
+            await page.getByRole('button',{name:/COMENZAR AISLAMIENTO/}).click();
+            await page.addStyleTag({content:'.iso-hud,.iso-joystick,.iso-top,.iso-timer,.iso-objective,.iso-crosshair,.iso-broadcast,.iso-bottom,.iso-bottom-center,.iso-interact,.iso-zoom,.iso-zoom-controls,.iso-threat-meter,.iso-chapter-card,.iso-watermark,.iso-help,.iso-edge-threat,.iso-note,.iso-hint-button,.iso-cinematic-subtitle,.iso-controls{display:none!important}body,html{overflow:hidden!important}'});
+            const shots=[
+              {room:0,z:3.8,time:3.0,yaw:0},
+              {room:1,z:-9.1,time:3.0,yaw:-.07},
+              {room:2,z:-22.3,time:3.0,yaw:.02},
+              {room:1,z:-13.8,time:3.0,yaw:0,enemy:true}
+            ];
+            for(const shot of shots){
+              await page.evaluate(shot=>{
+                const w=window.__filmWorld;
+                w.room=shot.room;w.player.set(0,1.64,shot.z);
+                w.yaw=shot.yaw;w.pitch=-.045;
+                w.nextThreatAt=Infinity;
+                w.enemy.position.set(shot.enemy?0:4,0,shot.enemy?-17.2:[-6,-16,-32][shot.room]);
+                w.showRoom();
+                w.tick(.016,120+shot.room*110,.16);
+                if(window.__filmMove)clearInterval(window.__filmMove);
+                const begin=performance.now();
+                window.__filmMove=setInterval(()=>{
+                  const t=(performance.now()-begin)/1000;
+                  w.yaw=shot.yaw+Math.sin(t*.65)*.09;
+                  w.pitch=-.045+Math.sin(t*.4)*.018;
+                },33);
+              },shot);
+              await page.waitForTimeout(shot.time*1000);
+            }
+            await page.screenshot({path:'evidence/last-frame.jpg',type:'jpeg',quality:78});
+            assert(!errors.length,'WebGL browser errors: '+errors.join(', '));
+            assert(models.length>=9,'Real hospital GLBs were not loaded');
+            console.log('Authentic three-room WebGL footage captured from '+models.length+' GLB requests');
+          } finally {
+            const video=page.video();
+            await page.close();
+            if(video) await copyFile(await video.path(),'evidence/source.webm');
+            await context.close();await browser.close();
+          }
+          assert((await stat('evidence/source.webm')).size>100000,'Empty recording');
+          JS
+          node source/film-real-gameplay.mjs
+      - name: Encode small H.264 real gameplay teaser for Safari and Android
+        run: |
+          mkdir -p website/aislamiento-15/media
+          ffmpeg -hide_banner -loglevel error -y \
+            -i evidence/source.webm -vf 'fps=24,scale=960:540:flags=lanczos,format=yuv420p' \
+            -an -c:v libx264 -preset fast -crf 24 -movflags +faststart \
+            website/aislamiento-15/media/trailer-real.mp4
+          python3 - <<'PY'
+          import os,subprocess
+          f='website/aislamiento-15/media/trailer-real.mp4'
+          duration=float(subprocess.check_output(['ffprobe','-v','error','-show_entries',
+            'format=duration','-of','default=noprint_wrappers=1:nokey=1',f]).decode().strip())
+          size=os.path.getsize(f)
+          print('Real WebGL footage:',round(duration,2),'seconds,',round(size/1024),'KB')
+          assert 9<=duration<=22 and 100000<=size<=9000000
+          PY
+      - name: Publish gameplay video without touching other experiences
+        run: |
+          git -C website config user.name 'github-actions[bot]'
+          git -C website config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C website add aislamiento-15/media/trailer-real.mp4
+          if git -C website diff --cached --quiet;then
+            echo 'Same footage already published'
+          else
+            git -C website commit -m 'media: real Three.js gameplay teaser of three Helix sectors'
+            for attempt in 1 2 3 4;do
+              git -C website fetch origin main
+              git -C website rebase origin/main
+              if git -C website push origin HEAD:main;then
+                echo 'REAL_WEBGL_TRAILER_PUBLISHED=true'
+                break
+              fi
+              if [ "$attempt" -eq 4 ];then exit 1;fi
+              sleep 2
+            done
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aislamiento15-real-footage-evidence
+          path: |
+            evidence/last-frame.jpg
+            website/aislamiento-15/media/trailer-real.mp4
+          if-no-files-found: warn
