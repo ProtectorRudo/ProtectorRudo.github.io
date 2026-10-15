@@ -1,5 +1,5 @@
 name: Publicar Aislamiento 15 en GitHub Pages
-# Revision de fuente: sideoxygen-physical-toggle-20261014
+# Revision de fuente: signage-pinch-fps-20261015
 on:
   push:
     branches: [main]
