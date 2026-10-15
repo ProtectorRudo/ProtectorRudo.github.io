@@ -7,7 +7,7 @@ const game=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const read=p=>readFileSync(path.join(game,p));
 const manifest=JSON.parse(read("models/manifest.json").toString("utf8"));
 const html=read("index.html").toString("utf8");
-const entry="assets/index-theatre-premium-20261015.js";
+const entry="assets/index-theatre-premium-v2-20261015.js";
 const script=read(entry).toString("utf8");
 
 assert(html.includes(entry), "The published HTML does not use premium JS");
