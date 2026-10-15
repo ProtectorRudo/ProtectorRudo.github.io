@@ -1,5 +1,5 @@
 name: Aislamiento 15 - full 3-room gameplay QA
-# Changed gameplay: signage-pinch-fps-20261015
+# Changed gameplay: sign-access-pinch-fps-audit-20261015
 on:
   workflow_dispatch:
   push:
@@ -78,6 +78,20 @@ jobs:
             await page.waitForFunction(() => !!window.__isoWorld && !!window.__isoAct,{timeout:30000});
             await page.getByRole('button',{name:/COMENZAR AISLAMIENTO/}).click();
             async function invoke(...ids) {return page.evaluate(ids=>{for(const id of ids)window.__isoAct(id);},ids);}
+            const sign=await page.evaluate(()=>window.__isoWorld.getSignText('sign-0'));
+            assert(sign && sign.length>0,'Physical hospital signs have accessible text');
+            await invoke('sign-0');
+            await page.locator('.iso-sign-transcription p').first().waitFor();
+            assert.equal(await page.locator('.iso-sign-transcription p').first().textContent(),sign[0]);
+            await page.getByRole('button',{name:/VOLVER AL HOSPITAL/}).click();
+            await page.keyboard.press('h');
+            await page.getByRole('button',{name:/MEDIR FPS EN MI DISPOSITIVO/}).click();
+            await page.locator('.iso-device-performance').waitFor();
+            await page.waitForTimeout(1900);
+            const diagnostic=await page.locator('.iso-device-performance').innerText();
+            assert(diagnostic.includes('Draw calls')&&diagnostic.includes('FPS'),'In-device WebGL diagnostics missing');
+            await page.getByRole('button',{name:/Cerrar diagnóstico de rendimiento/}).click();
+            console.log('PASS: diegetic sign inspection and performance diagnostic HUD');
             async function snapshot(){return page.evaluate(()=>{const w=window.__isoWorld; return {
               room:w.room,hasFuse:w.hasFuse,fusePlaced:w.fusePlaced,hasBadge:w.hasBadge,readTriage:w.readTriage,
               relays:[...w.relays],firstDoor:w.firstDoor,oxygenCells:[...w.oxygenCells],oxygenInstalled:w.oxygenInstalled,
