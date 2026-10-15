@@ -1,5 +1,5 @@
 name: Aislamiento 15 - full 3-room gameplay QA
-# Changed gameplay: cumulative-background-budget-20261015
+# Changed gameplay: timed-seal-local-playtest-qa-20261015
 on:
   workflow_dispatch:
   push:
@@ -45,7 +45,7 @@ jobs:
           const anchor='    worldRef.current = world;';
           if(!original.includes(anchor))throw Error('Runtime test injection target changed');
           const instrumented='import { canStand } from "./ChamberNavigation";\n'+
-            original.replace(anchor,anchor+'\n    (window as any).__isoWorld = world;\n    (window as any).__isoAct = interactWith;\n    (window as any).__isoCanStand = canStand;\n    (window as any).__isoPauseDebug = { used: () => backgroundGraceUsedRef.current, backdate: (ms: number) => { backgroundAtRef.current = Date.now() - ms; }, restoreClock: (ms: number) => { startAtRef.current -= ms; } };');
+            original.replace(anchor,anchor+'\n    (window as any).__isoWorld = world;\n    (window as any).__isoAct = interactWith;\n    (window as any).__isoCanStand = canStand;\n    (window as any).__isoPauseDebug = { used: () => backgroundGraceUsedRef.current, backdate: (ms: number) => { backgroundAtRef.current = Date.now() - ms; }, restoreClock: (ms: number) => { startAtRef.current -= ms; } };\n    (window as any).__isoClockDebug = { setElapsed: (seconds: number) => { startAtRef.current = Date.now() - seconds * 1000; penaltyRef.current = 0; }, mode: () => modeRef.current };');
           await writeFile('source/src/app/aislamiento-15/IsolationGame.qa.tsx',instrumented);
           await writeFile('source/isolation-qa-entry.tsx',[
             'import React from "react";',
@@ -223,6 +223,14 @@ jobs:
               return {before:prevAttack,after:w.enemyLastAttack};
             });
             assert.equal(safeExamination.after,safeExamination.before,'Stalker must not attack while reading records');
+            const movementSafety=await page.evaluate(()=>{
+              const w=window.__isoWorld,before=w.player.clone();
+              w.keys.add('KeyW');w.moveJoystick(0,-1);w.tick(.05,612,.68);
+              const moved=before.distanceTo(w.player);
+              w.keys.delete('KeyW');w.moveJoystick(0,0);
+              return moved;
+            });
+            assert(movementSafety<.001,'Player must not drift while examining an in-world document');
             await page.getByRole('button',{name:/HE ENTENDIDO/}).click();
             await page.waitForFunction(()=>window.__isoWorld.inspecting===false);
             await invoke('breaker-0','breaker-2');
@@ -232,7 +240,54 @@ jobs:
             await invoke('escape');
             assert.equal((await snapshot()).won,true,'Evacuation should succeed');
             await page.getByRole('heading',{name:/ESTÁS/}).waitFor();
+            await page.getByRole('button',{name:/COPIAR INFORME DE PRUEBA/}).waitFor();
+            await page.context().grantPermissions(['clipboard-read','clipboard-write']);
+            await page.getByRole('button',{name:/COPIAR INFORME DE PRUEBA/}).click();
+            const report=await page.evaluate(()=>navigator.clipboard.readText());
+            for(const phrase of ['Resultado: evacuacion','FPS medio','Pistas consultadas:','Urgencias:','Aislamiento:','Contencion:'])
+              assert(report.includes(phrase),'Incomplete local quality report: '+phrase);
+            console.log('PASS: local full-playtest report with room splits, FPS, hints and outcome is copyable');
+
+            // Simulate reaching the 15-minute limit WITHOUT waiting 900 seconds.
+            // Only the private QA bundle exposes this clock control.
+            await page.reload({waitUntil:'domcontentloaded'});
+            await page.waitForFunction(()=>!!window.__isoClockDebug&&!!window.__isoWorld,{timeout:30000});
+            await page.getByRole('button',{name:/COMENZAR AISLAMIENTO/}).click();
+            await page.evaluate(()=>window.__isoClockDebug.setElapsed(895));
+            await page.waitForFunction(()=>document.querySelector('.iso-timer')?.textContent?.includes('00:05'),{timeout:8000});
+            await page.evaluate(()=>window.__isoClockDebug.setElapsed(902));
+            await page.getByRole('heading',{name:/EL TIEMPO/}).waitFor({timeout:8000});
+            assert.equal(await page.evaluate(()=>window.__isoClockDebug.mode()),'failed');
+            assert.equal(await page.evaluate(()=>window.__isoWorld.running),false);
+            await page.getByRole('button',{name:/COPIAR INFORME DE PRUEBA/}).click();
+            const failedReport=await page.evaluate(()=>navigator.clipboard.readText());
+            assert(failedReport.includes('Resultado: sellado')&&failedReport.includes('15m'),
+              'Failed session must produce truthful local report');
+            const exploit=await page.evaluate(()=>{
+              const old=window.__isoWorld.hasFuse;
+              window.__isoAct('fuse');
+              return {old,next:window.__isoWorld.hasFuse};
+            });
+            assert.equal(exploit.next,exploit.old,'Player should not manipulate objects after seal expires');
+            await page.getByRole('button',{name:/VOLVER A INTENTARLO/}).click();
+            await page.getByRole('button',{name:/COMENZAR AISLAMIENTO/}).waitFor();
+            console.log('PASS: 15-minute deadline causes irreversible loss, produces report and supports restart');
+
+            const disabled=await browser.newPage({viewport:{width:390,height:844}});
+            await disabled.addInitScript(()=>{
+              const original=HTMLCanvasElement.prototype.getContext;
+              HTMLCanvasElement.prototype.getContext=function(type,...args){
+                if(typeof type==='string'&&type.toLowerCase().startsWith('webgl'))return null;
+                return original.call(this,type,...args);
+              };
+            });
+            await disabled.goto('http://127.0.0.1:8878/aislamiento-15/',{waitUntil:'domcontentloaded'});
+            await disabled.locator('.iso-compat-error').waitFor({timeout:15000});
+            assert(await disabled.getByRole('button',{name:/WEBGL NO DISPONIBLE/}).isDisabled(),
+              'Unsupported mobile GPU must not show an unplayable start CTA');
+            await disabled.close();
             assert.deepEqual(pageErrors,[],'No JavaScript runtime errors');
+            console.log('PASS: unsupported WebGL browser shows clear accessible fallback');
             console.log('PASS: full route Urgencias -> Aislamiento -> Contención -> evacuación; physical puzzles and logic verified');
           } finally {await browser.close();}
           JS
