@@ -41,7 +41,11 @@ export async function attachHuman(actor,type='raiderA'){
  rig.add(visual);
  // Move hitbox to root before hiding procedural mesh.
  if(actor.hit&&actor.hit.parent!==actor.root){actor.root.updateMatrixWorld(true);actor.root.attach(actor.hit)}
- if(actor.flesh)actor.flesh.visible=false;
+ if(actor.flesh){
+   const rifle=actor.flesh.getObjectByName('RIFLE_HELD');
+   if(rifle)actor.root.attach(rifle);
+   actor.flesh.visible=false;
+ }
  actor.root.add(rig);
  actor.rig=rig;actor.gltfRoot=visual;actor.mixer=new THREE.AnimationMixer(visual);
  actor.clips=data.clips;actor.animMode='';
