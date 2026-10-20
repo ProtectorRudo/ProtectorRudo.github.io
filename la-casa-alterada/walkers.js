@@ -51,7 +51,16 @@ function nextWaypoint(start,end){
 }
 export function steerEnemy(e,dt,time,target,mode){
  if(!e?.alive||!dt)return 0;
- const p=e.root.position,goal=mode==='demo'&&e.floor&&target?nextWaypoint(p,target):target;
+ const p=e.root.position;
+ let goal=target;
+ if(mode==='demo'&&e.floor&&target){
+  const change=!e.lastGoal||Math.hypot(target.x-e.lastGoal.x,target.z-e.lastGoal.z)>.7;
+  if(!e.waypoint||change||Math.hypot(p.x-e.waypoint.x,p.z-e.waypoint.z)<.15){
+    e.waypoint=nextWaypoint(p,target);
+    e.lastGoal={x:target.x,z:target.z};
+  }
+  goal=e.waypoint;
+ }
  const dX=(goal?.x??e.home.x)-p.x,dZ=(goal?.z??e.home.z)-p.z,d=Math.hypot(dX,dZ);
  const speed=(e.floor?.39:.16)*(e.variant===2?1.55:e.variant===1?.8:1)*(e.boss?1.15:1);
  const stop=e.floor?(e.boss?1.35:.82):.1;
