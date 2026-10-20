@@ -44,3 +44,17 @@ Código fuente basado en Three.js. Véase THIRD_PARTY_NOTICES.md.
 - Controles de mira y FOV actualizados; en AR no se altera la proyección física del dispositivo.
 
 NOTA: el cañón es un modelo de vista en primera persona superpuesto (no está anclado a una pistola real). La alineación se aproxima según la proyección de cada cámara; sigue requiriendo validación visual en dispositivos AR.
+
+
+## V7 — Operación Sombra / FPS táctico original
+- SkillHub game-development / ship-web-games: estilos coherentes, modelos, hitboxes, optimización y publicación verificada.
+- Intrusos con pasamontañas y equipo táctico, operadores aliados con casco, visor y chaleco.
+- Dos armas 3D originales: carabina VX-4 (28 balas, disparos continuos al mantener presionado) y pistola P-9 (12 balas).
+- Cambiar arma, mira ADS, cargadores separados, recarga, recoil, casquillos.
+- Diseño FPS competitivo ámbar/pizarra sin logos ni mapas Valve.
+- Modelo policial GLB opcional desde ProtectorRudo/viralio, con respaldo procedural. Modelo GLB estático, no locomoción skeletal.
+- Misiones AR y multijugador conservados; calibración espacial aproximada.
+- V7 requiere prueba visual y rendimiento real en Android/AR.
+- SkillHub: https://www.skillhub.club/skills/bigc7292-lj-stone-surfaces-ltd-game-development
+- SkillHub release: https://www.skillhub.club/skills/mengto-skills-ship-web-games
+- GitHub MIT FPS referencia: https://github.com/R4e-Pi/threejs-fps
