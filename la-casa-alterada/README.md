@@ -58,3 +58,14 @@ NOTA: el cañón es un modelo de vista en primera persona superpuesto (no está 
 - SkillHub: https://www.skillhub.club/skills/bigc7292-lj-stone-surfaces-ltd-game-development
 - SkillHub release: https://www.skillhub.club/skills/mengto-skills-ship-web-games
 - GitHub MIT FPS referencia: https://github.com/R4e-Pi/threejs-fps
+
+
+## V8 — Asalto y Rescate
+- Marcar entrada en el piso, elegir con la cámara dónde colocar al rehén, comenzar el asalto, liberarlo al acercarse y escoltarlo al punto de entrada.
+- Luego: desactivar cargas, detener a los intrusos, defender el perímetro y enfrentar al líder.
+- Host co-op autoritativo para rehén, fases, enemigos y ataques; requiere calibración manual AR con el mismo punto físico.
+- Animaciones de humanos reales CC0 y soldado militar CC BY 4.0 via GLTFLoader, SkeletonUtils.clone y AnimationMixer; respaldo procedural.
+- Ráfagas, trazadoras, fogonazo, impacto y audio espacial WebAudio HRTF; balas esquivables caminando en AR o con joystick 3D.
+- El rehén es una persona virtual ficticia colocada por el usuario, no se identifica ninguna persona real de la cámara.
+- Requiere pruebas de rendimiento y AR multijugador en dispositivos físicos; no hay escaneo de profundidad semántico de muebles.
+- Código técnico: https://threejs.org/docs/pages/module-SkeletonUtils y https://threejs.org/docs/pages/AnimationMixer.html
