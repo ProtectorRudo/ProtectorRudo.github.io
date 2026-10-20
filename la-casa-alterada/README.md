@@ -32,3 +32,15 @@ Código fuente basado en Three.js. Véase THIRD_PARTY_NOTICES.md.
 - Animación procedural de brazos, piernas, mandíbula y torso sincronizada con la velocidad real de desplazamiento.
 - En la partida cooperativa, el anfitrión decide la posición de los monstruos y los invitados reciben posición, giro y escala actualizados.
 - **Límite AR:** no se conoce la geometría 3D completa de muebles y paredes reales; no se garantiza evitar objetos físicos. Caminar despacio sin correr y mirar el entorno real en todo momento.
+
+
+## V6 — Apuntado del arma y mira corregidos
+
+- El arma se dibuja con una cámara FPS centrada (sin perspectiva lateral falsa).
+- Capa transparente a pantalla completa para que la mira ADS y el cañón compartan posición en pantalla.
+- Dos poses de arma: cadera y apuntado ADS; transición suave sin balanceos excesivos.
+- Los impactos se calculan desde el centro de la cámara. La trayectoria visual se proyecta desde el cañón en pantalla al punto de impacto.
+- Reducción de la apariencia de arma recortada y oscura; el overlay conserva el entorno AR sin ocultarlo.
+- Controles de mira y FOV actualizados; en AR no se altera la proyección física del dispositivo.
+
+NOTA: el cañón es un modelo de vista en primera persona superpuesto (no está anclado a una pistola real). La alineación se aproxima según la proyección de cada cámara; sigue requiriendo validación visual en dispositivos AR.
