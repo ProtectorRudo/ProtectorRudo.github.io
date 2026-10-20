@@ -60,9 +60,9 @@ function updateBattle(dt,t){
   if(wp.distanceTo(eye)<3.1)threat=true;
   if(t>e.next&&wp.distanceTo(targetWorld)<8){
    e.next=t+(e.variant===2?2400:3300)+rnd(0,1150);
-   const m=new THREE.Mesh(new THREE.IcosahedronGeometry(e.variant===1?.105:.078,1),new THREE.MeshBasicMaterial({color:e.variant===2?0xee785c:0xaf3949,transparent:true,opacity:.93}));
+   const m=new THREE.Mesh(new THREE.SphereGeometry(e.variant===1?.058:.044,8,6),new THREE.MeshBasicMaterial({color:0xffbd6b,transparent:true,opacity:.98,depthWrite:false}));
    m.position.copy(wp).add(new THREE.Vector3(0,e.size*.73,0));
-   const vel=targetWorld.clone().sub(m.position).normalize().multiplyScalar(e.variant===2?3.4:2.4);
+   const vel=targetWorld.clone().sub(m.position).normalize().multiplyScalar(e.variant===2?3.4:2.4);m.scale.set(.72,.72,2.8);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),vel.clone().normalize());
    world.add(m);orbs.push({id:++projectileId,mesh:m,vel,targetId:e.targetId,until:t+3500,power:e.variant===1?12:7});
   }
  }
