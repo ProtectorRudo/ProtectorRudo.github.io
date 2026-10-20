@@ -176,7 +176,7 @@ export function createMission(api){
        o.hostagePos.copy(h);
       }
     }
-    if(o.hostageActor)animateHuman(o.hostageActor,dt,o.phase===-1?1:0);
+    if(o.hostageActor)animateHuman(o.hostageActor,dt,o.phase===-1?.26:0);
     if(o.origin&&api.firstNest()){o.origin.position.copy(api.firstNest().root.position)}const p=position();
     if(o.role==='guest'&&o.conn?.open&&p&&time-o.lastMove>140){o.lastMove=time;send(o.conn,{t:'move',p:P(p)})}
     if(o.role==='host'&&o.running&&o.origin&&time-o.lastSnap>165){o.lastSnap=time;broadcast(makeSnapshot())}
