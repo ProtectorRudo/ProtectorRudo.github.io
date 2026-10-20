@@ -38,3 +38,17 @@ SOFTWARE.
 ## Revisados, no copiados
 - Blackwater: https://github.com/Hiraeth010/blackwater
 - COD ballistics.js: https://github.com/delightc123/COD/blob/main/src/weapons/ballistics.js
+
+
+## V8 — Soldier human model and attribution (CC BY 4.0)
+- Military soldier file: https://github.com/cktang88/3d-fps (public/assets/models/characters/soldier.glb).
+- Original rig/character artist: BAMEN, FREE [Military Soldier] RIGGED, https://sketchfab.com/3d-models/free-military-soldier-rigged-e9c56308a67d4a3db62e914fafa4d198
+- Licensed Creative Commons Attribution 4.0 International (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/
+- Source project retargeted animation clips from Quaternius Universal Animation Library 1/2 (CC0) and 100STYLE motion dataset by Ian Mason, Sebastian Starke and Taku Komura (CC BY 4.0): https://zenodo.org/records/8127870
+- Our adaptation scales, independently clones and animates the rig, retains first-person custom weapon model and hitboxes; no official Counter-Strike assets.
+- Static soldier_tac.glb is not used or bundled here.
+
+### CC0 humanoid fallbacks: Innerscene / MakeHuman
+- Jordan: https://www.innerscene.com/tools/library/3d-parts/locomotion-collection-jordan-3d-person-animated-911f1584
+- Sam: https://www.innerscene.com/tools/library/3d-parts/locomotion-collection-sam-3d-person-animated-dc23800f
+- Maya (hostage): https://www.innerscene.com/tools/library/3d-parts/locomotion-collection-maya-3d-person-animated-1499b2fd
