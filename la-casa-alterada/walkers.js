@@ -41,9 +41,9 @@ export function steerEnemy(e,dt,time,target,mode){
  const desiredX=d>.2?dX:e.walkVX,desiredZ=d>.2?dZ:e.walkVZ;
  if(Math.hypot(desiredX,desiredZ)>.01){
   const targetYaw=Math.atan2(desiredX,desiredZ);
-  let a=(targetYaw-p.rotation.y+Math.PI)%(Math.PI*2);
+  let a=(targetYaw-e.root.rotation.y+Math.PI)%(Math.PI*2);
   if(a<0)a+=Math.PI*2;a-=Math.PI;
-  p.rotation.y+=a*(1-Math.exp(-dt*6.8));
+  e.root.rotation.y+=a*(1-Math.exp(-dt*6.8));
  }
  p.y=e.groundY;
  return moved;
