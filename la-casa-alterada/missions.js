@@ -1,4 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
+import { createTacticalActor } from './tactical.js';
 const $=id=>document.getElementById(id),clamp=(a,b,v)=>Math.max(a,Math.min(b,v));
 const PHASES=[
 {title:'01 / SELLAR LOS TRES PORTALES',detail:'Encontrá cada sello y activalo desde cerca. Repartan las tareas.',target:3},
@@ -9,7 +10,7 @@ const PHASES=[
 const POSITION=[[-1.1,0,-.8],[1.1,0,-.8],[0,0,1.15]];
 const maxPlayers=4;
 function marker(id){const group=new THREE.Group();const color=[0x5ce7c6,0xe49a65,0xbe72e9][id];const material=new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.85,metalness:.38,roughness:.25});const base=new THREE.Mesh(new THREE.TorusGeometry(.21,.018,7,36).rotateX(-Math.PI/2),material);base.position.y=.025;group.add(base);const cap=new THREE.Mesh(new THREE.OctahedronGeometry(.14),material);cap.position.y=.33;group.add(cap);const halo=new THREE.PointLight(color,.7,2);halo.position.y=.28;group.add(halo);group.userData.cap=cap;group.userData.base=base;return group}
-function avatar(){const g=new THREE.Group(),m=new THREE.MeshStandardMaterial({color:0x54cbdf,emissive:0x24698a,emissiveIntensity:.8,transparent:true,opacity:.74,depthWrite:false});const torso=new THREE.Mesh(new THREE.CylinderGeometry(.15,.19,.51,9),m);torso.position.y=-.40;g.add(torso);const head=new THREE.Mesh(new THREE.IcosahedronGeometry(.145,1),m);head.position.y=-.03;g.add(head);const collar=new THREE.Mesh(new THREE.TorusGeometry(.22,.017,6,28),m);collar.rotation.x=Math.PI/2;collar.position.y=-.28;g.add(collar);return g}
+function avatar(){const holder=new THREE.Group(),soldier=createTacticalActor(THREE,0,'operator');holder.add(soldier.root);soldier.root.position.y=-1.65;holder.scale.setScalar(.92);return holder}
 function visualWave(scene,origin,color=0x65d9ee){const m=new THREE.Mesh(new THREE.RingGeometry(.14,.18,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.8,side:THREE.DoubleSide,depthWrite:false}));m.position.copy(origin);m.position.y-=1.1;scene.add(m);return{mesh:m,t:0,duration:.7}}
 export function createMission(api){
   const o={api,peer:null,room:null,role:'solo',conn:null,connections:new Map(),peers:new Map(),origin:null,angle:0,phase:0,mask:0,held:40,spawnAfter:0,lastSnap:0,lastMove:0,ready:false,running:false,finished:false,objects:[],remoteEnemy:new Map(),remoteAvatar:new Map(),remoteBullet:new Map(),effects:[],cd:{pulse:0,shield:0,heal:0},shields:new Map(),lastActions:new Map(),myId:'local',lastHostSnapshot:0,localPositions:new Map(),enemySeq:0,seed:0,startedByHost:false,joined:false};
