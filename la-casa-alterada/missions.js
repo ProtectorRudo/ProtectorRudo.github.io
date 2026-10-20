@@ -75,7 +75,13 @@ export function createMission(api){
     for(const k of [-1,1]){part(0,cloth,k*.3,.93,0,.10,.29,.11);part(0,pants,k*.12,.42,0,.115,.39,.13)}
     const marker=new THREE.Mesh(new THREE.RingGeometry(.34,.35,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x54d7d3,transparent:true,opacity:.88,side:THREE.DoubleSide}));
     marker.position.y=.019;root.add(marker);
-    const actor={root,flesh,hostage:true,alive:true,phase:0,marker};
+    const labelCanvas=document.createElement('canvas');labelCanvas.width=320;labelCanvas.height=80;
+ const context=labelCanvas.getContext('2d');context.fillStyle='rgba(10,27,39,0.84)';context.fillRect(2,5,316,69);
+ context.strokeStyle='#79dfcb';context.lineWidth=3;context.strokeRect(2,5,316,69);
+ context.fillStyle='#c2fff2';context.font='bold 30px Arial';context.textAlign='center';context.fillText('OBJETIVO: REHÉN',160,50);
+ const markerText=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(labelCanvas),transparent:true,depthWrite:false}));
+ markerText.position.set(0,1.96,0);markerText.scale.set(.82,.205,1);root.add(markerText);
+ const actor={root,flesh,hostage:true,alive:true,phase:0,marker,markerText};
     o.origin.add(root);root.position.copy(o.hostagePos);o.hostageActor=actor;
     attachHuman(actor,'hostage').then(success=>{if(success&&o.hostageRescued){actor.hostage=false;playHuman(actor,'walk')}});
   }
@@ -189,7 +195,7 @@ export function createMission(api){
     for(const name of ['pulse','shield','heal']){const element=$(name);if(!element)continue;const remain=Math.max(0,(o.cd[name]||0)-performance.now());element.disabled=!o.running||remain>0;element.querySelector('small').textContent=remain?Math.ceil(remain/1000)+' s':'LISTO'}
     $('hud')?.classList.toggle('shieldOn',shielded());if(o.running)ui();}
   function ui(){info.classList.toggle('hidden',!api.active()&&!o.running);ability.classList.toggle('hidden',!api.active()&&!o.running);if(!o.running){phaseEl.textContent=o.hostagePos?'OBJETIVO DE RESCATE LISTO':'CALIBRAR Y UBICAR REHÉN';desc.textContent=o.hostagePos?'Iniciá la operación para liberar al rehén.':'Primero fijá un nido; luego ubicá al rehén lejos de la entrada.';progress.textContent=o.hostagePos?'REHÉN POSICIONADO':o.ready?'FALTA UBICAR REHÉN':'SIN CALIBRAR';return}
-    if(o.phase<0){phaseEl.textContent=o.phase===-2?'01 / LIBERAR AL REHÉN':'01 / ESCOLTAR AL REHÉN';desc.textContent=o.phase===-2?'Acercate al rehén sin quedar expuesto. Tocá LIBERAR cuando estés cerca.':'Llevalo al primer punto de entrada. El equipo debe cubrir la extracción.';progress.textContent=o.phase===-2?'REHÉN RETENIDO':'EXTRACCIÓN EN CURSO';return}
+    if(o.phase<0){phaseEl.textContent=o.phase===-2?'01 / LIBERAR AL REHÉN':'01 / ESCOLTAR AL REHÉN';desc.textContent=o.phase===-2?'Acercate al rehén sin quedar expuesto. Tocá LIBERAR cuando estés cerca.':'Llevalo al primer punto de entrada. El equipo debe cubrir la extracción.';progress.textContent=o.phase===-2?(position()&&o.hostagePos?Math.hypot(position().x-o.hostagePos.x,position().z-o.hostagePos.z).toFixed(1)+' m AL REHÉN':'REHÉN RETENIDO'):(position()&&o.hostagePos?Math.hypot(o.hostagePos.x,o.hostagePos.z).toFixed(1)+' m A ZONA SEGURA':'EXTRACCIÓN EN CURSO');return}
     const phase=PHASES[Math.min(o.phase,3)];phaseEl.textContent=phase.title;desc.textContent=phase.detail;if(o.phase===0)progress.textContent=[o.mask&1?1:0,o.mask&2?1:0,o.mask&4?1:0].reduce((a,b)=>a+b,0)+'/3 CARGAS';if(o.phase===1)progress.textContent=api.enemies().filter(e=>e.alive).length+' INTRUSOS';if(o.phase===2)progress.textContent=Math.ceil(o.held)+' S PARA RESISTIR';if(o.phase===3)progress.textContent='REDUCIR AL JEFE';teamUpdate()}
   const query=new URLSearchParams(location.search).get('sala');if(query&&/^[a-z0-9]{6}$/i.test(query)){$('joinCode').value=query.toUpperCase();lobby('Código recibido. Tocá UNIRME antes de iniciar la cámara.')}
   $('createRoom').addEventListener('click',createRoom);$('joinRoom').addEventListener('click',joinRoom);$('copyRoom').addEventListener('click',copyCode);interact.addEventListener('click',interactNow);$('pulse').addEventListener('click',()=>abilityNow('pulse'));$('shield').addEventListener('click',()=>abilityNow('shield'));$('heal').addEventListener('click',()=>abilityNow('heal'));
