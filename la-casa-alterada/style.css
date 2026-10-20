@@ -37,3 +37,6 @@
 @media (orientation:landscape){
  #gunCanvas{width:100%;height:100%;bottom:auto;right:auto}
 }
+
+/* The gameplay raycast is the literal screen centre, so the reticle is too. */
+#sight{top:50%}
