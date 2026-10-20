@@ -65,3 +65,5 @@
 #setup .two button{font-size:10px;letter-spacing:.08em}
 #hint{color:#d9e3df}
 #missionInfo{max-width:360px}
+
+.footer .credits{pointer-events:auto;color:#bdbaa7;font-size:9px;letter-spacing:.1em;text-decoration:underline;margin-left:9px}
