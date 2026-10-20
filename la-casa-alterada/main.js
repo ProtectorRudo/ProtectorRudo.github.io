@@ -81,7 +81,7 @@ function updateBattle(dt,t){
 function effects(dt,t){for(let i=trails.length-1;i>=0;i--){const a=trails[i];if(t>a.until){world.remove(a.mesh);a.mesh.material.dispose();trails.splice(i,1)}else a.mesh.material.opacity=Math.max(0,(a.until-t)/130)}for(let i=splinters.length-1;i>=0;i--){const s=splinters[i];s.mesh.position.addScaledVector(s.velocity,dt);s.velocity.y-=dt*3;s.mesh.material.opacity=Math.max(0,(s.until-t)/400);if(t>s.until){world.remove(s.mesh);s.mesh.material.dispose();s.mesh.geometry.dispose();splinters.splice(i,1)}}if(toastExpiry&&t>toastExpiry){$('toast').classList.remove('show');toastExpiry=0}if(eventExpiry&&t>eventExpiry){$('event').classList.add('hidden');eventExpiry=0}}
 let gunReady=false,gunRenderer,gunScene,gunCamera,gun,slide,muzzle,mag,gunRecoil=new Spring(12,.68),gunSlide=new Spring(22,.82),reloadProgress=0,muzzleUntil=0,aiming=false,aimBlend=0,casings=[],gunCanvasWidth=0,gunCanvasHeight=0;
 const HIP_POSE={position:new THREE.Vector3(.27,-.66,-2.18),rotation:new THREE.Euler(-.09,-.15,-.08)};
-const AIM_POSE={position:new THREE.Vector3(-.02,-.255,-2.12),rotation:new THREE.Euler(-.025,-.01,-.012)};
+const AIM_POSE={position:new THREE.Vector3(-.02,-.16,-2.12),rotation:new THREE.Euler(-.025,-.01,-.012)};
 const rigPoint=new THREE.Vector3();
 function weaponMuzzleOrigin(cameraTransform){
  // The world-space projectile is computed from the muzzle's 2D projection.
