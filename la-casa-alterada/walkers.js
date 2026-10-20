@@ -10,9 +10,49 @@ function walkable(x,z){
   for(const b of furniture)if(x>b[0]-.15&&x<b[1]+.15&&z>b[2]-.15&&z<b[3]+.15)return false;
   return true;
 }
+// Small visibility graph around the two known furniture obstacles in demo mode.
+// Recomputed sparingly; no pathfinding is claimed for the unscanned real home.
+function blockedSegment(a,b){
+ for(const f of furniture){
+  const x0=f[0]-.2,x1=f[1]+.2,z0=f[2]-.2,z1=f[3]+.2;
+  let lo=0,hi=1;
+  for(const [p,delta,min,max] of [[a.x,b.x-a.x,x0,x1],[a.z,b.z-a.z,z0,z1]]){
+   if(Math.abs(delta)<.000001){if(p>=min&&p<=max){continue}else{lo=2;break}}
+   const t0=(min-p)/delta,t1=(max-p)/delta;
+   lo=Math.max(lo,Math.min(t0,t1));hi=Math.min(hi,Math.max(t0,t1));
+  }
+  if(lo<=hi)return true;
+ }
+ return false;
+}
+function nextWaypoint(start,end){
+ if(!blockedSegment(start,end))return end;
+ const pts=[start,end];
+ for(const f of furniture){
+  const margin=.34;
+  for(const x of [f[0]-margin,f[1]+margin])for(const z of [f[2]-margin,f[3]+margin])pts.push({x,z});
+ }
+ const n=pts.length,dist=new Array(n).fill(Infinity),prev=new Array(n).fill(-1),done=new Array(n).fill(false);
+ dist[0]=0;
+ for(let step=0;step<n;step++){
+  let u=-1,best=Infinity;
+  for(let i=0;i<n;i++)if(!done[i]&&dist[i]<best){u=i;best=dist[i]}
+  if(u<0||u===1)break;
+  done[u]=true;
+  for(let v=1;v<n;v++)if(!done[v]&&!blockedSegment(pts[u],pts[v])){
+   const d=Math.hypot(pts[u].x-pts[v].x,pts[u].z-pts[v].z),nd=dist[u]+d;
+   if(nd<dist[v]){dist[v]=nd;prev[v]=u}
+  }
+ }
+ if(!Number.isFinite(dist[1]))return end;
+ let next=1;
+ while(prev[next]>0)next=prev[next];
+ return pts[next]||end;
+}
 export function steerEnemy(e,dt,time,target,mode){
  if(!e?.alive||!dt)return 0;
- const p=e.root.position,dX=(target?.x??e.home.x)-p.x,dZ=(target?.z??e.home.z)-p.z,d=Math.hypot(dX,dZ);
+ const p=e.root.position,goal=mode==='demo'&&e.floor&&target?nextWaypoint(p,target):target;
+ const dX=(goal?.x??e.home.x)-p.x,dZ=(goal?.z??e.home.z)-p.z,d=Math.hypot(dX,dZ);
  const speed=(e.floor?.39:.16)*(e.variant===2?1.55:e.variant===1?.8:1)*(e.boss?1.15:1);
  const stop=e.floor?(e.boss?1.35:.82):.1;
  let vx=0,vz=0;
