@@ -23,3 +23,12 @@ Código fuente basado en Three.js. Véase THIRD_PARTY_NOTICES.md.
 - No hay reconocimiento semántico de muebles, persistencia de sala ni emparejamiento de anclajes de precisión.
 - Seguridad: prestar atención a la habitación real; no correr, no jugar cerca de escaleras ni obstáculos. Juego para acompañamiento familiar con supervisión.
 - Para iniciar: en la pantalla principal crear equipo y compartir el enlace/código, todos ingresar, seleccionar cámara AR o práctica, calibrar, y el anfitrión inicia la misión.
+
+
+## V5 — Criaturas móviles
+
+- Enemigos del piso persiguen en tiempo real a los jugadores, cambian de dirección, rodean muebles de la práctica 3D con colisiones sencillas y disparan en movimiento.
+- En mesas y sillones, criaturas de tamaño reducido patrullan la superficie sin salir caminando del mueble.
+- Animación procedural de brazos, piernas, mandíbula y torso sincronizada con la velocidad real de desplazamiento.
+- En la partida cooperativa, el anfitrión decide la posición de los monstruos y los invitados reciben posición, giro y escala actualizados.
+- **Límite AR:** no se conoce la geometría 3D completa de muebles y paredes reales; no se garantiza evitar objetos físicos. Caminar despacio sin correr y mirar el entorno real en todo momento.
