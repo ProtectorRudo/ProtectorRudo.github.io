@@ -9,13 +9,23 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
 const CDN='https://cdn.jsdelivr.net/gh/ProtectorRudo/viralio@main/public/viralio-3d/models/';
 const source={raiderA:'npc-jordan-locomotion.glb',raiderB:'npc-sam-locomotion.glb',hostage:'npc-maya-locomotion.glb'};
+const TACTICAL='https://cdn.jsdelivr.net/gh/cktang88/3d-fps@main/public/assets/models/characters/soldier.glb';
 const cache=new Map(),loader=new GLTFLoader();
 function load(type){
  if(!cache.has(type)){
-  const url=CDN+source[type];
-  cache.set(type,loader.loadAsync(url).then(g=>{
+  const fallback=CDN+source[type];
+  const useSoldier=type!=='hostage';
+  const preferred=useSoldier?TACTICAL:fallback;
+  // A real rigged military character (CC BY 4.0) is preferred.
+  // Reuse studio's CC0 human rigs if the detailed soldier cannot load.
+  const get=()=>loader.loadAsync(preferred).catch(err=>{
+    if(!useSoldier)throw err;
+    console.warn('Premium soldier unavailable; using studio CC0 fallback',err);
+    return loader.loadAsync(fallback);
+  });
+  cache.set(type,get().then(g=>{
     const clips={};
-    for(const clip of g.animations){let name=clip.name.toLowerCase();let key=name.includes('idle')?'idle':name.includes('jog')||name.includes('run')?'run':name.includes('walk')?'walk':name.includes('sit')?'sit':'other';(clips[key]??=[]).push(clip)}
+    for(const clip of g.animations){let name=clip.name.toLowerCase();let key=name.includes('idle')||name.includes('stand')?'idle':name.includes('jog')||name.includes('sprint')||name.includes('run')?'run':name.includes('walk')||name.includes('move')?'walk':name.includes('sit')||name.includes('crouch')?'sit':'other';(clips[key]??=[]).push(clip)}
     return {scene:g.scene,clips,animations:g.animations};
   }).catch(err=>{console.warn('Human asset not loaded; tactical fallback active:',type,err);return null}))
  }
@@ -57,6 +67,7 @@ function bestClip(actor,kind){
  let clips=actor.clips?.[kind];if(!clips?.length&&kind==='sit')clips=actor.clips?.idle;
  if(!clips?.length&&kind==='run')clips=actor.clips?.walk;
  if(!clips?.length)clips=actor.clips?.idle;
+ if(!clips?.length)clips=actor.clips?.other;
  if(!clips?.length)return null;
  if(kind==='sit')return clips.find(x=>/sit/i.test(x.name))||clips[0];
  return clips[0];
