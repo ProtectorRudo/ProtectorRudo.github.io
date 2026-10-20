@@ -59,7 +59,7 @@ export function createTacticalActor(THREE,variant=0,team='raider'){
    b(leg,gunmetal,[s*.014,-.755,.175],[.20,.045,.28]);
  }
  // Character-carried rifle for readable hostile silhouette.
- const carried=new THREE.Group();carried.position.set(.05,1.16,.285);carried.rotation.set(-.19,-.18,.06);flesh.add(carried);
+ const carried=new THREE.Group();carried.position.set(.05,1.16,.285);carried.rotation.set(-.19,Math.PI-.18,.06);flesh.add(carried);
  b(carried,gunmetal,[0,0,-.14],[.10,.13,.54]);b(carried,steel,[0,.075,-.11],[.11,.055,.31]);
  b(carried,gunmetal,[0,-.12,.02],[.075,.26,.12],[.22,0,0]);b(carried,gunmetal,[0,0,.20],[.075,.12,.26]);
  b(carried,rubber,[0,.015,-.39],[.12,.13,.23]);
