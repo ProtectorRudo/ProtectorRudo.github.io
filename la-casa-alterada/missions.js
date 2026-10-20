@@ -10,7 +10,32 @@ const PHASES=[
 const POSITION=[[-1.1,0,-.8],[1.1,0,-.8],[0,0,1.15]];
 const maxPlayers=4;
 function marker(id){const group=new THREE.Group();const color=[0x5ce7c6,0xe49a65,0xbe72e9][id];const material=new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.85,metalness:.38,roughness:.25});const base=new THREE.Mesh(new THREE.TorusGeometry(.21,.018,7,36).rotateX(-Math.PI/2),material);base.position.y=.025;group.add(base);const cap=new THREE.Mesh(new THREE.OctahedronGeometry(.14),material);cap.position.y=.33;group.add(cap);const halo=new THREE.PointLight(color,.7,2);halo.position.y=.28;group.add(halo);group.userData.cap=cap;group.userData.base=base;return group}
-function avatar(){const holder=new THREE.Group(),soldier=createTacticalActor(THREE,0,'operator');holder.add(soldier.root);soldier.root.position.y=-1.65;holder.scale.setScalar(.92);return holder}
+const OPERATOR_GLB='https://cdn.jsdelivr.net/gh/ProtectorRudo/viralio@main/public/viralio-3d/models/crime-police-officer-static.glb';
+let operatorAsset;
+function operatorModel(){
+ if(!operatorAsset)operatorAsset=import('https://cdn.jsdelivr.net/npm/three@0.181.0/examples/jsm/loaders/GLTFLoader.js')
+ .then(({GLTFLoader})=>new Promise((ok,fail)=>new GLTFLoader().load(OPERATOR_GLB,g=>ok(g.scene),undefined,fail)))
+ .catch(()=>null);
+ return operatorAsset;
+}
+function avatar(){
+ const holder=new THREE.Group(),soldier=createTacticalActor(THREE,0,'operator');
+ holder.add(soldier.root);soldier.root.position.y=-1.65;holder.scale.setScalar(.92);
+ operatorModel().then(base=>{
+  if(!base||!holder.parent)return;
+  const obj=base.clone(true);obj.updateMatrixWorld(true);
+  const bounds=new THREE.Box3().setFromObject(obj);
+  const size=new THREE.Vector3();bounds.getSize(size);
+  if(!Number.isFinite(size.y)||size.y<.05)return;
+  const scale=Math.min(4,1.7/size.y);
+  const center=new THREE.Vector3();bounds.getCenter(center);
+  obj.scale.setScalar(scale);
+  obj.position.set(-center.x*scale,-1.65-bounds.min.y*scale,-center.z*scale);
+  obj.traverse(n=>{if(n.isMesh){n.frustumCulled=false;n.castShadow=false}});
+  holder.add(obj);soldier.root.visible=false;
+ });
+ return holder;
+}
 function visualWave(scene,origin,color=0x65d9ee){const m=new THREE.Mesh(new THREE.RingGeometry(.14,.18,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.8,side:THREE.DoubleSide,depthWrite:false}));m.position.copy(origin);m.position.y-=1.1;scene.add(m);return{mesh:m,t:0,duration:.7}}
 export function createMission(api){
   const o={api,peer:null,room:null,role:'solo',conn:null,connections:new Map(),peers:new Map(),origin:null,angle:0,phase:0,mask:0,held:40,spawnAfter:0,lastSnap:0,lastMove:0,ready:false,running:false,finished:false,objects:[],remoteEnemy:new Map(),remoteAvatar:new Map(),remoteBullet:new Map(),effects:[],cd:{pulse:0,shield:0,heal:0},shields:new Map(),lastActions:new Map(),myId:'local',lastHostSnapshot:0,localPositions:new Map(),enemySeq:0,seed:0,startedByHost:false,joined:false};
