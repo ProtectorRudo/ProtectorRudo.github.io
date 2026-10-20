@@ -40,3 +40,22 @@
 
 /* The gameplay raycast is the literal screen centre, so the reticle is too. */
 #sight{top:50%}
+
+/* V7 — original tactical shooter language; no proprietary Counter-Strike assets. */
+:root{--paper:#e7e9e9;--rust:#c79255;--grey:#a9b3b8}
+.intro{background:radial-gradient(ellipse at 48% 30%,#364752 0%,#19242f 40%,#070d13 82%)}
+.intro:before{border-radius:7px;transform:rotate(23deg);border-color:#ae88584e;box-shadow:0 0 105px #b08e3421}
+.intro h1 em,.eyebrow,.subtitle,.subtitle span{color:#d2b891}
+.insignia,.logo{color:#d8b47c}
+.primary,.trigger{border-color:#d8bc83;background:linear-gradient(145deg,#c39c62,#877047);color:#0e1720;box-shadow:0 5px 18px #04091066}
+.secondary,.mini{background:#142631e8;border-color:#71838b}
+#missionStage{letter-spacing:.09em}
+.missionInfo{border-left:3px solid #d4ae65;background:linear-gradient(90deg,#101b27ef,#0e1c2ad9)}
+#missionProgress{color:#e6ba73}.healthbar i{background:linear-gradient(90deg,#d25c47,#d7b276)}
+.weaponSelect{position:absolute;bottom:calc(222px + env(safe-area-inset-bottom));right:15px;z-index:4;min-height:35px;min-width:116px;padding:9px 10px;background:#101b28ee;border:1px solid #b19a73;color:#efe6d3;border-radius:4px;font-size:10px;letter-spacing:.08em;font-weight:900;pointer-events:auto}
+.weaponSelect b{color:#dfb66d;font-size:14px;margin-left:5px}
+#fight .ammo small{color:#eed6a5;font-weight:800}
+#abilities .skill{border-color:#aa986d}#abilities .skill b{color:#e3bd75}
+#missionActions #crew{border-color:#9f8665;background:#18232edc}
+@media (orientation:landscape){.weaponSelect{bottom:calc(125px + env(safe-area-inset-bottom));right:12px}}
+@media (max-width:380px){.weaponSelect{right:8px;font-size:9px}}
