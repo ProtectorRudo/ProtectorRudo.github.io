@@ -59,3 +59,9 @@
 #missionActions #crew{border-color:#9f8665;background:#18232edc}
 @media (orientation:landscape){.weaponSelect{bottom:calc(125px + env(safe-area-inset-bottom));right:12px}}
 @media (max-width:380px){.weaponSelect{right:8px;font-size:9px}}
+
+/* V8 operation setup: real-world hostage placement and mission initiation. */
+#setup .missionLaunch{width:100%;margin-top:8px;background:linear-gradient(120deg,#6b9b87,#304e49);color:#f3ffff;border:1px solid #8fd4b3;letter-spacing:.12em;min-height:48px}
+#setup .two button{font-size:10px;letter-spacing:.08em}
+#hint{color:#d9e3df}
+#missionInfo{max-width:360px}
