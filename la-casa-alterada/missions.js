@@ -2,21 +2,28 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.m
 import { createTacticalActor } from './tactical.js';
 const $=id=>document.getElementById(id),clamp=(a,b,v)=>Math.max(a,Math.min(b,v));
 const PHASES=[
-{title:'01 / SELLAR LOS TRES PORTALES',detail:'Encontrá cada sello y activalo desde cerca. Repartan las tareas.',target:3},
-{title:'02 / ELIMINAR A LOS INFILTRADOS',detail:'Limpien la zona juntos. Pueden usar el pulso de energía.',target:8},
-{title:'03 / DEFENDER EL NÚCLEO',detail:'Resistan 40 segundos. Muévanse y esquiven proyectiles.',target:40},
-{title:'04 / DERROTAR AL ALFA',detail:'El último enemigo requiere fuego concentrado.',target:1}
+{title:'01 / DESACTIVAR TRES CARGAS',detail:'Encontrá los dispositivos y desactivalos de cerca. Repartan las tareas.',target:3},
+{title:'02 / DETENER A LOS INTRUSOS',detail:'Limpien la zona juntos. Usen la cobertura y el pulso EMP.',target:8},
+{title:'03 / ASEGURAR EL PERÍMETRO',detail:'Defiendan la posición 40 segundos y eviten las ráfagas.',target:40},
+{title:'04 / CAPTURAR AL JEFE',detail:'El líder armado es más resistente. Concentrá los disparos del equipo.',target:1}
 ];
 const POSITION=[[-1.1,0,-.8],[1.1,0,-.8],[0,0,1.15]];
 const maxPlayers=4;
-function marker(id){const group=new THREE.Group();const color=[0x5ce7c6,0xe49a65,0xbe72e9][id];const material=new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.85,metalness:.38,roughness:.25});const base=new THREE.Mesh(new THREE.TorusGeometry(.21,.018,7,36).rotateX(-Math.PI/2),material);base.position.y=.025;group.add(base);const cap=new THREE.Mesh(new THREE.OctahedronGeometry(.14),material);cap.position.y=.33;group.add(cap);const halo=new THREE.PointLight(color,.7,2);halo.position.y=.28;group.add(halo);group.userData.cap=cap;group.userData.base=base;return group}
-const OPERATOR_GLB='https://cdn.jsdelivr.net/gh/ProtectorRudo/viralio@main/public/viralio-3d/models/crime-police-officer-static.glb';
-let operatorAsset;
-function operatorModel(){
- if(!operatorAsset)operatorAsset=import('https://cdn.jsdelivr.net/npm/three@0.181.0/examples/jsm/loaders/GLTFLoader.js')
- .then(({GLTFLoader})=>new Promise((ok,fail)=>new GLTFLoader().load(OPERATOR_GLB,g=>ok(g.scene),undefined,fail)))
- .catch(()=>null);
- return operatorAsset;
+function marker(id){
+ // A compact original tactical charge device, not a magical rune.
+ const g=new THREE.Group(),base=new THREE.MeshStandardMaterial({color:0x283039,metalness:.65,roughness:.53});
+ const orange=new THREE.MeshStandardMaterial({color:0xf1a655,emissive:0xba5423,emissiveIntensity:.66});
+ const screen=new THREE.MeshStandardMaterial({color:0x385f68,emissive:0x398792,emissiveIntensity:.47});
+ const box=(w,h,d,x,y,z,m)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);g.add(o);return o};
+ box(.42,.14,.33,0,.11,0,base);
+ box(.35,.017,.26,0,.184,0,orange);
+ box(.20,.015,.09,-.06,.194,-.035,screen);
+ box(.08,.026,.065,.14,.204,.07,base);
+ box(.055,.22,.035,.17,.30,-.095,base);
+ const cap=box(.065,.055,.04,.17,.44,-.095,orange);
+ const ring=new THREE.Mesh(new THREE.RingGeometry(.27,.28,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xf5ad6a,transparent:true,opacity:.73,side:THREE.DoubleSide}));
+ ring.position.y=.02;g.add(ring);
+ g.userData.cap=cap;return g;
 }
 function avatar(){
  const holder=new THREE.Group(),soldier=createTacticalActor(THREE,0,'operator');
@@ -54,10 +61,10 @@ export function createMission(api){
   function makeMarkers(){if(!o.origin)return;for(const g of o.objects)g.parent?.remove(g);o.objects=POSITION.map((p,i)=>{let g=marker(i);g.position.set(p[0],p[1],p[2]);o.origin.add(g);return g})}
   function removeRemote(){for(const x of o.remoteEnemy.values())x.root?.parent?.remove(x.root);o.remoteEnemy.clear();for(const g of o.remoteAvatar.values())g.parent?.remove(g);o.remoteAvatar.clear();for(const v of o.remoteBullet.values())v.parent?.remove(v);o.remoteBullet.clear();for(const fx of o.effects){fx.mesh?.parent?.remove(fx.mesh)}o.effects=[]}
   function reset(){o.running=false;o.finished=false;o.phase=0;o.mask=0;o.held=40;o.spawnAfter=0;o.ready=false;o.startedByHost=false;o.localPositions.clear();o.shields.clear();o.lastSnap=0;o.enemySeq=0;o.origin?.parent?.remove(o.origin);o.origin=null;removeRemote();ui();}
-  function start(){if(!o.ready){api.toast('Primero fijá un punto común en el piso');return false}if(isGuest()){if(!o.startedByHost){api.toast('Esperá a que el anfitrión comience');return false}o.running=true;ui();return true}o.running=true;o.finished=false;o.phase=0;o.mask=0;o.held=40;o.spawnAfter=0;broadcast({t:'start'});api.toast('MISIÓN 01 · ACTIVAR LOS SELLOS');ui();return true;}
-  function setPhase(n){if(isGuest())return;o.phase=n;o.spawnAfter=0;if(n===1){api.event('MISIÓN 02 · ELIMINAR INFILTRADOS');api.spawn(8,false)}if(n===2){o.held=40;o.spawnAfter=performance.now()+6000;api.event('MISIÓN 03 · DEFENDER EL NÚCLEO')}if(n===3){api.event('MISIÓN FINAL · ALFA LOCALIZADO');api.spawn(1,true)}if(n===4){o.finished=true;api.victory(true)}broadcast({t:'phase',phase:n,mask:o.mask,held:o.held});ui()}
+  function start(){if(!o.ready){api.toast('Primero fijá un punto común en el piso');return false}if(isGuest()){if(!o.startedByHost){api.toast('Esperá a que el anfitrión comience');return false}o.running=true;ui();return true}o.running=true;o.finished=false;o.phase=0;o.mask=0;o.held=40;o.spawnAfter=0;broadcast({t:'start'});api.toast('MISIÓN 01 · DESACTIVAR DISPOSITIVOS');ui();return true;}
+  function setPhase(n){if(isGuest())return;o.phase=n;o.spawnAfter=0;if(n===1){api.event('MISIÓN 02 · INTRUSOS LOCALIZADOS');api.spawn(8,false)}if(n===2){o.held=40;o.spawnAfter=performance.now()+6000;api.event('MISIÓN 03 · ASEGURAR PERÍMETRO')}if(n===3){api.event('MISIÓN FINAL · JEFE LOCALIZADO');api.spawn(1,true)}if(n===4){o.finished=true;api.victory(true)}broadcast({t:'phase',phase:n,mask:o.mask,held:o.held});ui()}
   function onKill(){if(o.running&&isHost()&&o.phase===1&&api.enemies().filter(e=>e.alive).length===0)setPhase(2);if(o.running&&isHost()&&o.phase===3&&api.enemies().filter(e=>e.alive).length===0)setPhase(4)}
-  function doInteract(id){if(!o.running||o.phase!==0)return;const p=localPositionOf(id);if(!p)return;let best=-1,min=Infinity;POSITION.forEach((v,i)=>{if(o.mask&(1<<i))return;const dist=Math.hypot(p.x-v[0],p.z-v[2]);if(dist<min){min=dist;best=i}});if(best<0||min>.93){if(id===o.myId)api.toast('ACERCATE AL SELLO PARA ACTIVARLO');else send(o.connections.get(id),{t:'msg',text:'Acercate al sello.'});return}o.mask|=1<<best;api.event('SELLO '+(best+1)+' ACTIVADO');broadcast({t:'phase',phase:o.phase,mask:o.mask,held:o.held});if(o.mask===7)setPhase(1);ui()}
+  function doInteract(id){if(!o.running||o.phase!==0)return;const p=localPositionOf(id);if(!p)return;let best=-1,min=Infinity;POSITION.forEach((v,i)=>{if(o.mask&(1<<i))return;const dist=Math.hypot(p.x-v[0],p.z-v[2]);if(dist<min){min=dist;best=i}});if(best<0||min>.93){if(id===o.myId)api.toast('ACERCATE A LA CARGA PARA DESACTIVARLA');else send(o.connections.get(id),{t:'msg',text:'Acercate a la carga.'});return}o.mask|=1<<best;api.event('CARGA '+(best+1)+' DESACTIVADA');broadcast({t:'phase',phase:o.phase,mask:o.mask,held:o.held});if(o.mask===7)setPhase(1);ui()}
   function interactNow(){if(!o.running||o.phase!==0)return;if(isGuest())send(o.conn,{t:'interact'});else doInteract(o.myId)}
   function shielded(id=o.myId){return (o.shields.get(id)||0)>performance.now()}
   function receiveAbility(id,kind,remote=false){const allowed=['pulse','shield','heal'];if(!allowed.includes(kind)||!o.running||o.finished)return;const t=performance.now(),key=id+':'+kind;const period={pulse:18000,shield:25000,heal:35000}[kind];if((o.lastActions.get(key)||0)>t)return;o.lastActions.set(key,t+period);if(kind==='shield'){o.shields.set(id,t+6000);if(id!==o.myId)send(o.connections.get(id),{t:'shield',duration:6000});api.toast('ESCUDO ACTIVADO · 6 SEGUNDOS')}
@@ -110,7 +117,7 @@ export function createMission(api){
     if(o.running&&p&&o.phase===0){let near=POSITION.some((v,i)=>!(o.mask&(1<<i))&&Math.hypot(p.x-v[0],p.z-v[2])<.93);interact.classList.toggle('hidden',!near)}else interact.classList.add('hidden');
     for(const name of ['pulse','shield','heal']){const element=$(name);if(!element)continue;const remain=Math.max(0,(o.cd[name]||0)-performance.now());element.disabled=!o.running||remain>0;element.querySelector('small').textContent=remain?Math.ceil(remain/1000)+' s':'LISTO'}
     $('hud')?.classList.toggle('shieldOn',shielded());if(o.running)ui();}
-  function ui(){info.classList.toggle('hidden',!api.active()&&!o.running);ability.classList.toggle('hidden',!api.active()&&!o.running);if(!o.running){phaseEl.textContent='CALIBRAR EL PUNTO COMÚN';desc.textContent='Fijá primero un nido en el piso. Miren todos hacia la misma pared.';progress.textContent=o.ready?'PUNTO FIJADO':'SIN CALIBRAR';return}const phase=PHASES[Math.min(o.phase,3)];phaseEl.textContent=phase.title;desc.textContent=phase.detail;if(o.phase===0)progress.textContent=[o.mask&1?1:0,o.mask&2?1:0,o.mask&4?1:0].reduce((a,b)=>a+b,0)+'/3 SELLOS';if(o.phase===1)progress.textContent=api.enemies().filter(e=>e.alive).length+' INFILTRADOS';if(o.phase===2)progress.textContent=Math.ceil(o.held)+' S PARA RESISTIR';if(o.phase===3)progress.textContent='ELIMINAR AL ALFA';teamUpdate()}
+  function ui(){info.classList.toggle('hidden',!api.active()&&!o.running);ability.classList.toggle('hidden',!api.active()&&!o.running);if(!o.running){phaseEl.textContent='CALIBRAR EL PUNTO COMÚN';desc.textContent='Calibrá desde el piso y orientá el teléfono hacia la misma pared.';progress.textContent=o.ready?'PUNTO FIJADO':'SIN CALIBRAR';return}const phase=PHASES[Math.min(o.phase,3)];phaseEl.textContent=phase.title;desc.textContent=phase.detail;if(o.phase===0)progress.textContent=[o.mask&1?1:0,o.mask&2?1:0,o.mask&4?1:0].reduce((a,b)=>a+b,0)+'/3 CARGAS';if(o.phase===1)progress.textContent=api.enemies().filter(e=>e.alive).length+' INTRUSOS';if(o.phase===2)progress.textContent=Math.ceil(o.held)+' S PARA RESISTIR';if(o.phase===3)progress.textContent='REDUCIR AL JEFE';teamUpdate()}
   const query=new URLSearchParams(location.search).get('sala');if(query&&/^[a-z0-9]{6}$/i.test(query)){$('joinCode').value=query.toUpperCase();lobby('Código recibido. Tocá UNIRME antes de iniciar la cámara.')}
   $('createRoom').addEventListener('click',createRoom);$('joinRoom').addEventListener('click',joinRoom);$('copyRoom').addEventListener('click',copyCode);interact.addEventListener('click',interactNow);$('pulse').addEventListener('click',()=>abilityNow('pulse'));$('shield').addEventListener('click',()=>abilityNow('shield'));$('heal').addEventListener('click',()=>abilityNow('heal'));
   teamUpdate();ui();return{align,reset,start,isGuest,isHost,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result})},remoteHit:id=>send(o.conn,{t:'hit',id}),getPlayerWorld:id=>{const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
