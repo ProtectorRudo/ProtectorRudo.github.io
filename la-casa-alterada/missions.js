@@ -329,6 +329,17 @@ export function createMission(api){
  beacon.position.set(0,2.12,0);beacon.renderOrder=99;root.add(beacon);
  const actor={root,flesh,hostage:true,alive:true,phase:0,marker,markerText,fallbackArms:fallback.arms,fallbackLegs:fallback.legs};
     o.origin.add(root);root.position.copy(o.hostagePos);o.hostageActor=actor;
+    // A grounded extraction zone placed at the calibrated ENTRY.
+    // Never use a camera-locked 2D indicator for a world objective.
+    if(!o.extractionRing){
+      const material=new THREE.MeshBasicMaterial({
+        color:0x55eccd,transparent:true,opacity:.76,depthWrite:false,side:THREE.DoubleSide
+      });
+      const zone=new THREE.Mesh(new THREE.TorusGeometry(.87,.027,7,48),material);
+      zone.rotation.x=-Math.PI/2;zone.position.y=.025;
+      zone.name='BLACKZONE_EXTRACT_ZONE';zone.visible=false;
+      o.origin.add(zone);o.extractionRing=zone;
+    }
     // V25 XR compositor now draws world meshes: restore the textured,
     // rigged Maya asset in AR, keeping the native fallback until ready.
     attachHuman(actor,'hostage').then(success=>{
@@ -359,7 +370,14 @@ export function createMission(api){
     else if(isGuest())o.hostageActor.root.position.lerp(o.hostagePos,.65);
     if(o.hostageActor&&o.hostageRescued){o.hostageActor.hostage=false;playHuman(o.hostageActor,'walk')}
   }
-  function reset(){if(o.hostageActor){disposeHuman(o.hostageActor);o.hostageActor.root.parent?.remove(o.hostageActor.root)}o.hostageActor=null;o.hostagePos=null;o.lastEnvironment=null;o.routeCache=null;o.routeCacheAt=0;o.routeTarget=null;o.hostageHealth=100;o.hostageShieldUntil=0;o.rescueActionStartedAt=0;o.rescueRequestAt=0;o.rescueReinforcementAt=0;o.hostageRescued=false;o.escortPlayer=null;o.escortState=null;o.running=false;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;o.ready=false;o.startedByHost=false;o.referenceReady=false;o.referenceLength=0;o.expectedLength=null;o.calibrationQuality='waiting';o.calibrationSeen.clear();o.localPositions.clear();o.lastMoveAt.clear();ctf.reset();o.shields.clear();o.lastSnap=0;o.lastSnapshotSeq=-1;o.snapshotSeq=0;o.lastShotAt.clear();o.enemySeq=0;o.origin?.parent?.remove(o.origin);o.origin=null;removeRemote();ui();}
+  function reset(){
+     if(o.extractionRing){
+       o.extractionRing.parent?.remove(o.extractionRing);
+       o.extractionRing.geometry.dispose();
+       o.extractionRing.material.dispose();
+       o.extractionRing=null;
+     }
+     if(o.hostageActor){disposeHuman(o.hostageActor);o.hostageActor.root.parent?.remove(o.hostageActor.root)}o.hostageActor=null;o.hostagePos=null;o.lastEnvironment=null;o.routeCache=null;o.routeCacheAt=0;o.routeTarget=null;o.hostageHealth=100;o.hostageShieldUntil=0;o.rescueActionStartedAt=0;o.rescueRequestAt=0;o.rescueReinforcementAt=0;o.hostageRescued=false;o.escortPlayer=null;o.escortState=null;o.running=false;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;o.ready=false;o.startedByHost=false;o.referenceReady=false;o.referenceLength=0;o.expectedLength=null;o.calibrationQuality='waiting';o.calibrationSeen.clear();o.localPositions.clear();o.lastMoveAt.clear();ctf.reset();o.shields.clear();o.lastSnap=0;o.lastSnapshotSeq=-1;o.snapshotSeq=0;o.lastShotAt.clear();o.enemySeq=0;o.origin?.parent?.remove(o.origin);o.origin=null;removeRemote();ui();}
   function start(){if(!o.ready){api.toast('Primero fijá un punto común en el piso');return false}
  if(isCapture()){
    if(isGuest()){
@@ -760,6 +778,11 @@ if(Array.isArray(msg.environment)){
           setPhase(4);
         }
       }
+    }
+    if(o.extractionRing){
+      o.extractionRing.visible=o.running&&o.phase===-1;
+      if(o.extractionRing.visible)o.extractionRing.material.opacity=
+        .64+Math.sin(time*.003)*.17;
     }
     if(o.hostageActor){
       if(!o.hostageActor.mixer)animateHostageFallback(o.hostageActor,dt,o.phase===-1);
