@@ -58,7 +58,7 @@ test('adaptive 3D quality degrades slowly, recovers slowly, and resets in XR',as
 
 test('rescue and CTF suppress shots while bots hide behind cover',()=>{
  assert.match(read('main.js'),/if\(!exposed\)\{e\.burst=0/);
- assert.match(read('main.js'),/if\\(exposed&&onScreen&&e\\.root\\.visible&&rescueProtectionLeft\\(t\\)===0&&e\\.burst>0/);
+ assert.match(read('main.js'),/if\(exposed&&onScreen&&e\.root\.visible&&rescueProtectionLeft\(t\)===0&&e\.burst>0/);
  assert.match(read('capture-flag.js'),/if\(e\.coverPlan&&e\.coverState!=='fire'\)continue/);
  assert.match(read('main.js'),/orbs\.length<42/);
  assert.match(read('main.js'),/new THREE\.Mesh\(enemyTracerGeometry,enemyTracerMaterial\)/);
