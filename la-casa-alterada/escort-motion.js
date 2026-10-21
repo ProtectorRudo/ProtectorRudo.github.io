@@ -5,7 +5,7 @@ export function escortMotion(current,operator){
  const dist=Math.hypot(dx,dz);
  const entryDist=Math.hypot(current.x,current.z);
  const operatorDist=Math.hypot(operator.x,operator.z);
- if(entryDist>1.01&&dist<2.35&&operatorDist<=entryDist+.45){
+ if(entryDist>.74&&dist<2.35&&operatorDist<=entryDist+.45){
    return{target:{x:0,z:0},speed:.72,status:'extracting'};
  }
  if(dist>1.02){
