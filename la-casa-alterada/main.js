@@ -838,8 +838,18 @@ mission=createMission({scene:world,getCam,toast,event,teammateShot,resolveTeamma
  spawn:(n,boss)=>wave(n,boss),spawnPending:()=>spawnQueue.length,animateEnemy,animateHuman,projectiles:()=>orbs,enemies:()=>enemies,enemyShot:pos=>combatFX.shot(pos,true,'rifle'),spawnCTFBot,ctfBotShot,ctfTag:applyCTFTag,ctfFinish:finishCTF,
  buildEnemy:(variant,boss,appearance,team)=>{const e=createTacticalActor(THREE,variant,team==='blue'?'operator':'raider');e.team=team||'red';e.ctfBot=!!team;e.boss=boss;if(boss){e.root.scale.setScalar(1.85);e.hp=22;e.size*=1.85}
  e.appearance=['raiderA','raiderB','raiderC','raiderD','operator'].includes(appearance)?appearance:'raiderA';
- if(e.ctfBot){e.floor=true;e.root.scale.setScalar(.92);e.hp=3;e.size=.94;}
+ if(e.ctfBot){
+   e.floor=true;e.root.scale.setScalar(.92);e.hp=3;e.size=.94;
+   const teamColor=e.team==='blue'?0x46c7ff:0xff6158;
+   const band=new THREE.Mesh(new THREE.TorusGeometry(.15,.032,8,18),new THREE.MeshStandardMaterial({color:teamColor,emissive:teamColor,emissiveIntensity:.37}));
+   band.position.set(.05,1.33,.03);band.rotation.x=Math.PI/2;e.root.add(band);
+ }
  attachHuman(e,e.appearance);return e},damageEnemy,damage,heal,remoteStart,clock:()=>seconds,wave:()=>round,setGuestStats:(clock,wave,teamKills)=>{if(Number.isFinite(clock))seconds=clock;if(Number.isFinite(wave))round=wave;if(Number.isInteger(teamKills)&&teamKills>=0)kills=Math.max(kills,teamKills)},victory:finish});
+mission.configureLobby();
+for(const id of ['gameSelect','ctfTeamMode','ctfBots','ctfDifficulty']){
+ $(id).addEventListener('change',()=>{mission.configureLobby();hud(true)});
+}
+$('ctfMyTeam').addEventListener('change',()=>{mission.chooseMyTeam();hud(true)});
 
 async function startAR(){if(!navigator.xr){toast('Este navegador no admite WebXR');return}$('startAR').disabled=true;try{ar=await navigator.xr.requestSession('immersive-ar',{
  requiredFeatures:['hit-test'],optionalFeatures:['anchors','dom-overlay','depth-sensing','plane-detection'],domOverlay:{root:$('ui')},
