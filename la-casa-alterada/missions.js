@@ -537,7 +537,19 @@ export function createMission(api){
   }
   function shielded(id=o.myId){return (o.shields.get(id)||0)>performance.now()}
   function receiveAbility(id,kind,remote=false){const allowed=['pulse','shield','heal'];if(!allowed.includes(kind)||!o.running||o.finished)return;const t=performance.now(),key=id+':'+kind;const period={pulse:18000,shield:25000,heal:35000}[kind];if((o.lastActions.get(key)||0)>t)return;o.lastActions.set(key,t+period);if(kind==='shield'){if(o.hostageActor&&o.phase<0&&o.hostagePos){const p=localPositionOf(id);if(p&&Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z)<2.5)o.hostageShieldUntil=t+6000}o.shields.set(id,t+6000);if(id!==o.myId)send(o.connections.get(id),{t:'shield',duration:6000});api.toast('ESCUDO ACTIVADO · 6 SEGUNDOS')}
-    if(kind==='heal'){api.heal(22);healHostage(28);broadcast({t:'heal',amount:22});api.event('BOTIQUÍN DE EQUIPO +22 · REHÉN +28')}
+    if(kind==='heal'){
+      if(isPvP()){
+        const state=o.pvp.heal(id,22,t);
+        if(state){
+          if(id===o.myId)applyPvPState(state);
+          else send(o.connections.get(id),{t:'pvpHeal',state});
+          api.toast('BOTIQUÍN +22 HP · VIDA '+state.hp+'/100');
+        }
+      }else{
+        api.heal(22);healHostage(28);broadcast({t:'heal',amount:22});
+        api.event('BOTIQUÍN DE EQUIPO +22 · REHÉN +28');
+      }
+    }
     if(kind==='pulse'){let p=localPositionOf(id);if(!p)return;let hit=0;for(const e of api.enemies()){if(!e.alive)continue;const ep=new THREE.Vector3();e.root.getWorldPosition(ep);o.origin.worldToLocal(ep);if(Math.hypot(ep.x-p.x,ep.z-p.z)<2.35){api.damageEnemy(e,2);hit++}}if(!remote)api.toast('PULSO ELECTROMAGNÉTICO · '+hit+' IMPACTOS');spawnFX(P(p));broadcast({t:'fx',kind:'pulse',pos:P(p)})}
   }
   function abilityNow(kind){if(!o.running||!api.active())return;const t=performance.now(),period={pulse:18000,shield:25000,heal:35000}[kind],left=(o.cd[kind]||0)-t;if(left>0){api.toast('PODER DISPONIBLE EN '+Math.ceil(left/1000)+' S');return}o.cd[kind]=t+period;if(isGuest()){send(o.conn,{t:'ability',kind});if(kind==='shield')o.shields.set(o.myId,t+6000);if(kind==='pulse'){const p=position();if(p)spawnFX(P(p))}}else receiveAbility(o.myId,kind);ui()}
@@ -685,6 +697,8 @@ if(Array.isArray(msg.environment)){
     if(m.t==='gameConfig')applyMode(m);
     if(m.t==='ctfState'&&m.state)ctf.applyState(m.state);
     if(m.t==='ctfTag'&&!isPvP())api.ctfTag?.(m.power||1);
+    if(m.t==='pvpHeal'&&m.state?.id===o.myId&&Number.isFinite(m.state.hp))
+      applyPvPState(m.state);
     if(m.t==='pvpHit'&&m.hit?.state?.id===o.myId&&Number.isFinite(m.hit.state.hp)){
       applyPvPState(m.hit.state,m.hit);
     }
