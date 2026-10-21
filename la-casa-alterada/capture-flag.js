@@ -70,6 +70,11 @@ export function createCaptureFlag(THREE,api){
  function eliminateCarrier(id,pos,time){
    for(const t of TEAMS)if(S.flags[t].carrier===id)drop(t,pos,time);
  }
+ function tagPlayer(id,pos,time=performance.now()){
+   if(S.tagged[id]&&S.tagged[id]>time)return false;
+   S.tagged[id]=time+2700;eliminateCarrier(id,pos,time);
+   return true;
+ }
  function end(winner){
    if(S.finished)return;S.finished=true;S.running=false;S.winner=winner;
    api.finish?.(winner,snapshot());
@@ -148,9 +153,7 @@ export function createCaptureFlag(THREE,api){
        const victim=bots().find(b=>b.id===Number(rival.id.slice(4)));
        if(victim?.alive)api.damageBot?.(victim,specs[3],'bot:'+e.id);
      }else{
-       S.tagged[rival.id]=time+2700;
-       eliminateCarrier(rival.id,rival.pos,time);
-       api.tagPlayer?.(rival.id,specs[3]);
+       if(tagPlayer(rival.id,rival.pos,time))api.tagPlayer?.(rival.id,specs[3]);
      }
    }
  }
@@ -200,7 +203,7 @@ export function createCaptureFlag(THREE,api){
    S.flags={blue:fresh(),red:fresh()};S.running=false;S.finished=false;S.winner=null;S.clock=480;
    S.spawned=false;S.tagged={};
  }
- return{configure,place,ready,start,tick,snapshot,applyState,reset,flagLocation,target,eliminateCarrier,
+ return{configure,place,ready,start,tick,snapshot,applyState,reset,flagLocation,target,eliminateCarrier,tagPlayer,
    get config(){return S.config},get bases(){return S.bases},get scores(){return S.scores},
    get running(){return S.running},get flags(){return S.flags},get clock(){return S.clock},get winner(){return S.winner}};
 }
