@@ -352,6 +352,8 @@ export function createMission(api){
     if(o.running){api.toast('La operación ya comenzó');return false}
     if(!worldPoint)return false;
     const relative=o.origin.worldToLocal(worldPoint.clone());
+    // Re-use the calibrated entrance floor: AR hit tests may land on counters.
+    relative.y=0;
     if(Math.hypot(relative.x,relative.z)<1.40){
       api.toast('UBICÁ AL REHÉN A 1,4 M O MÁS DE LA ENTRADA PARA PODER ESCOLTARLO');
       return false;
@@ -365,7 +367,7 @@ export function createMission(api){
   function syncHostage(payload,rescued=false){
     if(rescued)clearRescueButton();
     if(!Array.isArray(payload)||payload.length!==3||payload.some(v=>!Number.isFinite(v)))return;
-    o.hostagePos=from(payload);o.hostageRescued=!!rescued;
+    o.hostagePos=from(payload);o.hostagePos.y=0;o.hostageRescued=!!rescued;
     if(!o.hostageActor)buildHostage();
     else if(isGuest())o.hostageActor.root.position.lerp(o.hostagePos,.65);
     if(o.hostageActor&&o.hostageRescued){o.hostageActor.hostage=false;playHuman(o.hostageActor,'walk')}
@@ -732,16 +734,22 @@ if(Array.isArray(msg.environment)){
     if(o.running&&isHost()&&o.phase===-1&&o.hostageActor){
       const player=localPositionOf(o.escortPlayer)||position();
       if(player){
-        const current=o.hostageActor.root.position,delta=player.clone().sub(current);delta.y=0;
-        const dist=delta.length();
-        const maxGap=1.35;
+        const current=o.hostageActor.root.position;
+        current.y=0; // Follow floor plane instead of furniture hit-test height.
+        const delta=player.clone().sub(current);delta.y=0;
+        const dist=delta.length(),entryDist=Math.hypot(current.x,current.z);
+        const maxGap=1.02;
         let desired=null,speed=0;
         if(dist>maxGap){
-          // Follow the player without running in front of them or retreating
-          // backwards when they stand close to the hostage.
+          // Catch up to the player, stopping slightly behind them.
           const direction=delta.normalize();
-          desired=current.clone().addScaledVector(direction,Math.max(0,dist-.86));
-          desired.y=current.y;speed=dist>3?1.45:1.18;
+          desired=current.clone().addScaledVector(direction,Math.max(0,dist-.68));
+          desired.y=0;speed=dist>2.2?1.55:1.18;
+        }else if(entryDist>1.01&&dist<1.8){
+          // Walk toward the marked entrance when the operator is nearby.
+          // Waiting beside the hostage must never stall the escort.
+          desired=new THREE.Vector3(0,0,0);
+          speed=.64;
         }
         if(desired){
           let goal=desired;
