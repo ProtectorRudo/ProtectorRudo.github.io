@@ -200,7 +200,9 @@ export function createCaptureFlag(THREE,api){
        const lane=squadFlank(home,enemyBase,e.ctfIndex,role==='scout'?.36:.69);
        const lanePoint=new THREE.Vector3(lane.x,lane.y,lane.z);
        const atLocal=botPosition(e);
-       targetLocal=gap(atLocal,lanePoint)>.47?lanePoint:enemyBase;
+       if(!e.ctfFlankReached&&gap(atLocal,lanePoint)<.52)e.ctfFlankReached=true;
+       // Sticky flank phase avoids oscillating back to the same waypoint.
+       targetLocal=e.ctfFlankReached?enemyBase:lanePoint;
      }else if(teamCarrier)targetLocal=teamCarrier;
      else targetLocal=flagLocation(other(e.team));
      if(!targetLocal)continue;
