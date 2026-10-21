@@ -1,10 +1,20 @@
-# BLACKZONE — Tactical AR (V21)
+# BLACKZONE — Tactical AR (V22)
 
 **Nombre actual del juego: BLACKZONE.** Anteriormente denominado *La Casa Alterada*, conservado en la ruta heredada del repositorio y en el enlace Vercel existente para evitar romper enlaces de versiones anteriores.
 
 Shooter táctico web de realidad aumentada con dos modos: **Rescate de Rehenes (cooperativo)** y **Captura la Bandera (cooperativo o versus con bots configurables)**.
 
 El historial técnico anterior se conserva debajo, con descripciones correspondientes a cada etapa del desarrollo.
+
+## V22 — Estabilidad táctica, cobertura auténtica y FPS adaptativos
+
+- Los bots **alcanzan el punto de asomarse** (ya no se frenan a 1,58 m de la cobertura).
+- Rescate y Captura **bloquean disparos desde posiciones ocultas**, permitiendo ráfagas solo durante la exposición; mira roja solo ante objetivo no tapado por obstáculos mapeados.
+- Los bots con rutas bloqueadas abandonan su plan tras 3,2 segundos sin avance y vuelven a intentar después, sin bucles infinitos.
+- Máximo 68 proyectiles enemigos simultáneos; la geometría y el material se reutilizan para evitar asignaciones gráficas por disparo.
+- Resolución **adaptativa solo en práctica 3D**: reduce calidad tras FPS bajos sostenidos y la recupera lentamente tras estabilidad alta. En modo AR la resolución queda a cargo de WebXR.
+- Añadidos cinco tests de regresión Node y QA conjunta de V21/V22.
+- **Pendiente para la próxima tanda:** prueba humana en Chrome Android + ARCore, calibración A/B entre dos móviles, banderas, colisiones y FPS reales. No se ha hecho una verificación física del entorno.
 
 ## V21 — IA táctica y efectos móviles
 - En **Rescate de Rehenes**, los bots terrestres buscan cobertura marcada, se asoman para disparar y vuelven a resguardarse.
