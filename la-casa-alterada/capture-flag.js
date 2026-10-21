@@ -1,4 +1,5 @@
 import { tacticalDestination } from './tactical-behavior.js';
+import {squadRole,squadSpawn,squadFlank,squadSpeed,squadStance} from './ctf-tactics.js';
 /**
  * Capture the Flag V16 — shared, host-authoritative game rules.
  * Uses the A/B calibrated world; positions stored relative to the shared anchor.
@@ -100,6 +101,24 @@ export function createCaptureFlag(THREE,api){
    api.event?.('¡PUNTO '+(team==='blue'?'AZUL':'ROJO')+'! '+S.scores.blue+' — '+S.scores.red);
    if(S.scores[team]>=3)end(team);
  }
+ const HUMAN_PICKUP_RADIUS=1.55,BOT_PICKUP_RADIUS=.75,SCORE_RADIUS=1.38;
+ function tryPickup(id,team,pos,time=performance.now()){
+   if(!S.running||S.finished||!TEAMS.includes(team)||!pos||S.tagged[id]>time)return false;
+   const rival=other(team),f=S.flags[rival],at=flagLocation(rival);
+   if(!at)return false;
+   if(f.carrier){
+     const owner=ownerPosition(f.carrier);
+     const friendlyCarrier=f.carrier.startsWith('bot:')&&
+       bots().some(e=>e.id===Number(f.carrier.slice(4))&&e.team===team);
+     if(!friendlyCarrier||!owner||gap(pos,owner)>1.5)return false;
+     f.carrier=id;f.last=pos.clone();
+     api.event?.('¡BANDERA TRANSFERIDA A TU EQUIPO!');return true;
+   }
+   if(gap(pos,at)>HUMAN_PICKUP_RADIUS)return false;
+   f.carrier=id;f.dropped=null;f.last=pos.clone();
+   api.event?.('¡BANDERA '+(rival==='blue'?'AZUL':'ROJA')+' ROBADA! · VOLVÉ A TU BASE');
+   return true;
+ }
  function flagsStep(time){
    const members=roster();
    for(const t of TEAMS){
@@ -112,27 +131,36 @@ export function createCaptureFlag(THREE,api){
      if(f.dropped&&time-f.stamp>=14000){returnHome(t);continue}
      if(f.carrier)continue;
      const at=flagLocation(t);
-     for(const p of members){
-       if(gap(p.pos,at)>.73)continue;
-       if(p.team===t){
-         if(f.dropped){returnHome(t);break}
-         continue; // Defenders don't make a flag impossible to steal.
-       }
+     for(const p of members.filter(m=>!m.bot)){
+       if(gap(p.pos,at)>HUMAN_PICKUP_RADIUS)continue;
+       if(p.team===t){if(f.dropped){returnHome(t);break}}
+       else if(tryPickup(p.id,p.team,p.pos,time))break;
+     }
+     if(f.carrier||S.flags[t]!==f)continue;
+     for(const p of members.filter(m=>m.bot)){
+       if(gap(p.pos,at)>BOT_PICKUP_RADIUS)continue;
+       if(p.team===t){if(f.dropped){returnHome(t);break}continue}
+       if(members.some(h=>!h.bot&&h.team===p.team&&gap(h.pos,at)<2.25))continue;
        f.carrier=p.id;f.dropped=null;f.last=p.pos.clone();
-       api.event?.('BANDERA '+(t==='blue'?'AZUL':'ROJA')+' ROBADA');
-       break;
+       api.event?.('BOT '+p.id+' TOMÓ BANDERA '+t.toUpperCase());break;
      }
    }
    for(const p of members){
      const stolen=other(p.team);
      if(S.flags[stolen].carrier===p.id&&!S.flags[p.team].carrier&&!S.flags[p.team].dropped&&
-         gap(p.pos,S.bases[p.team])<.83){score(p.team);break}
+         gap(p.pos,S.bases[p.team])<SCORE_RADIUS){score(p.team);break}
    }
  }
  function spawn(){
    if(S.spawned)return;S.spawned=true;
    for(const team of TEAMS)for(let i=0;i<S.config.bots;i++){
-     const p=S.bases[team].clone().add(new THREE.Vector3(((i%3)-1)*.42,0,-Math.floor(i/3)*.42));
+     const base=S.bases[team],opponent=S.bases[other(team)];
+     const raw=squadSpawn(base,opponent,i,team);
+     const candidate=new THREE.Vector3(raw.x,raw.y,raw.z);
+     const world=origin().localToWorld(candidate.clone());
+     const safe=api.canMove?.(origin().localToWorld(base.clone()),world,.20)!==false;
+     const p=safe?candidate:base.clone().add(new THREE.Vector3(
+        (i%2?1:-1)*(.65+i*.12),0,(i%3-1)*.58));
      api.spawnBot?.(team,i,30000+(team==='blue'?0:100)+i,p);
    }
  }
@@ -145,15 +173,14 @@ export function createCaptureFlag(THREE,api){
        e.ctfRespawnAt=0;e.alive=true;e.hp=3;e.root.visible=true;
        e.ctfProtectedUntil=time+1100;
        e.ctfShotAt=Math.max(e.ctfShotAt||0,time+1150);
-       e.root.position.copy(origin().localToWorld(S.bases[e.team].clone()));
+       e.root.position.copy(e.home||origin().localToWorld(S.bases[e.team].clone()));
      }
      const carrying=TEAMS.some(t=>S.flags[t].carrier==='bot:'+e.id);
      const ownFlag=S.flags[e.team],rivalFlag=S.flags[other(e.team)];
      const defenderTarget=ownFlag.carrier?ownerPosition(ownFlag.carrier):null;
-     // One in every three bots guards home. The others attack as a squad.
-     // On flag theft defenders become interceptors; attackers can escort
-     // a teammate who is carrying the enemy flag.
-     const defender=S.config.bots>=2&&e.ctfIndex%3===0;
+     const role=e.ctfRole||squadRole(e.ctfIndex);
+     e.ctfRole=role;
+     const defender=S.config.bots>=2&&role==='sentinel';
      const teamCarrier=rivalFlag.carrier&&rivalFlag.carrier!=='bot:'+e.id
        ?ownerPosition(rivalFlag.carrier):null;
      let targetLocal=null,guarding=false;
@@ -167,6 +194,13 @@ export function createCaptureFlag(THREE,api){
        targetLocal=home.clone().add(new THREE.Vector3(vx/length*.95-vz/length*.32*lane,0,
          vz/length*.95+vx/length*.32*lane));
        guarding=true;
+     }else if(teamCarrier&&role==='support')targetLocal=teamCarrier;
+     else if(role==='flanker'||role==='scout'){
+       const enemyBase=flagLocation(other(e.team)),home=S.bases[e.team];
+       const lane=squadFlank(home,enemyBase,e.ctfIndex,role==='scout'?.36:.69);
+       const lanePoint=new THREE.Vector3(lane.x,lane.y,lane.z);
+       const atLocal=botPosition(e);
+       targetLocal=gap(atLocal,lanePoint)>.47?lanePoint:enemyBase;
      }else if(teamCarrier)targetLocal=teamCarrier;
      else targetLocal=flagLocation(other(e.team));
      if(!targetLocal)continue;
@@ -176,7 +210,7 @@ export function createCaptureFlag(THREE,api){
        .sort((a,b)=>gap(a.pos,self)-gap(b.pos,self))[0];
      const threat=rival?origin().localToWorld(rival.pos.clone()):null;
      const tacticalTo=tacticalDestination(e,time,to,threat,api.findCover,
-       !!rival&&(defender||e.hp<=1)&&!carrying);
+       !!rival&&(defender||e.hp<=2||role==='support'||role==='flanker')&&!carrying);
      const dist=gap(at,tacticalTo),beforeMove=at.clone();
      if(dist>(e.coverPlan?.10:guarding?.45:.35)){
        // Spatial navigation returns plain coordinates; normalize before vector operations.
@@ -186,7 +220,8 @@ export function createCaptureFlag(THREE,api){
        const delta=waypoint.clone().sub(at);delta.y=0;
        if(delta.lengthSq()>.001){
          delta.normalize();
-         const next=at.clone().addScaledVector(delta,Math.min(specs[0]*dt,dist));
+         const pace=squadSpeed(role,S.config.difficulty,!!rival&&gap(rival.pos,self)<2.4);
+         const next=at.clone().addScaledVector(delta,Math.min(pace*dt,dist));
          // Even without room-mesh data, prevent bots wandering far beyond both
          // marked flag bases in an unknown real-world room.
          const a=S.bases.blue,b=S.bases.red,mid=a.clone().add(b).multiplyScalar(.5);
@@ -198,7 +233,10 @@ export function createCaptureFlag(THREE,api){
            e.root.rotation.y=Math.atan2(threat.x-at.x,threat.z-at.z);
        }
      }
-     api.animate?.(e,dt,gap(at,beforeMove)/Math.max(.001,dt));
+     const realSpeed=gap(at,beforeMove)/Math.max(.001,dt);
+     e.ctfStance=squadStance(role,e.coverState,
+       rival?gap(rival.pos,self):Infinity,realSpeed);
+     api.animate?.(e,dt,realSpeed);
      if(!rival)continue;
      // Do not fire through an obstacle while ducked behind cover.
      // Keep shot cooldown ready for the moment the bot actually peeks.
@@ -281,7 +319,7 @@ export function createCaptureFlag(THREE,api){
    S.flags={blue:fresh(),red:fresh()};S.running=false;S.finished=false;S.winner=null;S.clock=480;
    S.spawned=false;S.tagged={};
  }
- return{configure,place,ready,start,tick,snapshot,applyState,reset,flagLocation,target,objective,removePlayer,eliminateCarrier,tagPlayer,
+ return{configure,place,ready,start,tick,snapshot,applyState,reset,flagLocation,target,objective,tryPickup,removePlayer,eliminateCarrier,tagPlayer,
    get config(){return S.config},get bases(){return S.bases},get scores(){return S.scores},
    get running(){return S.running},get flags(){return S.flags},get clock(){return S.clock},get winner(){return S.winner}};
 }
