@@ -186,3 +186,19 @@ NOTA: el cañón es un modelo de vista en primera persona superpuesto (no está 
 - Pruebas unitarias de geometría realizadas: pared y mueble bloquean trayectorias; la IA calcula desvíos; al deshacer mueble y luego pared, las listas y colisiones restantes son coherentes.
 
 **Importante:** no se ha validado todavía la precisión real compartida entre cuatro teléfonos ni se ha incorporado un sistema de Cloud Anchors. Los anclajes WebXR locales y la calibración mirando la misma pared pueden desalinearse entre dispositivos, y se seguirá informando claramente de esta limitación antes de afirmar calidad comercial final.
+
+
+## V13 — Calibración compartida de dos puntos
+
+**Meta:** un mismo enemigo y un mismo rehén colocados en posiciones físicas lo más consistentes posible para todos los celulares de una sala.
+
+- Antes solo había una referencia (la entrada A) y cada teléfono utilizaba su dirección de cámara para decidir hacia dónde estaba el eje Z del mundo. Era posible ver al enemigo en paredes diferentes. Ahora las partidas multijugador requieren dos marcas comunes de piso A y B; el eje -Z del equipo apunta siempre desde A hacia B, independientemente de hacia dónde mire cada teléfono.
+- En juego SOLO se mantiene el flujo rápido de una sola referencia. Con equipo, todos marcan A y luego B, a una separación entre ~1 y 7 metros. El anfitrión coloca después al rehén. Los invitados esperan a que el anfitrión confirme su referencia.
+- La distancia A–B del anfitrión se transmite a los invitados. Diferencias superiores a 0,35 m o un 16 % (la mayor de las dos tolerancias) se marcan como calibración incorrecta y se permite volver a marcar B. No ajustamos artificialmente la escala en metros para esconder un escaneo inconsistente.
+- El anfitrión muestra cuántos compañeros están calibrados y no permite comenzar la partida hasta que los conectados hayan comunicado una calibración compatible. La comprobación usa mensajes PeerJS y un estado único del anfitrión.
+- Si WebXR ofrece anclas locales independientes para ambos puntos, la escena puede ajustar de manera gradual la orientación en función de los movimientos de seguimiento. Se utilizan dos vectores en el piso para definir un marco compartido, y cada anfitrión sigue siendo autoritativo para daños, enemigos, progreso y vida del rehén.
+- Prueba matemática con cinco orientaciones y posiciones de dispositivo: un tercer punto físico da las mismas coordenadas locales en los cinco sistemas tras registrar A y B, con diferencias de coma flotante insignificantes.
+
+**Limitación esencial:** estos son puntos calibrados manualmente, no una verdadera *Cloud Anchor*, ni un ARWorldMap/SLAM compartido. Si cada usuario marca físicamente puntos diferentes, los sensores derivan o falla la detección de superficie, habrá desplazamientos. Una garantía de alineación centimétrica, reconocimiento global del espacio y relocalización automática entre Android e iPhone no están disponibles de forma universal desde WebXR. Hace falta probar la V13 físicamente con varios teléfonos antes de venderla como experiencia profesional.
+
+Fuentes: [WebXR Hit Test (W3C)](https://www.w3.org/TR/webxr-hit-test-1/), [WebXR Anchors (Immersive Web)](https://github.com/immersive-web/anchors/blob/main/explainer.md), [SharedSpheres (Unity/ARKit, estudio de referencia)](https://github.com/Unity-Technologies/SharedSpheres). Esta V13 utiliza una implementación geométrica original en `shared-calibration.js`.
