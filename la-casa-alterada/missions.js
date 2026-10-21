@@ -450,7 +450,8 @@ export function createMission(api){
   function spawnFX(p){if(!o.origin)return;const at=from(p);o.origin.localToWorld(at);o.effects.push(visualWave(api.scene,at,0x54dff3))}
   function getEnemyState(){if(!o.origin)return[];return api.enemies().filter(e=>e.alive).map(e=>{const v=new THREE.Vector3();e.root.getWorldPosition(v);o.origin.worldToLocal(v);return{id:e.id,v:e.variant,team:e.team||'red',ctfBot:!!e.ctfBot,
     shield:e.ctfBot?Math.max(0,(e.ctfProtectedUntil||0)-performance.now()):0,
-    skin:e.appearance||'raiderA',h:e.hp,p:P(v),yaw:e.root.rotation.y-o.origin.rotation.y,boss:!!e.boss,floor:!!e.floor,scale:e.size}})}
+    skin:e.appearance||'raiderA',h:e.hp,p:P(v),yaw:e.root.rotation.y-o.origin.rotation.y,
+    stance:e.ctfStance||'idle',boss:!!e.boss,floor:!!e.floor,scale:e.size}})}
   function receiveSnapshot(msg){
  if(!o.ready||!o.origin)return;
  if(Number.isInteger(msg.seq)){
@@ -466,7 +467,8 @@ if(Array.isArray(msg.environment)){
  if(o.lastEnvironment!==signature){o.lastEnvironment=signature;api.importEnvironment?.(msg.environment,o.origin)}
 }o.phase=msg.phase;o.mask=msg.mask;o.held=msg.held;if(Number.isFinite(msg.hostageHP))o.hostageHealth=msg.hostageHP;if(Array.isArray(msg.hostage))syncHostage(msg.hostage,msg.rescued);if(msg.running)o.startedByHost=true;o.running=msg.running;o.finished=msg.finished;api.setGuestStats(msg.clock,msg.wave,msg.kills);if(msg.running&&!api.active())api.remoteStart();const alive=new Set();for(const x of msg.enemies||[]){if(typeof x.id!=='number'||!Array.isArray(x.p))continue;alive.add(x.id);let e=o.remoteEnemy.get(x.id);if(!e){e=api.buildEnemy(x.v,x.boss,x.skin,x.team);e.team=x.team||'red';e.ctfBot=!!x.ctfBot;e.id=x.id;e.floor=!!x.floor;e.groundY=0;if(Number.isFinite(x.scale)&&x.scale>.05&&x.scale<4){const factor=x.scale/e.size;e.root.scale.multiplyScalar(factor);e.size=x.scale}e.hit.userData.enemy=e;if(e.headHit)e.headHit.userData.enemy=e;o.origin.add(e.root);api.enemies().push(e);o.remoteEnemy.set(x.id,e)}e.hp=x.h;e.alive=true;e.root.visible=true;
  if(e.ctfBot)e.ctfProtectedUntil=performance.now()+Math.min(1800,Math.max(0,Number(x.shield)||0));
- e.start.copy(from(x.p));e.remoteYaw=Number.isFinite(x.yaw)?x.yaw:0;}for(const [id,e] of o.remoteEnemy)if(!alive.has(id)){
+ e.start.copy(from(x.p));e.remoteYaw=Number.isFinite(x.yaw)?x.yaw:0;
+ e.ctfStance=['idle','crouch','aim','sprint','advance'].includes(x.stance)?x.stance:'idle';}for(const [id,e] of o.remoteEnemy)if(!alive.has(id)){
  e.alive=false;disposeHuman(e);e.root.parent?.remove(e.root);
  const pool=api.enemies(),j=pool.indexOf(e);if(j>=0)pool.splice(j,1);
  o.remoteEnemy.delete(id)
