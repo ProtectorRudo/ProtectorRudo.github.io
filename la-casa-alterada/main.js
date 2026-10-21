@@ -432,6 +432,10 @@ function processSpawns(t){
  e.appearance=['raiderA','raiderB','raiderC','raiderD'][(i+waveNo*3)%4];
  if(boss)e.appearance='raiderD';
  attachContactShadow(e);
+ const indicator=new THREE.Mesh(new THREE.OctahedronGeometry(.10,0),
+   new THREE.MeshBasicMaterial({color:0xff8164,depthTest:false,depthWrite:false}));
+ indicator.position.set(0,2.22,0);indicator.renderOrder=90;
+ e.root.add(indicator);e.threatMarker=indicator;
  enemies.push(e);
  attachHuman(e,e.appearance);
 }
@@ -802,6 +806,7 @@ function updateBattle(dt,t){
   animateEnemy(e,dt,moved);
   const worldPosition=new THREE.Vector3();e.root.getWorldPosition(worldPosition);
   const dist=worldPosition.distanceTo(eye);
+  if(e.threatMarker)e.threatMarker.visible=dist>1.4&&dist<9.5;
   e.lodFar=dist>5.2;
   animateHuman(e,dt,moved);
   if(dist<4)near=true;
@@ -1057,7 +1062,7 @@ function joyMove(e){const r=movementPad.getBoundingClientRect(),dx=(e.clientX-r.
 movementPad.addEventListener('pointerdown',e=>{e.preventDefault();movementPad.setPointerCapture(e.pointerId);joyMove(e)});movementPad.addEventListener('pointermove',e=>{if(movementPad.hasPointerCapture(e.pointerId))joyMove(e)});movementPad.addEventListener('pointerup',joyZero);movementPad.addEventListener('pointercancel',joyZero);
 window.addEventListener('keydown',e=>{if(['KeyW','ArrowUp'].includes(e.code))movementKeys.forward=true;if(['KeyS','ArrowDown'].includes(e.code))movementKeys.back=true;if(['KeyA','ArrowLeft'].includes(e.code))movementKeys.left=true;if(['KeyD','ArrowRight'].includes(e.code))movementKeys.right=true});
 window.addEventListener('keyup',e=>{if(['KeyW','ArrowUp'].includes(e.code))movementKeys.forward=false;if(['KeyS','ArrowDown'].includes(e.code))movementKeys.back=false;if(['KeyA','ArrowLeft'].includes(e.code))movementKeys.left=false;if(['KeyD','ArrowRight'].includes(e.code))movementKeys.right=false});
-mission=createMission({scene:world,getCam,toast,event,teammateShot,resolveTeammateShot,confirmedRemoteShot,teamElimination,kills:()=>kills,active:()=>active,firstNest:()=>nests[0],refreshHud:()=>hud(true),
+mission=createMission({scene:world,getCam,toast,event,teammateShot,resolveTeammateShot,confirmedRemoteShot,teamElimination,kills:()=>kills,active:()=>active,rescueProtected:()=>rescueProtectionLeft()>0,firstNest:()=>nests[0],refreshHud:()=>hud(true),
  exportEnvironment:origin=>spatialMap.exportData(origin),
  importEnvironment:(items,origin)=>{if(!mission?.isGuest())return;spatialMap.importData(items,origin);spatialMap.setVisible(false);mapStatus()},
  environmentCanMove:(from,to,radius)=>spatialMap.canMove(from,to,radius),
