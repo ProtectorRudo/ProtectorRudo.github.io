@@ -248,7 +248,7 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
  }
  function finish(result){
   status='ended';H.bottom.style.display='none';H.intro.style.display='block';
-  H.tap.classList.remove('on');H.guide.classList.remove('on');H.ghost.classList.remove('on');
+  H.tap.classList.remove('on');H.guide.classList.remove('on');H.ghost.classList.remove('on');targets.visible=false;
   feedback(result==='win'?'win':'hit');
   H.title.textContent=result==='win'?'🏆 ¡VICTORIA!':result==='lose'?'⚔️ DERROTA':'🤝 EMPATE';
   H.desc.textContent=result==='win'?'¡Destruiste las defensas enemigas!':result==='lose'?'La computadora ganó este duelo. Cambiá de cartas y buscá otra estrategia.':'¡Partida muy pareja!';
@@ -265,7 +265,7 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
   const renderKey=hand.join(',')+'|'+selected+'|'+hand.map(i=>energy>=catalogue[i].cost?'1':'0').join('');
   if(renderKey!==deckRenderKey){deckRenderKey=renderKey;H.deck.innerHTML=hand.map((index,slot)=>{
    const c=catalogue[index];
-   return '<button class="dbcard '+(energy<c.cost?'locked ':'')+(selected===index?'chosen':'')+'" data-slot="'+slot+'" aria-label="'+c.name+' cuesta '+c.cost+' de energía"><em>'+c.cost+'</em><strong>'+c.icon+'</strong><span>'+c.name+'</span></button>';
+   return '<button type="button" class="dbcard '+(energy<c.cost?'locked ':'')+(selected===index?'selected':'')+'" style="--a:#'+c.color.toString(16).padStart(6,'0')+'" data-slot="'+slot+'" aria-label="'+c.name+' cuesta '+c.cost+' de energía"><em>'+c.cost+'</em><strong class="dbart">'+c.icon+'</strong><span class="dbname">'+c.name+'</span><span class="dbrole">'+(c.spell?'ÁREA':c.shield?'DEFENSA':c.air?'AÉREO':c.heal?'SOPORTE':c.speed>.07?'RÁPIDO':c.hp>200?'TANQUE':c.range>.14?'PRECISIÓN':'ASALTO')+'</span></button>';
   }).join('');}
  }
  function show(){
@@ -274,46 +274,108 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
   if(status==='ready'){H.intro.style.display='block';H.bottom.style.display='none';}
  }
  function stop(){
-  status='idle';hud.classList.remove('open');document.body.classList.remove('dominion-match');selected=null;H.lanes.classList.remove('on');H.tap.classList.remove('on');H.guide.classList.remove('on');H.ghost.classList.remove('on');H.toast.classList.remove('visible');cleanup();
+  status='idle';hud.classList.remove('open');document.body.classList.remove('dominion-match');selected=null;H.lanes.classList.remove('on');H.tap.classList.remove('on');H.guide.classList.remove('on');H.ghost.classList.remove('on');targets.visible=false;drag=null;H.toast.classList.remove('visible');cleanup();
  }
  function begin(){setup();status='playing';H.intro.style.display='none';H.bottom.style.display='block';signal('¡DEFENDÉ TU BASE!',1.5);feedback();}
  function playCard(index,lane,z){
   if(status!=='playing')return;
   if(energy<catalogue[index].cost){signal('Falta energía ⚡');return;}
-  if(deploy(0,index,lane,z??-.135)){selected=null;H.lanes.classList.remove('on');drawHUD();}
+  if(deploy(0,index,lane,z??-.135)){selected=null;H.lanes.classList.remove('on');H.tap.classList.remove('on');H.guide.classList.remove('on');H.ghost.classList.remove('on');targets.visible=false;feedback('deploy');drawHUD();}
  }
- H.deck.addEventListener('click',e=>{
-  const button=e.target.closest('[data-slot]');if(!button||status!=='playing')return;
-  const index=hand[Number(button.dataset.slot)];
-  if(energy<catalogue[index].cost){signal('Esperá a recargar energía');return;}
-  selected=selected===index?null:index;H.lanes.classList.toggle('on',selected!==null);
-  if(selected!==null)signal('Elegí izquierda, centro o derecha',1.4);
-  drawHUD();
+
+ const targets=new THREE.Group();group.add(targets);targets.visible=false;
+ const drops=lanes.map((x,i)=>{
+  const g=new THREE.Group();g.position.set(x,0,-.12);targets.add(g);
+  const mat=new THREE.MeshBasicMaterial({color:0x7eebbe,transparent:true,opacity:.17,side:THREE.DoubleSide,depthWrite:false,depthTest:false});
+  const plane=new THREE.Mesh(new THREE.PlaneGeometry(.14,.16),mat);
+  plane.rotation.x=-Math.PI/2;plane.position.y=.012;g.add(plane);
+  const circle=new THREE.Mesh(new THREE.RingGeometry(.035,.043,36),new THREE.MeshBasicMaterial({color:0xb2ffd1,transparent:true,opacity:.85,side:THREE.DoubleSide,depthWrite:false,depthTest:false}));
+  circle.rotation.x=-Math.PI/2;circle.position.y=.015;g.add(circle);
+  return{g,mat,circle,i};
  });
- H.lanes.addEventListener('click',e=>{const b=e.target.closest('[data-lane]');if(b&&selected!==null)playCard(selected,Number(b.dataset.lane));});
- let drag=null;
- H.deck.addEventListener('pointerdown',e=>{
-  const b=e.target.closest('[data-slot]');if(b&&status==='playing')drag={index:hand[Number(b.dataset.slot)],x:e.clientX,y:e.clientY};
- });
- document.addEventListener('pointerup',e=>{
-  if(!drag)return;const d=drag;drag=null;
-  if(status!=='playing'||Math.hypot(e.clientX-d.x,e.clientY-d.y)<38)return;
-  const camera=getCamera(),eye=camera?.cameras?.[0]||camera;
-  let lane=e.clientX<innerWidth/3?0:e.clientX>innerWidth*2/3?2:1,z=-.135;
+ let drag=null,dragging=false,ignoreClickUntil=0;
+ function showDrops(lane,enabled){
+  targets.visible=enabled&&status==='playing';
+  for(const t of drops){
+   const active=t.i===lane;t.mat.opacity=active?.30:.08;t.circle.material.opacity=active?1:.48;
+   t.g.scale.setScalar(active?1.15:1);
+  }
+ }
+ function selectCard(index){
+  selected=index;H.tap.classList.toggle('on',index!==null);
+  H.guide.classList.toggle('on',index!==null);
+  if(index!==null)H.guide.textContent=catalogue[index].name+' · tocá tu mitad de la mesa';
+  showDrops(1,index!==null);drawHUD();
+ }
+ function mapDrop(x,y){
+  let lane=x<innerWidth*.36?0:x>innerWidth*.64?2:1,z=-.12;
   try{
-   const raycaster=new THREE.Raycaster();
-   raycaster.setFromCamera(new THREE.Vector2(2*e.clientX/innerWidth-1,1-2*e.clientY/innerHeight),eye);
-   const plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+   const eyeCam=getCamera(),eye=eyeCam?.cameras?.[0]||eyeCam;
+   const ray=new THREE.Raycaster();
+   ray.setFromCamera(new THREE.Vector2(x/innerWidth*2-1,1-y/innerHeight*2),eye);
    field.updateWorldMatrix(true,false);
+   const plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
    plane.applyMatrix4(field.matrixWorld);
-   const hit=raycaster.ray.intersectPlane(plane,new THREE.Vector3());
+   const hit=ray.ray.intersectPlane(plane,new THREE.Vector3());
    if(hit){
-    const local=field.worldToLocal(hit);
-    if(Math.abs(local.x)<.4){lane=Math.abs(local.x+.2)<.10?0:Math.abs(local.x-.2)<.10?2:1;}
-    z=THREE.MathUtils.clamp(local.z,-.185,-.045);
+    const local=field.worldToLocal(hit.clone());
+    if(Math.abs(local.x)<.65&&Math.abs(local.z)<.65){
+     lane=Math.abs(local.x+.20)<.1?0:Math.abs(local.x-.20)<.1?2:1;
+     z=THREE.MathUtils.clamp(local.z,-.18,-.06);
+    }
    }
   }catch(err){}
-  playCard(d.index,lane,z);
+  return{lane,z};
+ }
+ function dropValid(y){
+  const height=H.bottom.getBoundingClientRect?.().height||152;
+  return y<innerHeight-height-9;
+ }
+ H.deck.addEventListener('click',e=>{
+  if(performance.now()<ignoreClickUntil||status!=='playing')return;
+  const btn=e.target.closest('[data-slot]');if(!btn)return;
+  const index=hand[Number(btn.dataset.slot)];
+  if(energy+.001<catalogue[index].cost){signal('Esperá a recargar energía ⚡');return;}
+  selectCard(selected===index?null:index);
+ });
+ H.deck.addEventListener('pointerdown',e=>{
+  if(status!=='playing')return;
+  const btn=e.target.closest('[data-slot]');if(!btn)return;
+  const index=hand[Number(btn.dataset.slot)];
+  if(energy+.001<catalogue[index].cost)return;
+  drag={index,x:e.clientX,y:e.clientY,pointer:e.pointerId};dragging=false;
+ });
+ document.addEventListener('pointermove',e=>{
+  if(!drag||e.pointerId!==drag.pointer||status!=='playing')return;
+  if(!dragging&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>14)dragging=true;
+  if(!dragging)return;
+  if(e.cancelable)e.preventDefault();
+  H.ghost.classList.add('on');H.ghost.style.left=e.clientX+'px';H.ghost.style.top=e.clientY+'px';
+  H.ghost.innerHTML='<b>'+catalogue[drag.index].icon+'</b>'+catalogue[drag.index].name;
+  const position=mapDrop(e.clientX,e.clientY);
+  showDrops(position.lane,true);
+  H.guide.classList.add('on');
+  H.guide.textContent=dropValid(e.clientY)?'SOLTÁ PARA DESPLEGAR · '+['IZQUIERDA','CENTRO','DERECHA'][position.lane]:'ARRASTRÁ HACIA LA MESA';
+ },{passive:false});
+ document.addEventListener('pointerup',e=>{
+  if(!drag||e.pointerId!==drag.pointer)return;
+  const d=drag,wasDragging=dragging;drag=null;dragging=false;H.ghost.classList.remove('on');
+  if(!wasDragging||status!=='playing')return;
+  ignoreClickUntil=performance.now()+250;
+  if(!dropValid(e.clientY)){selectCard(null);signal('Soltá sobre la arena para desplegar');return;}
+  const target=mapDrop(e.clientX,e.clientY);
+  playCard(d.index,target.lane,target.z);
+ },{passive:false});
+ document.addEventListener('pointercancel',()=>{
+  drag=null;dragging=false;H.ghost.classList.remove('on');if(status==='playing')selectCard(null);
+ });
+ H.tap.addEventListener('pointerdown',e=>{
+  if(status!=='playing'||selected===null)return;
+  if(e.cancelable)e.preventDefault();
+  const target=mapDrop(e.clientX,e.clientY);playCard(selected,target.lane,target.z);
+ });
+ H.lanes.addEventListener('click',e=>{
+  const b=e.target.closest('[data-lane]');if(b&&selected!==null)playCard(selected,Number(b.dataset.lane));
  });
  H.launch.addEventListener('click',begin);
  H.sound.addEventListener('click',()=>{soundOn=!soundOn;H.sound.textContent=soundOn?'🔊':'🔇';H.sound.setAttribute('aria-label',soundOn?'Silenciar':'Activar sonido');if(soundOn)feedback('deploy');});
