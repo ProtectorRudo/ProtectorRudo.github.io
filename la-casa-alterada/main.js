@@ -9,6 +9,7 @@ import { createTacticalRifle } from './rifle.js';
 import { steerEnemy, animateEnemy } from './walkers.js';
 import { tacticalDestination } from './tactical-behavior.js';
 import { createAdaptiveQuality } from './adaptive-quality.js';
+import { targetVisibility, findSafeSpawnPoints } from './visibility-guard.js';
 const $=id=>document.getElementById(id),rnd=(a,b)=>a+Math.random()*(b-a),clamp=THREE.MathUtils.clamp;
 const world=new THREE.Scene(),camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.01,60);
 const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});
@@ -363,33 +364,18 @@ function rescueProtectionLeft(t=performance.now()){
  return Math.max(0,Math.ceil((rescueProtectedUntil-t)/1000));
 }
 function safeRescueSpawn(index,total,base){
- const eye=new THREE.Vector3(),direction=new THREE.Vector3();
- getCam().getWorldPosition(eye);getCam().getWorldDirection(direction);
- direction.y=0;
- if(direction.lengthSq()<.001)direction.set(0,0,-1);
- direction.normalize();
- const side=new THREE.Vector3(-direction.z,0,direction.x);
- // Keep waves ahead of the camera, spread horizontally in two ranks.
- // Positions are anchored to the selected floor, not to the HUD.
+ const eye=new THREE.Vector3(),direction=new THREE.Vector3(),camera=getCam();
+ camera.getWorldPosition(eye);camera.getWorldDirection(direction);
  const floorY=nests[0]?.root.position.y??base.y;
- const lane=(index%5)-2,depth=2.1+Math.floor(index/5)*.54;
- const candidates=[];
- for(let attempt=0;attempt<12;attempt++){
-   const offset=lane*.67+(attempt%3-1)*.24;
-   const distance=Math.max(1.6,depth-Math.floor(attempt/3)*.22);
-   const p=eye.clone().addScaledVector(direction,distance)
-     .addScaledVector(side,offset);
-   p.y=floorY+.016;
-   candidates.push(p);
- }
- for(const p of candidates){
-   if(spatialMap.area&&spatialMap.areaDistance(p)<.3)continue;
-   if(!spatialMap.canMove(eye.clone().setY(floorY),p,.18))continue;
-   if(p.distanceTo(new THREE.Vector3(eye.x,floorY,eye.z))<1.4)continue;
-   return p;
- }
- // Fail closed: don't create invisible enemies outside a small mapped zone.
- return null;
+ const candidates=findSafeSpawnPoints(eye,direction,{
+  floorY,max:Math.max(5,total),
+  areaDistance:spatialMap.area?p=>spatialMap.areaDistance(p):null,
+  canMove:(a,b)=>spatialMap.canMove(a,b,.18)
+ });
+ // No overlapping bots when a tiny marked zone offers insufficient space.
+ // Never spawn a dangerous hidden character outside the delimited room.
+ const spot=candidates[index]||null;
+ return spot?new THREE.Vector3(spot.x,spot.y,spot.z):null;
 }
 function wave(total=6,boss=false){
  if(mission?.isGuest())return;
@@ -421,7 +407,7 @@ function processSpawns(t){
  e.roamRadius=n.floor?3:.27;e.next=Math.max(t+rnd(3700,5800),rescueProtectedUntil+900);
  e.hit.userData.enemy=e;if(e.headHit)e.headHit.userData.enemy=e;
  world.add(e.root);
- const tacticalScale=n.floor?.68:.84;
+ const tacticalScale=n.floor?.96:.95;
  e.root.scale.multiplyScalar(n.surfaceScale*tacticalScale);
  if(boss){e.hp=22;e.root.scale.multiplyScalar(1.48)}
  e.size*=n.surfaceScale*tacticalScale*(boss?1.48:1);
@@ -437,7 +423,7 @@ function processSpawns(t){
  indicator.position.set(0,2.22,0);indicator.renderOrder=90;
  e.root.add(indicator);e.threatMarker=indicator;
  enemies.push(e);
- attachHuman(e,e.appearance);
+ if(mode!=='ar')attachHuman(e,e.appearance);
 }
 function begin(){
  if(mapping)toggleMap(false);
@@ -510,7 +496,7 @@ function spawnCTFBot(team,index,id,localPos){
  e.ctfProtectedUntil=performance.now()+1000;
  e.ctfShotAt=e.ctfProtectedUntil+60;
  e.home=mission.originToWorld(localPos.clone());e.root.position.copy(e.home);e.groundY=e.root.position.y;
- e.root.scale.setScalar(.92);e.start.copy(e.root.position);e.next=0;e.nextTarget=0;
+ e.root.scale.setScalar(1);e.start.copy(e.root.position);e.next=0;e.nextTarget=0;
  e.hit.userData.enemy=e;if(e.headHit)e.headHit.userData.enemy=e;
  // Colored shoulder ID stays visible even when the detailed GLB hides
  // the fallback model; allows rapid friend/foe recognition on phone.
@@ -521,7 +507,7 @@ function spawnCTFBot(team,index,id,localPos){
  attachRespawnShield(e);attachContactShadow(e);
  world.add(e.root);enemies.push(e);
  e.appearance=team==='blue'?'operator':['raiderA','raiderB','raiderC','raiderD'][index%4];
- attachHuman(e,e.appearance);
+ if(mode!=='ar')attachHuman(e,e.appearance);
  return e;
 }
 function ctfBotShot(from,to,team){
@@ -813,14 +799,14 @@ function updateBattle(dt,t){
    // be possible to die from a bot that has not been rendered on screen.
    const camForward=new THREE.Vector3();getCam().getWorldDirection(camForward);
    const toEnemy=worldPosition.clone().sub(eye).normalize();
-   const onScreen=toEnemy.dot(camForward)>.42;
-   if(exposed&&onScreen&&rescueProtectionLeft(t)===0&&t>e.next&&worldPosition.distanceTo(target)<8.5&&
+   const onScreen=targetVisibility({position:eye,forward:camForward},firingPoint,{cone:.79,distance:8.5}).visible;
+   if(exposed&&onScreen&&e.root.visible&&rescueProtectionLeft(t)===0&&t>e.next&&worldPosition.distanceTo(target)<8.5&&
      !spatialMap.lineBlocked(firingPoint,target,.05)){
    e.burst=3+(e.boss?1:0);
    e.burstAt=t;
    e.next=t+rnd(3800,5900);
   }
-  if(exposed&&onScreen&&rescueProtectionLeft(t)===0&&e.burst>0&&t>=(e.burstAt||0)&&shooting<4&&orbs.length<42){
+  if(exposed&&onScreen&&e.root.visible&&rescueProtectionLeft(t)===0&&e.burst>0&&t>=(e.burstAt||0)&&shooting<4&&orbs.length<42){
    e.burst--;
    e.burstAt=t+rnd(160,235);
    shooting++;
@@ -1053,7 +1039,7 @@ function joyMove(e){const r=movementPad.getBoundingClientRect(),dx=(e.clientX-r.
 movementPad.addEventListener('pointerdown',e=>{e.preventDefault();movementPad.setPointerCapture(e.pointerId);joyMove(e)});movementPad.addEventListener('pointermove',e=>{if(movementPad.hasPointerCapture(e.pointerId))joyMove(e)});movementPad.addEventListener('pointerup',joyZero);movementPad.addEventListener('pointercancel',joyZero);
 window.addEventListener('keydown',e=>{if(['KeyW','ArrowUp'].includes(e.code))movementKeys.forward=true;if(['KeyS','ArrowDown'].includes(e.code))movementKeys.back=true;if(['KeyA','ArrowLeft'].includes(e.code))movementKeys.left=true;if(['KeyD','ArrowRight'].includes(e.code))movementKeys.right=true});
 window.addEventListener('keyup',e=>{if(['KeyW','ArrowUp'].includes(e.code))movementKeys.forward=false;if(['KeyS','ArrowDown'].includes(e.code))movementKeys.back=false;if(['KeyA','ArrowLeft'].includes(e.code))movementKeys.left=false;if(['KeyD','ArrowRight'].includes(e.code))movementKeys.right=false});
-mission=createMission({scene:world,getCam,toast,event,teammateShot,resolveTeammateShot,confirmedRemoteShot,teamElimination,kills:()=>kills,active:()=>active,rescueProtected:()=>rescueProtectionLeft()>0,firstNest:()=>nests[0],refreshHud:()=>hud(true),
+mission=createMission({scene:world,getCam,toast,event,teammateShot,resolveTeammateShot,confirmedRemoteShot,teamElimination,kills:()=>kills,active:()=>active,getMode:()=>mode,rescueProtected:()=>rescueProtectionLeft()>0,firstNest:()=>nests[0],refreshHud:()=>hud(true),
  exportEnvironment:origin=>spatialMap.exportData(origin),
  importEnvironment:(items,origin)=>{if(!mission?.isGuest())return;spatialMap.importData(items,origin);spatialMap.setVisible(false);mapStatus()},
  environmentCanMove:(from,to,radius)=>spatialMap.canMove(from,to,radius),
@@ -1071,7 +1057,7 @@ mission=createMission({scene:world,getCam,toast,event,teammateShot,resolveTeamma
    attachRespawnShield(e);
  }
  attachContactShadow(e);
- attachHuman(e,e.appearance);return e},damageEnemy,damage,heal,remoteStart,clock:()=>seconds,wave:()=>round,setGuestStats:(clock,wave,teamKills)=>{if(Number.isFinite(clock))seconds=clock;if(Number.isFinite(wave))round=wave;if(Number.isInteger(teamKills)&&teamKills>=0)kills=Math.max(kills,teamKills)},victory:finish});
+ if(mode!=='ar')attachHuman(e,e.appearance);return e},damageEnemy,damage,heal,remoteStart,clock:()=>seconds,wave:()=>round,setGuestStats:(clock,wave,teamKills)=>{if(Number.isFinite(clock))seconds=clock;if(Number.isFinite(wave))round=wave;if(Number.isInteger(teamKills)&&teamKills>=0)kills=Math.max(kills,teamKills)},victory:finish});
 mission.configureLobby();
 for(const id of ['gameSelect','ctfTeamMode','ctfBots','ctfDifficulty']){
  $(id).addEventListener('change',()=>{mission.configureLobby();hud(true)});
