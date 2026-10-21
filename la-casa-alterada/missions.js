@@ -412,6 +412,12 @@ if(Array.isArray(msg.environment)){
  o.remoteEnemy.delete(id)
 }
     const bullets=new Set();for(const shot of msg.bullets||[]){if(!Array.isArray(shot.p))continue;bullets.add(shot.id);let obj=o.remoteBullet.get(shot.id);if(!obj){obj=new THREE.Mesh(new THREE.CapsuleGeometry(.025,.18,2,5),new THREE.MeshBasicMaterial({color:0xffc17b,transparent:true,opacity:.96,depthWrite:false}));o.origin.add(obj);o.remoteBullet.set(shot.id,obj);const soundPos=from(shot.p);o.origin.localToWorld(soundPos);api.enemyShot?.(soundPos)}obj.userData.target=from(shot.p)}for(const [id,obj] of o.remoteBullet)if(!bullets.has(id)){obj.parent?.remove(obj);o.remoteBullet.delete(id)}
+    if(isGuest()){
+      o.localPositions.clear();
+      for(const p of msg.players||[])if(p.id!==o.myId&&typeof p.id==='string'&&
+          Array.isArray(p.pos)&&p.pos.length===3&&p.pos.every(n=>Number.isFinite(n)&&Math.abs(n)<40))
+        o.localPositions.set(p.id,from(p.pos));
+    }
     const known=new Set();for(const p of msg.players||[]){if(p.id===o.myId||!Array.isArray(p.pos))continue;known.add(p.id);let g=o.remoteAvatar.get(p.id);if(!g){g=avatar(p.team||o.teams.get(p.id)||'blue');o.origin.add(g);o.remoteAvatar.set(p.id,g)}
  tintAvatar(g,p.team||o.teams.get(p.id)||'blue');
  const target=from(p.pos);g.position.lerp(target,.5)}for(const [id,g] of o.remoteAvatar)if(!known.has(id)){g.parent?.remove(g);o.remoteAvatar.delete(id)}ui()}
