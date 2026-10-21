@@ -689,16 +689,18 @@ if(Array.isArray(msg.environment)){
       if(time-(o.lastHudUpdate||0)>160){o.lastHudUpdate=time;ui()}
       return;
     }
-    if(o.rescueActionStartedAt&&o.running&&o.phase===-2){
-      const p=position();
-      const close=!!p&&!!o.hostagePos&&
-        Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z)<=RESCUE_RANGE+.08;
-      if(!close)cancelRescueTap('TE ALEJASTE · VOLVÉ A ACERCARTE PARA LIBERAR');
-      else if(time-o.rescueActionStartedAt>=RESCUE_TAP_MS){
-        cancelRescueTap();
-        if(isGuest())send(o.conn,{t:'interact'});
-        else doInteract(o.myId);
-      }
+    // Host confirmations are networked; an unanswered guest request
+    // becomes retryable, never a permanent 99% lock.
+    if(o.rescueRequestAt&&o.phase===-2&&
+       performance.now()-o.rescueRequestAt>1600){
+      clearRescueButton();
+      api.toast('NO HUBO CONFIRMACIÓN · VOLVÉ A TOCAR LIBERAR');
+    }
+    if(o.rescueReinforcementAt&&isHost()&&o.phase===-1&&
+       performance.now()>=o.rescueReinforcementAt){
+      o.rescueReinforcementAt=0;
+      try{api.spawn(5,false)}
+      catch(err){console.warn('Rescue reinforcements',err)}
     }
     if(o.running&&isHost()&&o.phase===-1&&o.hostageActor){
       const player=localPositionOf(o.escortPlayer)||position();
@@ -759,16 +761,15 @@ if(Array.isArray(msg.environment)){
  if(Math.hypot(e.root.position.x-at.x,e.root.position.z-at.z)<2.4)near=true;}const el=$('alert');el.classList.toggle('hidden',!near)}for(const obj of o.remoteBullet.values())if(obj.userData.target)obj.position.lerp(obj.userData.target,clamp(0,1,dt*13))}
     for(const [id,g] of o.remoteAvatar){g.rotation.y+=dt*.4}
     if(o.running&&p&&(o.phase===0||o.phase===-2)){
-     const near=o.phase===-2?!!o.rescueActionStartedAt||
-        !!o.hostagePos&&Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z)<RESCUE_RANGE+.10:
-        POSITION.some((v,i)=>!(o.mask&(1<<i))&&Math.hypot(p.x-v[0],p.z-v[2])<.93);
+     const near=o.phase===-2?
+       !!o.hostagePos&&Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z)<RESCUE_RANGE+.10:
+       POSITION.some((v,i)=>!(o.mask&(1<<i))&&Math.hypot(p.x-v[0],p.z-v[2])<.93);
      interact.classList.toggle('hidden',!near);
      if(o.phase===-2){
-       const progress=o.rescueActionStartedAt?
-         Math.min(100,Math.floor((time-o.rescueActionStartedAt)/RESCUE_TAP_MS*100)):0;
-       interact.textContent=o.rescueActionStartedAt?'LIBERANDO '+progress+'%':'LIBERAR REHÉN';
-       interact.classList.toggle('rescuing',!!o.rescueActionStartedAt);
-       if(o.rescueActionStartedAt)interact.style.setProperty('--rescue-progress',progress+'%');
+       interact.classList.remove('rescuing');
+       interact.style.removeProperty('--rescue-progress');
+       interact.disabled=false;
+       interact.textContent=o.rescueRequestAt?'ESPERANDO CONFIRMACIÓN…':'LIBERAR REHÉN · 1 TOQUE';
      }else interact.textContent='DESACTIVAR CARGA';
     }else interact.classList.add('hidden');
     for(const name of ['pulse','shield','heal']){const element=$(name);if(!element)continue;const remain=Math.max(0,(o.cd[name]||0)-performance.now());element.disabled=!o.running||remain>0;element.querySelector('small').textContent=remain?Math.ceil(remain/1000)+' s':'LISTO'}
