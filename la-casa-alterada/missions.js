@@ -406,7 +406,9 @@ export function createMission(api){
     interact.disabled=false;
   }
   function beginRescueTap(){
-    if(!o.running||o.phase!==-2)return false;
+    if(!o.running||o.phase!==-2){
+      api.toast('LA MISIÓN NO ESTÁ LISTA PARA LIBERAR');return false;
+    }
     const p=position();
     if(!p||!o.hostagePos){api.toast('NO SE PUEDE LOCALIZAR AL REHÉN');return false}
     const distance=Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z);
@@ -419,7 +421,9 @@ export function createMission(api){
       send(o.conn,{t:'interact'});
       return true;
     }
-    return doInteract(o.myId);
+    const accepted=doInteract(o.myId);
+    if(!accepted&&o.phase===-2)api.toast('RESCATE RECHAZADO · COMPROBÁ DISTANCIA Y OBSTÁCULOS');
+    return accepted;
   }
   function doInteract(id){
     if(!o.running)return false;
@@ -800,9 +804,33 @@ if(Array.isArray(msg.environment)){
     if(o.phase<0){phaseEl.textContent=o.phase===-2?'01 / LIBERAR AL REHÉN':'01 / ESCOLTAR AL REHÉN';desc.textContent=o.phase===-2?'Acercate al rehén sin quedar expuesto. Tocá LIBERAR cuando estés cerca.':'Llevalo al primer punto de entrada. El equipo debe cubrir la extracción.';progress.textContent=o.phase===-2?(position()&&o.hostagePos?Math.hypot(position().x-o.hostagePos.x,position().z-o.hostagePos.z).toFixed(1)+' m AL REHÉN':'REHÉN RETENIDO'):(position()&&o.hostagePos?Math.hypot(o.hostagePos.x,o.hostagePos.z).toFixed(1)+' m A ZONA SEGURA':'EXTRACCIÓN EN CURSO');return}
     const phase=PHASES[Math.min(o.phase,3)];phaseEl.textContent=phase.title;desc.textContent=phase.detail;if(o.phase===0)progress.textContent=[o.mask&1?1:0,o.mask&2?1:0,o.mask&4?1:0].reduce((a,b)=>a+b,0)+'/3 CARGAS';if(o.phase===1)progress.textContent=api.enemies().filter(e=>e.alive).length+' INTRUSOS';if(o.phase===2)progress.textContent=Math.ceil(o.held)+' S PARA RESISTIR';if(o.phase===3)progress.textContent='REDUCIR AL JEFE';teamUpdate()}
   const query=new URLSearchParams(location.search).get('sala');if(query&&/^[a-z0-9]{6}$/i.test(query)){$('joinCode').value=query.toUpperCase();lobby('Código recibido. Tocá UNIRME antes de iniciar la cámara.')}
-  interact.addEventListener('click',event=>{
-     event.preventDefault();if(isCapture())pickupFlag();else beginRescueTap();
-   });
+  // ARCore DOM-overlay can suppress the eventual synthetic click after
+  // touch; use pointerdown/touchstart directly, capture the event, and prevent
+  // a WebXR "select" from consuming it as a weapon shot. Click remains as a
+  // keyboard/accessibility fallback and is debounced against the real touch.
+  let lastMissionTapAt=-10000;
+  function missionActionInput(event){
+    if(event.type==='pointerdown'&&event.pointerType==='mouse'&&event.button!==0)return;
+    if(event.cancelable)event.preventDefault();
+    event.stopPropagation();
+    const now=performance.now();
+    if(now-lastMissionTapAt<480)return;
+    lastMissionTapAt=now;
+    try{
+      if(isCapture())pickupFlag();
+      else {
+        api.toast('TOQUE DETECTADO · VALIDANDO REHÉN');
+        const result=beginRescueTap();
+        if(result&&o.phase===-1)api.toast('✓ REHÉN LIBERADO · SEGUÍ A LA ENTRADA');
+      }
+    }catch(err){
+      console.error('BLACKZONE rescue input error',err);
+      api.toast('ERROR AL LIBERAR: '+(err?.message||'REINTENTÁ'));
+    }
+  }
+  interact.addEventListener('pointerdown',missionActionInput,{capture:true,passive:false});
+  interact.addEventListener('touchstart',missionActionInput,{capture:true,passive:false});
+  interact.addEventListener('click',missionActionInput,{capture:true});
   $('createRoom').addEventListener('click',createRoom);$('joinRoom').addEventListener('click',joinRoom);$('copyRoom').addEventListener('click',copyCode);$('pulse').addEventListener('click',()=>abilityNow('pulse'));$('shield').addEventListener('click',()=>abilityNow('shield'));$('heal').addEventListener('click',()=>abilityNow('heal'));
   teamUpdate();ui();function navigationTarget(){
  if(isCapture()&&o.origin&&o.running){
