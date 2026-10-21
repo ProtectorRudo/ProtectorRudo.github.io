@@ -21,12 +21,12 @@ test('native DOM overlay contains a transparent WebGL scene layer beneath game H
  assert.ok(css.includes('#ui>#hud{z-index:2}'));
  assert.ok(css.includes('.activateCombat'));
 });
-test('Rescue and hostage remain invulnerable until users explicitly acknowledge visibility',()=>{
- assert.ok(main.includes('rescueCombatArmed=mode!==\'ar\''));
+test('Opening shield protects users while combat activates automatically',()=>{
+ assert.ok(main.includes('rescueCombatArmed=true; // Automatic armed state'));
  assert.ok(main.includes('!rescueCombatArmed||rescueProtectionLeft()>0'));
  assert.ok(main.includes("if(rescueCombatArmed&&exposed&&onScreen"));
- assert.ok(main.includes("if(rescueCombatArmed)seconds=Math.max(0,seconds-dt)"));
- assert.ok(main.includes("rescueCombatArmed=true;"));
+ assert.ok(main.includes('if(rescueCombatArmed&&rescueProtectionLeft(t)===0)seconds=Math.max(0,seconds-dt)'));
+ assert.ok(main.includes('const confirm=false;'));
  assert.ok(load('missions.js').includes('api.rescueProtected?.()'));
 });
 test('independent WebGL canvas copies XR world and eye projection matrices',async()=>{
