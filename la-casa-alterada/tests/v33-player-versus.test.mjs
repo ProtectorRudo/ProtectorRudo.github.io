@@ -63,7 +63,7 @@ test('PvP hit claims are decided by the host with team checks, sight occlusion a
  assert.match(main,/mission\.damagePvPPlayer\?\.\(closest\.playerId,shooterId/);
  assert.match(mission,/teamOf\(id\)===teamOf\(attacker\)/);
  assert.match(mission,/o\.pvp\.hit\(id,attacker,amount,now,headshot\)/);
- assert.match(mission,/!o\.pvp\.alive\(conn\.peer,t\)/);
+ assert.match(mission,/\(!isPvP\(\)\|\|o\.pvp\.alive\(conn\.peer,t\)\)/);
  assert.match(mission,/ctf\.tagPlayer\(id,at,now\)/);
 });
 test('Only Versus has PvP HP and cooperative rescue is unaffected',()=>{
