@@ -167,8 +167,8 @@ function hud(force=false){
    const flags=team?.flags||{};
    const holder=Object.keys(flags).find(t=>flags[t]?.carrier);
    $('ctfFlagStatus').textContent=team?.winner?'RONDA TERMINADA':
-     holder?'BANDERA '+(holder==='blue'?'AZUL':'ROJA')+' ROBADA':
-     (team?.objective||'PRIMERO EN LLEGAR A 3 CAPTURAS');
+     (team?.objective||(holder?'BANDERA '+(holder==='blue'?'AZUL':'ROJA')+' ROBADA':
+     'PRIMERO EN LLEGAR A 3 CAPTURAS'));
  }else{
    $('ctfScoreboard').classList.add('hidden');
    stage=!hasEntrance?0:needsB?1:!hostageReady?2:3;
@@ -445,8 +445,9 @@ function confirmedRemoteShot(headshot){
  hitConfirm(!!headshot);
  tone('hit');
 }
-function damageEnemy(e,amount=1,headshot=false,shooterId=null){if(!e?.alive)return;e.hp-=amount;
- if(mission?.isCapture?.()&&!e.ctfBot)return;
+function damageEnemy(e,amount=1,headshot=false,shooterId=null){
+ if(!e?.alive||mission?.isCapture?.()&&!e.ctfBot)return;
+ e.hp-=amount;
  e.staggerUntil=performance.now()+170;
  e.hitStagger=amount>1?.14:.08;if(e.hp<=0){e.alive=false;e.root.visible=false;if(e.ctfBot)mission?.captureBotDown?.(e);kills++;teamElimination(!shooterId||shooterId===mission?.localId?.(),headshot,kills);
  mission?.relayEnemyDown(e.id,shooterId,headshot,kills);if(!mission?.isCapture?.())mission?.onKill(e)}else {mission?.relayEnemyHit?.(e.id,headshot,e.hp);
