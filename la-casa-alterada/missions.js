@@ -295,8 +295,18 @@ export function createMission(api){
  const context=labelCanvas.getContext('2d');context.fillStyle='rgba(10,27,39,0.84)';context.fillRect(2,5,316,69);
  context.strokeStyle='#79dfcb';context.lineWidth=3;context.strokeRect(2,5,316,69);
  context.fillStyle='#c2fff2';context.font='bold 30px Arial';context.textAlign='center';context.fillText('OBJETIVO: REHÉN',160,50);
- const markerText=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(labelCanvas),transparent:true,depthWrite:false}));
- markerText.position.set(0,1.96,0);markerText.scale.set(.82,.205,1);root.add(markerText);
+ const markerText=new THREE.Sprite(new THREE.SpriteMaterial({
+ map:new THREE.CanvasTexture(labelCanvas),transparent:true,
+ depthWrite:false,depthTest:false
+}));
+ markerText.position.set(0,2.04,0);
+ markerText.scale.set(1.12,.28,1);markerText.renderOrder=100;root.add(markerText);
+ // Waypoint remains legible when the detailed 3D model cannot download.
+ const beaconMat=new THREE.MeshBasicMaterial({
+   color:0x5ee8d1,transparent:true,opacity:.62,depthWrite:false,depthTest:false
+ });
+ const beacon=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.78,8),beaconMat);
+ beacon.position.set(0,2.47,0);beacon.renderOrder=99;root.add(beacon);
  const actor={root,flesh,hostage:true,alive:true,phase:0,marker,markerText};
     o.origin.add(root);root.position.copy(o.hostagePos);o.hostageActor=actor;
     attachHuman(actor,'hostage').then(success=>{if(success&&o.hostageRescued){actor.hostage=false;playHuman(actor,'walk')}});
@@ -336,7 +346,10 @@ export function createMission(api){
    ui();return true;
  }
  if(isGuest()){if(!o.ready){api.toast('MARQUEN LOS DOS PUNTOS DE REFERENCIA');return false}if(!o.startedByHost){api.toast('Esperá a que el anfitrión comience');return false}o.running=true;ui();return true}if(!o.hostagePos){api.toast('COLOCÁ UN REHÉN ANTES DE INICIAR');return false}
- if(o.role==='host'&&!teamCalibration().ready){api.toast('ESPERÁ A QUE TODOS MARQUEN LOS MISMOS PUNTOS A Y B');return false}o.running=true;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;broadcast({t:'start',hostage:P(o.hostagePos)});api.event('MISIÓN 01 · LOCALIZAR Y LIBERAR AL REHÉN');ui();return true;}
+ if(o.role==='host'&&!teamCalibration().ready){api.toast('ESPERÁ A QUE TODOS MARQUEN LOS MISMOS PUNTOS A Y B');return false}o.running=true;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;
+ o.hostageShieldUntil=performance.now()+17500;
+ if(!o.hostageActor)buildHostage();
+ broadcast({t:'start',hostage:P(o.hostagePos)});api.event('MISIÓN 01 · LOCALIZAR Y LIBERAR AL REHÉN');ui();return true;}
   function setPhase(n){if(isGuest())return;o.phase=n;o.spawnAfter=0;if(n===0)api.event('REHÉN EXTRAÍDO · DESACTIVEN LAS CARGAS');if(n===1){api.event('MISIÓN 02 · INTRUSOS LOCALIZADOS');api.spawn(8,false)}if(n===2){o.held=40;o.spawnAfter=performance.now()+6000;api.event('MISIÓN 03 · ASEGURAR PERÍMETRO')}if(n===3){api.event('MISIÓN FINAL · JEFE LOCALIZADO');api.spawn(1,true)}if(n===4){o.finished=true;api.event('REHÉN EVACUADO · EQUIPO GANADOR');api.victory(true)}broadcast({t:'phase',phase:n,mask:o.mask,held:o.held});ui()}
   function onKill(){if(o.running&&isHost()&&o.phase===1&&api.enemies().filter(e=>e.alive).length===0&&!api.spawnPending?.())setPhase(2);if(o.running&&isHost()&&o.phase===3&&api.enemies().filter(e=>e.alive).length===0)setPhase(4)}
 
@@ -562,7 +575,10 @@ if(Array.isArray(msg.environment)){
     if(m.t==='heal'){api.heal(m.amount||22)}
     if(m.t==='shield'){o.shields.set(o.myId,performance.now()+m.duration)}
     if(m.t==='fx'&&Array.isArray(m.pos))spawnFX(m.pos);
-    if(m.t==='hitPlayer'){api.damage(m.amount||7)}
+    if(m.t==='hitPlayer'){
+       if(!isCapture()&&api.rescueProtected?.())return;
+       api.damage(m.amount||7)
+     }
     if(m.t==='win'){api.setGuestStats?.(m.clock,m.wave,m.kills);api.victory(!!m.result)}
     if(m.t==='msg'){api.toast(m.text)}
     if(m.t==='full'){lobby('La sala está llena (máximo 4 jugadores).');conn.close()}
@@ -571,7 +587,9 @@ if(Array.isArray(msg.environment)){
   function createRoom(){if(!window.Peer){lobby('No se cargó PeerJS. Revisá la conexión a internet.');return}if(o.peer){lobby('Ya existe una sesión iniciada.');return}o.room=code();o.role='host';o.myId='lca-'+o.room;configureLobby();if(o.origin&&!o.referenceReady){o.ready=false;o.calibrationQuality='waiting';api.refreshHud?.()}o.peer=new window.Peer(o.myId,{debug:1});o.peer.on('open',()=>{lobby('SALA '+o.room+' · Compartí el código y marquen los mismos puntos A y B.');$('roomCode').textContent=o.room;$('copyRoom').classList.remove('hidden');teamUpdate()});o.peer.on('connection',register);o.peer.on('error',e=>{lobby('Error de conexión: '+(e?.message||'Reintentá'));api.toast('NO SE PUDO CREAR LA SALA');});}
   function joinRoom(){if(!window.Peer){lobby('No se cargó PeerJS. Revisá la conexión a internet.');return}if(o.peer){lobby('Ya existe una sesión iniciada.');return}const value=$('joinCode').value.trim().toUpperCase();if(!/^[A-Z0-9]{6}$/.test(value)){lobby('Ingresá un código de 6 caracteres.');return}o.room=value;o.role='guest';updateModeVisual();if(o.origin&&!o.referenceReady){o.ready=false;o.calibrationQuality='waiting';api.refreshHud?.()}o.peer=new window.Peer({debug:1});o.peer.on('open',()=>{joinConnection(o.peer.connect('lca-'+value,{reliable:true,serialization:'json'}));lobby('Conectando con sala '+value+'…')});o.peer.on('error',e=>{lobby('Error de red: '+(e?.message||'Sala no encontrada'))});teamUpdate()}
   function copyCode(){const link=location.origin+location.pathname+'?sala='+o.room;try{navigator.clipboard.writeText(link).then(()=>api.toast('ENLACE DE EQUIPO COPIADO')).catch(()=>api.toast('CÓDIGO DE SALA: '+o.room))}catch(e){api.toast('CÓDIGO DE SALA: '+o.room)}}
-  function requestHit(id,power){if(id==='hostage'){damageHostage(power);return}if(id===o.myId){if(!shielded())api.damage(power)}else if(o.connections.has(id)&&!shielded(id))send(o.connections.get(id),{t:'hitPlayer',amount:power})}
+  function requestHit(id,power){
+  if(!isCapture()&&api.rescueProtected?.())return;
+  if(id==='hostage'){damageHostage(power);return}if(id===o.myId){if(!shielded())api.damage(power)}else if(o.connections.has(id)&&!shielded(id))send(o.connections.get(id),{t:'hitPlayer',amount:power})}
   function targets(){const list=[{id:o.myId,pos:position()}];for(const [id,p] of o.localPositions)list.push({id,pos:p});return list.filter(x=>x.pos)}
   function chooseTarget(){const t=targets();if(!t.length)return null;return t[Math.floor(Math.random()*t.length)]}
   function originToWorld(pos){if(!o.origin)return null;return o.origin.localToWorld(pos.clone())}
