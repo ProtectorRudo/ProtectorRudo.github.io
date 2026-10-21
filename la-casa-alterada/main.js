@@ -258,6 +258,44 @@ function reload(){if(!active||ended||reloading||ammo===capacity())return;
 }
 function damage(value){if(mission?.shielded())return;life=Math.max(0,life-value);$('damage').classList.add('active');setTimeout(()=>$('damage').classList.remove('active'),180);tone('hurt');vibrate([90,35,90]);hud();if(life===0)finish(false)}
 function finish(win){if(ended)return;mission?.onVictory(win);ended=true;active=false;placing=false;$('hud').classList.add('hidden');$('outro').classList.remove('hidden');$('status').textContent=win?'MISIÓN CUMPLIDA':'SEÑAL PERDIDA';$('outcome').innerHTML=win?'ZONA<br><em>ASEGURADA</em>':'MISIÓN<br><em>FALLIDA</em>';$('outcomeText').textContent=(win?'El equipo evacuó al rehén con vida. ':'El rescate del rehén fracasó. ')+kills+' intrusos neutralizados.'}
+// WebXR plane-detection (when available): use bounded plane geometry as a
+// secondary source if normal hit-test cannot find the floor or a wall.
+function xrPlaneProbe(frame,orientation){
+ if(!local)return null;
+ let planes;try{planes=frame.detectedPlanes}catch(_){return null}
+ if(!planes)return null;
+ const cam=getCam(),eye=new THREE.Vector3(),dir=new THREE.Vector3();
+ cam.getWorldPosition(eye);cam.getWorldDirection(dir);
+ let best=null,nearest=Infinity,count=0;
+ try{
+ for(const plane of planes){
+  if(++count>22)break;
+  if(plane.orientation!==orientation||!plane.polygon?.length)continue;
+  const pp=frame.getPose(plane.planeSpace,local);
+  if(!pp)continue;
+  const matrix=new THREE.Matrix4().fromArray(pp.transform.matrix),q=new THREE.Quaternion().setFromRotationMatrix(matrix);
+  const normal=new THREE.Vector3(0,1,0).applyQuaternion(q);
+  const denom=normal.dot(dir);
+  if(Math.abs(denom)<.08)continue;
+  const origin=new THREE.Vector3().setFromMatrixPosition(matrix);
+  const t=normal.dot(origin.clone().sub(eye))/denom;
+  if(t<.45||t>5.3||t>=nearest)continue;
+  const point=eye.clone().addScaledVector(dir,t),localHit=point.clone().applyMatrix4(matrix.clone().invert());
+  // Check the real tracked polygon, rather than its infinite support plane.
+  const poly=plane.polygon;
+  let inside=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const a=poly[i],b=poly[j],cross=((a.z>localHit.z)!==(b.z>localHit.z)) &&
+      localHit.x<(b.x-a.x)*(localHit.z-a.z)/(b.z-a.z)+a.x;
+    if(cross)inside=!inside;
+  }
+  if(!inside)continue;
+  best={matrix:new THREE.Matrix4().makeTranslation(point.x,point.y,point.z),q,hit:null,source:'plane'};
+  nearest=t;
+ }
+ }catch(_){}
+ return best;
+}
 function updateXR(frame){
  if(!frame||!source||!local)return;
  pose=null;hitResult=null;reticle.visible=false;mapPoint=null;mapPointQuality='manual';mapDepth=null;mapDepthSource='none';
@@ -276,6 +314,8 @@ function updateXR(frame){
      if(up.y>.6&&!flat)flat={matrix,q,hit};
      if(Math.abs(up.y)<.5&&!vertical)vertical={matrix,q,hit};
    }
+   if(!flat)flat=xrPlaneProbe(frame,'horizontal');
+   if(mapping&&mapKind==='wall'&&!vertical)vertical=xrPlaneProbe(frame,'vertical');
    if(mapping){
      const selected=mapKind==='wall'?vertical:flat;
      if(selected){
@@ -526,7 +566,7 @@ mission=createMission({scene:world,getCam,toast,event,teammateShot,active:()=>ac
  spawn:(n,boss)=>wave(n,boss),spawnPending:()=>spawnQueue.length,animateEnemy,animateHuman,projectiles:()=>orbs,enemies:()=>enemies,enemyShot:pos=>combatFX.shot(pos,true,'rifle'),buildEnemy:(variant,boss)=>{const e=creature(variant);e.boss=boss;if(boss){e.root.scale.setScalar(1.85);e.hp=22;e.size*=1.85}attachHuman(e,variant%2?'raiderA':'raiderB');return e},damageEnemy,damage,heal,remoteStart,clock:()=>seconds,wave:()=>round,setGuestStats:(clock,wave)=>{seconds=clock;round=wave},victory:finish});
 
 async function startAR(){if(!navigator.xr){toast('Este navegador no admite WebXR');return}$('startAR').disabled=true;try{ar=await navigator.xr.requestSession('immersive-ar',{
- requiredFeatures:['hit-test'],optionalFeatures:['anchors','dom-overlay','depth-sensing'],domOverlay:{root:$('ui')},
+ requiredFeatures:['hit-test'],optionalFeatures:['anchors','dom-overlay','depth-sensing','plane-detection'],domOverlay:{root:$('ui')},
  depthSensing:{usagePreference:['cpu-optimized'],dataFormatPreference:['luminance-alpha','float32']}
 }).catch(()=>navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['anchors','dom-overlay'],domOverlay:{root:$('ui')}}));ar.addEventListener('end',()=>{ar=null;mode='idle';$('intro').classList.remove('hidden');$('hud').classList.add('hidden');$('outro').classList.add('hidden');world.background=null;cleanup();$('startAR').disabled=false});ar.addEventListener('select',()=>{const t=performance.now();if(t-lastTouch<310)return;lastTouch=t;if(mapping)markMapPoint();else if(placing)place();else fire()});await renderer.xr.setSession(ar);local=renderer.xr.getReferenceSpace();const viewer=await ar.requestReferenceSpace('viewer');source=await ar.requestHitTestSource({space:viewer});mode='ar';$('mode').textContent='OPERACIÓN SOMBRA / CÁMARA AR';$('intro').classList.add('hidden');$('hud').classList.remove('hidden');reset()}catch(e){$('startAR').disabled=false;$('compat').textContent='AR no disponible: '+(e.message||'sin permiso')+'. Usá Chrome en Android compatible con ARCore.'}}
 function demo(){mode='demo';occluders=[];$('demoMovement').classList.remove('hidden');world.background=new THREE.Color(0x17191f);world.fog=new THREE.Fog(0x17191f,5,14);camera.position.set(0,1.55,3.45);camera.rotation.order='YXZ';const floor=new THREE.Mesh(new THREE.PlaneGeometry(12,12),new THREE.MeshStandardMaterial({color:0x333138,roughness:.98}));floor.rotation.x=-Math.PI/2;world.add(floor);const wall=new THREE.Mesh(new THREE.BoxGeometry(9,4,.16),new THREE.MeshStandardMaterial({color:0x29292b,roughness:1}));wall.position.set(0,1.8,-3);world.add(wall);occluders.push(wall);
