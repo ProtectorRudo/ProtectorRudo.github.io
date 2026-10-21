@@ -9,23 +9,21 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 const CDN='https://cdn.jsdelivr.net/gh/ProtectorRudo/viralio@main/public/viralio-3d/models/';
+const MILITARY='https://cdn.jsdelivr.net/gh/cktang88/3d-fps@main/public/assets/models/characters/';
 // All AR combatants now share the same photorealistic MakeHuman/Studio pipeline as Maya.
+// Full military-uniform rigged soldier: BAMEN, CC BY 4.0.
 const source={
- raiderA:CDN+'npc-jordan-locomotion.glb',
- raiderB:CDN+'npc-sam-locomotion.glb',
- raiderC:CDN+'npc-harper-locomotion.glb',
- raiderD:CDN+'npc-jordan-locomotion.glb',
- operator:'https://cdn.jsdelivr.net/gh/cktang88/3d-fps@main/public/assets/models/characters/soldier.glb',
- operatorTac:'https://cdn.jsdelivr.net/gh/cktang88/3d-fps@main/public/assets/models/characters/soldier_tac.glb',
+ raiderA:MILITARY+'soldier.glb',raiderB:MILITARY+'soldier.glb',
+ raiderC:MILITARY+'soldier.glb',raiderD:MILITARY+'soldier.glb',
+ operator:MILITARY+'soldier.glb',operatorTac:MILITARY+'soldier.glb',
  hostage:CDN+'npc-maya-locomotion.glb'
 };
 const backUp={
- raiderA:CDN+'npc-sam-locomotion.glb',
- raiderB:CDN+'npc-harper-locomotion.glb',
- raiderC:CDN+'npc-jordan-locomotion.glb',
- raiderD:CDN+'npc-harper-locomotion.glb'
+ raiderA:MILITARY+'soldier.glb',raiderB:MILITARY+'soldier.glb',
+ raiderC:MILITARY+'soldier.glb',raiderD:MILITARY+'soldier.glb',
+ operator:MILITARY+'soldier.glb',operatorTac:MILITARY+'soldier.glb'
 };
-const TACTICAL='https://cdn.jsdelivr.net/gh/cktang88/3d-fps@main/public/assets/models/characters/soldier.glb';
+const TACTICAL=MILITARY+'soldier.glb';
 const cache=new Map(),urlCache=new Map(),loader=new GLTFLoader();
 const cloneQueue=[];let cloneBusy=false;
 function staggerClone(work){
@@ -74,7 +72,7 @@ function load(type){
  return cache.get(type)
 }
 export function preloadHumans(){
- return Promise.allSettled([load('raiderA'),load('raiderB'),load('operator'),load('hostage')])
+ return Promise.allSettled([load('raiderA'),load('operator'),load('hostage')])
 }
 export async function attachHuman(actor,type='raiderA'){
  const key=type==='hostage'?'hostage':['raiderA','raiderB','raiderC','raiderD','operator','operatorTac'].includes(type)?type:'raiderA';
@@ -105,6 +103,23 @@ export async function attachHuman(actor,type='raiderA'){
  visual.scale.setScalar(k);
  // Put bounds inside a dedicated rig so the pelvis can animate independently.
  rig.add(visual);
+ // Individual subdued uniform tinting, without attaching floating boxes
+ // to a skeleton's incompatible coordinate system.
+ if(key!=='hostage'){
+   const palette={raiderA:0x7c8674,raiderB:0x6d7a79,raiderC:0x90816a,
+      raiderD:0x717861,operator:0x84958c,operatorTac:0x7b9295};
+   const tint=new THREE.Color(palette[key]||0xffffff);
+   visual.traverse(mesh=>{
+     if(!mesh.isMesh&&!mesh.isSkinnedMesh)return;
+     const recolor=mat=>{
+       if(!mat?.color)return mat;
+       const copy=mat.clone();copy.color.lerp(copy.color.clone().multiply(tint),.20);
+       return copy;
+     };
+     if(mesh.material)mesh.material=Array.isArray(mesh.material)?
+       mesh.material.map(recolor):recolor(mesh.material);
+   });
+ }
  // Move hitbox to root before hiding procedural mesh.
  if(actor.hit&&actor.hit.parent!==actor.root){actor.root.updateMatrixWorld(true);actor.root.attach(actor.hit)}
  // V30: prohibit attaching a mesh authored in a different skeleton's
