@@ -64,7 +64,7 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
  document.getElementById('ui').appendChild(hud);
  const el=s=>hud.querySelector('#'+s);
  const H={mine:el('mybase'),enemy:el('enemybase'),mybar:el('mybar'),enemybar:el('enemybar'),clock:el('matchclock'),phase:el('phase'),toast:el('dbtoast'),intro:el('intro'),title:el('introtitle'),desc:el('introdesc'),launch:el('launch'),bottom:el('dbbottom'),energy:el('energyvalue'),energyfill:el('energyfill'),next:el('nextcard'),deck:el('carddeck'),lanes:el('lanecontrols'),tap:el('taplayer'),ghost:el('dragghost'),guide:el('dragguide'),tip:el('dbtip'),sound:el('sound')};
- let status='idle',time=0,maxTime=150,overtime=false,energy=6,enemyEnergy=4,units=[],buildings=[],effects=[],hand=[0,1,2,3],next=4,selected=null,aiCooldown=3.8,unitSerial=0,notifyUntil=0,elapsedHud=0,deckRenderKey='',model=null,cloneFn=cloneSkeleton,modelAnimations=[];
+ let status='idle',time=0,maxTime=150,overtime=false,energy=6,enemyEnergy=4,units=[],buildings=[],effects=[],hand=[0,1,2,3],next=4,selected=null,aiCooldown=3.8,unitSerial=0,finalNotice=false,notifyUntil=0,elapsedHud=0,deckRenderKey='',model=null,cloneFn=cloneSkeleton,modelAnimations=[];
  const rng=(a,b)=>a+(b-a)*Math.random();
  function signal(msg,duration=1.1){H.toast.textContent=msg;H.toast.classList.add('visible');notifyUntil=duration;}
  let soundOn=false,audioContext=null;
@@ -98,7 +98,7 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
   return b;
  }
  function setup(){
-  cleanup();time=0;maxTime=150;overtime=false;energy=6;enemyEnergy=4;selected=null;next=4;hand=[0,1,2,3];aiCooldown=3.8;elapsedHud=0;deckRenderKey='';
+  cleanup();time=0;maxTime=150;overtime=false;energy=6;enemyEnergy=4;selected=null;next=4;hand=[0,1,2,3];aiCooldown=3.8;elapsedHud=0;deckRenderKey='';finalNotice=false;
   H.tap.classList.remove('on');H.guide.classList.remove('on');H.ghost.classList.remove('on');
   for(const team of [0,1]){createBuilding(team,1,true);createBuilding(team,0,false);createBuilding(team,2,false);}
   drawHUD();
@@ -106,7 +106,7 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
  const enemyMain=team=>buildings.find(b=>b.team===team&&b.main);
  function spawnVisual(card,team){
   const g=new THREE.Group(),body=new THREE.Group();g.add(body);
-  const fabric=new THREE.MeshStandardMaterial({color:team?0xb27866:card.color,roughness:.83});
+  const fabric=new THREE.MeshStandardMaterial({color:team?0xb27866:card.color,metalness:.10,roughness:.72});
   const armor=new THREE.MeshStandardMaterial({color:0x243940,metalness:.4,roughness:.55});
   if(card.air){
    box(.041,.013,.043,0,.080,0,armor,body);box(.069,.005,.009,0,.087,0,fabric,body);
@@ -125,8 +125,12 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
     const leg=new THREE.Group();leg.position.set(s*.01,.035,0);body.add(leg);box(.013,.029,.015,0,-.014,0,fabric,leg);limbs.push(leg);
    }
    g.userData.limbs=limbs;
-   box(.010,.009,.039,.008,.058,.02,armor,body);
-   if(model&&cloneFn){
+   box(.010,.009,card.name==='Tirador'?.074:.039,.008,.058,card.name==='Tirador'?.033:.02,armor,body);
+   if(card.name==='Blindado'){box(.045,.034,.03,0,.058,0,armor,body);box(.055,.008,.040,0,.083,.004,fabric,body);}
+   if(card.name==='Ingeniero')box(.029,.032,.015,0,.064,-.018,new THREE.MeshStandardMaterial({color:0x5b6995,metalness:.3,roughness:.6}),body);
+   if(card.name==='Tirador')box(.012,.009,.014,.008,.068,.02,fabric,body);
+   if(card.name==='Explorador')body.scale.setScalar(.84);
+   if(model&&cloneFn&&(card.name==='Asalto'||card.name==='Explorador'||card.name==='Tirador')){
     try{
      const visual=cloneFn(model.scene),bounds=new THREE.Box3().setFromObject(visual),dims=bounds.getSize(new THREE.Vector3());
      if(dims.y>0){
@@ -138,10 +142,13 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
     }catch(e){}
    }
   }
+  const allegiance=new THREE.Mesh(new THREE.RingGeometry(.025,.030,24),new THREE.MeshBasicMaterial({color:team?0xe7a187:0x7aeac0,transparent:true,opacity:.43,side:THREE.DoubleSide,depthWrite:false}));
+  allegiance.rotation.x=-Math.PI/2;allegiance.position.y=.008;g.add(allegiance);
   return g;
  }
  function deploy(team,index,lane,z){
   const c=catalogue[index];if(status!=='playing'||(team?enemyEnergy:energy)<c.cost)return false;
+  if(!c.spell&&!c.shield&&units.length>=29){if(!team)signal('Demasiadas tropas. Esperá unos segundos.');return false;}
   if(team)enemyEnergy-=c.cost;else energy-=c.cost;
   if(c.shield){
    for(const b of buildings.filter(x=>x.team===team&&x.alive))b.shield=Math.min(185,b.shield+85);
@@ -153,8 +160,12 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
    if(b)dealBuilding(b,85);
    blast(laneX,team?-.035:.035,0xffba79,.11);signal(team?'¡Bombardeo enemigo!':'¡Bombardeo realizado!');
   }else{
-   const u={id:++unitSerial,team,card:c,lane,hp:c.hp,max:c.hp,x:lanes[lane]+rng(-.009,.009),z:z??(team?.128:-.128),cooldown:rng(0,.3),age:0};
-   u.mesh=spawnVisual(c,team);u.mesh.position.set(u.x,0,u.z);group.add(u.mesh);u.bar=healthBar(u.mesh,team,c.air?.119:.117);units.push(u);blast(u.x,u.z,teamColors[team],.027);
+   // Assault and scouts deploy as 2-person squads for visual impact.
+   const count=(index===0||index===1)&&units.length<27?2:1;
+   for(let n=0;n<count;n++){
+    const u={id:++unitSerial,team,card:c,lane,hp:c.hp,max:c.hp,x:lanes[lane]+(n?-.014:.014)+rng(-.008,.008),z:(z??(team?.128:-.128))+(n?-.012:.012),cooldown:rng(.08,.37),age:0};
+    u.mesh=spawnVisual(c,team);u.mesh.position.set(u.x,0,u.z);group.add(u.mesh);u.bar=healthBar(u.mesh,team,c.air?.119:.117);units.push(u);blast(u.x,u.z,teamColors[team],.025);
+   }
   }
   if(!team){
    const slot=hand.indexOf(index);if(slot!==-1){hand[slot]=next%catalogue.length;next++;selected=null;H.lanes.classList.remove('on');}
@@ -174,6 +185,7 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
  function dealBuilding(b,damage){
   if(!b.alive)return;
   const blocked=Math.min(b.shield,damage);b.shield-=blocked;b.hp=Math.max(0,b.hp-damage+blocked);b.bar.set(b.hp/b.max);
+  if(b.main&&b.team===0&&b.hp<220&&!b.critical){b.critical=true;signal('⚠ ¡TU BASE ESTÁ EN PELIGRO!',2);feedback('hit');}
   if(b.hp<=0){b.alive=false;b.mesh.visible=false;blast(b.x,b.z,0xffb37c,.1);signal(b.main?(b.team?'¡BASE ENEMIGA DESTRUIDA!':'¡TU BASE HA CAÍDO!'):'¡TORRE DESTRUIDA!',1.7);}
  }
  function dealUnit(u,damage){u.hp=Math.max(0,u.hp-damage);u.bar.set(u.hp/u.max);if(!u.hp)blast(u.x,u.z,0xffad76,.045);}
@@ -208,7 +220,8 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
   }
  }
  function step(dt){
-  time+=dt;const recharge=dt*(time>130?1.5:1)/2.4;
+  time+=dt;const recharge=dt*(time>105?1.8:1)/1.85;
+  if(!finalNotice&&maxTime-time<=30){finalNotice=true;signal('⚡ ÚLTIMOS 30 SEGUNDOS',2.2);}
   energy=Math.min(10,energy+recharge);enemyEnergy=Math.min(10,enemyEnergy+recharge);
   for(const u of units){if(u.hp>0)updateUnit(u,dt);}
   units=units.filter(x=>{if(x.hp>0)return true;x.mesh.parent?.remove(x.mesh);return false});
@@ -220,7 +233,7 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
   }
   aiCooldown-=dt;
   if(aiCooldown<=0){
-   aiCooldown=rng(1.9,3.0);
+   aiCooldown=rng(2.6,3.9);
    const affordable=catalogue.map((c,i)=>i).filter(i=>catalogue[i].cost<=enemyEnergy);
    if(affordable.length){
     const i=affordable[Math.floor(Math.random()*affordable.length)];
@@ -260,7 +273,7 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
   H.mine.textContent=Math.ceil(my.hp);H.enemy.textContent=Math.ceil(other.hp);
   H.mybar.style.width=(100*my.hp/my.max)+'%';H.enemybar.style.width=(100*other.hp/other.max)+'%';
   const left=Math.max(0,Math.ceil(maxTime-time));H.clock.textContent=Math.floor(left/60)+':'+String(left%60).padStart(2,'0');
-  H.phase.textContent=overtime?'PRÓRROGA':'DUELO';H.energy.textContent=energy.toFixed(1)+' / 10';
+  H.phase.textContent=overtime?'PRÓRROGA':maxTime-time<=30?'DUELO FINAL':'DUELO';H.energy.textContent=energy.toFixed(1)+' / 10';
   H.energyfill.style.width=(energy*10)+'%';H.next.textContent='SIGUIENTE: '+catalogue[next%8].name;
   const renderKey=hand.join(',')+'|'+selected+'|'+hand.map(i=>energy>=catalogue[i].cost?'1':'0').join('');
   if(renderKey!==deckRenderKey){deckRenderKey=renderKey;H.deck.innerHTML=hand.map((index,slot)=>{
