@@ -21,7 +21,9 @@ export function findSafeSpawnPoints(eye,forward,{floorY=0,areaDistance=null,canM
  const out=[];
  // Gradual wave, farther from the phone than the old 2.1m circle.
  // Avoid the head-height camera looking over the actors' heads.
- const slots=[[-.75,3.15],[.75,3.15],[0,3.75],[-1.25,4.0],[1.25,4.0],[-.45,4.55],[.45,4.55]];
+ const slots=[[-.75,3.15],[.75,3.15],[0,3.75],[-1.25,4.0],[1.25,4.0],
+  [-.45,4.55],[.45,4.55],[-1.48,4.75],[1.48,4.75],[-.8,5.12],
+  [.8,5.12],[-1.86,5.25],[1.86,5.25]];
  for(const [side,front] of slots){
   if(out.length>=max)break;
   const p={x:eye.x+ux*front+sideX*side,y:floorY+.016,z:eye.z+uz*front+sideZ*side};
