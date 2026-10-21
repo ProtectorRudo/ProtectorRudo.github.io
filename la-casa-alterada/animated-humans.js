@@ -161,7 +161,12 @@ export function animateHuman(actor,dt,speed=0){
  actor.mixer.update(Math.min(actor.animationAccum,.11));
  // Subtle shoulder lean when an actor exposes itself from cover.
  if(actor.rig){
-   const lean=actor.coverState==='fire'?(actor.id%2===0?.055:-.055):0;
+   const crouch=actor.ctfStance==='crouch'||actor.coverState==='hold'||
+     actor.coverState==='retreat';
+   const wantedHeight=crouch?.71:1;
+   const smooth=Math.min(1,actor.animationAccum*8);
+   actor.rig.scale.y+=(wantedHeight-actor.rig.scale.y)*smooth;
+   const lean=actor.coverState==='fire'?(actor.id%2===0?.085:-.085):0;
    actor.rig.rotation.z+=(lean-actor.rig.rotation.z)*Math.min(1,actor.animationAccum*7);
  }
  actor.animationAccum=0;
