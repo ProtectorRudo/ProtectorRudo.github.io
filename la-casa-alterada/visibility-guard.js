@@ -24,7 +24,7 @@ export function findSafeSpawnPoints(eye,forward,{floorY=0,areaDistance=null,canM
  const slots=[[-.75,3.15],[.75,3.15],[0,3.75],[-1.25,4.0],[1.25,4.0],[-.45,4.55],[.45,4.55]];
  for(const [side,front] of slots){
   if(out.length>=max)break;
-  const p={x:eye.x+ux*front+sideX*side,y:floorY+.015,z:eye.z+uz*front+sideZ*side};
+  const p={x:eye.x+ux*front+sideX*side,y:floorY+.016,z:eye.z+uz*front+sideZ*side};
   if(Math.hypot(p.x-eye.x,p.z-eye.z)<2.25)continue;
   if(areaDistance&&areaDistance(p)<.3)continue;
   if(canMove&&!canMove({x:eye.x,y:floorY,z:eye.z},p))continue;
