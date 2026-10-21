@@ -286,6 +286,38 @@ function hitConfirm(headshot=false){
  el.classList.add('visible');hitConfirmUntil=performance.now()+350;
 }
 let hitConfirmUntil=0;
+/**
+ * Host-authoritative hit test for players connected via PeerJS.
+ * The client sends only the muzzle position + shot direction.
+ * The host reconstructs the ray in its own coordinate system and applies
+ * enemy damage once; the 3D hit location is never trusted from the client.
+ */
+function resolveTeammateShot(start,direction,shooterId){
+ if(!active||ended||placing||!mission?.isHost?.())return null;
+ if(!start||!direction||!Number.isFinite(direction.lengthSq())||direction.lengthSq()<.7)return null;
+ const cast=new THREE.Raycaster(start,direction.clone().normalize(),0,12);
+ world.updateMatrixWorld(true);
+ const objects=enemies.filter(e=>e.alive).flatMap(e=>e.headHit?[e.hit,e.headHit]:[e.hit]);
+ const hits=cast.intersectObjects(objects,false);
+ if(!hits.length)return null;
+ const cover=mode==='demo'?cast.intersectObjects(occluders,false)[0]:null;
+ for(const hit of hits){
+   if(hit.distance>12)break;
+   if(cover&&cover.distance+0.045<hit.distance)return null;
+   if(spatialMap.lineBlocked(start,hit.point,.035))return null;
+   const e=hit.object.userData.enemy;
+   if(!e?.alive)continue;
+   const headshot=hit.object.userData.part==='head';
+   damageEnemy(e,headshot?3:1,headshot);
+   combatFX.dust(hit.point,4);
+   return{id:e.id,headshot};
+ }
+ return null;
+}
+function confirmedRemoteShot(headshot){
+ hitConfirm(!!headshot);
+ tone('hit');
+}
 function damageEnemy(e,amount=1,headshot=false){if(!e?.alive)return;e.hp-=amount;
  e.staggerUntil=performance.now()+170;
  e.hitStagger=amount>1?.14:.08;if(e.hp<=0){e.alive=false;e.root.visible=false;kills++;event('TERRORISTA NEUTRALIZADO / '+kills);mission?.relayEnemyDown(e.id);mission?.onKill(e)}else toast('IMPACTO / '+e.hp+' RESISTENCIA')}
@@ -293,8 +325,8 @@ function fire(){if(mapping||!active||ended||placing||reloading)return;if(ammo===
  if(geometryHit||cover&&(!hits.length||cover.distance<hits[0].distance)){
    if(cover)end.copy(cover.point);combatFX.dust(end,11);
  }else if(hits.length){const h=hits[0],e=h.object.userData.enemy;end.copy(h.point);impact(end);combatFX.dust(end,5);tone('hit');const headshot=h.object.userData.part==='head';
- hitConfirm(headshot);
- if(mission?.isGuest())mission.remoteHit(e.id,headshot);else damageEnemy(e,headshot?3:1,headshot)}trail(weaponMuzzleOrigin(c),end);if(ammo===0)setTimeout(reload,240)}
+ // Guests receive hit confirmation only after the host validates the shot.
+ if(!mission?.isGuest()){hitConfirm(headshot);damageEnemy(e,headshot?3:1,headshot)}}trail(weaponMuzzleOrigin(c),end);if(ammo===0)setTimeout(reload,240)}
 function reload(){if(!active||ended||reloading||ammo===capacity())return;
  reloading=true;gunReload();tone('hit');toast('RECARGANDO '+(currentWeapon==='rifle'?'CARBINA':'PISTOLA')+'…');
  const type=currentWeapon;setTimeout(()=>{if(ended)return;magazines[type]=type==='rifle'?28:12;if(type===currentWeapon)ammo=magazines[type];reloading=false;hud()},currentWeapon==='rifle'?1600:1200);
@@ -645,7 +677,7 @@ function joyMove(e){const r=movementPad.getBoundingClientRect(),dx=(e.clientX-r.
 movementPad.addEventListener('pointerdown',e=>{e.preventDefault();movementPad.setPointerCapture(e.pointerId);joyMove(e)});movementPad.addEventListener('pointermove',e=>{if(movementPad.hasPointerCapture(e.pointerId))joyMove(e)});movementPad.addEventListener('pointerup',joyZero);movementPad.addEventListener('pointercancel',joyZero);
 window.addEventListener('keydown',e=>{if(['KeyW','ArrowUp'].includes(e.code))movementKeys.forward=true;if(['KeyS','ArrowDown'].includes(e.code))movementKeys.back=true;if(['KeyA','ArrowLeft'].includes(e.code))movementKeys.left=true;if(['KeyD','ArrowRight'].includes(e.code))movementKeys.right=true});
 window.addEventListener('keyup',e=>{if(['KeyW','ArrowUp'].includes(e.code))movementKeys.forward=false;if(['KeyS','ArrowDown'].includes(e.code))movementKeys.back=false;if(['KeyA','ArrowLeft'].includes(e.code))movementKeys.left=false;if(['KeyD','ArrowRight'].includes(e.code))movementKeys.right=false});
-mission=createMission({scene:world,getCam,toast,event,teammateShot,active:()=>active,firstNest:()=>nests[0],refreshHud:()=>hud(true),
+mission=createMission({scene:world,getCam,toast,event,teammateShot,resolveTeammateShot,confirmedRemoteShot,active:()=>active,firstNest:()=>nests[0],refreshHud:()=>hud(true),
  exportEnvironment:origin=>spatialMap.exportData(origin),
  importEnvironment:(items,origin)=>{if(!mission?.isGuest())return;spatialMap.importData(items,origin);spatialMap.setVisible(false);mapStatus()},
  environmentCanMove:(from,to,radius)=>spatialMap.canMove(from,to,radius),
