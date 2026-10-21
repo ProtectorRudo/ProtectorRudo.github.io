@@ -104,7 +104,9 @@ export function steerEnemy(e,dt,time,target,mode,map,peers){
  else if(can(oldX,newZ))p.z=newZ;
  }
  const moved=Math.hypot(p.x-oldX,p.z-oldZ)/Math.max(.001,dt);
- const desiredX=d>.2?dX:e.walkVX,desiredZ=d>.2?dZ:e.walkVZ;
+ const focus=(e.coverState==='hold'||e.coverState==='fire')&&e.tacticalThreat;
+ const desiredX=focus?e.tacticalThreat.x-p.x:d>.2?dX:e.walkVX;
+ const desiredZ=focus?e.tacticalThreat.z-p.z:d>.2?dZ:e.walkVZ;
  if(Math.hypot(desiredX,desiredZ)>.01){
   const targetYaw=Math.atan2(desiredX,desiredZ);
   let a=(targetYaw-e.root.rotation.y+Math.PI)%(Math.PI*2);
@@ -129,7 +131,7 @@ export function animateEnemy(e,dt,speed){
   e.arms[i].rotation.z=(i===0?-.1:.1)*(1+intensity*.2);
  }
  e.flesh.rotation.x=.05+Math.sin(angle)*intensity*.06;
- e.flesh.rotation.z=Math.sin(angle*.53+e.phase)*(.025+intensity*.048);
+ e.flesh.rotation.z=Math.sin(angle*.53+e.phase)*(.025+intensity*.048)+(e.coverState==='fire'?.055:0);
  e.flesh.position.y=Math.abs(Math.sin(angle))*intensity*.015;
  if(e.jaw)e.jaw.scale.y=1+Math.max(0,Math.sin(angle*.65+e.phase))*.23;
  if(e.shadow)e.shadow.material.opacity=.29-.04*intensity;
