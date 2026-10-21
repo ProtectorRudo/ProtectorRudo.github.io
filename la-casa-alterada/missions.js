@@ -871,7 +871,23 @@ if(Array.isArray(msg.environment)){
   function targets(){const list=[{id:o.myId,pos:position()}];for(const [id,p] of o.localPositions)list.push({id,pos:p});return list.filter(x=>x.pos)}
   function chooseTarget(){const t=targets();if(!t.length)return null;return t[Math.floor(Math.random()*t.length)]}
   function originToWorld(pos){if(!o.origin)return null;return o.origin.localToWorld(pos.clone())}
+  function linkMaintenance(){
+    if(!isGuest()||!o.room)return;
+    const now=performance.now(),net=o.net;
+    if(net.retryAt&&now>=net.retryAt){net.retryAt=0;connectGuest();return}
+    if(!o.peer||!o.conn?.open){
+      if(net.connectingAt&&timedOutConnect(now,net.connectingAt,false))
+        scheduleGuestRetry('timeout');
+      return;
+    }
+    if(!net.lastPing||now-net.lastPing>=LINK.pingEvery){
+      net.lastPing=now;send(o.conn,{t:'ping',at:now});
+    }
+    if(lostHeartbeat(now,net.lastPong,net.connectedAt))
+      scheduleGuestRetry('timeout');
+  }
   function tick(dt,time){
+    linkMaintenance();
     if(isCapture()){
       if(isHost()&&isPvP()){const clock=performance.now();if(o.pvp.tick(clock))applyPvPState(o.pvp.view(o.myId,clock));}
       if(o.origin&&api.firstNest())o.origin.position.copy(api.firstNest().root.position);
@@ -1045,7 +1061,13 @@ if(Array.isArray(msg.environment)){
       return;
     }
     const phase=PHASES[Math.min(o.phase,3)];phaseEl.textContent=phase.title;desc.textContent=phase.detail;if(o.phase===0)progress.textContent=[o.mask&1?1:0,o.mask&2?1:0,o.mask&4?1:0].reduce((a,b)=>a+b,0)+'/3 CARGAS';if(o.phase===1)progress.textContent=api.enemies().filter(e=>e.alive).length+' INTRUSOS';if(o.phase===2)progress.textContent=Math.ceil(o.held)+' S PARA RESISTIR';if(o.phase===3)progress.textContent='REDUCIR AL JEFE';teamUpdate()}
-  const query=new URLSearchParams(location.search).get('sala');if(query&&/^[a-z0-9]{6}$/i.test(query)){$('joinCode').value=query.toUpperCase();lobby('Código recibido. Tocá UNIRME antes de iniciar la cámara.')}
+  const query=sessionCode(new URLSearchParams(location.search).get('sala'));
+  if(query){
+    $('joinCode').value=query;
+    lobby('INVITACIÓN RECIBIDA · UNIÉNDOTE A LA SALA '+query);
+    if(window.Peer)joinRoom();
+    else lobby('PEERJS NO DISPONIBLE · REVISÁ INTERNET Y ACTUALIZÁ');
+  }
   // ARCore DOM-overlay can suppress the eventual synthetic click after
   // touch; use pointerdown/touchstart directly, capture the event, and prevent
   // a WebXR "select" from consuming it as a weapon shot. Click remains as a
@@ -1088,6 +1110,7 @@ if(Array.isArray(msg.environment)){
    label:o.phase===-2?'REHÉN':separated?'REHÉN ATRÁS':'EXTRACCIÓN'};
 }
 function networkState(){
+ if(o.role==='host')return o.connections.size?'online':'waiting';
  if(o.role!=='guest')return 'local';
  if(!o.conn?.open)return 'offline';
  if(o.calibrationQuality==='mismatch')return 'mismatch';
@@ -1102,5 +1125,5 @@ return{align,alignSecond,alignmentStatus,needsReference,teamCalibration,updateTr
   const pos=new THREE.Vector3();
   o.hostageActor.root.getWorldPosition(pos);pos.y+=1.12;return pos;
  },
- isGuest,isHost,isPvP,pvpView,pvpAll,damagePvPPlayer,canPvPFire:(id=o.myId)=>!isPvP()||(isGuest()?pvpView(id)?.dead!==true:o.pvp.alive(id,performance.now())),pickupFlag,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result,clock:api.clock(),wave:api.wave(),kills:api.kills?.()||0})},localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
+ isGuest,isHost,isPvP,linkStatus:()=>({...o.net,role:o.role,players:1+o.connections.size}),manualRetry,pvpView,pvpAll,damagePvPPlayer,canPvPFire:(id=o.myId)=>!isPvP()||(isGuest()?pvpView(id)?.dead!==true:o.pvp.alive(id,performance.now())),pickupFlag,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result,clock:api.clock(),wave:api.wave(),kills:api.kills?.()||0})},localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
 }
