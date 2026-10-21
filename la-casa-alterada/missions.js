@@ -46,7 +46,7 @@ function avatar(){
 }
 function visualWave(scene,origin,color=0x65d9ee){const m=new THREE.Mesh(new THREE.RingGeometry(.14,.18,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.8,side:THREE.DoubleSide,depthWrite:false}));m.position.copy(origin);m.position.y-=1.1;scene.add(m);return{mesh:m,t:0,duration:.7}}
 export function createMission(api){
-  const o={api,peer:null,room:null,role:'solo',conn:null,connections:new Map(),peers:new Map(),origin:null,angle:0,phase:-2,hostagePos:null,hostageRescued:false,hostageActor:null,escortPlayer:null,hostageHealth:100,hostageShieldUntil:0,rescueHoldStart:0,routeCache:null,routeCacheAt:0,routeTarget:null,mask:0,held:40,spawnAfter:0,lastSnap:0,lastMove:0,ready:false,running:false,finished:false,objects:[],remoteEnemy:new Map(),remoteAvatar:new Map(),remoteBullet:new Map(),effects:[],cd:{pulse:0,shield:0,heal:0},shields:new Map(),lastActions:new Map(),myId:'local',lastHostSnapshot:0,localPositions:new Map(),enemySeq:0,seed:0,startedByHost:false,joined:false};
+  const o={api,peer:null,room:null,role:'solo',conn:null,connections:new Map(),peers:new Map(),origin:null,angle:0,phase:-2,hostagePos:null,hostageRescued:false,hostageActor:null,escortPlayer:null,hostageHealth:100,hostageShieldUntil:0,rescueHoldStart:0,routeCache:null,routeCacheAt:0,routeTarget:null,mask:0,held:40,spawnAfter:0,lastSnap:0,lastMove:0,ready:false,running:false,finished:false,objects:[],remoteEnemy:new Map(),remoteAvatar:new Map(),remoteBullet:new Map(),effects:[],cd:{pulse:0,shield:0,heal:0},shields:new Map(),lastActions:new Map(),myId:'local',lastHostSnapshot:0,lastSnapshotSeq:-1,snapshotSeq:0,lastShotAt:new Map(),localPositions:new Map(),enemySeq:0,seed:0,startedByHost:false,joined:false};
   const info=$('missionInfo'),phaseEl=$('missionStage'),desc=$('missionText'),progress=$('missionProgress'),team=$('teamStatus'),interact=$('interact'),ability=$('abilities');
   function teamUpdate(){const count=1+(o.role==='host'?o.connections.size:o.role==='guest'&&o.conn?.open?1:0);team.textContent=o.role==='solo'?'SOLO / OPERACIÓN':o.role==='host'?'JEFE DE SALA / '+count+' JUGADOR'+(count===1?'':'ES'):o.conn?.open?'EQUIPO CONECTADO':'RECONECTANDO…';$('crew').textContent=count+' / '+maxPlayers}
   function lobby(msg){$('lobbyMsg').textContent=msg}
@@ -58,7 +58,11 @@ export function createMission(api){
   function isGuest(){return o.role==='guest'}
   function isHost(){return o.role!=='guest'}
   function localPositionOf(id){if(!o.origin)return null;return id===o.myId?position():o.localPositions.get(id)||null}
-  function align(root){if(o.origin){api.scene.remove(o.origin)}const p=new THREE.Vector3();root.getWorldPosition(p);const view=api.getCam(),q=new THREE.Quaternion();view.getWorldQuaternion(q);const forward=new THREE.Vector3(0,0,-1).applyQuaternion(q);o.angle=Math.atan2(-forward.x,-forward.z);o.origin=new THREE.Group();o.origin.position.copy(p);o.origin.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0),o.angle);api.scene.add(o.origin);o.ready=true;makeMarkers();api.toast('CALIBRACIÓN LISTA · Cámara libre para moverte');ui();if(isGuest()&&o.startedByHost)api.remoteStart();}
+  function align(root){if(o.origin){api.scene.remove(o.origin)}const p=new THREE.Vector3();root.getWorldPosition(p);const view=api.getCam(),q=new THREE.Quaternion();view.getWorldQuaternion(q);const forward=new THREE.Vector3(0,0,-1).applyQuaternion(q);o.angle=Math.atan2(-forward.x,-forward.z);o.origin=new THREE.Group();o.origin.position.copy(p);o.origin.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0),o.angle);api.scene.add(o.origin);o.ready=true;makeMarkers();api.toast('CALIBRACIÓN LISTA · Cámara libre para moverte');ui();
+ if(isGuest()){
+   send(o.conn,{t:'syncRequest'});
+   if(o.startedByHost)api.remoteStart();
+ }}
   function makeMarkers(){if(!o.origin)return;for(const g of o.objects)g.parent?.remove(g);o.objects=POSITION.map((p,i)=>{let g=marker(i);g.position.set(p[0],p[1],p[2]);o.origin.add(g);return g})}
   function removeRemote(){for(const x of o.remoteEnemy.values())x.root?.parent?.remove(x.root);o.remoteEnemy.clear();for(const g of o.remoteAvatar.values())g.parent?.remove(g);o.remoteAvatar.clear();for(const v of o.remoteBullet.values())v.parent?.remove(v);o.remoteBullet.clear();for(const fx of o.effects){fx.mesh?.parent?.remove(fx.mesh)}o.effects=[]}
 
@@ -105,7 +109,7 @@ export function createMission(api){
     else if(isGuest())o.hostageActor.root.position.lerp(o.hostagePos,.65);
     if(o.hostageActor&&o.hostageRescued){o.hostageActor.hostage=false;playHuman(o.hostageActor,'walk')}
   }
-  function reset(){if(o.hostageActor){disposeHuman(o.hostageActor);o.hostageActor.root.parent?.remove(o.hostageActor.root)}o.hostageActor=null;o.hostagePos=null;o.lastEnvironment=null;o.routeCache=null;o.routeCacheAt=0;o.routeTarget=null;o.hostageHealth=100;o.hostageShieldUntil=0;o.rescueHoldStart=0;o.hostageRescued=false;o.escortPlayer=null;o.running=false;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;o.ready=false;o.startedByHost=false;o.localPositions.clear();o.shields.clear();o.lastSnap=0;o.enemySeq=0;o.origin?.parent?.remove(o.origin);o.origin=null;removeRemote();ui();}
+  function reset(){if(o.hostageActor){disposeHuman(o.hostageActor);o.hostageActor.root.parent?.remove(o.hostageActor.root)}o.hostageActor=null;o.hostagePos=null;o.lastEnvironment=null;o.routeCache=null;o.routeCacheAt=0;o.routeTarget=null;o.hostageHealth=100;o.hostageShieldUntil=0;o.rescueHoldStart=0;o.hostageRescued=false;o.escortPlayer=null;o.running=false;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;o.ready=false;o.startedByHost=false;o.localPositions.clear();o.shields.clear();o.lastSnap=0;o.lastSnapshotSeq=-1;o.snapshotSeq=0;o.lastShotAt.clear();o.enemySeq=0;o.origin?.parent?.remove(o.origin);o.origin=null;removeRemote();ui();}
   function start(){if(!o.ready){api.toast('Primero fijá un punto común en el piso');return false}if(isGuest()){if(!o.startedByHost){api.toast('Esperá a que el anfitrión comience');return false}o.running=true;ui();return true}if(!o.hostagePos){api.toast('COLOCÁ UN REHÉN ANTES DE INICIAR');return false}o.running=true;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;broadcast({t:'start',hostage:P(o.hostagePos)});api.event('MISIÓN 01 · LOCALIZAR Y LIBERAR AL REHÉN');ui();return true;}
   function setPhase(n){if(isGuest())return;o.phase=n;o.spawnAfter=0;if(n===0)api.event('REHÉN EXTRAÍDO · DESACTIVEN LAS CARGAS');if(n===1){api.event('MISIÓN 02 · INTRUSOS LOCALIZADOS');api.spawn(8,false)}if(n===2){o.held=40;o.spawnAfter=performance.now()+6000;api.event('MISIÓN 03 · ASEGURAR PERÍMETRO')}if(n===3){api.event('MISIÓN FINAL · JEFE LOCALIZADO');api.spawn(1,true)}if(n===4){o.finished=true;api.victory(true)}broadcast({t:'phase',phase:n,mask:o.mask,held:o.held});ui()}
   function onKill(){if(o.running&&isHost()&&o.phase===1&&api.enemies().filter(e=>e.alive).length===0&&!api.spawnPending?.())setPhase(2);if(o.running&&isHost()&&o.phase===3&&api.enemies().filter(e=>e.alive).length===0)setPhase(4)}
@@ -178,15 +182,52 @@ export function createMission(api){
   function abilityNow(kind){if(!o.running||!api.active())return;const t=performance.now(),period={pulse:18000,shield:25000,heal:35000}[kind],left=(o.cd[kind]||0)-t;if(left>0){api.toast('PODER DISPONIBLE EN '+Math.ceil(left/1000)+' S');return}o.cd[kind]=t+period;if(isGuest()){send(o.conn,{t:'ability',kind});if(kind==='shield')o.shields.set(o.myId,t+6000);if(kind==='pulse'){const p=position();if(p)spawnFX(P(p))}}else receiveAbility(o.myId,kind);ui()}
   function spawnFX(p){if(!o.origin)return;const at=from(p);o.origin.localToWorld(at);o.effects.push(visualWave(api.scene,at,0x54dff3))}
   function getEnemyState(){if(!o.origin)return[];return api.enemies().filter(e=>e.alive).map(e=>{const v=new THREE.Vector3();e.root.getWorldPosition(v);o.origin.worldToLocal(v);return{id:e.id,v:e.variant,h:e.hp,p:P(v),yaw:e.root.rotation.y-o.origin.rotation.y,boss:!!e.boss,floor:!!e.floor,scale:e.size}})}
-  function receiveSnapshot(msg){if(!o.ready||!o.origin)return;o.lastHostSnapshot=performance.now();
+  function receiveSnapshot(msg){
+ if(!o.ready||!o.origin)return;
+ if(Number.isInteger(msg.seq)){
+   if(msg.seq<=o.lastSnapshotSeq)return;
+   o.lastSnapshotSeq=msg.seq;
+ }
+ o.lastHostSnapshot=performance.now();
 if(Array.isArray(msg.environment)){
  const signature=JSON.stringify(msg.environment);
  if(o.lastEnvironment!==signature){o.lastEnvironment=signature;api.importEnvironment?.(msg.environment,o.origin)}
 }o.phase=msg.phase;o.mask=msg.mask;o.held=msg.held;if(Number.isFinite(msg.hostageHP))o.hostageHealth=msg.hostageHP;if(Array.isArray(msg.hostage))syncHostage(msg.hostage,msg.rescued);if(msg.running)o.startedByHost=true;o.running=msg.running;o.finished=msg.finished;api.setGuestStats(msg.clock,msg.wave);if(msg.running&&!api.active())api.remoteStart();const alive=new Set();for(const x of msg.enemies||[]){if(typeof x.id!=='number'||!Array.isArray(x.p))continue;alive.add(x.id);let e=o.remoteEnemy.get(x.id);if(!e){e=api.buildEnemy(x.v,x.boss);e.id=x.id;e.floor=!!x.floor;e.groundY=0;if(Number.isFinite(x.scale)&&x.scale>.05&&x.scale<4){const factor=x.scale/e.size;e.root.scale.multiplyScalar(factor);e.size=x.scale}e.hit.userData.enemy=e;if(e.headHit)e.headHit.userData.enemy=e;o.origin.add(e.root);api.enemies().push(e);o.remoteEnemy.set(x.id,e)}e.hp=x.h;e.alive=true;e.root.visible=true;e.start.copy(from(x.p));e.remoteYaw=Number.isFinite(x.yaw)?x.yaw:0;}for(const [id,e] of o.remoteEnemy)if(!alive.has(id)){e.alive=false;e.root.parent?.remove(e.root);o.remoteEnemy.delete(id)}
     const bullets=new Set();for(const shot of msg.bullets||[]){if(!Array.isArray(shot.p))continue;bullets.add(shot.id);let obj=o.remoteBullet.get(shot.id);if(!obj){obj=new THREE.Mesh(new THREE.CapsuleGeometry(.025,.18,2,5),new THREE.MeshBasicMaterial({color:0xffc17b,transparent:true,opacity:.96,depthWrite:false}));o.origin.add(obj);o.remoteBullet.set(shot.id,obj);const soundPos=from(shot.p);o.origin.localToWorld(soundPos);api.enemyShot?.(soundPos)}obj.userData.target=from(shot.p)}for(const [id,obj] of o.remoteBullet)if(!bullets.has(id)){obj.parent?.remove(obj);o.remoteBullet.delete(id)}
     const known=new Set();for(const p of msg.players||[]){if(p.id===o.myId||!Array.isArray(p.pos))continue;known.add(p.id);let g=o.remoteAvatar.get(p.id);if(!g){g=avatar();o.origin.add(g);o.remoteAvatar.set(p.id,g)}const target=from(p.pos);g.position.lerp(target,.5)}for(const [id,g] of o.remoteAvatar)if(!known.has(id)){g.parent?.remove(g);o.remoteAvatar.delete(id)}ui()}
-  function makeSnapshot(){const players=[{id:o.myId,pos:P(position()||new THREE.Vector3())}];for(const [id,p] of o.localPositions)players.push({id,pos:P(p)});return{t:'snapshot',phase:o.phase,mask:o.mask,held:Math.round(o.held),running:o.running,finished:o.finished,environment:api.exportEnvironment?.(o.origin)||[],hostage:o.hostagePos?P(o.hostagePos):null,hostageHP:o.hostageHealth,rescued:o.hostageRescued,enemies:getEnemyState(),bullets:api.projectiles().map((b,i)=>{const p=b.mesh.position.clone();o.origin.worldToLocal(p);return{id:b.id||i,p:P(p),power:b.power}}),players,clock:api.clock(),wave:api.wave()}}
+  function makeSnapshot(){const players=[{id:o.myId,pos:P(position()||new THREE.Vector3())}];for(const [id,p] of o.localPositions)players.push({id,pos:P(p)});return{t:'snapshot',seq:++o.snapshotSeq,phase:o.phase,mask:o.mask,held:Math.round(o.held),running:o.running,finished:o.finished,environment:api.exportEnvironment?.(o.origin)||[],hostage:o.hostagePos?P(o.hostagePos):null,hostageHP:o.hostageHealth,rescued:o.hostageRescued,enemies:getEnemyState(),bullets:api.projectiles().map((b,i)=>{const p=b.mesh.position.clone();o.origin.worldToLocal(p);return{id:b.id||i,p:P(p),power:b.power}}),players,clock:api.clock(),wave:api.wave()}}
+
+  function relayShot(worldOrigin,worldDirection){
+    if(!o.running||!o.origin||!worldOrigin||!worldDirection)return;
+    const shotPos=o.origin.worldToLocal(worldOrigin.clone());
+    const shotDir=worldDirection.clone().applyQuaternion(o.origin.quaternion.clone().invert()).normalize();
+    const payload={t:'teamShot',p:P(shotPos),d:P(shotDir),id:o.myId};
+    if(isGuest())send(o.conn,payload);
+    else broadcast(payload);
+  }
+  function playTeamShot(msg){
+    if(msg.id===o.myId||!o.origin)return;
+    if(!Array.isArray(msg.p)||!Array.isArray(msg.d)||msg.p.length!==3||msg.d.length!==3)return;
+    if([...msg.p,...msg.d].some(n=>!Number.isFinite(n)||Math.abs(n)>50))return;
+    const start=from(msg.p),direction=from(msg.d);
+    if(direction.lengthSq()<.05)return;
+    o.origin.localToWorld(start);
+    direction.applyQuaternion(o.origin.quaternion).normalize();
+    api.teammateShot?.(start,direction,msg.id);
+  }
   function register(conn){if(o.connections.size>=maxPlayers-1){send(conn,{t:'full'});conn.close();return}conn.on('open',()=>{o.connections.set(conn.peer,conn);o.localPositions.set(conn.peer,new THREE.Vector3(0,0,0));send(conn,{t:'welcome',id:conn.peer,players:o.connections.size+1});teamUpdate();api.toast('JUGADOR CONECTADO · '+(o.connections.size+1)+' EN EQUIPO')});conn.on('data',msg=>{if(!msg||typeof msg!=='object'||typeof msg.t!=='string')return;
+    if(msg.t==='teamShot'&&o.running){
+      const t=performance.now(),last=o.lastShotAt.get(conn.peer)||0;
+      if(t-last>=95&&Array.isArray(msg.p)&&Array.isArray(msg.d)&&msg.p.length===3&&msg.d.length===3){
+        o.lastShotAt.set(conn.peer,t);
+        const packet={t:'teamShot',id:conn.peer,p:msg.p,d:msg.d};
+        playTeamShot(packet);
+        broadcast(packet);
+      }
+    }
+    if(msg.t==='syncRequest'&&o.origin){
+      send(conn,makeSnapshot());
+    }
     if(msg.t==='holdBegin')o.lastActions.set(conn.peer+':holdStart',performance.now());
     if(msg.t==='holdCancel')o.lastActions.delete(conn.peer+':holdStart');
     if(msg.t==='move'&&Array.isArray(msg.p)&&msg.p.length===3&&msg.p.every(v=>Number.isFinite(v)&&Math.abs(v)<50))o.localPositions.set(conn.peer,from(msg.p));
@@ -197,6 +238,7 @@ if(Array.isArray(msg.environment)){
   function joinConnection(conn){o.conn=conn;conn.on('open',()=>{o.joined=true;teamUpdate();lobby('Conectado al anfitrión. Calibren el mismo punto del piso y miren hacia la misma pared.');api.toast('CONEXIÓN COOPERATIVA ESTABLECIDA')});conn.on('data',m=>{if(!m||typeof m!=='object')return;
     if(m.t==='welcome'){o.myId=m.id;teamUpdate()}
     if(m.t==='snapshot')receiveSnapshot(m);
+    if(m.t==='teamShot')playTeamShot(m);
     if(m.t==='start'){o.startedByHost=true;if(Array.isArray(m.hostage))syncHostage(m.hostage,false);if(o.ready)api.remoteStart()}
     if(m.t==='phase'){o.phase=m.phase;o.mask=m.mask;o.held=m.held;if(m.rescued){o.hostageRescued=true;if(o.hostageActor){o.hostageActor.hostage=false;playHuman(o.hostageActor,'walk')}}ui()}
     if(m.t==='hostage'){syncHostage(m.pos,m.rescued);ui()}
@@ -296,5 +338,5 @@ if(Array.isArray(msg.environment)){
   interact.addEventListener('pointercancel',holdEnd);
   interact.addEventListener('lostpointercapture',()=>{if(o.rescueHoldStart&&performance.now()-o.rescueHoldStart>1000)holdEnd()});
   $('createRoom').addEventListener('click',createRoom);$('joinRoom').addEventListener('click',joinRoom);$('copyRoom').addEventListener('click',copyCode);$('pulse').addEventListener('click',()=>abilityNow('pulse'));$('shield').addEventListener('click',()=>abilityNow('shield'));$('heal').addEventListener('click',()=>abilityNow('heal'));
-  teamUpdate();ui();return{align,reset,start,placeHostage,hostageWorld,hostageExposed:()=>o.running&&o.phase<0&&o.hostageHealth>0,damageHostage,healHostage,hasHostage:()=>!!o.hostagePos,isGuest,isHost,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result})},remoteHit:(id,head=false)=>send(o.conn,{t:'hit',id,head:!!head}),localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
+  teamUpdate();ui();return{align,reset,start,relayShot,placeHostage,hostageWorld,hostageExposed:()=>o.running&&o.phase<0&&o.hostageHealth>0,damageHostage,healHostage,hasHostage:()=>!!o.hostagePos,isGuest,isHost,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result})},remoteHit:(id,head=false)=>send(o.conn,{t:'hit',id,head:!!head}),localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
 }
