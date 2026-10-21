@@ -38,11 +38,14 @@ export function createCaptureFlag(THREE,api){
  function refresh(time=0){
    if(!origin())return;
    for(const t of TEAMS){
-     const flag=S.flags[t],at=flag.dropped||S.bases[t];
+     const flag=S.flags[t],holder=flag.carrier?ownerPosition(flag.carrier):null;
+     const at=holder||flag.dropped||S.bases[t];
      if(!S.visuals[t]){S.visuals[t]=model(t);origin().add(S.visuals[t])}
      const m=S.visuals[t];if(m.parent!==origin())origin().add(m);
-     m.visible=!!at&&!flag.carrier;
-     if(at){m.position.copy(at);m.rotation.y=Math.sin(time*.001)*.13;m.userData.cloth.rotation.y=Math.sin(time*.002)*.12}
+     m.visible=!!at;
+     if(at){m.position.copy(at);
+       if(holder)m.position.y+=flag.carrier.startsWith('bot:')?.16:-1.12;
+       m.rotation.y=Math.sin(time*.001)*.13;m.userData.cloth.rotation.y=Math.sin(time*.002)*.12}
    }
  }
  function place(team,worldPoint){
@@ -126,7 +129,8 @@ export function createCaptureFlag(THREE,api){
        e.root.position.copy(origin().localToWorld(S.bases[e.team].clone()));
      }
      const carrying=TEAMS.some(t=>S.flags[t].carrier==='bot:'+e.id);
-     const targetLocal=carrying?S.bases[e.team]:flagLocation(other(e.team));
+     const defenderTarget=S.flags[e.team].carrier?ownerPosition(S.flags[e.team].carrier):null;
+     const targetLocal=carrying?S.bases[e.team]:defenderTarget||flagLocation(other(e.team));
      if(!targetLocal)continue;
      const at=e.root.position,to=origin().localToWorld(targetLocal.clone());
      const dist=gap(at,to);
