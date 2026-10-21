@@ -450,3 +450,35 @@
  left:7px}.coverDeploy select,.coverDeploy button{min-height:32px;font-size:9px}}
 @media(orientation:landscape){.coverDeploy{bottom:calc(113px + env(safe-area-inset-bottom));left:7px}
  .coverDeploy select,.coverDeploy button{min-height:32px;font-size:9px}}
+
+/* V29 — the rescue action has its own topmost touch target.
+ * Old #missionActions button was covered by following HUD panels in AR.
+ * Keeping this control in its own stacking context also avoids skill overlap.
+ */
+#hud>#interact{
+ position:absolute;left:50%;right:auto;
+ bottom:calc(270px + env(safe-area-inset-bottom));
+ transform:translateX(-50%);z-index:28;
+ width:min(88vw,390px);height:60px;min-height:60px;
+ border:2px solid #b6f2cf;border-radius:12px;
+ background:linear-gradient(130deg,#225a4f,#0f403e);
+ box-shadow:0 10px 23px #0009,0 0 0 3px #102a35ac;
+ color:#ecfff4;font:900 15px/1.25 Arial,sans-serif;
+ letter-spacing:.045em;white-space:normal;
+ pointer-events:auto!important;touch-action:none!important;
+ -webkit-tap-highlight-color:transparent;
+ user-select:none;-webkit-user-select:none
+}
+#hud>#interact:active{background:#347b69}
+#hud>#interact:focus-visible{outline:3px solid #f4ce7c;outline-offset:3px}
+#hud>#interact.rescuing{pointer-events:auto!important}
+#hud .coverDeploy{bottom:calc(355px + env(safe-area-inset-bottom))}
+@media(max-height:760px){
+ #hud>#interact{bottom:calc(231px + env(safe-area-inset-bottom));height:53px;min-height:53px;font-size:13px}
+ #hud .coverDeploy{bottom:calc(305px + env(safe-area-inset-bottom))}
+}
+@media(orientation:landscape){
+ #hud>#interact{left:50%;bottom:calc(94px + env(safe-area-inset-bottom));
+  width:min(55vw,380px);height:48px;min-height:48px;font-size:12px}
+ #hud .coverDeploy{bottom:calc(153px + env(safe-area-inset-bottom))}
+}

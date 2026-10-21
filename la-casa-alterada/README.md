@@ -1,10 +1,19 @@
-# BLACKZONE — Tactical AR (V28)
+# BLACKZONE — Tactical AR (V29)
 
 **Nombre actual del juego: BLACKZONE.** Anteriormente denominado *La Casa Alterada*, conservado en la ruta heredada del repositorio y en el enlace Vercel existente para evitar romper enlaces de versiones anteriores.
 
 Shooter táctico web de realidad aumentada con dos modos: **Rescate de Rehenes (cooperativo)** y **Captura la Bandera (cooperativo o versus con bots configurables)**.
 
 El historial técnico anterior se conserva debajo, con descripciones correspondientes a cada etapa del desarrollo.
+
+## V29 — Entrada táctil AR dedicada y combatientes humanos texturizados
+
+- **Liberación del rehén reparada en la interfaz**, no solo en la lógica de misión: botón independiente en el HUD, por encima de otros paneles; separado de las habilidades y de la selección de cobertura, con área táctil de al menos 53 px.
+- El control procesa directamente `pointerdown` y `touchstart` en capturas reales de Android/WebXR; `click` queda para teclado y como respaldo. Debounce evita procesar más de una vez el mismo toque.
+- Mensajes de diagnóstico **TOQUE DETECTADO** y **REHÉN LIBERADO**, o indicación de distancia/obstrucción si el motor rechaza el rescate. Sin barra ni temporizadores del 99 %.
+- **Combatientes con la misma biblioteca 3D que Maya, la rehén**: fuentes masculinas realistas Jordan, Sam y Harper (studio MakeHuman / Innerscene, CC0), en lugar de los modelos estilizados de Counter-Strike-in-browser. Se les suma chaleco, correas, radio y armamento táctico en 3D, dejando piel, pelo y rostro humano visibles.
+- Recursos GLB compartidos por URL para reducir descargas/decodificaciones duplicadas en móviles. Se conserva el personaje procedural como respaldo si falla la carga.
+- Los cambios preservan AR V25, IA V27 y el rescate inmediato V28. Las pruebas automatizadas simulan la entrada táctil real, pero la apariencia y la interacción definitivas requieren una prueba en el teléfono.
 
 ## V28 — Rescate instantáneo: fin del bloqueo en 99 %
 
