@@ -298,16 +298,23 @@ if(Array.isArray(msg.environment)){
     api.teammateShot?.(start,direction,msg.id);
   }
   function register(conn){if(o.connections.size>=maxPlayers-1){send(conn,{t:'full'});conn.close();return}conn.on('open',()=>{o.connections.set(conn.peer,conn);o.localPositions.set(conn.peer,new THREE.Vector3(0,0,0));api.refreshHud?.();send(conn,{t:'welcome',id:conn.peer,players:o.connections.size+1});if(o.referenceReady)send(conn,{t:'reference',length:+o.referenceLength.toFixed(3)});teamUpdate();api.toast('JUGADOR CONECTADO · '+(o.connections.size+1)+' EN EQUIPO')});conn.on('data',msg=>{if(!msg||typeof msg!=='object'||typeof msg.t!=='string')return;
-    if(msg.t==='teamShot'&&o.running){
+    if(msg.t==='teamShot'&&o.running&&o.ready&&o.origin){
       const t=performance.now(),last=o.lastShotAt.get(conn.peer)||0;
-      if(t-last>=95&&Array.isArray(msg.p)&&Array.isArray(msg.d)&&msg.p.length===3&&msg.d.length===3){
-        o.lastShotAt.set(conn.peer,t);
-        const sender=o.localPositions.get(conn.peer);
-        const location=from(msg.p);
-        if(sender&&location.distanceTo(sender)<1.65){
-          const packet={t:'teamShot',id:conn.peer,p:msg.p,d:msg.d};
+      const valid=(v,n=3)=>Array.isArray(v)&&v.length===n&&v.every(x=>Number.isFinite(x)&&Math.abs(x)<40);
+      if(valid(msg.p)&&valid(msg.d)&&t-last>=95){
+        const location=from(msg.p),direction=from(msg.d),sender=o.localPositions.get(conn.peer);
+        const length=direction.length();
+        // Do not trust a hit ID or an arbitrary muzzle location from a client.
+        if(sender&&location.distanceTo(sender)<1.65&&length>.85&&length<1.15){
+          o.lastShotAt.set(conn.peer,t);
+          direction.normalize();
+          const packet={t:'teamShot',id:conn.peer,p:P(location),d:P(direction)};
           playTeamShot(packet);
           broadcast(packet);
+          const shotStart=originToWorld(location);
+          const shotDirection=direction.applyQuaternion(o.origin.quaternion).normalize();
+          const result=api.resolveTeammateShot?.(shotStart,shotDirection,conn.peer);
+          if(result)send(conn,{t:'shotResult',enemyId:result.id,headshot:!!result.headshot});
         }
       }
     }
@@ -327,7 +334,7 @@ if(Array.isArray(msg.environment)){
     if(msg.t==='move'&&Array.isArray(msg.p)&&msg.p.length===3&&msg.p.every(v=>Number.isFinite(v)&&Math.abs(v)<50))o.localPositions.set(conn.peer,from(msg.p));
     if(msg.t==='interact')doInteract(conn.peer);
     if(msg.t==='ability'&&typeof msg.kind==='string')receiveAbility(conn.peer,msg.kind,true);
-    if(msg.t==='hit'&&Number.isInteger(msg.id)){const p=o.localPositions.get(conn.peer);const e=api.enemies().find(e=>e.id===msg.id&&e.alive);if(p&&e){const w=new THREE.Vector3();e.root.getWorldPosition(w);o.origin?.worldToLocal(w);const k=conn.peer+':hit',t=performance.now();if(p.distanceTo(w)<12&&!api.hasCover?.(originToWorld(p),originToWorld(w))&&(o.lastActions.get(k)||0)<t){o.lastActions.set(k,t+120);api.damageEnemy(e,msg.head===true?3:1,msg.head===true)}}}
+    // Direct client hit claims intentionally ignored; only host ballistics apply damage.
   });conn.on('close',()=>{o.connections.delete(conn.peer);o.localPositions.delete(conn.peer);o.calibrationSeen.delete(conn.peer);teamUpdate();api.refreshHud?.();api.toast('UN JUGADOR SALIÓ DEL EQUIPO')});conn.on('error',()=>{o.connections.delete(conn.peer);o.localPositions.delete(conn.peer);teamUpdate()})}
   function joinConnection(conn){o.conn=conn;conn.on('open',()=>{o.joined=true;teamUpdate();lobby('Conectado al anfitrión. Marquen los mismos dos puntos A y B del piso, en el mismo orden.');api.toast('CONEXIÓN COOPERATIVA ESTABLECIDA')});conn.on('data',m=>{if(!m||typeof m!=='object')return;
     if(m.t==='welcome'){o.myId=m.id;teamUpdate()}
@@ -335,6 +342,7 @@ if(Array.isArray(msg.environment)){
     if(m.t==='calibrationResult'&&m.status==='mismatch'){o.ready=false;o.referenceReady=false;o.calibrationQuality='mismatch';api.toast('LOS PUNTOS NO COINCIDEN · VOLVÉ A MARCAR B');ui();api.refreshHud?.()}
     if(m.t==='snapshot')receiveSnapshot(m);
     if(m.t==='teamShot')playTeamShot(m);
+    if(m.t==='shotResult'&&Number.isInteger(m.enemyId))api.confirmedRemoteShot?.(m.headshot===true);
     if(m.t==='enemyDown'&&Number.isInteger(m.id)){
       const e=o.remoteEnemy.get(m.id);
       if(e){e.alive=false;e.root.visible=false}
@@ -453,5 +461,5 @@ function networkState(){
  if(!o.lastHostSnapshot)return 'waiting';
  return delta>3100?'stale':'synced';
 }
-return{align,alignSecond,alignmentStatus,needsReference,teamCalibration,updateTrackedFrame,reset,start,navigationTarget,networkState,relayShot,relayEnemyDown,placeHostage,hostageWorld,hostageExposed:()=>o.running&&o.phase<0&&o.hostageHealth>0,damageHostage,healHostage,hasHostage:()=>!!o.hostagePos,isGuest,isHost,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result})},remoteHit:(id,head=false)=>send(o.conn,{t:'hit',id,head:!!head}),localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
+return{align,alignSecond,alignmentStatus,needsReference,teamCalibration,updateTrackedFrame,reset,start,navigationTarget,networkState,relayShot,relayEnemyDown,placeHostage,hostageWorld,hostageExposed:()=>o.running&&o.phase<0&&o.hostageHealth>0,damageHostage,healHostage,hasHostage:()=>!!o.hostagePos,isGuest,isHost,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result})},localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
 }
