@@ -2,6 +2,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.m
 import { createTacticalActor } from './tactical.js';
 import {calculateSharedFrame,checkSharedDistance} from './shared-calibration.js';
 import {createCaptureFlag} from './capture-flag.js';
+import {createPvPHealth} from './pvp-health.js';
 import {attachHuman,animateHuman,playHuman,disposeHuman} from './animated-humans.js';
 import {makeHostageFallback,animateHostageFallback} from './hostage-fallback.js';
 import {beginEscort,updateEscort} from './escort-rules.js';
@@ -63,7 +64,7 @@ function tintAvatar(group,team){
 }
 function visualWave(scene,origin,color=0x65d9ee){const m=new THREE.Mesh(new THREE.RingGeometry(.14,.18,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.8,side:THREE.DoubleSide,depthWrite:false}));m.position.copy(origin);m.position.y-=1.1;scene.add(m);return{mesh:m,t:0,duration:.7}}
 export function createMission(api){
-  const o={api,peer:null,room:null,role:'solo',conn:null,connections:new Map(),peers:new Map(),origin:null,angle:0,phase:-2,hostagePos:null,hostageRescued:false,hostageActor:null,escortPlayer:null,escortState:null,hostageHealth:100,hostageShieldUntil:0,rescueActionStartedAt:0,rescueRequestAt:0,rescueReinforcementAt:0,routeCache:null,routeCacheAt:0,routeTarget:null,mask:0,held:40,spawnAfter:0,lastSnap:0,lastMove:0,ready:false,running:false,finished:false,objects:[],remoteEnemy:new Map(),remoteAvatar:new Map(),remoteBullet:new Map(),effects:[],cd:{pulse:0,shield:0,heal:0},shields:new Map(),lastActions:new Map(),myId:'local',lastHostSnapshot:0,lastSnapshotSeq:-1,snapshotSeq:0,lastShotAt:new Map(),localPositions:new Map(),enemySeq:0,seed:0,startedByHost:false,joined:false,referenceReady:false,referenceLength:0,expectedLength:null,calibrationQuality:'waiting',calibrationSeen:new Map(),gameMode:'rescue',myTeam:'blue',teams:new Map(),ctf:null,lastMoveAt:new Map()};
+  const o={api,peer:null,room:null,role:'solo',conn:null,connections:new Map(),peers:new Map(),origin:null,angle:0,phase:-2,hostagePos:null,hostageRescued:false,hostageActor:null,escortPlayer:null,escortState:null,hostageHealth:100,hostageShieldUntil:0,rescueActionStartedAt:0,rescueRequestAt:0,rescueReinforcementAt:0,routeCache:null,routeCacheAt:0,routeTarget:null,mask:0,held:40,spawnAfter:0,lastSnap:0,lastMove:0,ready:false,running:false,finished:false,objects:[],remoteEnemy:new Map(),remoteAvatar:new Map(),remoteBullet:new Map(),effects:[],cd:{pulse:0,shield:0,heal:0},shields:new Map(),lastActions:new Map(),myId:'local',lastHostSnapshot:0,lastSnapshotSeq:-1,snapshotSeq:0,lastShotAt:new Map(),localPositions:new Map(),enemySeq:0,seed:0,startedByHost:false,joined:false,referenceReady:false,referenceLength:0,expectedLength:null,calibrationQuality:'waiting',calibrationSeen:new Map(),gameMode:'rescue',myTeam:'blue',teams:new Map(),ctf:null,lastMoveAt:new Map(),pvp:createPvPHealth(),pvpRemote:[]};
   const info=$('missionInfo'),phaseEl=$('missionStage'),desc=$('missionText'),progress=$('missionProgress'),team=$('teamStatus'),interact=$('interact'),ability=$('abilities');
   function teamUpdate(){const count=1+(o.role==='host'?o.connections.size:o.role==='guest'&&o.conn?.open?1:0);team.textContent=o.role==='solo'?'SOLO / OPERACIÓN':o.role==='host'?'JEFE DE SALA / '+count+' JUGADOR'+(count===1?'':'ES'):o.conn?.open?'EQUIPO CONECTADO':'RECONECTANDO…';$('crew').textContent=count+' / '+maxPlayers}
   function lobby(msg){$('lobbyMsg').textContent=msg}
@@ -80,10 +81,11 @@ export function createMission(api){
     origin:()=>o.origin,isHost,
     players:()=>{
       const list=[],me=position(),now=performance.now();
-      if(me)list.push({id:o.myId,team:o.myTeam,pos:me});
+      if(me&&(!isPvP()||o.pvp.alive(o.myId,now)))list.push({id:o.myId,team:o.myTeam,pos:me});
       for(const [id,p] of o.localPositions){
         if(!p)continue;
         if(isHost()&&now-(o.lastMoveAt.get(id)||0)>2600)continue;
+        if(isPvP()&&isHost()&&!o.pvp.alive(id,now))continue;
         list.push({id,team:o.teams.get(id)||'blue',pos:p});
       }
       return list;
@@ -94,8 +96,11 @@ export function createMission(api){
     cover:(a,b)=>api.hasCover?.(a,b),
     animate:(e,dt,speed)=>{api.animateEnemy(e,dt,speed);api.animateHuman?.(e,dt,speed)},
     damageBot:(bot,power,shooter)=>api.damageEnemy(bot,power,false,shooter),
-    tagPlayer:(id,power)=>{if(id===o.myId)api.ctfTag?.(power);
-      else send(o.connections.get(id),{t:'ctfTag',power});},
+    tagPlayer:(id,power,source)=>{
+      if(isPvP())damagePvPPlayer(id,source||'bot',Math.max(12,Math.min(35,Number(power)*17||17)),false);
+      else if(id===o.myId)api.ctfTag?.(power);
+      else send(o.connections.get(id),{t:'ctfTag',power});
+    },
     botShot:(a,b,team)=>api.ctfBotShot?.(a,b,team),
     event:msg=>{
       api.event(msg);
@@ -107,6 +112,7 @@ export function createMission(api){
   });
   o.ctf=ctf;
   function isCapture(){return o.gameMode==='capture'}
+  function isPvP(){return isCapture()&&ctf.config.versus;}
   function teamOf(id){return id===o.myId?o.myTeam:o.teams.get(id)||'blue'}
   function lobbyConfig(){return{
     bots:Math.max(0,Math.min(6,Number($('ctfBots')?.value)||0)),
@@ -166,7 +172,8 @@ export function createMission(api){
     const state=ctf.snapshot();
     return{...state,myTeam:o.myTeam,mode:o.gameMode,ready:ctf.ready(),
       objective:ctf.objective(o.myTeam,o.myId)?.label||null,
-      pickup:ctf.pickupInfo(o.myTeam,position())};
+      pickup:ctf.pickupInfo(o.myTeam,position()),
+      pvp:isPvP(),health:pvpView(o.myId),playersHealth:pvpAll()};
   }
   function pickupFlag(){
     if(!isCapture()||!o.running||!o.ready)return false;
@@ -202,13 +209,39 @@ export function createMission(api){
     }
     return out;
   }
-  function tagEnemyPlayer(id,attacker){
-    if(!isCapture()||!o.running||!isHost()||!id||teamOf(id)===teamOf(attacker))return false;
-    const victim=localPositionOf(id);
-    if(!victim||id!==o.myId&&performance.now()-(o.lastMoveAt.get(id)||0)>2600)return false;
-    if(!ctf.tagPlayer(id,victim,performance.now()))return false;
-    if(id===o.myId)api.ctfTag?.(1);else send(o.connections.get(id),{t:'ctfTag',power:1});
-    return true;
+  function pvpAll(){return isGuest()?o.pvpRemote:o.pvp.snapshot(performance.now())}
+  function pvpView(id=o.myId){
+    if(!isPvP())return null;
+    return isGuest()?o.pvpRemote.find(p=>p.id===id)||null:o.pvp.view(id,performance.now());
+  }
+  function applyPvPState(state,hit=null){
+    if(!state||state.id!==o.myId)return;
+    api.pvpUpdate?.(state);
+    if(hit)api.pvpImpact?.(hit);
+  }
+  function damagePvPPlayer(id,attacker,amount,headshot=false){
+    if(!isPvP()||!o.running||!isHost()||!id||!o.origin)return null;
+    if(typeof attacker==='string'&&!attacker.startsWith('bot')&&
+       teamOf(id)===teamOf(attacker))return null;
+    const now=performance.now(),at=localPositionOf(id);
+    if(!at||id!==o.myId&&now-(o.lastMoveAt.get(id)||0)>2600)return null;
+    if(typeof attacker==='string'&&!attacker.startsWith('bot')&&
+       !o.pvp.alive(attacker,now))return null;
+    const hit=o.pvp.hit(id,attacker,amount,now,headshot);
+    if(!hit)return null;
+    if(hit.lethal){
+      ctf.tagPlayer(id,at,now);
+      api.event('ELIMINADO · REAPARICIÓN EN 4 S');
+    }
+    if(id===o.myId)applyPvPState(hit.state,hit);
+    else send(o.connections.get(id),{t:'pvpHit',hit});
+    broadcast({t:'pvpNotice',victim:id,attacker,lethal:hit.lethal,
+      headshot:hit.headshot,damage:hit.damage,seq:hit.seq});
+    api.refreshHud?.();
+    return hit;
+  }
+  function tagEnemyPlayer(id,attacker,headshot=false){
+    return damagePvPPlayer(id,attacker,headshot?45:25,headshot);
   }
   function needsReference(){return o.role!=='solo'&&!o.referenceReady}
  function teamCalibration(){
@@ -380,7 +413,7 @@ export function createMission(api){
        o.extractionRing.material.dispose();
        o.extractionRing=null;
      }
-     if(o.hostageActor){disposeHuman(o.hostageActor);o.hostageActor.root.parent?.remove(o.hostageActor.root)}o.hostageActor=null;o.hostagePos=null;o.lastEnvironment=null;o.routeCache=null;o.routeCacheAt=0;o.routeTarget=null;o.hostageHealth=100;o.hostageShieldUntil=0;o.rescueActionStartedAt=0;o.rescueRequestAt=0;o.rescueReinforcementAt=0;o.hostageRescued=false;o.escortPlayer=null;o.escortState=null;o.running=false;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;o.ready=false;o.startedByHost=false;o.referenceReady=false;o.referenceLength=0;o.expectedLength=null;o.calibrationQuality='waiting';o.calibrationSeen.clear();o.localPositions.clear();o.lastMoveAt.clear();ctf.reset();o.shields.clear();o.lastSnap=0;o.lastSnapshotSeq=-1;o.snapshotSeq=0;o.lastShotAt.clear();o.enemySeq=0;o.origin?.parent?.remove(o.origin);o.origin=null;removeRemote();ui();}
+     if(o.hostageActor){disposeHuman(o.hostageActor);o.hostageActor.root.parent?.remove(o.hostageActor.root)}o.hostageActor=null;o.hostagePos=null;o.lastEnvironment=null;o.routeCache=null;o.routeCacheAt=0;o.routeTarget=null;o.hostageHealth=100;o.hostageShieldUntil=0;o.rescueActionStartedAt=0;o.rescueRequestAt=0;o.rescueReinforcementAt=0;o.hostageRescued=false;o.escortPlayer=null;o.escortState=null;o.running=false;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;o.ready=false;o.startedByHost=false;o.referenceReady=false;o.referenceLength=0;o.expectedLength=null;o.calibrationQuality='waiting';o.calibrationSeen.clear();o.localPositions.clear();o.lastMoveAt.clear();o.pvp.reset();o.pvpRemote=[];ctf.reset();o.shields.clear();o.lastSnap=0;o.lastSnapshotSeq=-1;o.snapshotSeq=0;o.lastShotAt.clear();o.enemySeq=0;o.origin?.parent?.remove(o.origin);o.origin=null;removeRemote();ui();}
   function start(){if(!o.ready){api.toast('Primero fijá un punto común en el piso');return false}
  if(isCapture()){
    if(isGuest()){
@@ -391,6 +424,8 @@ export function createMission(api){
    if(o.role==='host'&&!teamCalibration().ready){api.toast('ESPERÁ A QUE EL EQUIPO TERMINE DE CALIBRAR');return false}
    if(!ctf.start())return false;
    o.running=true;o.finished=false;
+   o.pvp.reset([o.myId,...o.connections.keys()],performance.now());
+   applyPvPState(pvpView());
    broadcast({t:'start',mode:'capture'});
    ui();return true;
  }
