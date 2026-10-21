@@ -332,9 +332,15 @@ function updateXR(frame){
    }else{
      if(flat){pose=flat.matrix;hitResult=flat.hit;reticle.position.setFromMatrixPosition(pose);reticle.quaternion.copy(flat.q);reticle.visible=true}
      $('place').disabled=!pose||nests.length>=7;
-     $('surface').textContent=pose?'SUPERFICIE DETECTADA':'BUSCANDO SUPERFICIE';
+     if(!pose&&nests.length===0){
+       const candidate=estimateFloorPoint();
+       reticle.position.copy(candidate);reticle.quaternion.identity();reticle.visible=true;
+     }
+     ring.material.color.setHex(pose?0x91e5be:0xeec17c);
+     $('place').disabled=nests.length>=7;
+     $('surface').textContent=pose?'PISO DETECTADO ✓':'PISO ESTIMADO';
      $('sight').classList.toggle('found',!!pose);
-     $('sightText').textContent=pose?'SUPERFICIE ESTABLE':'RASTREANDO SUPERFICIE';
+     $('sightText').textContent=pose?'PISO DETECTADO':'PISO ESTIMADO · TOCÁ MARCAR';
    }
  }
  for(const n of nests)if(n.anchor){const p=frame.getPose(n.anchor.anchorSpace,local);if(p){n.root.position.set(p.transform.position.x,p.transform.position.y,p.transform.position.z);n.root.quaternion.set(p.transform.orientation.x,p.transform.orientation.y,p.transform.orientation.z,p.transform.orientation.w)}}
@@ -348,7 +354,10 @@ function updateXR(frame){
    }
  }else for(const e of enemies)if(e.alive)e.root.visible=true;
 }
-function updateDemo(){if(mapping){ray.setFromCamera({x:0,y:0},camera);const pick=ray.intersectObjects(occluders,false)[0];mapPoint=pick?.point?.clone()||null;mapPointQuality=mapPoint?'plane':'manual';mapControls();return}if(!placing)return;ray.setFromCamera({x:0,y:0},camera);const hit=ray.intersectObjects(surfaces,false)[0];reticle.visible=!!hit;if(hit)reticle.position.copy(hit.point);$('place').disabled=!hit||nests.length>=7;$('sight').classList.toggle('found',!!hit);$('surface').textContent=hit?(hit.point.y>.75?'MESA DETECTADA':hit.point.y>.35?'SILLÓN DETECTADO':'PISO DETECTADO'):'BUSCANDO SUPERFICIE';$('sightText').textContent=hit?'SUPERFICIE ESTABLE':'RASTREANDO SUPERFICIE'}
+function updateDemo(){if(mapping){ray.setFromCamera({x:0,y:0},camera);const pick=ray.intersectObjects(occluders,false)[0];mapPoint=pick?.point?.clone()||null;mapPointQuality=mapPoint?'plane':'manual';mapControls();return}if(!placing)return;ray.setFromCamera({x:0,y:0},camera);const hit=ray.intersectObjects(surfaces,false)[0];reticle.visible=!!hit;if(hit)reticle.position.copy(hit.point);
+ else if(!nests.length){reticle.position.copy(estimateFloorPoint(0));reticle.visible=true}
+ ring.material.color.setHex(hit?0x91e5be:0xeec17c);
+ $('place').disabled=nests.length>=7;$('sight').classList.toggle('found',!!hit);$('surface').textContent=hit?'PISO DETECTADO':'PISO ESTIMADO';$('sightText').textContent=hit?'PISO DETECTADO':'PISO ESTIMADO · TOCÁ MARCAR'}
 function updateBattle(dt,t){
  if(!active||ended)return;
  if(mission?.isGuest()){hud();return}
@@ -581,7 +590,13 @@ spatialMap.addBox({x:.19,y:0,z:-2.20},{x:2.22,y:0,z:-.92},{floorY:0,height:.7});
 spatialMap.setVisible(false);mapStatus();
 toast('Deslizá el dedo para mirar. Marcá el punto de entrada.')}
 $('startAR').addEventListener('click',startAR);$('startDemo').addEventListener('click',demo);$('place').addEventListener('click',()=>{lastTouch=performance.now();place()});$('hostage').addEventListener('click',()=>{lastTouch=performance.now();placeHostage()});$('begin').addEventListener('click',()=>{lastTouch=performance.now();begin()});
-$('mapToggle').addEventListener('click',()=>toggleMap(true));
+// DOM Overlay touches must not generate a second XR select action.
+for(const kind of ['pointerdown','pointerup','pointercancel']){
+ $('hud').addEventListener(kind,e=>{
+  if(e.target?.closest?.('button,input,#mapPanel,#setup,#interact'))lastTouch=performance.now();
+ },true);
+}
+$('mapToggle').addEventListener('click',()=>{lastTouch=performance.now();toggleMap(true)});
 $('mapWall').addEventListener('click',()=>{mapKind='wall';mapFirst=null;mapControls(true)});
 $('mapSize').addEventListener('input',e=>{mapFastSpan=Math.max(.7,Math.min(4.5,Number(e.target.value)||2));$('mapSizeText').textContent=mapFastSpan.toFixed(1).replace('.',',')+' m';mapControls(true)});
 $('mapPrecision').addEventListener('click',()=>{mapPrecise=!mapPrecise;mapFirst=null;mapControls(true)});
