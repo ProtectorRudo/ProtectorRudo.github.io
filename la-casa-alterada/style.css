@@ -152,3 +152,19 @@
 .killFeed{position:absolute;top:calc(119px + env(safe-area-inset-top));right:12px;z-index:4;max-width:44vw;padding:8px 11px;border-left:3px solid #8fdab5;border-radius:5px;background:#081a25eb;box-shadow:0 6px 17px #0008;color:#dff7ea;text-align:right;font:800 10px/1.45 system-ui,sans-serif;letter-spacing:.065em;pointer-events:none;text-wrap:balance}
 .killFeed.critical{color:#f9c28c;border-left-color:#f9c28c}
 @media(max-width:390px){.killFeed{max-width:47vw;font-size:9px;top:calc(122px + env(safe-area-inset-top))}}
+
+/* V16 — two game types and compact match configuration */
+.gameModes{width:min(100%,390px);margin:9px auto 4px;text-align:left;display:flex;flex-direction:column;gap:6px}
+.gameModes>label{font-size:10px;letter-spacing:.11em;color:#c5d9d9;font-weight:900}
+.gameModes select{box-sizing:border-box;min-width:0;width:100%;min-height:43px;background:#122635;border:1px solid #60838c;border-radius:7px;padding:9px;color:#e3f4f1;font-size:11px;font-weight:800;letter-spacing:.03em}
+.ctfSettings{border:1px solid #4c7482;border-radius:9px;background:#0c1826cf;padding:10px;display:flex;flex-direction:column;gap:7px}
+.ctfConfigLine{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ctfConfigLine label{font-size:10px;letter-spacing:.025em;color:#c4dee2;font-weight:800;flex:0 0 39%}
+.ctfConfigLine select{flex:1;width:auto;min-height:39px;font-size:10px;padding:7px}
+.ctfSettings .ctfHelp{font-size:10px;color:#bdd0d3;margin:3px 0 0;line-height:1.4}
+.ctfScoreboard{position:absolute;z-index:4;top:calc(56px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(92vw,430px);display:flex;align-items:center;justify-content:space-between;gap:7px;padding:7px 11px;border:1px solid #38546b;border-radius:8px;background:#06131ee8;pointer-events:none}
+.ctfScoreboard strong{font-size:14px;font-weight:900;white-space:nowrap}
+.ctfScoreboard #ctfBlueScore{color:#7acbff}.ctfScoreboard #ctfRedScore{color:#ff9387}
+.ctfScoreboard #ctfFlagStatus{font-size:9px;line-height:1.3;letter-spacing:.025em;color:#e2eaf0;text-align:center}
+#ctfScoreboard.hidden,#ctfSettings.hidden,#ctfTeamChoice.hidden{display:none!important}
+@media(max-height:760px){.ctfSettings{padding:7px;gap:4px}.ctfConfigLine select{min-height:32px}.ctfSettings .ctfHelp{font-size:9px}}
