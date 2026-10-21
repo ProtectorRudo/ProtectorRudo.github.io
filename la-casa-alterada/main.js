@@ -23,7 +23,7 @@ let ar=null,local=null,source=null,mode='idle',placing=true,active=false,ended=f
 const ray=new THREE.Raycaster(),vec=new THREE.Vector3(),quat=new THREE.Quaternion(),getCam=()=>mode==='ar'?renderer.xr.getCamera(camera):camera;
 const combatFX=createCombatFX(world,getCam);
 const spatialMap=createSpatialMap(THREE,world);
-let mapping=false,mapKind='wall',mapFirst=null,mapPoint=null,mapDepth=null,mapDepthSource='none',mapManualDistance=1.8,mapPointQuality='manual',lastMapUI=0,mapFastSpan=2,mapPrecise=false,mapGhost=null,mapFirstGhost=null;
+let mapping=false,mapKind='wall',mapFirst=null,mapPoint=null,mapDepth=null,mapDepthSource='none',mapManualDistance=1.8,mapPointQuality='manual',lastMapUI=0,mapFastSpan=2,mapPrecise=false,mapGhost=null,mapFirstGhost=null,mapManualOverride=false;
 const mapHint=$('mapInstruction');
 function mapStatus(){
  const value='MAPA: '+spatialMap.walls.length+' PAREDES / '+spatialMap.boxes.length+' MUEBLES · '+(mapDepthSource==='cpu'?'PROFUNDIDAD':mapPointQuality==='manual'?'MANUAL':'PLANOS');
@@ -31,7 +31,8 @@ function mapStatus(){
 }
 // The guided scanner works with a single tap. Two-endpoint mode is opt-in.
 function mapSizeAt(point){
- const c=getCam(),right=new THREE.Vector3(1,0,0).applyQuaternion(c.quaternion),forward=new THREE.Vector3(0,0,-1).applyQuaternion(c.quaternion);
+ const c=getCam(),q=new THREE.Quaternion();c.getWorldQuaternion(q);
+ const right=new THREE.Vector3(1,0,0).applyQuaternion(q),forward=new THREE.Vector3(0,0,-1).applyQuaternion(q);
  right.y=0;forward.y=0;
  if(right.lengthSq()<.02)right.set(1,0,0);else right.normalize();
  if(forward.lengthSq()<.02)forward.set(0,0,-1);else forward.normalize();
@@ -82,8 +83,8 @@ function mapControls(force=false){
  if(mapping&&!mapPoint){
   const c=getCam(),at=new THREE.Vector3(),dir=new THREE.Vector3();
   c.getWorldPosition(at);c.getWorldDirection(dir);
-  mapPoint=at.addScaledVector(dir,mapDepth||mapManualDistance);
-  mapPointQuality=mapDepth?'depth':'manual';
+  mapPoint=at.addScaledVector(dir,mapManualOverride?mapManualDistance:(mapDepth||mapManualDistance));
+  mapPointQuality=mapDepth&&!mapManualOverride?'depth':'manual';
   reticle.position.copy(mapPoint);reticle.visible=true;
  }
  mapPreview();
@@ -101,7 +102,7 @@ function mapControls(force=false){
 function toggleMap(enabled){
  if(!nests.length&&enabled){toast('PRIMERO MARCÁ LA ENTRADA EN EL PISO');return}
  if(!!mission?.isGuest()&&enabled){toast('EL ANFITRIÓN CONFIGURA EL ESPACIO');return}
- mapping=enabled;mapFirst=null;mapPoint=null;lastMapUI=0;spatialMap.setVisible(enabled);
+ mapping=enabled;mapFirst=null;mapPoint=null;lastMapUI=0;mapManualOverride=false;spatialMap.setVisible(enabled);
  if(!mapping){$('mapPanel').classList.add('hidden');toast('MAPA LISTO · LOS OBJETOS YA BLOQUEAN EL PASO Y LOS DISPAROS')}
  else toast('APUNTÁ Y AGREGÁ CADA PARED O MUEBLE CON UN TOQUE');
  mapControls(true);
@@ -318,10 +319,10 @@ function updateXR(frame){
    if(mapping&&mapKind==='wall'&&!vertical)vertical=xrPlaneProbe(frame,'vertical');
    if(mapping){
      const selected=mapKind==='wall'?vertical:flat;
-     if(selected){
+     if(selected&&!mapManualOverride){
        mapPoint=new THREE.Vector3().setFromMatrixPosition(selected.matrix);mapPointQuality='plane';
        reticle.position.copy(mapPoint);reticle.quaternion.copy(selected.q);reticle.visible=true;
-     }else if(mapKind==='wall'&&mapDepth){
+     }else if(mapKind==='wall'&&mapDepth&&!mapManualOverride){
        const c=getCam(),origin=new THREE.Vector3(),forward=new THREE.Vector3();
        c.getWorldPosition(origin);c.getWorldDirection(forward);
        mapPoint=origin.addScaledVector(forward,mapDepth);mapPointQuality='depth';
@@ -588,7 +589,7 @@ $('smartPlace').addEventListener('click',()=>{lastTouch=performance.now();if(!ne
 $('mapFurniture').addEventListener('click',()=>{mapKind='box';mapFirst=null;mapControls(true)});
 $('mapMark').addEventListener('click',()=>{lastTouch=performance.now();markMapPoint()});
 $('mapDistance').addEventListener('input',e=>{
- mapManualDistance=Math.max(.6,Math.min(5,Number(e.target.value)||1.8));
+ mapManualDistance=Math.max(.6,Math.min(5,Number(e.target.value)||1.8));mapManualOverride=true;
  $('mapDistanceText').textContent=mapManualDistance.toFixed(1)+' m';
  mapPoint=null;mapPointQuality='manual';mapControls(true);
 });
