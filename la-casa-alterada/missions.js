@@ -555,6 +555,11 @@ export function createMission(api){
  o.lastHostSnapshot=performance.now();
  if(msg.gameMode&&msg.gameMode!==o.gameMode)applyMode({gameMode:msg.gameMode,ctf:msg.ctf?.config,teams:msg.teams});
  if(isCapture()&&msg.ctf)ctf.applyState(msg.ctf);
+  if(isPvP()&&Array.isArray(msg.pvp)){
+    o.pvpRemote=msg.pvp.filter(p=>p&&typeof p.id==='string'&&
+      Number.isFinite(p.hp)&&p.hp>=0&&p.hp<=100);
+    applyPvPState(pvpView());
+  }
  if(msg.teams&&typeof msg.teams==='object')for(const [id,team] of Object.entries(msg.teams))if(team==='blue'||team==='red')o.teams.set(id,team);
 if(Array.isArray(msg.environment)){
  const signature=JSON.stringify(msg.environment);
@@ -578,7 +583,7 @@ if(Array.isArray(msg.environment)){
  tintAvatar(g,p.team||o.teams.get(p.id)||'blue');
  const target=from(p.pos);g.position.lerp(target,.5)}for(const [id,g] of o.remoteAvatar)if(!known.has(id)){g.parent?.remove(g);o.remoteAvatar.delete(id)}ui()}
   function makeSnapshot(){const players=[{id:o.myId,pos:P(position()||new THREE.Vector3()),team:o.myTeam}];
- for(const [id,p] of o.localPositions)if(p)players.push({id,pos:P(p),team:o.teams.get(id)||'blue'});return{t:'snapshot',seq:++o.snapshotSeq,gameMode:o.gameMode,teams:Object.fromEntries(o.teams),ctf:isCapture()?ctf.snapshot():null,phase:o.phase,mask:o.mask,held:Math.round(o.held),running:o.running,finished:o.finished,environment:api.exportEnvironment?.(o.origin)||[],hostage:o.hostagePos?P(o.hostagePos):null,hostageHP:o.hostageHealth,rescued:o.hostageRescued,enemies:getEnemyState(),bullets:api.projectiles().map((b,i)=>{const p=b.mesh.position.clone();o.origin.worldToLocal(p);return{id:b.id||i,p:P(p),power:b.power}}),players,clock:api.clock(),wave:api.wave(),kills:api.kills?.()||0}}
+ for(const [id,p] of o.localPositions)if(p)players.push({id,pos:P(p),team:o.teams.get(id)||'blue'});return{t:'snapshot',seq:++o.snapshotSeq,gameMode:o.gameMode,teams:Object.fromEntries(o.teams),ctf:isCapture()?ctf.snapshot():null,pvp:isPvP()?o.pvp.snapshot(performance.now()):[],phase:o.phase,mask:o.mask,held:Math.round(o.held),running:o.running,finished:o.finished,environment:api.exportEnvironment?.(o.origin)||[],hostage:o.hostagePos?P(o.hostagePos):null,hostageHP:o.hostageHealth,rescued:o.hostageRescued,enemies:getEnemyState(),bullets:api.projectiles().map((b,i)=>{const p=b.mesh.position.clone();o.origin.worldToLocal(p);return{id:b.id||i,p:P(p),power:b.power}}),players,clock:api.clock(),wave:api.wave(),kills:api.kills?.()||0}}
 
   function relayEnemyHit(id,headshot=false,hp=0){
     if(isHost()&&Number.isInteger(id))broadcast({t:'enemyHit',id,headshot:!!headshot,hp});
@@ -622,7 +627,7 @@ if(Array.isArray(msg.environment)){
           const shotStart=originToWorld(location);
           const shotDirection=direction.applyQuaternion(o.origin.quaternion).normalize();
           const result=api.resolveTeammateShot?.(shotStart,shotDirection,conn.peer);
-          if(result)send(conn,{t:'shotResult',enemyId:result.id,headshot:!!result.headshot});
+          if(result)send(conn,{t:'shotResult',enemyId:result.id,playerHit:!!result.player,headshot:!!result.headshot});
         }
       }
     }
@@ -651,7 +656,7 @@ if(Array.isArray(msg.environment)){
       const accepted=doInteract(conn.peer);
       if(!accepted&&o.phase===-2)send(conn,{t:'msg',text:'No se pudo liberar. Acercate y volvé a tocar.'});
     }
-    if(msg.t==='ctfPickup'&&isCapture()&&o.running&&o.ready){
+    if(msg.t==='ctfPickup'&&isCapture()&&o.running&&o.ready&&(!isPvP()||o.pvp.alive(conn.peer,performance.now()))){
       const last=o.localPositions.get(conn.peer);
       const connected=o.connections.has(conn.peer)&&
         performance.now()-(o.lastMoveAt.get(conn.peer)||0)<1800;
@@ -662,13 +667,13 @@ if(Array.isArray(msg.environment)){
     if(msg.t==='ability'&&typeof msg.kind==='string')receiveAbility(conn.peer,msg.kind,true);
     // Direct client hit claims intentionally ignored; only host ballistics apply damage.
   });conn.on('close',()=>{
-      ctf.removePlayer(conn.peer,o.localPositions.get(conn.peer));o.lastMoveAt.delete(conn.peer);
+      ctf.removePlayer(conn.peer,o.localPositions.get(conn.peer));o.pvp.remove(conn.peer);o.lastMoveAt.delete(conn.peer);
       o.connections.delete(conn.peer);o.localPositions.delete(conn.peer);o.teams.delete(conn.peer);
       o.calibrationSeen.delete(conn.peer);teamUpdate();api.refreshHud?.();
       api.toast('UN JUGADOR SALIÓ DEL EQUIPO');
     });
     conn.on('error',()=>{
-      ctf.removePlayer(conn.peer,o.localPositions.get(conn.peer));o.lastMoveAt.delete(conn.peer);
+      ctf.removePlayer(conn.peer,o.localPositions.get(conn.peer));o.pvp.remove(conn.peer);o.lastMoveAt.delete(conn.peer);
       o.connections.delete(conn.peer);o.localPositions.delete(conn.peer);o.teams.delete(conn.peer);
       o.calibrationSeen.delete(conn.peer);teamUpdate();api.refreshHud?.();
     })}
@@ -678,7 +683,12 @@ if(Array.isArray(msg.environment)){
     }
     if(m.t==='gameConfig')applyMode(m);
     if(m.t==='ctfState'&&m.state)ctf.applyState(m.state);
-    if(m.t==='ctfTag')api.ctfTag?.(m.power||1);
+    if(m.t==='ctfTag'&&!isPvP())api.ctfTag?.(m.power||1);
+    if(m.t==='pvpHit'&&m.hit?.state?.id===o.myId&&Number.isFinite(m.hit.state.hp)){
+      applyPvPState(m.hit.state,m.hit);
+    }
+    if(m.t==='pvpNotice'&&isPvP()&&m.lethal&&m.victim!==o.myId)
+      api.pvpNotice?.(m);
     if(m.t==='ctfEvent'&&isCapture()&&typeof m.message==='string'&&m.message.length<=140)api.event(m.message);
     if(m.t==='ctfBotShot'&&isCapture()&&o.origin&&Array.isArray(m.from)&&Array.isArray(m.to)&&m.from.length===3&&m.to.length===3){
       const a=originToWorld(from(m.from)),b=originToWorld(from(m.to));
@@ -690,7 +700,8 @@ if(Array.isArray(msg.environment)){
     if(m.t==='calibrationResult'&&m.status==='mismatch'){o.ready=false;o.referenceReady=false;o.calibrationQuality='mismatch';api.toast('LOS PUNTOS NO COINCIDEN · VOLVÉ A MARCAR B');ui();api.refreshHud?.()}
     if(m.t==='snapshot')receiveSnapshot(m);
     if(m.t==='teamShot')playTeamShot(m);
-    if(m.t==='shotResult'&&Number.isInteger(m.enemyId))api.confirmedRemoteShot?.(m.headshot===true);
+    if(m.t==='shotResult'&&(Number.isInteger(m.enemyId)||m.playerHit))
+      api.confirmedRemoteShot?.(m.headshot===true);
     if(m.t==='enemyHit'&&Number.isInteger(m.id)){
       const e=o.remoteEnemy.get(m.id);
       if(e?.alive){if(Number.isFinite(m.hp))e.hp=m.hp;
@@ -728,6 +739,7 @@ if(Array.isArray(msg.environment)){
   function originToWorld(pos){if(!o.origin)return null;return o.origin.localToWorld(pos.clone())}
   function tick(dt,time){
     if(isCapture()){
+      if(isHost()&&isPvP()&&o.pvp.tick(time))applyPvPState(o.pvp.view(o.myId,time));
       if(o.origin&&api.firstNest())o.origin.position.copy(api.firstNest().root.position);
       const p=position();
       if(isGuest()&&o.conn?.open&&p&&time-o.lastMove>140){o.lastMove=time;send(o.conn,{t:'move',p:P(p)})}
@@ -956,5 +968,5 @@ return{align,alignSecond,alignmentStatus,needsReference,teamCalibration,updateTr
   const pos=new THREE.Vector3();
   o.hostageActor.root.getWorldPosition(pos);pos.y+=1.12;return pos;
  },
- isGuest,isHost,pickupFlag,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result,clock:api.clock(),wave:api.wave(),kills:api.kills?.()||0})},localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
+ isGuest,isHost,isPvP,pvpView,pvpAll,damagePvPPlayer,canPvPFire:()=>!isPvP()||pvpView()?.dead!==true,pickupFlag,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result,clock:api.clock(),wave:api.wave(),kills:api.kills?.()||0})},localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
 }
