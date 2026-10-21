@@ -315,3 +315,32 @@ La sincronización P2P mediante celulares y el registro espacial manual todavía
 - **Advertencia de marca:** ya existen otros juegos con el nombre BLACKZONE. Antes de un lanzamiento comercial hay que realizar una búsqueda registral y jurídica en las jurisdicciones relevantes. El rebranding del prototipo no implica exclusividad sobre la denominación.
 
 Licencias de terceros conservadas en `THIRD_PARTY_NOTICES.md`.
+
+
+## V20 — Delimitación espacial en dos toques y acabado visual mejorado
+
+### Configuración de la habitación
+- En cualquiera de los dos modos, después de fijar la entrada y completar la orientación A/B en multijugador, el anfitrión puede pulsar **DELIMITAR ZONA DE JUEGO (2 TOQUES)**. No depende del mobiliario real.
+- Nuevo editor inicial **ZONA DE JUEGO**: apuntar a una esquina libre del piso, confirmar y apuntar a la esquina opuesta. El motor crea un rectángulo 3D usando las coordenadas calibradas del cuarto, con una vista previa verde y advertencia si todavía es demasiado estrecho.
+- Zona permitida: al menos aproximadamente **1,4 m de ancho y largo**, hasta 9 m por lado y 58 m². La aplicación guarda dimensiones, perímetro 3D y coordenadas locales orientadas con la calibración. La zona se puede borrar y dibujar nuevamente.
+- Si WebXR proporciona hit-test o un plano horizontal detectado, las marcas se sitúan en la superficie registrada. Si no hay medición fiable se utiliza una estimación de piso **claramente identificada como aproximada**. No se afirma detectar automáticamente paredes, obstáculos ni muebles reales.
+- Las paredes individuales y cajas/muebles siguen disponibles como herramientas opcionales del editor, con mapeo en un toque o dos extremos; no son necesarias para delimitar la zona.
+- Bots en ambos modos usan el área para limitar su movimiento, sin salir del perímetro virtual. Banderas y rehén, cuando existe una zona delimitada, deben ubicarse dentro de ella y a cierta distancia del borde.
+- Durante AR aparece una advertencia visible al acercarse a menos de ~0,62 m del borde virtual y otra si se sale de la zona. **No son alarmas de proximidad a obstáculos reales**: el usuario debe despejar físicamente la habitación y no correr.
+- En multijugador, la zona se serializa en las instantáneas del anfitrión en coordenadas de la misma referencia A/B para que todos vean un mismo perímetro aproximado. Los mapas idénticos ya no se destruyen y reconstruyen en cada actualización de red, reduciendo posibles tirones.
+- El perímetro **no bloquea balas**, porque sería inventar paredes donde no existen. Las paredes confirmadas manualmente siguen siendo la fuente de las colisiones y la cobertura de disparos.
+
+### Mejora visual y experiencia
+- Añadidas **sombras suaves de contacto** bajo los personajes tácticos para que parezcan apoyados en el piso, mediante una única textura radial procedural reutilizada por múltiples enemigos, sin requerir costosos mapas de sombras reales en teléfonos.
+- Vista previa semitransparente del espacio, perímetro iluminado de bajo contraste, controles de escaneo simplificados y mensajes de confianza del seguimiento AR.
+- Revisado el contraste del piso y pared de práctica 3D, conservando los dos modos y los personajes existentes.
+
+### Investigación técnica
+- [WebXR Hit Test — Immersive Web](https://github.com/immersive-web/hit-test): posición de superficies; no permite inferir con certeza todos los límites del cuarto.
+- [WebXR Device API — MDN](https://developer.mozilla.org/en-US/docs/Web/API/WebXR_Device_API): soporte limitado según navegador y dispositivo; mantenemos modo 3D sin AR.
+- [three-mesh-bvh — Garrett Johnson, MIT](https://github.com/gkjohnson/three-mesh-bvh): evaluado para acelerar colisiones/raycast de mallas densas. **No integrado en esta versión** porque nuestro mapa actual usa segmentos simples y cajas, donde introducir una biblioteca grande para BVH sin mallas de alta complejidad no mejora materialmente la experiencia.
+- Se utilizó la geometría existente de Three.js; no se importaron modelos, texturas ni marcas nuevas ajenas.
+
+### Comprobaciones V20
+- Pruebas matemáticas sobre zonas calibradas, rectángulos rotados entre dispositivos, restricciones de bots, área no considerada cobertura, sincronización y deduplicación de mapas, deshacer y limpiar.
+- **Pendiente**: evaluación física en Android/iPhone compatibles, especialmente habitaciones pequeñas, superficies oscuras/brillantes y la precisión compartida de varios celulares. En iPhone Safari y otros navegadores donde no haya immersive-ar, la práctica 3D sigue siendo la alternativa, no una experiencia de cámara AR idéntica.
