@@ -355,7 +355,9 @@ function spawnCTFBot(team,index,id,localPos){
  return e;
 }
 function ctfBotShot(from,to,team){
+ if(!active||ended)return;
  combatFX.shot(from,true,'rifle');trail(from,to);
+ if(!mission?.isGuest?.())mission?.relayCTFBotShot?.(from,to,team);
 }
 function resolveFlagShot(start,direction,shooterId){
  if(!mission?.isCapture?.()||!mission?.isHost?.()||!active||ended)return null;
