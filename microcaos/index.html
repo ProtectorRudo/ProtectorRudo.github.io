@@ -32,8 +32,8 @@
 <h1 class="hero">Mini corredores.<br><strong>Máximo caos.</strong></h1>
 <p class="sub">Seis personajes, una pista imposible y una sola meta. Corré, saltá, esquivá y llegá primero.</p>
 <button id="play" class="primary mainprimary">JUGAR LA PRIMERA CARRERA <span>↗</span></button>
-<div class="more"><button id="ar" class="secondary" style="display:none">◈ MODO AR · ANDROID</button><button id="cam" class="secondary">◎ VER CON MI CÁMARA</button></div>
-<div class="hint" id="gamehint">Joystick para moverte · Saltá obstáculos · Recogé estrellas para recargar turbo</div>
+<div class="more"><button id="ar" class="secondary" style="display:none">◈ MODO AR · ANDROID</button><button id="cam" class="secondary" style="display:none" aria-hidden="true">◎ DEMO DE CÁMARA</button></div>
+<div class="hint" id="gamehint">Joystick, salto y turbo · Recogé estrellas para recuperar energía</div>
 </div></div>
 <div class="controls" id="controls">
 <div class="joyarea" id="joy" aria-label="Control de dirección"><div class="joyrim"></div><div class="joycenter" id="stick">↔</div></div>
@@ -119,6 +119,24 @@ function spinner(z,color){const a=new THREE.Group();a.position.set(0,.7,z);stage
 function smasher(z,color,phase){const g=new THREE.Group();g.position.set(0,0,z);stage.add(g);let body=soft(mat(color,.12,.29,{clearcoat:.85}),g,[0,.58,0],[1.9,.98,.72]);soft(chrome,g,[0,1.02,0],[1.55,.12,.54]);ball(white,g,[-.32,.7,-.42],[.16,.17,.09]);ball(white,g,[.32,.7,-.42],[.16,.17,.09]);cyl(navy,g,[0,.05,0],.9,.9,.18);obstacles.push({kind:"slide",z,part:g,phase,speed:1.1})}
 function pad(z,x){const g=new THREE.Group();g.position.set(x,.13,z);stage.add(g);const rim=cyl(gold,g,[0,0,0],.93,1.02,.19);const inner=cyl(teal,g,[0,.09,0],.77,.77,.09);ball(white,g,[0,.16,0],[.21,.03,.23]);obstacles.push({kind:"pad",z,x,part:g})}
 spinner(7.4,0xff80a5);smasher(2.2,0xffcd62,1.1);spinner(-3.6,0x82e5d6);smasher(-8.9,0x9ab2ff,2.4);pad(-6.2,-2.5);pad(-6.2,2.5);
+
+function makePistons(z){
+  const warning=mat(0xffbd71,.16,.31,{emissive:0xc77419,emissiveIntensity:.16}),danger=mat(0xff7f99,.24,.24,{emissive:0xb42b52,emissiveIntensity:.22});
+  for(let j=0;j<3;j++){
+    const x=(j-1)*2.62,g=new THREE.Group();g.position.set(x,0,z);stage.add(g);
+    cyl(chrome,g,[0,.14,0],.88,.93,.18);
+    const frame=cyl(warning,g,[0,.22,0],.65,.72,.08);
+    const plunger=new THREE.Group();g.add(plunger);
+    soft(danger,plunger,[0,1.52,0],[1.65,.66,1.08]);
+    soft(chrome,plunger,[0,1.9,0],[1.2,.12,.84]);
+    for(let a of [-.48,.48])ball(white,plunger,[a,1.46,-.53],[.115,.115,.06]);
+    cyl(navy,g,[0,2.35,.2],.095,.095,3.1);
+    const indicator=ball(gold,g,[0,.29,-.82],[.21,.08,.11]);indicator.castShadow=false;
+    obstacles.push({kind:"piston",z,x,part:plunger,frame,indicator,phase:j*2.09+(z>0?0:1.04)});
+  }
+}
+makePistons(-1.15);
+
 function makeGate(z){for(let x of [-4.3,4.3]){box(navy,stage,[x,.65,z],[.3,1.3,.3]);ball(gold,stage,[x,1.37,z],[.2,.18,.2])}box(teal,stage,[0,1.3,z],[8.85,.23,.35]);const sign=textSprite("META",56,"#ffdc82");sign.position.set(0,2.03,z);stage.add(sign)}makeGate(-12.82);
 const colors=[0xffce65,0xff719c,0x8c9cff,0x65e9d0,0xf5a96b,0xc99bff];
 const profiles=[{name:"VOS",speed:1.05,skill:.80},{name:"POP",speed:.91,skill:.76},{name:"NIX",speed:1.01,skill:.86},{name:"BOOM",speed:.84,skill:.54},{name:"KIWI",speed:.96,skill:.66},{name:"ZAP",speed:1.07,skill:.91}];
@@ -234,7 +252,7 @@ function collectStars(r){if(r.index!==0)return;for(let s of stars){
   if(s.used||Math.abs(r.z-s.z)>1.1||Math.abs(r.x-s.x)>.85)continue;
   s.used=true;s.g.visible=false;r.stars++;$("pickupValue").textContent=r.stars;
   cue(950,.11,"sine",.075);puff(r.x,r.z,0xffde8a,13);
-  if(r.stars===3||r.stars===6)announce("✦ ¡BUENA RACHA!",750);
+  if(r.stars%3===0){r.dashCd=Math.max(0,(r.dashCd||0)-2.5);announce("✦ ¡TURBO RECARGADO!",800);tactile(15)}
 }}
 function tactile(ms=20){try{if(navigator.vibrate)navigator.vibrate(ms)}catch(e){}}
 
@@ -267,7 +285,7 @@ if(bot){
       const futureX=Math.sin((elapsed+gap/Math.max(.7,r.speed))*approaching.speed+approaching.phase)*2.6;
       targetX=clamp(futureX+(r.phase>3?2.8:-2.8),-3.4,3.4);
       if(gap<1.6&&gap>.7&&Math.abs(r.x-futureX)<1.75&&r.cool<=0&&r.y<.05&&r.skill>.72){r.vy=5.2;r.cool=2.2}
-    }else if(approaching.kind==="pad"){if(temperament===1||temperament===3)targetX=approaching.x}
+    }else if(approaching.kind==="pad"){if(temperament===1||temperament===3)targetX=approaching.x}else if(approaching.kind==="piston"){if(approaching.part.position.y<1.1&&Math.abs(r.x-approaching.x)<1.2){targetX=clamp(approaching.x+(r.x>=approaching.x?1.6:-1.6),-3.4,3.4);if(gap<1.4&&r.cool<=0&&r.skill>.7){r.vy=4.9;r.cool=1.7}}}
   }
   targetX=clamp(targetX,-3.35,3.35);
   lateral=clamp((targetX-r.x)*1.5,-1,1);
@@ -276,7 +294,7 @@ if(bot){
   r.cool-=dt;
 }else lateral=steer;
 r.x=clamp(r.x+lateral*dt*(r.stun>0?.9:3.2),-3.5,3.5);r.z-=dt*(bot?r.speed:1.02)*(r.stun>0?.3:1)*(r.dash>0?1.65:1);r.vy-=12*dt;r.y=Math.max(0,r.y+r.vy*dt);if(r.y===0)r.vy=0;collectStars(r);
-for(let o of obstacles){if(Math.abs(r.z-o.z)>1.0||r.invuln>0)continue;if(o.kind==="spin"){const a=o.part.rotation.y;const c=Math.cos(a),ss=Math.sin(a);const along=r.x*c+(r.z-o.z)*(-ss),across=r.x*ss+(r.z-o.z)*c;if(Math.abs(along)<3.58&&Math.abs(across)<.48)hit(r,.95)}if(o.kind==="slide"&&Math.abs(r.x-o.part.position.x)<1.35)hit(r,1);if(o.kind==="pad"&&Math.abs(r.x-o.x)<.83&&r.y<.25){r.vy=5.7;puff(r.x,r.z,0x79ffe8,11);if(i===0){cue(720,.17);announce("¡SALTO TURBO!",850)}}}
+for(let o of obstacles){if(Math.abs(r.z-o.z)>1.0||r.invuln>0)continue;if(o.kind==="spin"){const a=o.part.rotation.y;const c=Math.cos(a),ss=Math.sin(a);const along=r.x*c+(r.z-o.z)*(-ss),across=r.x*ss+(r.z-o.z)*c;if(Math.abs(along)<3.58&&Math.abs(across)<.48)hit(r,.95)}if(o.kind==="slide"&&Math.abs(r.x-o.part.position.x)<1.35)hit(r,1);if(o.kind==="piston"&&Math.abs(r.x-o.x)<1.06&&Math.abs(r.z-o.z)<.75&&o.part.position.y<.85&&r.y<.6)hit(r,1.05);if(o.kind==="pad"&&Math.abs(r.x-o.x)<.83&&r.y<.25){r.vy=5.7;puff(r.x,r.z,0x79ffe8,11);if(i===0){cue(720,.17);announce("¡SALTO TURBO!",850)}}}
 if(r.z<=-12.6){r.finished=true;r.finishTime=elapsed;r.z=-13.15;puff(r.x,r.z,0xffd978,18);useAnimation(r,"Dance");if(i===0){finishRace();break}}
 const run=t*(r.stun>0?1:10)+r.phase; r.root.position.set(r.x,r.y,r.z);r.root.rotation.y=clamp(-lateral*.12,-.27,.27);if(r.robot){useAnimation(r,r.stun>0?"Hit":r.y>.2?"Jump":"Run");}r.rig.position.y=Math.sin(run*1.1)*.045+(r.stun>0?-.12:0);r.rig.rotation.z=r.stun>0?Math.sin(t*15)*.32:Math.sin(run)*.04;r.arms.forEach((a,j)=>{a.rotation.x=Math.sin(run+(j*Math.PI))*.65});r.feet.forEach((f,j)=>{f.rotation.x=Math.sin(run+j*Math.PI)*.48});r.shade.scale.setScalar(1-r.y*.08);if(r.sheen){r.sheen.material.opacity=r.dash>0?.32:.08;r.sheen.scale.setScalar(r.dash>0?1.18:1)}if(r.prop)r.prop.rotation.z=Math.sin(t*4+r.phase)*.10;if(r.crown)r.crown.rotation.y=Math.sin(t*1.3)*.17}
 separateRacers(dt);
@@ -285,7 +303,7 @@ for(let [i,z] of [[0,5],[1,-2],[2,-9]])if(checkpoint<i&&p.z<z){checkpoint=i;cue(
 function separateRacers(dt){for(let i=0;i<racers.length;i++)for(let j=i+1;j<racers.length;j++){const a=racers[i],b=racers[j];if(a.finished||b.finished)continue;const dx=b.x-a.x,dz=b.z-a.z;if(Math.abs(dx)<.65&&Math.abs(dz)<.7){const push=(.67-Math.abs(dx))*.18*(dx>=0?1:-1);a.x=clamp(a.x-push,-3.48,3.48);b.x=clamp(b.x+push,-3.48,3.48);a.root.position.x=a.x;b.root.position.x=b.x;}}}
 function jump(){const p=racers[0];if(phase==="race"&&p.y<.03&&p.stun<.2){p.vy=5.0;useAnimation(p,"Jump");tactile(17);cue(620,.15,"triangle");puff(p.x,p.z,0xffffff,6)}}
 function turbo(){const p=racers[0];if(phase==="race"&&p.dashCd<=0&&p.stun<.2){p.dash=.95;p.dashCd=5.5;tactile(28);cue(800,.35,"sawtooth",.07);puff(p.x,p.z,0x8bf8e0,16)}}
-function animateObstacles(t){for(let o of obstacles){if(o.kind==="spin")o.part.rotation.y=t*o.speed+o.rotation;else if(o.kind==="slide")o.part.position.x=Math.sin(t*o.speed+o.phase)*2.6;else o.part.children[1].scale.y=1+Math.sin(t*5+o.z)*.045}}
+function animateObstacles(t){for(let o of obstacles){if(o.kind==="spin")o.part.rotation.y=t*o.speed+o.rotation;else if(o.kind==="slide")o.part.position.x=Math.sin(t*o.speed+o.phase)*2.6;else if(o.kind==="piston"){const h=.85+Math.cos(t*2.4+o.phase)*.85;o.part.position.y=h;o.indicator.material.emissiveIntensity=h<.9?.9:.1;o.frame.material.emissiveIntensity=h<.9?.55:.08}else o.part.children[1].scale.y=1+Math.sin(t*5+o.z)*.045}}
 function animateParticles(dt){for(let i=puffs.length-1;i>=0;i--){let q=puffs[i];q.life-=dt;if(q.life<=0){stage.remove(q.mesh);q.mesh.material.dispose();puffs.splice(i,1);continue}q.vy-=dt*4;q.mesh.position.x+=q.vx*dt;q.mesh.position.y+=q.vy*dt;q.mesh.position.z+=q.vz*dt;q.mesh.scale.multiplyScalar(.97);q.mesh.material.opacity=clamp(q.life/q.max,0,1)}}
 let previewTarget=new THREE.Vector3();let camStarted=false;let cameraShake=0;
 function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.045);last=t;const sec=t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);move(dt,sec);for(let r of racers)if(r.mixer)r.mixer.update(dt);$("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
@@ -297,9 +315,9 @@ renderer.setAnimationLoop(render);
 function resize(){camera.aspect=innerWidth/innerHeight;camera.fov=camera.aspect<.68?58:42;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}addEventListener("resize",resize);
 function leaveCamera(){if(videoStream){videoStream.getTracks().forEach(tr=>tr.stop());videoStream=null}$("cameraVideo").style.display="none";$("scene").classList.remove("camera");scene.background=new THREE.Color(0x172b4a);mode="preview";previewTable.visible=true;$("modebar").textContent="PREVIEW 3D · PC Y CELULAR";$("cam").textContent="◎ VER CON MI CÁMARA"}
 $("cam").onclick=async()=>{if(mode==="camera"){leaveCamera();return}if(!navigator.mediaDevices?.getUserMedia){announce("CÁMARA NO DISPONIBLE",1500);return}try{videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});$("cameraVideo").srcObject=videoStream;$("cameraVideo").style.display="block";await $("cameraVideo").play();$("scene").classList.add("camera");scene.background=null;mode="camera";$("cam").textContent="◉ CERRAR CÁMARA";$("modebar").textContent="CÁMARA DEMO · SIN ANCLAJE ESPACIAL"}catch(e){announce("SIN PERMISO DE CÁMARA",1500)}};
-async function setupAR(){if(!navigator.xr){announce("WEBXR NO DISPONIBLE",1700);return}try{leaveCamera();const options={requiredFeatures:["hit-test"],optionalFeatures:["local-floor","dom-overlay"],domOverlay:{root:document.body}};session=await navigator.xr.requestSession("immersive-ar",options);await renderer.xr.setSession(session);mode="ar";scene.background=null;previewTable.visible=false;stage.visible=false;placed=false;hitRequested=false;hitSource=null;$("modebar").textContent="AR REAL · TOCÁ EL PISO PARA COLOCAR";$("intro").classList.add("hidden");$("notice").classList.add("show");$("notice").textContent="Mové suavemente el teléfono hasta detectar una mesa o el piso; tocá la pantalla para colocar la pista.";session.addEventListener("end",()=>{mode="preview";scene.background=new THREE.Color(0x172b4a);previewTable.visible=true;stage.visible=true;stage.position.set(0,0,0);stage.scale.setScalar(1);$("modebar").textContent="PREVIEW 3D · PC Y CELULAR";$("notice").classList.remove("show");session=null;placed=false;reticle.visible=false;$("intro").classList.remove("hidden");phase="intro"});announce("BUSCÁ UNA SUPERFICIE",1700)}catch(e){console.warn("AR failed",e);announce("NO SE PUDO ABRIR AR",2000)}}
+async function setupAR(){if(!navigator.xr){announce("WEBXR NO DISPONIBLE",1700);return}try{leaveCamera();const options={requiredFeatures:["hit-test","dom-overlay"],optionalFeatures:["local-floor"],domOverlay:{root:document.body}};session=await navigator.xr.requestSession("immersive-ar",options);await renderer.xr.setSession(session);mode="ar";scene.background=null;previewTable.visible=false;stage.visible=false;placed=false;hitRequested=false;hitSource=null;$("modebar").textContent="AR REAL · TOCÁ EL PISO PARA COLOCAR";$("intro").classList.add("hidden");$("notice").classList.add("show");$("notice").textContent="Mové suavemente el teléfono hasta detectar una mesa o el piso; tocá la pantalla para colocar la pista.";session.addEventListener("end",()=>{mode="preview";scene.background=new THREE.Color(0x172b4a);previewTable.visible=true;stage.visible=true;stage.position.set(0,0,0);stage.scale.setScalar(1);$("modebar").textContent="PREVIEW 3D · PC Y CELULAR";$("notice").classList.remove("show");session=null;placed=false;reticle.visible=false;$("intro").classList.remove("hidden");phase="intro"});announce("BUSCÁ UNA SUPERFICIE",1700)}catch(e){console.warn("AR failed",e);announce("NO SE PUDO ABRIR AR",2000)}}
 $("ar").onclick=setupAR;
-renderer.domElement.addEventListener("pointerup",()=>{if(mode==="ar"&&!placed&&reticle.visible){stage.visible=true;stage.position.copy(reticle.position);stage.quaternion.copy(reticle.quaternion);stage.scale.setScalar(.044);reticle.visible=false;placed=true;$("notice").classList.remove("show");$("intro").classList.remove("hidden");$("modebar").textContent="AR ESPACIAL · PISTA COLOCADA";announce("¡PISTA LISTA!",1100);cue(780,.2)}});
+renderer.domElement.addEventListener("pointerup",()=>{if(mode==="ar"&&!placed&&reticle.visible){stage.visible=true;stage.position.copy(reticle.position);stage.quaternion.copy(reticle.quaternion);stage.rotation.x=0;stage.rotation.z=0;stage.scale.setScalar(.025);reticle.visible=false;placed=true;$("notice").classList.remove("show");$("intro").classList.remove("hidden");$("modebar").textContent="AR ESPACIAL · PISTA COLOCADA";announce("¡PISTA LISTA!",1100);cue(780,.2)}});
 if(navigator.xr?.isSessionSupported){navigator.xr.isSessionSupported("immersive-ar").then(ok=>{if(ok)$("ar").style.display="inline-block"}).catch(()=>{})}
 $("play").onclick=begin;$("retry").onclick=begin;$("jump").onclick=jump;$("dash").onclick=turbo;$("sound").onclick=()=>{soundOn=!soundOn;$("sound").textContent=soundOn?"♫":"♪";if(soundOn)cue(650,.08)};
 $("share").onclick=async()=>{let text=window.resultText||"¡Probé MICROCAOS Party Rush!";try{if(navigator.share)await navigator.share({title:"MICROCAOS",text,url:location.href});else if(navigator.clipboard){await navigator.clipboard.writeText(text+" "+location.href);announce("RESULTADO COPIADO",1500)}}catch(e){}};
