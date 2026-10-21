@@ -147,3 +147,8 @@
 .netSignal{position:absolute;right:12px;top:calc(89px + env(safe-area-inset-top));z-index:5;background:#573427dd;border:1px solid #e1a178;border-radius:6px;padding:6px 9px;color:#ffe1ba;font-size:9px;font-weight:800;letter-spacing:.06em;pointer-events:none;max-width:125px;text-align:center;line-height:1.4}
 .netSignal.good{background:#12362bcb;color:#bdf0d6;border-color:#6dac95}
 @media(max-width:380px){.navGuide{top:calc(50% - 104px);padding:6px 8px}.navArrow{width:30px;height:30px;font-size:23px}.netSignal{right:7px;top:calc(91px + env(safe-area-inset-top));font-size:8px;max-width:102px}}
+
+/* V15 tactical team eliminations, intentionally not in the crosshair's way */
+.killFeed{position:absolute;top:calc(119px + env(safe-area-inset-top));right:12px;z-index:4;max-width:44vw;padding:8px 11px;border-left:3px solid #8fdab5;border-radius:5px;background:#081a25eb;box-shadow:0 6px 17px #0008;color:#dff7ea;text-align:right;font:800 10px/1.45 system-ui,sans-serif;letter-spacing:.065em;pointer-events:none;text-wrap:balance}
+.killFeed.critical{color:#f9c28c;border-left-color:#f9c28c}
+@media(max-width:390px){.killFeed{max-width:47vw;font-size:9px;top:calc(122px + env(safe-area-inset-top))}}
