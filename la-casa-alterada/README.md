@@ -311,7 +311,7 @@ La sincronización P2P mediante celulares y el registro espacial manual todavía
 - Nuevo sistema visual oscuro de diseño táctico: paneles de acero, indicación de sistema activo, retícula de fondo sutil, tipografía condensada, estados de botones más visibles y respuestas al tacto.
 - La página se adapta a pantallas pequeñas, manteniendo selección de modo y opciones de bots, dificultad y equipos con desplazamiento vertical cuando sea necesario.
 - Se conservan los valores internos `rescue` y `capture` y no se alteran las reglas de calibración A/B, combate, rescate, captura y red de la V18.
-- El repositorio y la URL de producción anteriores permanecen por compatibilidad; una nueva URL de marca puede asignarse posteriormente.
+- **Nueva URL de marca verificada y activa:** https://blackzone-tactical-ar.vercel.app/ (BLACKZONE Tactical AR). La URL heredada https://la-casa-alterada-invasion-jugable.vercel.app/ continúa operativa por compatibilidad y se mantiene el mismo proyecto Vercel.
 - **Advertencia de marca:** ya existen otros juegos con el nombre BLACKZONE. Antes de un lanzamiento comercial hay que realizar una búsqueda registral y jurídica en las jurisdicciones relevantes. El rebranding del prototipo no implica exclusividad sobre la denominación.
 
 Licencias de terceros conservadas en `THIRD_PARTY_NOTICES.md`.
