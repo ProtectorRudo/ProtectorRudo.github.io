@@ -155,8 +155,9 @@ export function animateHuman(actor,dt,speed=0){
  playHuman(actor,speed>.57?'run':speed>.07?'walk':actor.hostage?'sit':'idle');
  actor.animationAccum=(actor.animationAccum||0)+dt;
  // Keep expensive skeletal updates predictable on midrange phones.
- if(actor.animationAccum<.034)return true;
- actor.mixer.update(Math.min(actor.animationAccum,.095));
+ const step=actor.lodFar?.068:.034;
+ if(actor.animationAccum<step)return true;
+ actor.mixer.update(Math.min(actor.animationAccum,.11));
  actor.animationAccum=0;
  return true
 }
