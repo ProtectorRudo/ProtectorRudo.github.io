@@ -5,7 +5,7 @@
  * V9 stores only confirmed sample points and explicit user-drawn segments.
  */
 export function createSpatialMap(THREE,scene){
-  const walls=[],boxes=[],dynamic=[],debug=[];
+  const walls=[],boxes=[],dynamic=[],debug=[];let preview=false;
   const V=(p)=>({x:p.x,y:p.y,z:p.z});
   const len=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
   const cross=(a,b,c)=> (b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x);
@@ -27,7 +27,7 @@ export function createSpatialMap(THREE,scene){
     A.y=floorY;B.y=floorY;
     const angle=Math.atan2(B.x-A.x,B.z-A.z);
     const g=new THREE.BoxGeometry(.13,height,len(A,B)),m=new THREE.MeshBasicMaterial({color:0x69cdd0,transparent:true,opacity:.12,depthWrite:false,side:THREE.DoubleSide});
-    const mesh=new THREE.Mesh(g,m);mesh.position.set((A.x+B.x)/2,floorY+height/2,(A.z+B.z)/2);mesh.rotation.y=angle;scene.add(mesh);debug.push(mesh);
+    const mesh=new THREE.Mesh(g,m);mesh.position.set((A.x+B.x)/2,floorY+height/2,(A.z+B.z)/2);mesh.rotation.y=angle;scene.add(mesh);mesh.visible=preview;debug.push(mesh);
     const wall={id:walls.length+1,type:'wall',a:A,b:B,base:floorY,top:floorY+height,thickness:.16,mesh};
     walls.push(wall);return wall;
   }
@@ -38,7 +38,7 @@ export function createSpatialMap(THREE,scene){
     const floorY=Number.isFinite(opt.floorY)?opt.floorY:Math.min(A.y,B.y),height=Math.max(.2,Math.min(2.5,opt.height||.95));
     const minX=Math.min(A.x,B.x)-.06,maxX=Math.max(A.x,B.x)+.06,minZ=Math.min(A.z,B.z)-.06,maxZ=Math.max(A.z,B.z)+.06;
     const mesh=new THREE.Mesh(new THREE.BoxGeometry(maxX-minX,height,maxZ-minZ),new THREE.MeshBasicMaterial({color:0xf0b972,transparent:true,opacity:.12,depthWrite:false}));
-    mesh.position.set((minX+maxX)/2,floorY+height/2,(minZ+maxZ)/2);scene.add(mesh);debug.push(mesh);
+    mesh.position.set((minX+maxX)/2,floorY+height/2,(minZ+maxZ)/2);scene.add(mesh);mesh.visible=preview;debug.push(mesh);
     const box={type:'box',id:boxes.length+1,minX,maxX,minZ,maxZ,base:floorY,top:floorY+height,mesh};
     boxes.push(box);return box;
   }
@@ -117,5 +117,6 @@ export function createSpatialMap(THREE,scene){
       else if(item.type==='box')addBox(pt(item.a),pt(item.b),{height:item.height,floorY:pt(item.a).y});
     }
   }
-  return {walls,boxes,addWall,addBox,lineBlocked,touchesWall,canMove,getRoute,nearestWaypoint,exportData,importData,clear};
+  function setVisible(state){preview=!!state;for(const o of debug)o.visible=preview}
+  return {walls,boxes,addWall,addBox,lineBlocked,touchesWall,canMove,getRoute,nearestWaypoint,exportData,importData,clear,setVisible};
 }
