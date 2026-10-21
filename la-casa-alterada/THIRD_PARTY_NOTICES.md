@@ -52,3 +52,8 @@ SOFTWARE.
 - Jordan: https://www.innerscene.com/tools/library/3d-parts/locomotion-collection-jordan-3d-person-animated-911f1584
 - Sam: https://www.innerscene.com/tools/library/3d-parts/locomotion-collection-sam-3d-person-animated-dc23800f
 - Maya (hostage): https://www.innerscene.com/tools/library/3d-parts/locomotion-collection-maya-3d-person-animated-1499b2fd
+
+
+## V9 — Navegación y profundidad
+- Los algoritmos y módulos de colisión/mapeo spatial-map.js fueron escritos para este proyecto; se consultaron conceptos de YUKA (MIT) y three-pathfinding (MIT), sin copiar su código.
+- ARCore Depth y WebXR Depth son APIs del dispositivo/navegador usadas cuando están disponibles; no incorporan assets con licencia adicional.
