@@ -215,3 +215,18 @@ Fuentes: [WebXR Hit Test (W3C)](https://www.w3.org/TR/webxr-hit-test-1/), [WebXR
 - El nuevo arte procedimentalmente generado pertenece a sus respectivos creadores. Consultar `THIRD_PARTY_NOTICES.md` y verificar condiciones de licencias de terceros antes de vender la experiencia a clientes.
 
 **Validación pendiente:** comprobar descarga del CDN, texturas, escala, posturas de armas y FPS con 2–4 celulares reales. Las pruebas automáticas de código y presencia de archivos no reemplazan una revisión visual en dispositivos.
+
+
+## V15 — Combate cooperativo validado por el anfitrión
+
+- **Problema corregido:** antes un invitado podía enviar un mensaje directo `hit` indicando el enemigo y la zona del impacto. El anfitrión solo comprobaba distancia aproximada y cobertura, por lo que existían discrepancias o aciertos falsos.
+- **Ahora:** cada disparo contiene un origen y dirección en coordenadas locales compartidas. El anfitrión valida que el origen corresponda aproximadamente a la posición reciente del jugador, que la dirección sea finita/unitaria y que hayan transcurrido al menos 95 ms desde el último disparo aceptado. No se confían IDs de enemigo ni afirmaciones de impacto enviadas por el cliente.
+- El anfitrión reconstruye una trayectoria 3D hasta 12 m con `THREE.Raycaster`, analiza primero el objeto alcanzado y diferencia zona de cabeza/cuerpo. Comprueba obstáculos del mapa y, en práctica 3D, geometría de cobertura antes de aplicar daño. Solo el anfitrión reduce HP y elimina enemigos.
+- Los invitados ven confirmación de impacto únicamente cuando el anfitrión confirma el daño. Si el anfitrión rechaza el disparo, el cliente no reproduce el sonido falso de impacto.
+- Los enemigos vivos muestran reacciones al recibir disparos en **todos los celulares** mediante eventos de `enemyHit`, sincronizando HP y reacción breve. Las bajas se anuncian inmediatamente con `enemyDown` y atribución del jugador.
+- Un pequeño indicador de bajas del equipo evita saturar la mira. El recuento de enemigos neutralizados se transmite en las instantáneas y al finalizar la partida, para que todos vean el mismo resultado.
+- Se conservan los modelos tácticos V14, la calibración A/B V13 y los controles de mapeo móvil.
+
+**Pruebas de código:** ocho casos del resolvedor de disparos (cuerpo, cabeza, pared, cobertura, enemigo eliminado, jugador no anfitrión, ronda cerrada, disparo fallido). Todos confirmaron una sola aplicación de daño o rechazo. También se comprobaron sintaxis de módulos y contratos de red antes de desplegar.
+
+**Limitaciones pendientes:** la compensación de latencia todavía no rebobina posiciones históricas de los enemigos; sobre redes inestables pueden existir fallos de tiro que parezcan aciertos locales. PeerJS/P2P con anfitrión de celular no es un servidor competitivo con validación criptográfica o antitrampas completa. El mapeo espacial y el multijugador requieren pruebas físicas en Android/iPhone compatibles antes de declararse comercialmente terminados.
