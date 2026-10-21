@@ -23,14 +23,15 @@ test('small room fails safely, no invisible guns outside the zone',()=>{
  assert.equal(findSafeSpawnPoints({x:0,y:1.6,z:0},{x:0,y:0,z:-1},
  {areaDistance:()=>-1,max:5}).length,0);
 });
-test('AR keeps native built-in characters rather than swapping unreliable rigs',()=>{
+test('native fallback persists while detailed character rigs load in AR',()=>{
  const main=read('main.js'),missions=read('missions.js');
- assert.match(main,/if\(mode!=='ar'\)attachHuman\(e,e\.appearance\)/);
- assert.match(missions,/if\(api\.getMode\?\.\(\)!=='ar'\)/);
+ assert.match(main,/attachHuman\(e,e\.appearance\)\.catch/);
+ assert.match(missions,/attachHuman\(actor,'hostage'\)\.then/);
  assert.match(missions,/hostageRenderPoint:/);
  assert.match(main,/tacticalScale=n\.floor\?\.96:/);
  assert.match(main,/targetVisibility\(\{position:eye,forward:camForward\}/);
 });
+
 test('on-device visual probe and diagnostics are wired into scene and HUD',()=>{
  const main=read('main.js'),html=read('index.html');
  assert.match(html,/id="renderStatus"/);
