@@ -82,6 +82,13 @@ export function createMission(api){
     api.refreshHud?.();
   }
   function manualRetry(){
+    if(o.role==='host'){
+      if(o.connections.size){api.toast('PRIMERO SALÍ DE LA PARTIDA PARA CREAR OTRA SALA');return}
+      const old=o.peer;o.peer=null;try{old?.destroy()}catch(_){}
+      $('roomCode').textContent='';$('copyRoom').classList.add('hidden');
+      api.toast('CREANDO NUEVO CÓDIGO · VOLVÉ A COMPARTIR LA INVITACIÓN');
+      createRoom();return;
+    }
     if(!isGuest()){api.toast('CREÁ UNA SALA O UNITE CON UN CÓDIGO');return}
     o.net.attempts=0;o.net.retryAt=performance.now()+100;
     if(o.conn){const c=o.conn;o.conn=null;try{c.close()}catch(_){}}
@@ -645,7 +652,13 @@ if(Array.isArray(msg.environment)){
   }
   function register(conn){if(o.connections.size>=maxPlayers-1){send(conn,{t:'full'});conn.close();return}conn.on('open',()=>{o.connections.set(conn.peer,conn);o.localPositions.set(conn.peer,null);api.refreshHud?.();o.teams.set(conn.peer,o.gameMode==='capture'&&ctf.config.versus?'red':'blue');
     send(conn,{t:'welcome',id:conn.peer,players:o.connections.size+1,gameMode:o.gameMode,ctf:ctf.config,teams:Object.fromEntries(o.teams)});setNetwork('online','JUGADORES '+(o.connections.size+1)+' / '+maxPlayers);if(o.referenceReady)send(conn,{t:'reference',length:+o.referenceLength.toFixed(3)});teamUpdate();api.toast('JUGADOR CONECTADO · '+(o.connections.size+1)+' EN EQUIPO')});conn.on('data',msg=>{if(!msg||typeof msg!=='object'||typeof msg.t!=='string')return;
-    if(msg.t==='ping'&&Number.isFinite(msg.at))send(conn,{t:'pong',at:msg.at});
+    if(msg.t==='ping'&&Number.isFinite(msg.at)){
+      send(conn,{t:'pong',at:msg.at});
+      // Host may enter WebXR AFTER a guest calibrates. Reaffirm reference
+      // to recover from camera resets and out-of-order lobby setup.
+      if(o.referenceReady&&o.referenceLength>.85)
+        send(conn,{t:'reference',length:+o.referenceLength.toFixed(3)});
+    }
     if(msg.t==='teamShot'&&o.running&&o.ready&&o.origin){
       const t=performance.now(),last=o.lastShotAt.get(conn.peer)||0;
       const valid=(v,n=3)=>Array.isArray(v)&&v.length===n&&v.every(x=>Number.isFinite(x)&&Math.abs(x)<40);
@@ -727,6 +740,12 @@ if(Array.isArray(msg.environment)){
     if(m.t==='pong'&&Number.isFinite(m.at)){
       o.net.lastPong=performance.now();
       setNetwork('online','LATENCIA '+Math.round(Math.max(0,o.net.lastPong-m.at))+' ms');
+      // Periodic calibration report prevents host's waiting state from
+      // becoming permanent when one headset resets AR after the other.
+      if(o.referenceLength>.85)send(o.conn,{
+        t:'calibration',length:+o.referenceLength.toFixed(3),detected:true
+      });
+      if(o.ready&&!o.lastHostSnapshot)send(o.conn,{t:'syncRequest'});
     }
     if(m.t==='welcome'){o.myId=m.id;teamUpdate();
       if(m.gameMode)applyMode(m);
