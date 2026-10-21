@@ -10,6 +10,7 @@ import { steerEnemy, animateEnemy } from './walkers.js';
 import { tacticalDestination } from './tactical-behavior.js';
 import { createAdaptiveQuality } from './adaptive-quality.js';
 import { targetVisibility, findSafeSpawnPoints } from './visibility-guard.js';
+import { createArCompositor } from './ar-compositor.js';
 const $=id=>document.getElementById(id),rnd=(a,b)=>a+Math.random()*(b-a),clamp=THREE.MathUtils.clamp;
 const world=new THREE.Scene(),camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.01,60);
 const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});
@@ -27,6 +28,29 @@ const reticle=new THREE.Group();const ring=new THREE.Mesh(new THREE.RingGeometry
 let ar=null,local=null,source=null,mode='idle',placing=true,active=false,ended=false,pose=null,hitResult=null,surfaces=[],occluders=[],nests=[],enemies=[],orbs=[],trails=[],splinters=[],life=100,round=0,ammo=28,reloading=false,kills=0,seconds=480,newRound=0,now=0,previous=0,lastTouch=0,lastShot=0,monsterId=0,projectileId=0,toastExpiry=0,eventExpiry=0,drag=false,yaw=0,pitch=0,audio,mission=null,joystick={x:0,y:0};
 const ray=new THREE.Raycaster(),vec=new THREE.Vector3(),quat=new THREE.Quaternion(),getCam=()=>mode==='ar'?renderer.xr.getCamera(camera):camera;
 const combatFX=createCombatFX(world,getCam);
+// WebXR camera pose still comes from the native renderer. Actual scene
+// geometry is drawn into a transparent canvas inside the XR DOM overlay,
+// like the independently rendered weapon. This bypasses broken device
+// compositor paths while preserving true meter-based world transforms.
+const nativeXRScene=new THREE.Scene();
+let arCompositor=null;
+function openArCompositor(){
+ const container=$('arWorldOverlay');
+ if(arCompositor){container.classList.remove('hidden');return true}
+ try{
+   arCompositor=createArCompositor(THREE,container,1.2);
+   container.classList.remove('hidden');
+   return true;
+ }catch(err){
+   console.error('BLACKZONE V25: No se pudo iniciar renderizado 3D AR',err);
+   toast('ERROR DE GRÁFICOS 3D · '+(err?.message||'WEBGL'));
+   return false;
+ }
+}
+function closeArCompositor(){
+ arCompositor?.dispose();arCompositor=null;
+ $('arWorldOverlay').classList.add('hidden');
+}
 // Shared GPU resources, one per app instead of one per enemy projectile.
 const enemyTracerGeometry=new THREE.CapsuleGeometry(.025,.19,2,5);
 const enemyTracerMaterial=new THREE.MeshBasicMaterial({
@@ -271,7 +295,8 @@ function cleanup(){
  killFeedUntil=0;$('killFeed').classList.add('hidden');
  if(referenceAnchor){try{referenceAnchor.delete()}catch(_){}}referenceAnchor=null;
  if(referenceMarker){referenceMarker.parent?.remove(referenceMarker);referenceMarker.traverse(x=>{x.geometry?.dispose?.();if(x.material&&!Array.isArray(x.material))x.material.dispose?.()});referenceMarker=null}
- ctfTaggedUntil=0;rescueProtectedUntil=0;spawnQueue.length=0;nextSpawnTime=0;
+ ctfTaggedUntil=0;rescueProtectedUntil=0;rescueCombatArmed=mode!=='ar';
+ spawnQueue.length=0;nextSpawnTime=0;
  if(testMarker){testMarker.parent?.remove(testMarker);testMarker=null}
  $('renderStatus').classList.add('hidden');$('test3D').classList.add('hidden');$('zoneProximity').classList.add('hidden');$('ctfScoreboard').classList.add('hidden');$('navGuide').classList.add('hidden');$('netSignal').classList.add('hidden');spatialMap.clear();mapping=false;if(mapGhost)mapGhost.visible=false;if(mapFirstGhost)mapFirstGhost.visible=false;$('mapPanel').classList.add('hidden');mapFirst=null;mapPoint=null;mapStatus();for(const e of enemies){disposeHuman(e);e.root.parent?.remove(e.root)}for(const n of nests){try{n.anchor?.delete()}catch(e){}world.remove(n.root)}for(const i of [...orbs,...trails,...splinters])world.remove(i.mesh);nests=[];enemies=[];orbs=[];trails=[];splinters=[]}
 function reset(){mission?.reset();triggerHeld=false;aiming=false;aimBlend=0;$('aimMode').classList.remove('aimed');$('aimMode').textContent='MIRA ◎';$('sight').classList.remove('ads');if(mode==='demo'){camera.fov=65;camera.updateProjectionMatrix()}cleanup();placing=true;active=false;ended=false;round=0;kills=0;currentWeapon='rifle';magazines={rifle:28,pistol:12};ammo=28;if(gunReady)syncWeapon();reloading=false;seconds=480;life=100;newRound=0;pose=null;hitResult=null;previous=0;lastHudRefresh=0;lastReferenceUpdate=0;ui();toast('APUNTÁ AL PISO Y TOCÁ MARCAR ENTRADA')}
@@ -358,7 +383,7 @@ function placeHostage(){
  if(mission?.placeHostage(where)){hud(true);tone('hit');toast('REHÉN UBICADO ✓ · EMPEZÁ EL RESCATE')}
 }
 const spawnQueue=[];
-let nextSpawnTime=0,rescueProtectedUntil=0;
+let nextSpawnTime=0,rescueProtectedUntil=0,rescueCombatArmed=true;
 // Do not begin the hostage operation with eight armed enemies around the
 // player's shoulders. The first seconds are for camera orientation.
 const RESCUE_OPENING_MS=12500,RESCUE_FIRST_SPAWN_MS=7400;
@@ -482,6 +507,7 @@ function begin(){
  if(!gunReady)buildGun();combatFX.unlock();
  if(!active){
   active=true;round=0;
+  rescueCombatArmed=mode!=='ar'||mission?.isCapture?.();
   if(!mission?.isCapture?.()){
    rescueProtectedUntil=performance.now()+RESCUE_OPENING_MS;
    if(!mission?.isGuest())wave(5,false);
@@ -489,8 +515,8 @@ function begin(){
  }
  placing=false;ui();mission?.ui();
  if(!mission?.isCapture?.()){
-   event('INICIO PROTEGIDO · UBICÁ AL REHÉN');
-   toast('12 S SIN DAÑO · MIRÁ HACIA EL REHÉN, PREPARÁ TU MIRA');
+   event('COMBATE PAUSADO · PRIMERO COMPROBÁ QUE VES LOS BOTS');
+   toast('SEGURO: EL COMBATE NO COMIENZA HASTA QUE LO CONFIRMES');
  }
 }
 function more(){placing=true;ui();toast('Localizá otra superficie; la amenaza sigue activa.')}
@@ -680,7 +706,7 @@ function reload(){if(!active||ended||reloading||ammo===capacity())return;
  reloading=true;gunReload();tone('hit');toast('RECARGANDO '+(currentWeapon==='rifle'?'CARBINA':'PISTOLA')+'…');
  const type=currentWeapon;setTimeout(()=>{if(ended)return;magazines[type]=type==='rifle'?28:12;if(type===currentWeapon)ammo=magazines[type];reloading=false;hud()},currentWeapon==='rifle'?1600:1200);
 }
-function damage(value){if(!mission?.isCapture?.()&&rescueProtectionLeft()>0)return;if(mission?.shielded())return;life=Math.max(0,life-value);$('damage').classList.add('active');setTimeout(()=>$('damage').classList.remove('active'),180);tone('hurt');vibrate([90,35,90]);hud();if(life===0)finish(false)}
+function damage(value){if(!mission?.isCapture?.()&&(!rescueCombatArmed||rescueProtectionLeft()>0))return;if(mission?.shielded())return;life=Math.max(0,life-value);$('damage').classList.add('active');setTimeout(()=>$('damage').classList.remove('active'),180);tone('hurt');vibrate([90,35,90]);hud();if(life===0)finish(false)}
 function finishCTF(winner,myTeam,state){
  if(ended)return;
  ended=true;active=false;placing=false;triggerHeld=false;
@@ -809,7 +835,7 @@ function updateBattle(dt,t){
  if(!active||ended)return;
  if(mission?.isCapture?.()){hud();return}
  if(mission?.isGuest()){hud();return}
- seconds=Math.max(0,seconds-dt);
+ if(rescueCombatArmed)seconds=Math.max(0,seconds-dt);
  if(!seconds){finish(false);return}
  const eye=new THREE.Vector3();getCam().getWorldPosition(eye);
  let near=false,shooting=0;
@@ -851,13 +877,13 @@ function updateBattle(dt,t){
    const camForward=new THREE.Vector3();getCam().getWorldDirection(camForward);
    const toEnemy=worldPosition.clone().sub(eye).normalize();
    const onScreen=targetVisibility({position:eye,forward:camForward},firingPoint,{cone:.79,distance:8.5}).visible;
-   if(exposed&&onScreen&&e.root.visible&&rescueProtectionLeft(t)===0&&t>e.next&&worldPosition.distanceTo(target)<8.5&&
+   if(rescueCombatArmed&&exposed&&onScreen&&e.root.visible&&rescueProtectionLeft(t)===0&&t>e.next&&worldPosition.distanceTo(target)<8.5&&
      !spatialMap.lineBlocked(firingPoint,target,.05)){
    e.burst=3+(e.boss?1:0);
    e.burstAt=t;
    e.next=t+rnd(3800,5900);
   }
-  if(exposed&&onScreen&&e.root.visible&&rescueProtectionLeft(t)===0&&e.burst>0&&t>=(e.burstAt||0)&&shooting<4&&orbs.length<42){
+  if(rescueCombatArmed&&exposed&&onScreen&&e.root.visible&&rescueProtectionLeft(t)===0&&e.burst>0&&t>=(e.burstAt||0)&&shooting<4&&orbs.length<42){
    e.burst--;
    e.burstAt=t+rnd(160,235);
    shooting++;
@@ -878,9 +904,10 @@ function updateBattle(dt,t){
    combatFX.shot(from,true,'rifle');
   }
  }
- const countdown=rescueProtectionLeft(t);
- $('alert').classList.toggle('hidden',!near&&!countdown);
- $('alert').textContent=countdown?'PROTECCIÓN INICIAL · '+countdown+' S':'⚠ MOVIMIENTO HOSTIL';
+ const countdown=rescueProtectionLeft(t),waitingConfirm=mode==='ar'&&!rescueCombatArmed;
+ $('alert').classList.toggle('hidden',!near&&!countdown&&!waitingConfirm);
+ $('alert').textContent=waitingConfirm?'COMBATE PAUSADO · CONFIRMÁ QUE VES LOS ENEMIGOS':
+ countdown?'PROTECCIÓN INICIAL · '+countdown+' S':'⚠ MOVIMIENTO HOSTIL';
  for(let i=orbs.length-1;i>=0;i--){
   const shot=orbs[i];
   const before=shot.mesh.position.clone();
@@ -1090,7 +1117,7 @@ function joyMove(e){const r=movementPad.getBoundingClientRect(),dx=(e.clientX-r.
 movementPad.addEventListener('pointerdown',e=>{e.preventDefault();movementPad.setPointerCapture(e.pointerId);joyMove(e)});movementPad.addEventListener('pointermove',e=>{if(movementPad.hasPointerCapture(e.pointerId))joyMove(e)});movementPad.addEventListener('pointerup',joyZero);movementPad.addEventListener('pointercancel',joyZero);
 window.addEventListener('keydown',e=>{if(['KeyW','ArrowUp'].includes(e.code))movementKeys.forward=true;if(['KeyS','ArrowDown'].includes(e.code))movementKeys.back=true;if(['KeyA','ArrowLeft'].includes(e.code))movementKeys.left=true;if(['KeyD','ArrowRight'].includes(e.code))movementKeys.right=true});
 window.addEventListener('keyup',e=>{if(['KeyW','ArrowUp'].includes(e.code))movementKeys.forward=false;if(['KeyS','ArrowDown'].includes(e.code))movementKeys.back=false;if(['KeyA','ArrowLeft'].includes(e.code))movementKeys.left=false;if(['KeyD','ArrowRight'].includes(e.code))movementKeys.right=false});
-mission=createMission({scene:world,getCam,toast,event,teammateShot,resolveTeammateShot,confirmedRemoteShot,teamElimination,kills:()=>kills,active:()=>active,getMode:()=>mode,rescueProtected:()=>rescueProtectionLeft()>0,firstNest:()=>nests[0],refreshHud:()=>hud(true),
+mission=createMission({scene:world,getCam,toast,event,teammateShot,resolveTeammateShot,confirmedRemoteShot,teamElimination,kills:()=>kills,active:()=>active,getMode:()=>mode,rescueProtected:()=>!rescueCombatArmed||rescueProtectionLeft()>0,firstNest:()=>nests[0],refreshHud:()=>hud(true),
  exportEnvironment:origin=>spatialMap.exportData(origin),
  importEnvironment:(items,origin)=>{if(!mission?.isGuest())return;spatialMap.importData(items,origin);spatialMap.setVisible(false);mapStatus()},
  environmentCanMove:(from,to,radius)=>spatialMap.canMove(from,to,radius),
