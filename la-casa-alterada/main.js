@@ -23,10 +23,11 @@ let ar=null,local=null,source=null,mode='idle',placing=true,active=false,ended=f
 const ray=new THREE.Raycaster(),vec=new THREE.Vector3(),quat=new THREE.Quaternion(),getCam=()=>mode==='ar'?renderer.xr.getCamera(camera):camera;
 const combatFX=createCombatFX(world,getCam);
 const spatialMap=createSpatialMap(THREE,world);
-let mapping=false,mapKind='wall',mapFirst=null,mapPoint=null,mapDepth=null,mapDepthSource='none',mapManualDistance=1.8,mapPointQuality='manual';
+let mapping=false,mapKind='wall',mapFirst=null,mapPoint=null,mapDepth=null,mapDepthSource='none',mapManualDistance=1.8,mapPointQuality='manual',lastMapUI=0;
 const mapHint=$('mapInstruction');
 function mapStatus(){
- $('environmentStatus').textContent='MAPA: '+spatialMap.walls.length+' PAREDES / '+spatialMap.boxes.length+' MUEBLES · '+(mapDepthSource==='cpu'?'PROFUNDIDAD':'PLANOS');
+ const value='MAPA: '+spatialMap.walls.length+' PAREDES / '+spatialMap.boxes.length+' MUEBLES · '+(mapDepthSource==='cpu'?'PROFUNDIDAD':mapPointQuality==='manual'?'MANUAL':'PLANOS');
+ if($('environmentStatus').textContent!==value)$('environmentStatus').textContent=value;
 }
 function mapControls(){
  if(mapping&&!mapPoint){
@@ -36,6 +37,7 @@ function mapControls(){
    mapPointQuality=mapDepth?'depth':'manual';
    reticle.position.copy(mapPoint);reticle.visible=true;
  }
+ const time=performance.now();if(time-lastMapUI<125)return;lastMapUI=time;
  $('mapMethod').textContent=mapPointQuality==='plane'?'PLANO REAL DETECTADO':mapPointQuality==='depth'?'PROFUNDIDAD MEDIDA':'MANUAL APROXIMADO · AJUSTÁ LA DISTANCIA';
  $('mapPanel').classList.toggle('hidden',!mapping);
  $('mapWall').classList.toggle('active',mapKind==='wall');
@@ -48,7 +50,7 @@ function mapControls(){
 }
 function toggleMap(enabled){
  if(!nests.length&&enabled){toast('FIJÁ PRIMERO LA ENTRADA EN EL PISO');return}
- mapping=enabled;mapFirst=null;mapPoint=null;spatialMap.setVisible(enabled);
+ mapping=enabled;mapFirst=null;mapPoint=null;lastMapUI=0;spatialMap.setVisible(enabled);
  if(!mapping){$('mapPanel').classList.add('hidden');toast('MAPA GUARDADO · LOS ENEMIGOS EVITARÁN LOS OBSTÁCULOS')}
  else toast('MAPEO ACTIVADO · MARCÁ DOS EXTREMOS POR OBSTÁCULO');
  mapControls();
@@ -217,7 +219,7 @@ function updateBattle(dt,t){
   if(target===eye&&e.floor){
     e.screenDistance=Math.hypot(target.x-e.root.position.x,target.z-e.root.position.z);
   }
-  const moved=steerEnemy(e,dt,t,target,mode,spatialMap);
+  const moved=steerEnemy(e,dt,t,target,mode,spatialMap,enemies);
   animateEnemy(e,dt,moved);
   animateHuman(e,dt,moved);
   const worldPosition=new THREE.Vector3();e.root.getWorldPosition(worldPosition);
