@@ -139,3 +139,11 @@
 #interact:not(.hidden){min-height:55px;min-width:154px;border-radius:10px;font-size:12px;box-shadow:0 5px 19px #0008}
 @media(max-width:390px){#fight{gap:5px}.weaponInfo{min-width:69px}.weaponInfo small{font-size:8px}.weaponInfo b{font-size:25px}.weaponInfo b span{font-size:10px}.combatButtons{gap:4px}.combatButtons .mini{padding:6px;min-height:46px;font-size:10px}.combatButtons .actionReload{min-width:40px;font-size:21px}.combatButtons .actionAim{min-width:55px}.combatButtons .trigger{width:90px;height:76px;font-size:10px}.combatButtons .trigger strong{font-size:27px}}
 @media(orientation:landscape){#fight{min-height:52px}.combatButtons .trigger{height:62px}.weaponInfo{padding:0}}
+
+/* V12 — uncluttered objective bearing and network confidence */
+.navGuide{position:absolute;top:calc(50% - 112px);left:50%;transform:translateX(-50%);z-index:3;pointer-events:none;display:flex;align-items:center;gap:9px;padding:7px 11px;border:1px solid #88ccba8c;border-radius:10px;background:#081b24d9;color:#e7fff2;box-shadow:0 8px 25px #0007;min-width:140px;justify-content:center}
+.navArrow{font-size:25px;line-height:1;display:flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid #69b9a28c;background:#18544775;border-radius:50%;color:#a1f2d5;transition:transform .16s ease-out}
+.navCopy{display:flex;flex-direction:column;gap:3px;min-width:68px;white-space:nowrap}.navCopy strong{font-size:10px;letter-spacing:.1em}.navCopy span{font-size:11px;color:#b1e6dc;font-variant-numeric:tabular-nums}
+.netSignal{position:absolute;right:12px;top:calc(89px + env(safe-area-inset-top));z-index:5;background:#573427dd;border:1px solid #e1a178;border-radius:6px;padding:6px 9px;color:#ffe1ba;font-size:9px;font-weight:800;letter-spacing:.06em;pointer-events:none;max-width:125px;text-align:center;line-height:1.4}
+.netSignal.good{background:#12362bcb;color:#bdf0d6;border-color:#6dac95}
+@media(max-width:380px){.navGuide{top:calc(50% - 104px);padding:6px 8px}.navArrow{width:30px;height:30px;font-size:23px}.netSignal{right:7px;top:calc(91px + env(safe-area-inset-top));font-size:8px;max-width:102px}}
