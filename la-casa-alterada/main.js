@@ -334,7 +334,7 @@ function damageEnemy(e,amount=1,headshot=false,shooterId=null){if(!e?.alive)retu
 function fire(){if(mapping||!active||ended||placing||reloading)return;if(ammo===0){reload();return}let t=performance.now();if(t-lastShot<(currentWeapon==='rifle'?105:170))return;lastShot=t;ammo--;gunShot();combatFX.shot(null,false,currentWeapon);vibrate(35);hud();const c=getCam(),p=new THREE.Vector3(),q=new THREE.Quaternion();c.getWorldPosition(p);c.getWorldQuaternion(q);const forward=new THREE.Vector3(0,0,-1).applyQuaternion(q);ray.set(p,forward);ray.far=12;mission?.relayShot(p,forward);const hits=ray.intersectObjects(enemies.filter(e=>e.alive).flatMap(e=>e.headHit?[e.hit,e.headHit]:[e.hit]),false);const cover=mode==='demo'?ray.intersectObjects(occluders,false)[0]:null;let end=p.clone().addScaledVector(forward,7);const geometryHit=spatialMap.lineBlocked(p,hits[0]?.point||end,.03);
  if(geometryHit||cover&&(!hits.length||cover.distance<hits[0].distance)){
    if(cover)end.copy(cover.point);combatFX.dust(end,11);
- }else if(hits.length){const h=hits[0],e=h.object.userData.enemy;end.copy(h.point);impact(end);combatFX.dust(end,5);tone('hit');const headshot=h.object.userData.part==='head';
+ }else if(hits.length){const h=hits[0],e=h.object.userData.enemy;end.copy(h.point);if(!mission?.isGuest()){impact(end);combatFX.dust(end,5);tone('hit')}const headshot=h.object.userData.part==='head';
  // Guests receive hit confirmation only after the host validates the shot.
  if(!mission?.isGuest()){hitConfirm(headshot);damageEnemy(e,headshot?3:1,headshot)}}trail(weaponMuzzleOrigin(c),end);if(ammo===0)setTimeout(reload,240)}
 function reload(){if(!active||ended||reloading||ammo===capacity())return;
