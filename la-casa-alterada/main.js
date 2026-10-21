@@ -137,31 +137,72 @@ function vibrate(a){try{navigator.vibrate?.(a)}catch(e){}}
 function tone(type){try{audio??=new (window.AudioContext||window.webkitAudioContext)();audio.resume();const o=audio.createOscillator(),o2=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.type='sawtooth';o2.type='triangle';const f=type==='fire'?145:type==='hurt'?76:440;o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(type==='fire'?36:55,t+.18);o2.frequency.setValueAtTime(f*1.6,t);o2.frequency.exponentialRampToValueAtTime(50,t+.16);g.gain.setValueAtTime(type==='fire'?.13:.055,t);g.gain.exponentialRampToValueAtTime(.0001,t+.2);o.connect(g);o2.connect(g);g.connect(audio.destination);o.start(t);o2.start(t);o.stop(t+.21);o2.stop(t+.20)}catch(e){}}
 function toast(s){$('toast').textContent=s;$('toast').classList.add('show');toastExpiry=performance.now()+2100}
 function event(s){$('event').textContent=s;$('event').classList.remove('hidden');eventExpiry=performance.now()+2400;vibrate([60,30,75])}
-let lastHudRefresh=0,referenceMarker=null,referenceAnchor=null,lastReferenceUpdate=0;
+
+let lastHudRefresh=0,referenceMarker=null,referenceAnchor=null,lastReferenceUpdate=0,ctfTaggedUntil=0;
 function hud(force=false){
  const t=performance.now();if(!force&&t-lastHudRefresh<85)return;lastHudRefresh=t;
  const guest=!!mission?.isGuest(),alignment=mission?.alignmentStatus?.(),needsB=!!alignment?.needsSecond;
  const hasEntrance=nests.length>0,hostageReady=!!mission?.hasHostage();
- const stage=!hasEntrance?0:needsB?1:!hostageReady?2:3;
- const awaitingHost=guest&&needsB&&alignment?.referenceLength>0&&alignment?.quality==='waiting';
- const teammates=mission?.teamCalibration?.();
- $('smartPlace').classList.toggle('hidden',stage===3||(stage===2&&guest)||awaitingHost);
+ const team=mission?.captureStatus?.(),ctf=mission?.isCapture?.();
+ const teamReady=mission?.teamCalibration?.();
+ let stage,stepText,guide,detail,action;
+ if(ctf){
+   const bases=team?.bases||{};
+   stage=!hasEntrance?0:needsB?1:!bases.blue?2:!bases.red?3:4;
+   const labels=['◎ MARCAR PUNTO A','◎ MARCAR PUNTO B','◎ COLOCAR BANDERA AZUL','◎ COLOCAR BANDERA ROJA','✓ BANDERAS LISTAS'];
+   action=labels[stage];
+   stepText=['PASO 1 · ENTRADA','PASO 2 · ORIENTACIÓN','PASO 3 · BASE AZUL','PASO 4 · BASE ROJA','LISTOS PARA CAPTURAR'][stage];
+   guide=stage===0?'Apuntá al piso para marcar el punto A':stage===1?'Marcá el mismo punto B que tu equipo':
+     stage===2?'Colocá la bandera de tu equipo':stage===3?'Colocá la bandera enemiga':'Dos bases confirmadas';
+   detail=stage===0?'Todos marquen exactamente el mismo punto físico.':
+    stage===1?'Punto B a 1–7 metros de A. Todos usan los mismos puntos.':
+    stage===2?'Apuntá al piso y elegí dónde defenderás tu bandera azul.':
+    stage===3?'Elegí la base roja, separada al menos 1,6 metros.':
+    teamReady?.ready===false?'Esperando: '+teamReady.done+' de '+teamReady.total+' compañeros calibrados.':
+    'Capturá la bandera rival y regresá a la tuya. ¡Primero en llegar a 3 puntos gana!';
+   const sc=team?.scores||{blue:0,red:0};
+   $('ctfScoreboard').classList.remove('hidden');
+   $('ctfBlueScore').textContent='AZUL '+sc.blue;
+   $('ctfRedScore').textContent=sc.red+' ROJO';
+   const flags=team?.flags||{};
+   const holder=Object.keys(flags).find(t=>flags[t]?.carrier);
+   $('ctfFlagStatus').textContent=holder?'BANDERA '+(holder==='blue'?'AZUL':'ROJA')+' ROBADA':
+     team?.winner?'RONDA TERMINADA':'PRIMER EQUIPO CON 3 CAPTURAS';
+ }else{
+   $('ctfScoreboard').classList.add('hidden');
+   stage=!hasEntrance?0:needsB?1:!hostageReady?2:3;
+   const awaitingHost=guest&&needsB&&alignment?.referenceLength>0&&alignment?.quality==='waiting';
+   action=['◎ MARCAR PUNTO A','◎ MARCAR PUNTO B','◎ COLOCAR REHÉN','✓ POSICIÓN LISTA'][stage];
+   stepText=['PASO 1 · ENTRADA','PASO 2 · ORIENTACIÓN','PASO 3 · REHÉN','LISTOS PARA RESCATAR'][stage];
+   guide=stage===0?'Todos apunten al mismo lugar del piso':stage===1?(awaitingHost?'Punto B marcado · esperando al anfitrión':'Apunten al MISMO segundo punto del piso'):stage===2?(guest?'Esperá que el anfitrión coloque al rehén':'Elegí dónde estará el rehén'):(guest?'El anfitrión comienza la partida':'Posiciones compartidas configuradas');
+   detail=stage===0?'Marcá el punto A, por ejemplo junto a una esquina. Todos usan el mismo.':
+    stage===1?(alignment?.quality==='mismatch'?'La separación no coincide. Repetí B.':'Elegí un punto B a 1–7 metros del A, el mismo para todos.'):
+    stage===2?'Podés mapear paredes o muebles antes de empezar; es opcional.':
+    teamReady?.ready===false?'Esperando al equipo: '+teamReady.done+' de '+teamReady.total+' compañeros calibrados.':
+    'Todos verán los mismos enemigos y al mismo rehén.';
+ }
+ const waiting=guest&&needsB&&alignment?.referenceLength>0&&alignment?.quality==='waiting';
+ const stageDone=ctf?stage===4:stage===3;
+ $('smartPlace').classList.toggle('hidden',stageDone||guest&&stage>=2||waiting);
  $('smartPlace').disabled=active;
- const captions=['◎ MARCAR PUNTO A','◎ MARCAR PUNTO B','◎ COLOCAR REHÉN','✓ POSICIÓN LISTA'];
- $('smartPlace').textContent=captions[stage];
+ $('smartPlace').textContent=action;
  $('mapToggle').classList.toggle('hidden',!hasEntrance||needsB||guest||active);
- $('begin').classList.toggle('hidden',stage!==3||guest);
- $('setupStep').textContent=stage===0?'PASO 1 · ENTRADA':stage===1?'PASO 2 · ORIENTACIÓN':stage===2?'PASO 3 · REHÉN':'LISTOS PARA RESCATAR';
- $('setupGuide').textContent=stage===0?'Todos apunten al mismo lugar del piso':stage===1?(awaitingHost?'Punto B marcado · esperando al anfitrión':'Apunten al MISMO segundo punto del piso'):stage===2?(guest?'Esperá que el anfitrión coloque al rehén':'Elegí dónde estará el rehén'):(guest?'El anfitrión comienza la partida':'Posiciones compartidas configuradas');
- $('setupDetail').textContent=stage===0?'Marcá el punto A, por ejemplo junto a una esquina. Todos usan el mismo.':stage===1?(alignment?.quality==='mismatch'?'La separación no coincide con el anfitrión. Volvé a marcar B.':awaitingHost?'No hace falta repetir B: el juego lo confirmará al recibir los datos del anfitrión.':'Elegí un punto B a 1–7 m del A, por ejemplo otra baldosa. Todos deben marcar exactamente los mismos A y B.'):stage===2?'Podés mapear paredes o muebles antes de empezar; es opcional.':teammates?.ready===false?'Esperando al equipo: '+teammates.done+' de '+teammates.total+' compañeros calibrados.':'Todos verán los mismos enemigos y al mismo rehén.';
+ $('begin').classList.toggle('hidden',!stageDone||guest);
+ $('setupStep').textContent=stepText;
+ $('setupGuide').textContent=guide;
+ $('setupDetail').textContent=detail;
  $('hostage').disabled=!hasEntrance||needsB||guest||active;
- $('begin').disabled=!hasEntrance||needsB||!hostageReady||guest||teammates?.ready===false;
+ $('begin').disabled=!stageDone||guest||teamReady?.ready===false;
  $('health').textContent=Math.ceil(life)+'%';$('healthBar').style.width=life+'%';
- $('wave').textContent=round?String(round).padStart(2,'0'):'—';
- $('clock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(Math.max(0,Math.floor(seconds%60))).padStart(2,'0');
- const ammoHtml=ammo+'<span> / '+capacity()+'</span>';if($('ammo').innerHTML!==ammoHtml)$('ammo').innerHTML=ammoHtml;
- $('nestCount').textContent=!hasEntrance?'PUNTO A PENDIENTE':needsB?'A ✓ · FALTA B':hostageReady?'A ✓ · B ✓ · REHÉN ✓':'ALINEACIÓN ✓';
- $('begin').textContent='▶ EMPEZAR RESCATE';
+ $('wave').textContent=ctf?'CTF':round?String(round).padStart(2,'0'):'—';
+ const clock=ctf?(team?.clock??480):seconds;
+ $('clock').textContent=String(Math.floor(clock/60)).padStart(2,'0')+':'+String(Math.max(0,Math.floor(clock%60))).padStart(2,'0');
+ const ammoHtml=ammo+'<span> / '+capacity()+'</span>';
+ if($('ammo').innerHTML!==ammoHtml)$('ammo').innerHTML=ammoHtml;
+ $('nestCount').textContent=!hasEntrance?'PUNTO A PENDIENTE':needsB?'A ✓ · FALTA B':
+  ctf?stage===2?'A ✓ · B ✓ · FALTA BANDERA AZUL':stage===3?'AZUL ✓ · FALTA BANDERA ROJA':'AMBAS BANDERAS ✓':
+  hostageReady?'A ✓ · B ✓ · REHÉN ✓':'ALINEACIÓN ✓';
+ $('begin').textContent=ctf?'▶ EMPEZAR CAPTURA':'▶ EMPEZAR RESCATE';
 }
 function ui(){if(mapping){$('mapPanel').classList.remove('hidden')}$('swapGun').classList.toggle('hidden',!active);$('setup').classList.toggle('hidden',!placing);$('fight').classList.toggle('hidden',placing);$('gunCanvas').classList.toggle('hidden',!active);$('hint').classList.toggle('hidden',!placing);$('sightText').textContent=placing?'APUNTÁ AL PISO':'';hud(true)}
 function cleanup(){
