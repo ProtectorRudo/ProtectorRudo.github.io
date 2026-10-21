@@ -111,7 +111,7 @@ export function createMission(api){
   }
   function reset(){if(o.hostageActor){disposeHuman(o.hostageActor);o.hostageActor.root.parent?.remove(o.hostageActor.root)}o.hostageActor=null;o.hostagePos=null;o.lastEnvironment=null;o.routeCache=null;o.routeCacheAt=0;o.routeTarget=null;o.hostageHealth=100;o.hostageShieldUntil=0;o.rescueHoldStart=0;o.hostageRescued=false;o.escortPlayer=null;o.running=false;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;o.ready=false;o.startedByHost=false;o.localPositions.clear();o.shields.clear();o.lastSnap=0;o.lastSnapshotSeq=-1;o.snapshotSeq=0;o.lastShotAt.clear();o.enemySeq=0;o.origin?.parent?.remove(o.origin);o.origin=null;removeRemote();ui();}
   function start(){if(!o.ready){api.toast('Primero fijá un punto común en el piso');return false}if(isGuest()){if(!o.startedByHost){api.toast('Esperá a que el anfitrión comience');return false}o.running=true;ui();return true}if(!o.hostagePos){api.toast('COLOCÁ UN REHÉN ANTES DE INICIAR');return false}o.running=true;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;broadcast({t:'start',hostage:P(o.hostagePos)});api.event('MISIÓN 01 · LOCALIZAR Y LIBERAR AL REHÉN');ui();return true;}
-  function setPhase(n){if(isGuest())return;o.phase=n;o.spawnAfter=0;if(n===0)api.event('REHÉN EXTRAÍDO · DESACTIVEN LAS CARGAS');if(n===1){api.event('MISIÓN 02 · INTRUSOS LOCALIZADOS');api.spawn(8,false)}if(n===2){o.held=40;o.spawnAfter=performance.now()+6000;api.event('MISIÓN 03 · ASEGURAR PERÍMETRO')}if(n===3){api.event('MISIÓN FINAL · JEFE LOCALIZADO');api.spawn(1,true)}if(n===4){o.finished=true;api.victory(true)}broadcast({t:'phase',phase:n,mask:o.mask,held:o.held});ui()}
+  function setPhase(n){if(isGuest())return;o.phase=n;o.spawnAfter=0;if(n===0)api.event('REHÉN EXTRAÍDO · DESACTIVEN LAS CARGAS');if(n===1){api.event('MISIÓN 02 · INTRUSOS LOCALIZADOS');api.spawn(8,false)}if(n===2){o.held=40;o.spawnAfter=performance.now()+6000;api.event('MISIÓN 03 · ASEGURAR PERÍMETRO')}if(n===3){api.event('MISIÓN FINAL · JEFE LOCALIZADO');api.spawn(1,true)}if(n===4){o.finished=true;api.event('REHÉN EVACUADO · EQUIPO GANADOR');api.victory(true)}broadcast({t:'phase',phase:n,mask:o.mask,held:o.held});ui()}
   function onKill(){if(o.running&&isHost()&&o.phase===1&&api.enemies().filter(e=>e.alive).length===0&&!api.spawnPending?.())setPhase(2);if(o.running&&isHost()&&o.phase===3&&api.enemies().filter(e=>e.alive).length===0)setPhase(4)}
 
   function hostageWorld(){
@@ -197,6 +197,9 @@ if(Array.isArray(msg.environment)){
     const known=new Set();for(const p of msg.players||[]){if(p.id===o.myId||!Array.isArray(p.pos))continue;known.add(p.id);let g=o.remoteAvatar.get(p.id);if(!g){g=avatar();o.origin.add(g);o.remoteAvatar.set(p.id,g)}const target=from(p.pos);g.position.lerp(target,.5)}for(const [id,g] of o.remoteAvatar)if(!known.has(id)){g.parent?.remove(g);o.remoteAvatar.delete(id)}ui()}
   function makeSnapshot(){const players=[{id:o.myId,pos:P(position()||new THREE.Vector3())}];for(const [id,p] of o.localPositions)players.push({id,pos:P(p)});return{t:'snapshot',seq:++o.snapshotSeq,phase:o.phase,mask:o.mask,held:Math.round(o.held),running:o.running,finished:o.finished,environment:api.exportEnvironment?.(o.origin)||[],hostage:o.hostagePos?P(o.hostagePos):null,hostageHP:o.hostageHealth,rescued:o.hostageRescued,enemies:getEnemyState(),bullets:api.projectiles().map((b,i)=>{const p=b.mesh.position.clone();o.origin.worldToLocal(p);return{id:b.id||i,p:P(p),power:b.power}}),players,clock:api.clock(),wave:api.wave()}}
 
+  function relayEnemyDown(id){
+    if(isHost()&&Number.isInteger(id))broadcast({t:'enemyDown',id});
+  }
   function relayShot(worldOrigin,worldDirection){
     if(!o.running||!o.origin||!worldOrigin||!worldDirection)return;
     const shotPos=o.origin.worldToLocal(worldOrigin.clone());
@@ -220,9 +223,13 @@ if(Array.isArray(msg.environment)){
       const t=performance.now(),last=o.lastShotAt.get(conn.peer)||0;
       if(t-last>=95&&Array.isArray(msg.p)&&Array.isArray(msg.d)&&msg.p.length===3&&msg.d.length===3){
         o.lastShotAt.set(conn.peer,t);
-        const packet={t:'teamShot',id:conn.peer,p:msg.p,d:msg.d};
-        playTeamShot(packet);
-        broadcast(packet);
+        const sender=o.localPositions.get(conn.peer);
+        const location=from(msg.p);
+        if(sender&&location.distanceTo(sender)<1.65){
+          const packet={t:'teamShot',id:conn.peer,p:msg.p,d:msg.d};
+          playTeamShot(packet);
+          broadcast(packet);
+        }
       }
     }
     if(msg.t==='syncRequest'&&o.origin){
@@ -233,12 +240,16 @@ if(Array.isArray(msg.environment)){
     if(msg.t==='move'&&Array.isArray(msg.p)&&msg.p.length===3&&msg.p.every(v=>Number.isFinite(v)&&Math.abs(v)<50))o.localPositions.set(conn.peer,from(msg.p));
     if(msg.t==='interact')doInteract(conn.peer);
     if(msg.t==='ability'&&typeof msg.kind==='string')receiveAbility(conn.peer,msg.kind,true);
-    if(msg.t==='hit'&&Number.isInteger(msg.id)){const p=o.localPositions.get(conn.peer);const e=api.enemies().find(e=>e.id===msg.id&&e.alive);if(p&&e){const w=new THREE.Vector3();e.root.getWorldPosition(w);o.origin?.worldToLocal(w);const k=conn.peer+':hit',t=performance.now();if(p.distanceTo(w)<12&&(o.lastActions.get(k)||0)<t){o.lastActions.set(k,t+120);api.damageEnemy(e,msg.head===true?3:1,msg.head===true)}}}
+    if(msg.t==='hit'&&Number.isInteger(msg.id)){const p=o.localPositions.get(conn.peer);const e=api.enemies().find(e=>e.id===msg.id&&e.alive);if(p&&e){const w=new THREE.Vector3();e.root.getWorldPosition(w);o.origin?.worldToLocal(w);const k=conn.peer+':hit',t=performance.now();if(p.distanceTo(w)<12&&!api.hasCover?.(originToWorld(p),originToWorld(w))&&(o.lastActions.get(k)||0)<t){o.lastActions.set(k,t+120);api.damageEnemy(e,msg.head===true?3:1,msg.head===true)}}}
   });conn.on('close',()=>{o.connections.delete(conn.peer);o.localPositions.delete(conn.peer);teamUpdate();api.toast('UN JUGADOR SALIÓ DEL EQUIPO')});conn.on('error',()=>{o.connections.delete(conn.peer);o.localPositions.delete(conn.peer);teamUpdate()})}
   function joinConnection(conn){o.conn=conn;conn.on('open',()=>{o.joined=true;teamUpdate();lobby('Conectado al anfitrión. Calibren el mismo punto del piso y miren hacia la misma pared.');api.toast('CONEXIÓN COOPERATIVA ESTABLECIDA')});conn.on('data',m=>{if(!m||typeof m!=='object')return;
     if(m.t==='welcome'){o.myId=m.id;teamUpdate()}
     if(m.t==='snapshot')receiveSnapshot(m);
     if(m.t==='teamShot')playTeamShot(m);
+    if(m.t==='enemyDown'&&Number.isInteger(m.id)){
+      const e=o.remoteEnemy.get(m.id);
+      if(e){e.alive=false;e.root.visible=false}
+    }
     if(m.t==='start'){o.startedByHost=true;if(Array.isArray(m.hostage))syncHostage(m.hostage,false);if(o.ready)api.remoteStart()}
     if(m.t==='phase'){o.phase=m.phase;o.mask=m.mask;o.held=m.held;if(m.rescued){o.hostageRescued=true;if(o.hostageActor){o.hostageActor.hostage=false;playHuman(o.hostageActor,'walk')}}ui()}
     if(m.t==='hostage'){syncHostage(m.pos,m.rescued);ui()}
@@ -302,7 +313,8 @@ if(Array.isArray(msg.environment)){
         }
         const playerDistance=Math.hypot(player.x,player.z);
         if(Math.hypot(current.x,current.z)<1.75&&playerDistance<1.2){
-          o.hostageRescued=true;setPhase(0);
+          // Counter-terrorist hostage round: extracting alive wins the shared round.
+          o.hostageRescued=true;setPhase(4);
         }
         o.hostagePos.copy(current);
       }
@@ -338,5 +350,5 @@ if(Array.isArray(msg.environment)){
   interact.addEventListener('pointercancel',holdEnd);
   interact.addEventListener('lostpointercapture',()=>{if(o.rescueHoldStart&&performance.now()-o.rescueHoldStart>1000)holdEnd()});
   $('createRoom').addEventListener('click',createRoom);$('joinRoom').addEventListener('click',joinRoom);$('copyRoom').addEventListener('click',copyCode);$('pulse').addEventListener('click',()=>abilityNow('pulse'));$('shield').addEventListener('click',()=>abilityNow('shield'));$('heal').addEventListener('click',()=>abilityNow('heal'));
-  teamUpdate();ui();return{align,reset,start,relayShot,placeHostage,hostageWorld,hostageExposed:()=>o.running&&o.phase<0&&o.hostageHealth>0,damageHostage,healHostage,hasHostage:()=>!!o.hostagePos,isGuest,isHost,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result})},remoteHit:(id,head=false)=>send(o.conn,{t:'hit',id,head:!!head}),localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
+  teamUpdate();ui();return{align,reset,start,relayShot,relayEnemyDown,placeHostage,hostageWorld,hostageExposed:()=>o.running&&o.phase<0&&o.hostageHealth>0,damageHostage,healHostage,hasHostage:()=>!!o.hostagePos,isGuest,isHost,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result})},remoteHit:(id,head=false)=>send(o.conn,{t:'hit',id,head:!!head}),localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
 }
