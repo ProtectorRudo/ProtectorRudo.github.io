@@ -21,6 +21,13 @@
  <button id="begin" class="missionLaunch primary hidden" disabled>▶ INICIAR RESCATE</button>
  <button id="mapToggle" class="mapLaunch secondary hidden">▦ MARCAR PAREDES O MUEBLES (OPCIONAL)</button>
  <p id="setupDetail">Todos apuntan al mismo punto del piso para jugar juntos.</p>
- </div><div id="fight" class="hidden"><button id="placeMore" class="mini">+ NIDO</button><div class="ammo"><small id="weaponName">CARBINA VX-4</small><b id="ammo">28<span> / 28</span></b><button id="reload" class="mini">RECARGAR ↻</button><button id="aimMode" class="mini">MIRA ◎</button></div><button id="fire" class="trigger"><strong>◎</strong> DISPARAR</button></div></div><button id="quit" class="quit" aria-label="Salir">×</button><div id="event" class="hidden"></div></div>
+ </div><div id="fight" class="hidden"><button id="placeMore" class="mini hidden">+ NIDO</button>
+ <div class="weaponInfo"><small id="weaponName">CARBINA VX-4</small><b id="ammo">28<span> / 28</span></b></div>
+ <div class="combatButtons">
+   <button id="reload" class="mini actionReload" aria-label="Recargar arma" title="Recargar">↻</button>
+   <button id="aimMode" class="mini actionAim">MIRA ◎</button>
+   <button id="fire" class="trigger"><strong>◎</strong> DISPARAR</button>
+ </div>
+ </div></div><button id="quit" class="quit" aria-label="Salir">×</button><div id="event" class="hidden"></div></div>
 <section id="outro" class="intro hidden"><div id="status" class="eyebrow">OPERACIÓN FINALIZADA</div><div class="insignia">✕</div><h1 id="outcome">ZONA<br><em>ASEGURADA</em></h1><p id="outcomeText" class="strap"></p><div class="entry"><button id="restart" class="primary">REINICIAR OPERACIÓN ↗</button></div></section><div id="toast" role="status" aria-live="polite"></div></div>
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.181.0/examples/jsm/"}}</script><script type="module" src="./main.js"></script></body></html>
