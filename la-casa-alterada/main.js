@@ -10,8 +10,8 @@ import { steerEnemy, animateEnemy } from './walkers.js';
 const $=id=>document.getElementById(id),rnd=(a,b)=>a+Math.random()*(b-a),clamp=THREE.MathUtils.clamp;
 const world=new THREE.Scene(),camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.01,60);
 const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});
-renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local');renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.48;renderer.setPixelRatio(Math.min(devicePixelRatio,1.55));renderer.setSize(innerWidth,innerHeight);$('world').append(renderer.domElement);
-world.add(new THREE.HemisphereLight(0xd8e8f1,0x2c1c28,2.15));const key=new THREE.DirectionalLight(0xf3cbb3,1.95);key.position.set(2,4,1);world.add(key);const rim=new THREE.PointLight(0xa72636,8,6);rim.position.set(-1,1.7,-2);world.add(rim);
+renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local');renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.28;renderer.setPixelRatio(Math.min(devicePixelRatio,1.55));renderer.setSize(innerWidth,innerHeight);$('world').append(renderer.domElement);
+world.add(new THREE.HemisphereLight(0xd8e8f1,0x2c1c28,2.15));const key=new THREE.DirectionalLight(0xf3cbb3,1.95);key.position.set(2,4,1);world.add(key);const rim=new THREE.PointLight(0x86a5b3,2.9,6);rim.position.set(-1,1.7,-2);world.add(rim);
 const geo={ball:new THREE.SphereGeometry(1,16,12),lo:new THREE.SphereGeometry(1,9,7),tube:new THREE.CylinderGeometry(1,1,1,8),fang:new THREE.ConeGeometry(1,1,8)};
 function tex(){const c=document.createElement('canvas');c.width=c.height=256;const ctx=c.getContext('2d');ctx.fillStyle='#aaaaaa';ctx.fillRect(0,0,256,256);for(let i=0;i<11000;i++){let k=Math.floor(rnd(40,200));ctx.fillStyle='rgba('+k+','+k+','+k+','+rnd(.04,.27)+')';const s=rnd(.3,2.6);ctx.fillRect(rnd(0,256),rnd(0,256),s,s)}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(2,2);return t}
 const rough=tex();const mat={skin:new THREE.MeshStandardMaterial({color:0x726663,roughness:.91,bumpMap:rough,bumpScale:.04}),dark:new THREE.MeshStandardMaterial({color:0x2a2b31,roughness:.96,bumpMap:rough,bumpScale:.055}),wet:new THREE.MeshStandardMaterial({color:0x783c42,roughness:.65,metalness:.06,bumpMap:rough,bumpScale:.026}),bone:new THREE.MeshStandardMaterial({color:0xc5b9a3,roughness:.8}),eye:new THREE.MeshStandardMaterial({color:0xff6848,emissive:0xdb3119,emissiveIntensity:2.1}),mouth:new THREE.MeshBasicMaterial({color:0x060405}),hit:new THREE.MeshBasicMaterial({visible:false}),blood:new THREE.MeshBasicMaterial({color:0xa23a3e,transparent:true,opacity:.94}),shot:new THREE.MeshBasicMaterial({color:0xffdfaf,transparent:true,depthTest:false}),sigil:new THREE.MeshBasicMaterial({color:0xb55e55,transparent:true,opacity:.9,side:THREE.DoubleSide})};
@@ -148,7 +148,7 @@ function reload(){if(!active||ended||reloading||ammo===capacity())return;
  const type=currentWeapon;setTimeout(()=>{if(ended)return;magazines[type]=type==='rifle'?28:12;if(type===currentWeapon)ammo=magazines[type];reloading=false;hud()},currentWeapon==='rifle'?1600:1200);
 }
 function damage(value){if(mission?.shielded())return;life=Math.max(0,life-value);$('damage').classList.add('active');setTimeout(()=>$('damage').classList.remove('active'),180);tone('hurt');vibrate([90,35,90]);hud();if(life===0)finish(false)}
-function finish(win){if(ended)return;mission?.onVictory(win);ended=true;active=false;placing=false;$('hud').classList.add('hidden');$('outro').classList.remove('hidden');$('status').textContent=win?'MISIÓN CUMPLIDA':'SEÑAL PERDIDA';$('outcome').innerHTML=win?'ZONA<br><em>ASEGURADA</em>':'CASA<br><em>INFECTADA</em>';$('outcomeText').textContent=(win?'Completaste la operación de rescate y aseguraste la zona. ':'La misión de rescate fracasó. ')+kills+' criaturas neutralizadas.'}
+function finish(win){if(ended)return;mission?.onVictory(win);ended=true;active=false;placing=false;$('hud').classList.add('hidden');$('outro').classList.remove('hidden');$('status').textContent=win?'MISIÓN CUMPLIDA':'SEÑAL PERDIDA';$('outcome').innerHTML=win?'ZONA<br><em>ASEGURADA</em>':'MISIÓN<br><em>FALLIDA</em>';$('outcomeText').textContent=(win?'Completaste la operación de rescate y aseguraste la zona. ':'La misión de rescate fracasó. ')+kills+' intrusos neutralizados.'}
 function updateXR(frame){
  if(!frame||!source||!local)return;
  pose=null;hitResult=null;reticle.visible=false;mapPoint=null;mapPointQuality='manual';mapDepth=null;mapDepthSource='none';
@@ -211,7 +211,8 @@ function updateBattle(dt,t){
   if(!e.targetId||t>e.nextTarget){
    const hostageAvailable=mission?.hostageExposed()&&mission?.hostageWorld();
    const target=mission?.chooseTarget();
-   e.targetId=hostageAvailable&&Math.random()<.46?'hostage':target?.id||'local';
+   const escortTargets=enemies.filter(peer=>peer.alive&&peer!==e&&peer.targetId==='hostage').length;
+   e.targetId=hostageAvailable&&escortTargets<2&&Math.random()<.34?'hostage':target?.id||'local';
    e.nextTarget=t+rnd(1750,3100)
   }
   const target=mission?.getPlayerWorld(e.targetId)||eye;
@@ -250,7 +251,7 @@ function updateBattle(dt,t){
    const tracer=new THREE.Mesh(new THREE.CapsuleGeometry(.025,.19,2,5),new THREE.MeshBasicMaterial({color:0xffc27d,transparent:true,opacity:.94,depthWrite:false}));
    tracer.position.copy(from);tracer.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),velocity.clone().normalize());
    world.add(tracer);
-   orbs.push({id:++projectileId,mesh:tracer,vel:velocity,targetId:e.targetId,until:t+2250,power:e.boss?6:4.6,whizzed:false});
+   orbs.push({id:++projectileId,mesh:tracer,vel:velocity,targetId:e.targetId,until:t+2250,power:e.boss?6:e.targetId==='hostage'?3.2:4.6,whizzed:false});
    if(e.flash){e.flash.intensity=9;e.flashUntil=t+95}
    combatFX.shot(from,true,'rifle');
   }
