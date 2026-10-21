@@ -61,7 +61,7 @@ function tintAvatar(group,team){
 }
 function visualWave(scene,origin,color=0x65d9ee){const m=new THREE.Mesh(new THREE.RingGeometry(.14,.18,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.8,side:THREE.DoubleSide,depthWrite:false}));m.position.copy(origin);m.position.y-=1.1;scene.add(m);return{mesh:m,t:0,duration:.7}}
 export function createMission(api){
-  const o={api,peer:null,room:null,role:'solo',conn:null,connections:new Map(),peers:new Map(),origin:null,angle:0,phase:-2,hostagePos:null,hostageRescued:false,hostageActor:null,escortPlayer:null,hostageHealth:100,hostageShieldUntil:0,rescueActionStartedAt:0,routeCache:null,routeCacheAt:0,routeTarget:null,mask:0,held:40,spawnAfter:0,lastSnap:0,lastMove:0,ready:false,running:false,finished:false,objects:[],remoteEnemy:new Map(),remoteAvatar:new Map(),remoteBullet:new Map(),effects:[],cd:{pulse:0,shield:0,heal:0},shields:new Map(),lastActions:new Map(),myId:'local',lastHostSnapshot:0,lastSnapshotSeq:-1,snapshotSeq:0,lastShotAt:new Map(),localPositions:new Map(),enemySeq:0,seed:0,startedByHost:false,joined:false,referenceReady:false,referenceLength:0,expectedLength:null,calibrationQuality:'waiting',calibrationSeen:new Map(),gameMode:'rescue',myTeam:'blue',teams:new Map(),ctf:null,lastMoveAt:new Map()};
+  const o={api,peer:null,room:null,role:'solo',conn:null,connections:new Map(),peers:new Map(),origin:null,angle:0,phase:-2,hostagePos:null,hostageRescued:false,hostageActor:null,escortPlayer:null,hostageHealth:100,hostageShieldUntil:0,rescueActionStartedAt:0,rescueRequestAt:0,rescueReinforcementAt:0,routeCache:null,routeCacheAt:0,routeTarget:null,mask:0,held:40,spawnAfter:0,lastSnap:0,lastMove:0,ready:false,running:false,finished:false,objects:[],remoteEnemy:new Map(),remoteAvatar:new Map(),remoteBullet:new Map(),effects:[],cd:{pulse:0,shield:0,heal:0},shields:new Map(),lastActions:new Map(),myId:'local',lastHostSnapshot:0,lastSnapshotSeq:-1,snapshotSeq:0,lastShotAt:new Map(),localPositions:new Map(),enemySeq:0,seed:0,startedByHost:false,joined:false,referenceReady:false,referenceLength:0,expectedLength:null,calibrationQuality:'waiting',calibrationSeen:new Map(),gameMode:'rescue',myTeam:'blue',teams:new Map(),ctf:null,lastMoveAt:new Map()};
   const info=$('missionInfo'),phaseEl=$('missionStage'),desc=$('missionText'),progress=$('missionProgress'),team=$('teamStatus'),interact=$('interact'),ability=$('abilities');
   function teamUpdate(){const count=1+(o.role==='host'?o.connections.size:o.role==='guest'&&o.conn?.open?1:0);team.textContent=o.role==='solo'?'SOLO / OPERACIÓN':o.role==='host'?'JEFE DE SALA / '+count+' JUGADOR'+(count===1?'':'ES'):o.conn?.open?'EQUIPO CONECTADO':'RECONECTANDO…';$('crew').textContent=count+' / '+maxPlayers}
   function lobby(msg){$('lobbyMsg').textContent=msg}
@@ -348,13 +348,14 @@ export function createMission(api){
     return true;
   }
   function syncHostage(payload,rescued=false){
+    if(rescued)clearRescueButton();
     if(!Array.isArray(payload)||payload.length!==3||payload.some(v=>!Number.isFinite(v)))return;
     o.hostagePos=from(payload);o.hostageRescued=!!rescued;
     if(!o.hostageActor)buildHostage();
     else if(isGuest())o.hostageActor.root.position.lerp(o.hostagePos,.65);
     if(o.hostageActor&&o.hostageRescued){o.hostageActor.hostage=false;playHuman(o.hostageActor,'walk')}
   }
-  function reset(){if(o.hostageActor){disposeHuman(o.hostageActor);o.hostageActor.root.parent?.remove(o.hostageActor.root)}o.hostageActor=null;o.hostagePos=null;o.lastEnvironment=null;o.routeCache=null;o.routeCacheAt=0;o.routeTarget=null;o.hostageHealth=100;o.hostageShieldUntil=0;o.rescueActionStartedAt=0;o.hostageRescued=false;o.escortPlayer=null;o.running=false;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;o.ready=false;o.startedByHost=false;o.referenceReady=false;o.referenceLength=0;o.expectedLength=null;o.calibrationQuality='waiting';o.calibrationSeen.clear();o.localPositions.clear();o.lastMoveAt.clear();ctf.reset();o.shields.clear();o.lastSnap=0;o.lastSnapshotSeq=-1;o.snapshotSeq=0;o.lastShotAt.clear();o.enemySeq=0;o.origin?.parent?.remove(o.origin);o.origin=null;removeRemote();ui();}
+  function reset(){if(o.hostageActor){disposeHuman(o.hostageActor);o.hostageActor.root.parent?.remove(o.hostageActor.root)}o.hostageActor=null;o.hostagePos=null;o.lastEnvironment=null;o.routeCache=null;o.routeCacheAt=0;o.routeTarget=null;o.hostageHealth=100;o.hostageShieldUntil=0;o.rescueActionStartedAt=0;o.rescueRequestAt=0;o.rescueReinforcementAt=0;o.hostageRescued=false;o.escortPlayer=null;o.running=false;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;o.ready=false;o.startedByHost=false;o.referenceReady=false;o.referenceLength=0;o.expectedLength=null;o.calibrationQuality='waiting';o.calibrationSeen.clear();o.localPositions.clear();o.lastMoveAt.clear();ctf.reset();o.shields.clear();o.lastSnap=0;o.lastSnapshotSeq=-1;o.snapshotSeq=0;o.lastShotAt.clear();o.enemySeq=0;o.origin?.parent?.remove(o.origin);o.origin=null;removeRemote();ui();}
   function start(){if(!o.ready){api.toast('Primero fijá un punto común en el piso');return false}
  if(isCapture()){
    if(isGuest()){
@@ -369,7 +370,7 @@ export function createMission(api){
    ui();return true;
  }
  if(isGuest()){if(!o.ready){api.toast('MARQUEN LOS DOS PUNTOS DE REFERENCIA');return false}if(!o.startedByHost){api.toast('Esperá a que el anfitrión comience');return false}o.running=true;ui();return true}if(!o.hostagePos){api.toast('COLOCÁ UN REHÉN ANTES DE INICIAR');return false}
- if(o.role==='host'&&!teamCalibration().ready){api.toast('ESPERÁ A QUE TODOS MARQUEN LOS MISMOS PUNTOS A Y B');return false}o.running=true;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;
+ if(o.role==='host'&&!teamCalibration().ready){api.toast('ESPERÁ A QUE TODOS MARQUEN LOS MISMOS PUNTOS A Y B');return false}o.running=true;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;o.rescueReinforcementAt=0;
  o.hostageShieldUntil=performance.now()+17500;
  if(!o.hostageActor)buildHostage();
  broadcast({t:'start',hostage:P(o.hostagePos)});api.event('MISIÓN 01 · LOCALIZAR Y LIBERAR AL REHÉN');ui();return true;}
@@ -395,52 +396,80 @@ export function createMission(api){
     o.hostageShieldUntil=performance.now()+1200;
     ui();
   }
-  // Start with one tap and finish automatically in the frame loop.
-  // No pointer capture or pointerup timer: that is what stranded progress at 99%.
-  const RESCUE_TAP_MS=1550,RESCUE_RANGE=1.55;
-  function beginRescueTap(){
-    if(!o.running)return;
-    if(o.phase!==-2){interactNow();return}
-    if(o.rescueActionStartedAt)return;
-    const p=position();
-    if(!p||!o.hostagePos)return;
-    if(Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z)>RESCUE_RANGE){
-      api.toast('ACERCATE AL REHÉN PARA LIBERARLO');return;
-    }
-    if(api.hasCover?.(o.origin.localToWorld(p.clone()),
-                      o.origin.localToWorld(o.hostagePos.clone()))){
-      api.toast('NO PODÉS LIBERARLO A TRAVÉS DE UNA PARED');return;
-    }
-    o.rescueActionStartedAt=performance.now();
-    interact.classList.add('rescuing');
-    interact.style.setProperty('--rescue-progress','0%');
-    api.toast('LIBERANDO · NO NECESITÁS MANTENER PRESIONADO');
-  }
-  function cancelRescueTap(message){
-    if(!o.rescueActionStartedAt)return;
-    o.rescueActionStartedAt=0;
+  // V28: One tap commits the rescue. No XR frame time, percentage,
+  // pointer hold, GIF/GLB, or animation callback can block this state.
+  const RESCUE_RANGE=1.55;
+  function clearRescueButton(){
+    o.rescueActionStartedAt=0;o.rescueRequestAt=0;
     interact.classList.remove('rescuing');
     interact.style.removeProperty('--rescue-progress');
-    if(message)api.toast(message);
+    interact.disabled=false;
+  }
+  function beginRescueTap(){
+    if(!o.running||o.phase!==-2)return false;
+    const p=position();
+    if(!p||!o.hostagePos){api.toast('NO SE PUEDE LOCALIZAR AL REHÉN');return false}
+    const distance=Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z);
+    if(distance>RESCUE_RANGE){api.toast('ACERCATE AL REHÉN PARA LIBERARLO');return false}
+    if(isGuest()){
+      if(!o.conn?.open){api.toast('ESPERÁ LA CONEXIÓN CON EL ANFITRIÓN');return false}
+      if(o.rescueRequestAt&&performance.now()-o.rescueRequestAt<900)return false;
+      o.rescueRequestAt=performance.now();
+      interact.textContent='ESPERANDO CONFIRMACIÓN…';
+      send(o.conn,{t:'interact'});
+      return true;
+    }
+    return doInteract(o.myId);
   }
   function doInteract(id){
- if(!o.running)return;
- const p=localPositionOf(id);if(!p)return;
- if(o.phase===-2){
-   if(!o.hostagePos){return}
-   if(Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z)>RESCUE_RANGE){
-     if(id===o.myId)api.toast('ACERCATE AL REHÉN PARA LIBERARLO');else send(o.connections.get(id),{t:'msg',text:'Acercate más al rehén'});
-     return;
-   }
-   if(api.hasCover?.(o.origin.localToWorld(p.clone()),o.origin.localToWorld(o.hostagePos.clone())))return;
-   o.rescueActionStartedAt=0;interact.classList.remove('rescuing');interact.style.removeProperty('--rescue-progress');o.hostageRescued=true;o.escortPlayer=id;o.hostageShieldUntil=performance.now()+2400;
-   if(isHost())api.spawn(5,false);
-   if(o.hostageActor){o.hostageActor.hostage=false;playHuman(o.hostageActor,'walk')}
-   o.phase=-1;broadcast({t:'phase',phase:-1,mask:o.mask,held:o.held,rescued:true});
-   api.event('¡REHÉN LIBERADO! LLEVALO AL PUNTO DE ENTRADA');ui();return;
- }
- if(o.phase!==0)return;let best=-1,min=Infinity;POSITION.forEach((v,i)=>{if(o.mask&(1<<i))return;const dist=Math.hypot(p.x-v[0],p.z-v[2]);if(dist<min){min=dist;best=i}});if(best<0||min>.93){if(id===o.myId)api.toast('ACERCATE A LA CARGA PARA DESACTIVARLA');else send(o.connections.get(id),{t:'msg',text:'Acercate a la carga.'});return}o.mask|=1<<best;api.event('CARGA '+(best+1)+' DESACTIVADA');broadcast({t:'phase',phase:o.phase,mask:o.mask,held:o.held});if(o.mask===7)setPhase(1);ui()}
-  function interactNow(){if(!o.running||(o.phase!==0&&o.phase!==-2))return;if(isGuest())send(o.conn,{t:'interact'});else doInteract(o.myId)}
+    if(!o.running)return false;
+    const p=localPositionOf(id);if(!p)return false;
+    if(o.phase===-2){
+      if(!o.hostagePos)return false;
+      const dist=Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z);
+      if(dist>RESCUE_RANGE){
+        if(id===o.myId)api.toast('ACERCATE AL REHÉN PARA LIBERARLO');
+        else send(o.connections.get(id),{t:'msg',text:'Acercate más al rehén'});
+        return false;
+      }
+      // Check torso-to-torso; head-to-floor diagonal caused phantom blockers.
+      const from=o.origin.localToWorld(p.clone()),to=o.origin.localToWorld(o.hostagePos.clone());
+      from.y=to.y+1;to.y+=1;
+      if(dist>.78&&api.hasCover?.(from,to)){
+        if(id===o.myId)api.toast('HAY UN OBSTÁCULO ENTRE VOS Y EL REHÉN');
+        else send(o.connections.get(id),{t:'msg',text:'Hay un obstáculo entre vos y el rehén'});
+        return false;
+      }
+      // COMMIT FIRST: later effects and loading can't roll back a rescue.
+      o.phase=-1;o.hostageRescued=true;o.escortPlayer=id;
+      o.hostageShieldUntil=performance.now()+5000;
+      clearRescueButton();interact.classList.add('hidden');
+      try{broadcast({t:'phase',phase:-1,mask:o.mask,held:o.held,rescued:true})}
+      catch(err){console.warn('Escort network',err)}
+      try{if(o.hostageActor){o.hostageActor.hostage=false;playHuman(o.hostageActor,'walk')}}
+      catch(err){console.warn('Escort animation',err)}
+      try{api.event('¡REHÉN LIBERADO! ESCOLTALO A LA ENTRADA')}
+      catch(err){console.warn('Escort event',err)}
+      try{ui()}catch(err){console.error('Escort HUD',err)}
+      o.rescueReinforcementAt=performance.now()+3000;
+      return true;
+    }
+    if(o.phase!==0)return false;
+    let best=-1,min=Infinity;
+    POSITION.forEach((v,i)=>{
+      if(o.mask&(1<<i))return;
+      const d=Math.hypot(p.x-v[0],p.z-v[2]);
+      if(d<min){min=d;best=i}
+    });
+    if(best<0||min>.93){
+      if(id===o.myId)api.toast('ACERCATE A LA CARGA PARA DESACTIVARLA');
+      else send(o.connections.get(id),{t:'msg',text:'Acercate a la carga'});
+      return false;
+    }
+    o.mask|=1<<best;api.event('CARGA '+(best+1)+' DESACTIVADA');
+    broadcast({t:'phase',phase:o.phase,mask:o.mask,held:o.held});
+    if(o.mask===7)setPhase(1);ui();return true;
+  }
   function shielded(id=o.myId){return (o.shields.get(id)||0)>performance.now()}
   function receiveAbility(id,kind,remote=false){const allowed=['pulse','shield','heal'];if(!allowed.includes(kind)||!o.running||o.finished)return;const t=performance.now(),key=id+':'+kind;const period={pulse:18000,shield:25000,heal:35000}[kind];if((o.lastActions.get(key)||0)>t)return;o.lastActions.set(key,t+period);if(kind==='shield'){if(o.hostageActor&&o.phase<0&&o.hostagePos){const p=localPositionOf(id);if(p&&Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z)<2.5)o.hostageShieldUntil=t+6000}o.shields.set(id,t+6000);if(id!==o.myId)send(o.connections.get(id),{t:'shield',duration:6000});api.toast('ESCUDO ACTIVADO · 6 SEGUNDOS')}
     if(kind==='heal'){api.heal(22);healHostage(28);broadcast({t:'heal',amount:22});api.event('BOTIQUÍN DE EQUIPO +22 · REHÉN +28')}
@@ -553,7 +582,10 @@ if(Array.isArray(msg.environment)){
           o.localPositions.set(conn.peer,p);o.lastMoveAt.set(conn.peer,now);
        }
      }
-    if(msg.t==='interact')doInteract(conn.peer);
+    if(msg.t==='interact'){
+      const accepted=doInteract(conn.peer);
+      if(!accepted&&o.phase===-2)send(conn,{t:'msg',text:'No se pudo liberar. Acercate y volvé a tocar.'});
+    }
     if(msg.t==='ctfPickup'&&isCapture()&&o.running&&o.ready){
       const last=o.localPositions.get(conn.peer);
       const connected=o.connections.has(conn.peer)&&
