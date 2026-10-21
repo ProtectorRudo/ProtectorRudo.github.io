@@ -68,8 +68,10 @@ export function createTacticalActor(THREE,variant=0,team='raider'){
  b(carried,glass,[0,.13,-.1],[.09,.055,.11]);
  const flash=new THREE.PointLight(0xffc58a,0,1.7);flash.position.set(0,.01,-.81);carried.add(flash);
  // Invisible shot collider covering head and torso.
- const hit=new THREE.Mesh(new THREE.SphereGeometry(.47,12,8),new THREE.MeshBasicMaterial({visible:false}));
- hit.position.set(0,.95,0);hit.scale.set(1,1.85,.95);flesh.add(hit);
+ const hit=new THREE.Mesh(new THREE.SphereGeometry(.38,12,8),new THREE.MeshBasicMaterial({visible:false}));
+ hit.position.set(0,1.02,0);hit.scale.set(1,1.08,.86);flesh.add(hit);
+ const headHit=new THREE.Mesh(new THREE.SphereGeometry(.145,12,8),new THREE.MeshBasicMaterial({visible:false}));
+ headHit.position.set(0,1.56,.01);headHit.userData.part='head';root.add(headHit);
  const shadow=new THREE.Mesh(new THREE.CircleGeometry(.25,24).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x020507,transparent:true,opacity:.29,depthWrite:false}));shadow.position.y=.018;root.add(shadow);
- return {root,flesh,arms,legs,hit,jaw:null,shadow,variant,size:1,alive:true,hp:variant===1?5:variant===2?2:3,start:new THREE.Vector3(),next:0,phase:Math.random()*7,flash,team};
+ return {root,flesh,arms,legs,hit,headHit,jaw:null,shadow,variant,size:1,alive:true,hp:variant===1?5:variant===2?2:3,start:new THREE.Vector3(),next:0,phase:Math.random()*7,flash,team};
 }
