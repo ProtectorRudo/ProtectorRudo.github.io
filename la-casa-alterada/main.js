@@ -7,6 +7,7 @@ import {createCombatFX} from './combat-fx.js';
 import {createSpatialMap} from './spatial-map.js';
 import { createTacticalRifle } from './rifle.js';
 import { steerEnemy, animateEnemy } from './walkers.js';
+import { tacticalDestination } from './tactical-behavior.js';
 const $=id=>document.getElementById(id),rnd=(a,b)=>a+Math.random()*(b-a),clamp=THREE.MathUtils.clamp;
 const world=new THREE.Scene(),camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.01,60);
 const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});
@@ -462,7 +463,7 @@ function spawnCTFBot(team,index,id,localPos){
 }
 function ctfBotShot(from,to,team){
  if(!active||ended)return;
- combatFX.shot(from,true,'rifle');trail(from,to);
+ combatFX.shot(from,true,'rifle');combatFX.muzzle(from,to.clone().sub(from),true);trail(from,to);
  if(!mission?.isGuest?.())mission?.relayCTFBotShot?.(from,to,team);
 }
 function resolveFlagShot(start,direction,shooterId){
@@ -502,6 +503,7 @@ function teammateShot(start,direction,id){
   trail(start,end);
   // Teammate fire is visual; the host alone resolves collisions and HP.
   if(start.distanceTo(camera.position)<4)combatFX.shot(start,true,'rifle');
+   combatFX.muzzle(start,direction,true);
 }
 function trail(start,end){let d=end.clone().sub(start),o=new THREE.Mesh(new THREE.CylinderGeometry(.003,.006,d.length(),5),mat.shot.clone());o.position.copy(start).addScaledVector(d,.5);o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.clone().normalize());world.add(o);trails.push({mesh:o,until:now+120})}
 function impact(p){for(let j=0;j<12;j++){let m=new THREE.Mesh(new THREE.TetrahedronGeometry(rnd(.01,.04)),mat.blood.clone());m.position.copy(p);world.add(m);splinters.push({mesh:m,velocity:new THREE.Vector3(rnd(-.8,.8),rnd(.2,1.3),rnd(-.8,.8)),until:now+rnd(300,850)})}}
@@ -570,7 +572,7 @@ function fire(){if(mapping||!active||ended||placing||reloading||performance.now(
  }
  const hits=ray.intersectObjects(enemies.filter(e=>e.alive).flatMap(e=>e.headHit?[e.hit,e.headHit]:[e.hit]),false);const cover=mode==='demo'?ray.intersectObjects(occluders,false)[0]:null;let end=p.clone().addScaledVector(forward,7);const geometryHit=spatialMap.lineBlocked(p,hits[0]?.point||end,.03);
  if(geometryHit||cover&&(!hits.length||cover.distance<hits[0].distance)){
-   if(cover)end.copy(cover.point);combatFX.dust(end,11);
+   if(cover)end.copy(cover.point);combatFX.impact(end,forward,9);
  }else if(hits.length){const h=hits[0],e=h.object.userData.enemy;end.copy(h.point);if(!mission?.isGuest()){impact(end);combatFX.dust(end,5);tone('hit')}const headshot=h.object.userData.part==='head';
  // Guests receive hit confirmation only after the host validates the shot.
  if(!mission?.isGuest()){hitConfirm(headshot);damageEnemy(e,headshot?3:1,headshot)}}trail(weaponMuzzleOrigin(c),end);if(ammo===0)setTimeout(reload,240)}
@@ -731,7 +733,10 @@ function updateBattle(dt,t){
   if(target===eye&&e.floor){
     e.screenDistance=Math.hypot(target.x-e.root.position.x,target.z-e.root.position.z);
   }
-  const moved=steerEnemy(e,dt,t,target,mode,spatialMap,enemies);
+  const tacticalTarget=tacticalDestination(e,t,target,target,
+    (from,threat)=>spatialMap.findCoverSpot(from,threat),
+    !!e.floor&&!e.boss&&(spatialMap.walls.length+spatialMap.boxes.length)>0);
+   const moved=steerEnemy(e,dt,t,tacticalTarget,mode,spatialMap,enemies);
   animateEnemy(e,dt,moved);
   const worldPosition=new THREE.Vector3();e.root.getWorldPosition(worldPosition);
   const dist=worldPosition.distanceTo(eye);
@@ -765,6 +770,7 @@ function updateBattle(dt,t){
    world.add(tracer);
    orbs.push({id:++projectileId,mesh:tracer,vel:velocity,targetId:e.targetId,until:t+2250,power:e.boss?6:e.targetId==='hostage'?3.2:4.6,whizzed:false});
    if(e.flash){e.flash.intensity=9;e.flashUntil=t+95}
+    combatFX.muzzle(from,velocity,true);
    combatFX.shot(from,true,'rifle');
   }
  }
@@ -774,12 +780,12 @@ function updateBattle(dt,t){
   const before=shot.mesh.position.clone();
   const step=shot.vel.clone().multiplyScalar(dt);
   if(spatialMap.lineBlocked(before,before.clone().add(step),.025)){
-    combatFX.dust(before,7);world.remove(shot.mesh);shot.mesh.geometry.dispose();shot.mesh.material.dispose();orbs.splice(i,1);continue;
+    combatFX.impact(before,shot.vel,6);world.remove(shot.mesh);shot.mesh.geometry.dispose();shot.mesh.material.dispose();orbs.splice(i,1);continue;
   }
   if(mode==='demo'&&occluders.length&&step.length()>0){
    const obstructionRay=new THREE.Raycaster(before,step.clone().normalize(),0,step.length());
    if(obstructionRay.intersectObjects(occluders,false).length){
-    combatFX.dust(before.addScaledVector(step,.7),10);
+    combatFX.impact(before.addScaledVector(step,.7),shot.vel,7);
     world.remove(shot.mesh);shot.mesh.geometry.dispose();shot.mesh.material.dispose();orbs.splice(i,1);continue;
    }
   }
@@ -797,7 +803,7 @@ function updateBattle(dt,t){
    }
   }
   if(t>shot.until){
-   combatFX.dust(shot.mesh.position,4);
+   combatFX.impact(shot.mesh.position,shot.vel,4);
    world.remove(shot.mesh);shot.mesh.geometry.dispose();shot.mesh.material.dispose();orbs.splice(i,1);
   }
  }
@@ -971,6 +977,7 @@ mission=createMission({scene:world,getCam,toast,event,teammateShot,resolveTeamma
  importEnvironment:(items,origin)=>{if(!mission?.isGuest())return;spatialMap.importData(items,origin);spatialMap.setVisible(false);mapStatus()},
  environmentCanMove:(from,to,radius)=>spatialMap.canMove(from,to,radius),
  environmentNextPoint:(from,to)=>spatialMap.nearestWaypoint(from,to),
+  findCover:(from,to)=>spatialMap.findCoverSpot(from,to),
  hasCover:(from,to)=>spatialMap.lineBlocked(from,to,.11),
  spawn:(n,boss)=>wave(n,boss),spawnPending:()=>spawnQueue.length,animateEnemy,animateHuman,projectiles:()=>orbs,enemies:()=>enemies,enemyShot:pos=>combatFX.shot(pos,true,'rifle'),spawnCTFBot,ctfBotShot,ctfTag:applyCTFTag,ctfFinish:finishCTF,
  buildEnemy:(variant,boss,appearance,team)=>{const e=createTacticalActor(THREE,variant,team==='blue'?'operator':'raider');e.team=team||'red';e.ctfBot=!!team;e.boss=boss;if(boss){e.root.scale.setScalar(1.85);e.hp=22;e.size*=1.85}

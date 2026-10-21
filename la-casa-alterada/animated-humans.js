@@ -159,6 +159,11 @@ export function animateHuman(actor,dt,speed=0){
  const step=actor.lodFar?.068:.034;
  if(actor.animationAccum<step)return true;
  actor.mixer.update(Math.min(actor.animationAccum,.11));
+ // Subtle shoulder lean when an actor exposes itself from cover.
+ if(actor.rig){
+   const lean=actor.coverState==='fire'?(actor.id%2===0?.055:-.055):0;
+   actor.rig.rotation.z+=(lean-actor.rig.rotation.z)*Math.min(1,actor.animationAccum*7);
+ }
  actor.animationAccum=0;
  return true
 }

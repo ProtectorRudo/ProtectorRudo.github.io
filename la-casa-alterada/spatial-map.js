@@ -163,6 +163,52 @@ export function createSpatialMap(THREE,scene){
     return result;
   }
   function nearestWaypoint(from,to){const route=getRoute(from,to);return route.length?route[0]:null}
+  // V21: compute protected positions with a reachable angle to shoot from.
+  // Uses only manually marked obstacles. Sampled sparingly by the bot planner.
+  function findCoverSpot(from,threat){
+    if(!from||!threat||(!walls.length&&!boxes.length))return null;
+    const distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
+    const eye=p=>({x:p.x,y:p.y+.77,z:p.z});
+    const enemyEye=eye(threat);
+    const available=p=>!touchesWall(p,.22)&&(areaDistance(p)??1)>.31;
+    const points=[];
+    const add=(x,z)=>{
+      const p={x,y:from.y,z};
+      if(distance(p,from)<3.6&&available(p))points.push(p);
+    };
+    for(const w of walls){
+      if(w.top<from.y+.79||w.base>from.y+.77)continue;
+      const dx=w.b.x-w.a.x,dz=w.b.z-w.a.z,len=Math.hypot(dx,dz)||1;
+      const nx=-dz/len,nz=dx/len;
+      for(const f of [.15,.5,.85])for(const sign of [-1,1])
+        add(w.a.x+dx*f+nx*.47*sign,w.a.z+dz*f+nz*.47*sign);
+    }
+    for(const b of boxes){
+      if(b.top<from.y+.72||b.base>from.y+.77)continue;
+      for(const f of [.3,.7]){
+        add(b.minX-.43,b.minZ+(b.maxZ-b.minZ)*f);
+        add(b.maxX+.43,b.minZ+(b.maxZ-b.minZ)*f);
+        add(b.minX+(b.maxX-b.minX)*f,b.minZ-.43);
+        add(b.minX+(b.maxX-b.minX)*f,b.maxZ+.43);
+      }
+    }
+    let best=null,bestCost=Infinity;
+    for(const hide of points){
+      const danger=distance(hide,threat),travel=distance(hide,from);
+      if(danger<1.25||danger>9||!lineBlocked(eye(hide),enemyEye,.035))continue;
+      const dx=threat.x-hide.x,dz=threat.z-hide.z,l=Math.hypot(dx,dz)||1;
+      for(const side of [-1,1])for(const step of [.60,1.12,1.72,2.15]){
+        const peek={x:hide.x-dz/l*side*step,y:hide.y,z:hide.z+dx/l*side*step};
+        if(!available(peek)||lineBlocked(hide,peek,.10)||lineBlocked(eye(peek),enemyEye,.025))continue;
+        const cost=travel+step*.56+Math.abs(danger-3.5)*.12;
+        if(cost<bestCost){best={hide,peek};bestCost=cost;}
+        break;
+      }
+    }
+    if(!best||!getRoute(from,best.hide).length)return null;
+    return {hide:new THREE.Vector3(best.hide.x,best.hide.y,best.hide.z),
+      peek:new THREE.Vector3(best.peek.x,best.peek.y,best.peek.z)};
+  }
   function exportData(origin){
     if(!origin)return[];
     const point=v=>{const p=origin.worldToLocal(new THREE.Vector3(v.x,v.y,v.z));return [+p.x.toFixed(2),+p.y.toFixed(2),+p.z.toFixed(2)]};
@@ -200,5 +246,5 @@ function clear(){lastRemoteMap=null;lastRemoteOrigin=null;clearArea();for(const 
     }
   }
   function setVisible(state){preview=!!state;for(const o of debug)o.visible=preview;if(area)area.fill.visible=preview}
-  return {walls,boxes,addWall,addBox,setArea,clearArea,areaDistance,get area(){return area},lineBlocked,touchesWall,canMove,getRoute,nearestWaypoint,exportData,importData,clear,removeLast,setVisible};
+  return {walls,boxes,addWall,addBox,setArea,clearArea,areaDistance,findCoverSpot,get area(){return area},lineBlocked,touchesWall,canMove,getRoute,nearestWaypoint,exportData,importData,clear,removeLast,setVisible};
 }
