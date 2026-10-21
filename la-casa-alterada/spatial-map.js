@@ -42,6 +42,36 @@ export function createSpatialMap(THREE,scene){
     const box={type:'box',id:boxes.length+1,minX,maxX,minZ,maxZ,base:floorY,top:floorY+height,mesh};
     boxes.push(box);order.push(box);return box;
   }
+  // Selectable virtual cover is visible during the entire match, shares
+  // exactly the same world-space collision volume with paths and bullets.
+  function addCover(center,opt={}){
+    if(!center||boxes.filter(b=>b.virtualCover).length>=10)return false;
+    const kind=['crate','barricade','concrete'].includes(opt.kind)?opt.kind:'barricade';
+    const dims={crate:[.84,.88,.73],barricade:[1.32,1.22,.38],concrete:[1.62,1.12,.44]}[kind];
+    const [width,height,depth]=dims;
+    const towardX=Math.abs(opt.forward?.x||0)>Math.abs(opt.forward?.z||0);
+    const w=towardX?depth:width,d=towardX?width:depth;
+    const floor=Number.isFinite(opt.floorY)?opt.floorY:center.y||0;
+    const a={x:center.x-w/2+.06,y:floor,z:center.z-d/2+.06};
+    const b={x:center.x+w/2-.06,y:floor,z:center.z+d/2-.06};
+    if(area&&areaDistance(center)<Math.max(w,d)/2+.2)return false;
+    if(touchesWall(center,Math.max(w,d)/2+.10))return false;
+    const obj=addBox(a,b,{floorY:floor,height});
+    if(!obj)return false;
+    const steel=new THREE.MeshStandardMaterial({
+      color:kind==='crate'?0x65533d:kind==='concrete'?0x787f80:0x4d656d,
+      metalness:kind==='crate'?.05:.18,roughness:kind==='concrete'?.95:.75
+    });
+    obj.mesh.material.dispose();obj.mesh.material=steel;
+    const stripe=new THREE.Mesh(new THREE.BoxGeometry(w*.91,.045,d*.82),
+      new THREE.MeshStandardMaterial({color:0x9cacaa,roughness:.85,metalness:.2}));
+    stripe.position.y=height/2-.042;obj.mesh.add(stripe);
+    const mark=new THREE.Mesh(new THREE.BoxGeometry(w*.65,.055,.013),
+      new THREE.MeshBasicMaterial({color:0xd9ae69}));
+    mark.position.set(0,.05,d/2+.009);obj.mesh.add(mark);
+    obj.virtualCover=true;obj.coverKind=kind;obj.mesh.userData.virtualCover=true;
+    obj.mesh.visible=true;return obj;
+  }
   // V20: the room play zone is an intentionally user-confirmed floor
   // rectangle, NOT automatic obstacle recognition.  It restricts AI
   // movement but never hides real furniture or blocks weapon raycasts.
@@ -212,7 +242,9 @@ export function createSpatialMap(THREE,scene){
   function exportData(origin){
     if(!origin)return[];
     const point=v=>{const p=origin.worldToLocal(new THREE.Vector3(v.x,v.y,v.z));return [+p.x.toFixed(2),+p.y.toFixed(2),+p.z.toFixed(2)]};
-    const entries=[...walls.map(w=>({type:'wall',a:point(w.a),b:point(w.b),height:w.top-w.base})),...boxes.map(w=>({type:'box',a:point({x:w.minX,y:w.base,z:w.minZ}),b:point({x:w.maxX,y:w.base,z:w.maxZ}),height:w.top-w.base}))];
+    const entries=[...walls.map(w=>({type:'wall',a:point(w.a),b:point(w.b),height:w.top-w.base})),...boxes.map(w=>({type:w.virtualCover?'cover':'box',kind:w.coverKind||null,
+    a:point({x:w.minX,y:w.base,z:w.minZ}),b:point({x:w.maxX,y:w.base,z:w.maxZ}),
+    height:w.top-w.base}))];
     if(area){
       const a=area.origin.localToWorld(new THREE.Vector3(area.minX,area.base,area.minZ));
       const b=area.origin.localToWorld(new THREE.Vector3(area.maxX,area.base,area.maxZ));
@@ -225,10 +257,16 @@ export function createSpatialMap(THREE,scene){
  const list=last.type==='wall'?walls:boxes;
  const index=list.indexOf(last);if(index>=0)list.splice(index,1);
  const mesh=last.mesh;const i=debug.indexOf(mesh);if(i>=0)debug.splice(i,1);
- mesh.parent?.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();
+ mesh.parent?.remove(mesh);mesh.traverse(node=>{
+   node.geometry?.dispose?.();
+   if(node.material)for(const m of Array.isArray(node.material)?node.material:[node.material])m.dispose?.();
+  });
  return last;
 }
-function clear(){lastRemoteMap=null;lastRemoteOrigin=null;clearArea();for(const o of debug){o.parent?.remove(o);o.geometry.dispose();o.material.dispose()}debug.length=0;walls.length=0;boxes.length=0;order.length=0}
+function clear(){lastRemoteMap=null;lastRemoteOrigin=null;clearArea();for(const o of debug){o.parent?.remove(o);o.traverse(node=>{
+    node.geometry?.dispose?.();
+    if(node.material)for(const m of Array.isArray(node.material)?node.material:[node.material])m.dispose?.();
+  })}debug.length=0;walls.length=0;boxes.length=0;order.length=0}
   function importData(list,origin){
     if(!origin||!Array.isArray(list))return;
     // Co-op snapshots arrive many times per second. Rebuilding the 3D
@@ -243,8 +281,12 @@ function clear(){lastRemoteMap=null;lastRemoteOrigin=null;clearArea();for(const 
       if(item.type==='area')setArea(pt(item.a),pt(item.b),origin);
       else if(item.type==='wall')addWall(pt(item.a),pt(item.b),{height:item.height,floorY:pt(item.a).y});
       else if(item.type==='box')addBox(pt(item.a),pt(item.b),{height:item.height,floorY:pt(item.a).y});
+      else if(item.type==='cover'){
+        const aa=pt(item.a),bb=pt(item.b),center=aa.clone().add(bb).multiplyScalar(.5);
+        addCover(center,{kind:item.kind,floorY:aa.y});
+      }
     }
   }
-  function setVisible(state){preview=!!state;for(const o of debug)o.visible=preview;if(area)area.fill.visible=preview}
-  return {walls,boxes,addWall,addBox,setArea,clearArea,areaDistance,findCoverSpot,get area(){return area},lineBlocked,touchesWall,canMove,getRoute,nearestWaypoint,exportData,importData,clear,removeLast,setVisible};
+  function setVisible(state){preview=!!state;for(const o of debug)o.visible=o.userData.virtualCover||preview;if(area)area.fill.visible=preview}
+  return {walls,boxes,addWall,addBox,addCover,setArea,clearArea,areaDistance,findCoverSpot,get area(){return area},lineBlocked,touchesWall,canMove,getRoute,nearestWaypoint,exportData,importData,clear,removeLast,setVisible};
 }
