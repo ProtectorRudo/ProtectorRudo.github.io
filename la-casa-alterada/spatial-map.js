@@ -5,7 +5,7 @@
  * V9 stores only confirmed sample points and explicit user-drawn segments.
  */
 export function createSpatialMap(THREE,scene){
-  const walls=[],boxes=[],dynamic=[],debug=[],order=[];let preview=false,area=null;
+  const walls=[],boxes=[],dynamic=[],debug=[],order=[];let preview=false,area=null,lastRemoteMap=null,lastRemoteOrigin=null;
   const V=(p)=>({x:p.x,y:p.y,z:p.z});
   const len=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
   const cross=(a,b,c)=> (b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x);
@@ -182,9 +182,15 @@ export function createSpatialMap(THREE,scene){
  mesh.parent?.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();
  return last;
 }
-function clear(){clearArea();for(const o of debug){o.parent?.remove(o);o.geometry.dispose();o.material.dispose()}debug.length=0;walls.length=0;boxes.length=0;order.length=0}
+function clear(){lastRemoteMap=null;lastRemoteOrigin=null;clearArea();for(const o of debug){o.parent?.remove(o);o.geometry.dispose();o.material.dispose()}debug.length=0;walls.length=0;boxes.length=0;order.length=0}
   function importData(list,origin){
-    if(!origin||!Array.isArray(list))return;clear();
+    if(!origin||!Array.isArray(list))return;
+    // Co-op snapshots arrive many times per second. Rebuilding the 3D
+    // bounds on every packet caused frame spikes and visual flicker.
+    const key=JSON.stringify(list);
+    if(lastRemoteOrigin===origin&&lastRemoteMap===key)return;
+    clear();
+    lastRemoteMap=key;lastRemoteOrigin=origin;
     const pt=a=>origin.localToWorld(new THREE.Vector3(a[0],a[1],a[2]));
     for(const item of list.slice(0,32)){if(!Array.isArray(item?.a)||!Array.isArray(item?.b))continue;
       if(item.a.length!==3||item.b.length!==3||![...item.a,...item.b].every(n=>Number.isFinite(n)&&Math.abs(n)<35))continue;
