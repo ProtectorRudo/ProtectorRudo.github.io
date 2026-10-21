@@ -261,8 +261,12 @@ function processSpawns(t){
  e.size*=n.surfaceScale*tacticalScale*(boss?1.48:1);
  e.home=e.root.position.clone();e.groundY=e.root.position.y;e.start.copy(e.root.position);
  e.nextTarget=0;e.targetId=null;e.burst=0;e.flashUntil=0;
+ // Four original high-detail looks: tactical balaclava, desert wrap, cap,
+ // and wrap+goggles. Appearance remains stable across all player screens.
+ e.appearance=['raiderA','raiderB','raiderC','raiderD'][(i+waveNo*3)%4];
+ if(boss)e.appearance='raiderD';
  enemies.push(e);
- attachHuman(e,(i+waveNo)%2?'raiderB':'raiderA');
+ attachHuman(e,e.appearance);
 }
 function begin(){if(mapping)toggleMap(false);if(!nests.length)return;if(!mission?.start())return;if(!gunReady)buildGun();combatFX.unlock();if(!active){active=true;round=0;if(!mission?.isGuest())wave(8,false)}placing=false;ui();mission?.ui()}
 function more(){placing=true;ui();toast('Localizá otra superficie; la amenaza sigue activa.')}
@@ -646,7 +650,9 @@ mission=createMission({scene:world,getCam,toast,event,teammateShot,active:()=>ac
  environmentCanMove:(from,to,radius)=>spatialMap.canMove(from,to,radius),
  environmentNextPoint:(from,to)=>spatialMap.nearestWaypoint(from,to),
  hasCover:(from,to)=>spatialMap.lineBlocked(from,to,.11),
- spawn:(n,boss)=>wave(n,boss),spawnPending:()=>spawnQueue.length,animateEnemy,animateHuman,projectiles:()=>orbs,enemies:()=>enemies,enemyShot:pos=>combatFX.shot(pos,true,'rifle'),buildEnemy:(variant,boss)=>{const e=creature(variant);e.boss=boss;if(boss){e.root.scale.setScalar(1.85);e.hp=22;e.size*=1.85}attachHuman(e,variant%2?'raiderA':'raiderB');return e},damageEnemy,damage,heal,remoteStart,clock:()=>seconds,wave:()=>round,setGuestStats:(clock,wave)=>{seconds=clock;round=wave},victory:finish});
+ spawn:(n,boss)=>wave(n,boss),spawnPending:()=>spawnQueue.length,animateEnemy,animateHuman,projectiles:()=>orbs,enemies:()=>enemies,enemyShot:pos=>combatFX.shot(pos,true,'rifle'),buildEnemy:(variant,boss,appearance)=>{const e=creature(variant);e.boss=boss;if(boss){e.root.scale.setScalar(1.85);e.hp=22;e.size*=1.85}
+ e.appearance=['raiderA','raiderB','raiderC','raiderD'].includes(appearance)?appearance:'raiderA';
+ attachHuman(e,e.appearance);return e},damageEnemy,damage,heal,remoteStart,clock:()=>seconds,wave:()=>round,setGuestStats:(clock,wave)=>{seconds=clock;round=wave},victory:finish});
 
 async function startAR(){if(!navigator.xr){toast('Este navegador no admite WebXR');return}$('startAR').disabled=true;try{ar=await navigator.xr.requestSession('immersive-ar',{
  requiredFeatures:['hit-test'],optionalFeatures:['anchors','dom-overlay','depth-sensing','plane-detection'],domOverlay:{root:$('ui')},
