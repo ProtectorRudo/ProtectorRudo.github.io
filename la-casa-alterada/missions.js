@@ -46,7 +46,7 @@ function avatar(){
 }
 function visualWave(scene,origin,color=0x65d9ee){const m=new THREE.Mesh(new THREE.RingGeometry(.14,.18,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.8,side:THREE.DoubleSide,depthWrite:false}));m.position.copy(origin);m.position.y-=1.1;scene.add(m);return{mesh:m,t:0,duration:.7}}
 export function createMission(api){
-  const o={api,peer:null,room:null,role:'solo',conn:null,connections:new Map(),peers:new Map(),origin:null,angle:0,phase:-2,hostagePos:null,hostageRescued:false,hostageActor:null,escortPlayer:null,hostageHealth:100,hostageShieldUntil:0,rescueHoldStart:0,mask:0,held:40,spawnAfter:0,lastSnap:0,lastMove:0,ready:false,running:false,finished:false,objects:[],remoteEnemy:new Map(),remoteAvatar:new Map(),remoteBullet:new Map(),effects:[],cd:{pulse:0,shield:0,heal:0},shields:new Map(),lastActions:new Map(),myId:'local',lastHostSnapshot:0,localPositions:new Map(),enemySeq:0,seed:0,startedByHost:false,joined:false};
+  const o={api,peer:null,room:null,role:'solo',conn:null,connections:new Map(),peers:new Map(),origin:null,angle:0,phase:-2,hostagePos:null,hostageRescued:false,hostageActor:null,escortPlayer:null,hostageHealth:100,hostageShieldUntil:0,rescueHoldStart:0,routeCache:null,routeCacheAt:0,routeTarget:null,mask:0,held:40,spawnAfter:0,lastSnap:0,lastMove:0,ready:false,running:false,finished:false,objects:[],remoteEnemy:new Map(),remoteAvatar:new Map(),remoteBullet:new Map(),effects:[],cd:{pulse:0,shield:0,heal:0},shields:new Map(),lastActions:new Map(),myId:'local',lastHostSnapshot:0,localPositions:new Map(),enemySeq:0,seed:0,startedByHost:false,joined:false};
   const info=$('missionInfo'),phaseEl=$('missionStage'),desc=$('missionText'),progress=$('missionProgress'),team=$('teamStatus'),interact=$('interact'),ability=$('abilities');
   function teamUpdate(){const count=1+(o.role==='host'?o.connections.size:o.role==='guest'&&o.conn?.open?1:0);team.textContent=o.role==='solo'?'SOLO / OPERACIÓN':o.role==='host'?'JEFE DE SALA / '+count+' JUGADOR'+(count===1?'':'ES'):o.conn?.open?'EQUIPO CONECTADO':'RECONECTANDO…';$('crew').textContent=count+' / '+maxPlayers}
   function lobby(msg){$('lobbyMsg').textContent=msg}
@@ -105,7 +105,7 @@ export function createMission(api){
     else if(isGuest())o.hostageActor.root.position.lerp(o.hostagePos,.65);
     if(o.hostageActor&&o.hostageRescued){o.hostageActor.hostage=false;playHuman(o.hostageActor,'walk')}
   }
-  function reset(){if(o.hostageActor){disposeHuman(o.hostageActor);o.hostageActor.root.parent?.remove(o.hostageActor.root)}o.hostageActor=null;o.hostagePos=null;o.lastEnvironment=null;o.hostageHealth=100;o.hostageShieldUntil=0;o.rescueHoldStart=0;o.hostageRescued=false;o.escortPlayer=null;o.running=false;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;o.ready=false;o.startedByHost=false;o.localPositions.clear();o.shields.clear();o.lastSnap=0;o.enemySeq=0;o.origin?.parent?.remove(o.origin);o.origin=null;removeRemote();ui();}
+  function reset(){if(o.hostageActor){disposeHuman(o.hostageActor);o.hostageActor.root.parent?.remove(o.hostageActor.root)}o.hostageActor=null;o.hostagePos=null;o.lastEnvironment=null;o.routeCache=null;o.routeCacheAt=0;o.routeTarget=null;o.hostageHealth=100;o.hostageShieldUntil=0;o.rescueHoldStart=0;o.hostageRescued=false;o.escortPlayer=null;o.running=false;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;o.ready=false;o.startedByHost=false;o.localPositions.clear();o.shields.clear();o.lastSnap=0;o.enemySeq=0;o.origin?.parent?.remove(o.origin);o.origin=null;removeRemote();ui();}
   function start(){if(!o.ready){api.toast('Primero fijá un punto común en el piso');return false}if(isGuest()){if(!o.startedByHost){api.toast('Esperá a que el anfitrión comience');return false}o.running=true;ui();return true}if(!o.hostagePos){api.toast('COLOCÁ UN REHÉN ANTES DE INICIAR');return false}o.running=true;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;broadcast({t:'start',hostage:P(o.hostagePos)});api.event('MISIÓN 01 · LOCALIZAR Y LIBERAR AL REHÉN');ui();return true;}
   function setPhase(n){if(isGuest())return;o.phase=n;o.spawnAfter=0;if(n===0)api.event('REHÉN EXTRAÍDO · DESACTIVEN LAS CARGAS');if(n===1){api.event('MISIÓN 02 · INTRUSOS LOCALIZADOS');api.spawn(8,false)}if(n===2){o.held=40;o.spawnAfter=performance.now()+6000;api.event('MISIÓN 03 · ASEGURAR PERÍMETRO')}if(n===3){api.event('MISIÓN FINAL · JEFE LOCALIZADO');api.spawn(1,true)}if(n===4){o.finished=true;api.victory(true)}broadcast({t:'phase',phase:n,mask:o.mask,held:o.held});ui()}
   function onKill(){if(o.running&&isHost()&&o.phase===1&&api.enemies().filter(e=>e.alive).length===0)setPhase(2);if(o.running&&isHost()&&o.phase===3&&api.enemies().filter(e=>e.alive).length===0)setPhase(4)}
@@ -229,8 +229,13 @@ if(Array.isArray(msg.environment)){
           let goal=desired;
           if(api.environmentNextPoint&&o.origin){
             const start=originToWorld(current.clone()),target=originToWorld(desired.clone());
-            const waypoint=api.environmentNextPoint(start,target);
-            if(waypoint)goal=o.origin.worldToLocal(waypoint);
+            const change=!o.routeTarget||o.routeTarget.distanceToSquared(target)>.35;
+            const arrived=o.routeCache&&o.routeCache.distanceToSquared(start)<.045;
+            if(!o.routeCache||change||arrived||time-o.routeCacheAt>720){
+              o.routeCache=api.environmentNextPoint(start,target);
+              o.routeCacheAt=time;o.routeTarget=target.clone();
+            }
+            if(o.routeCache)goal=o.origin.worldToLocal(o.routeCache.clone());
             else goal=null;
           }
           if(goal){
