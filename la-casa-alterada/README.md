@@ -1,10 +1,18 @@
-# BLACKZONE — Tactical AR (V31)
+# BLACKZONE — Tactical AR (V32)
 
 **Nombre actual del juego: BLACKZONE.** Anteriormente denominado *La Casa Alterada*, conservado en la ruta heredada del repositorio y en el enlace Vercel existente para evitar romper enlaces de versiones anteriores.
 
 Shooter táctico web de realidad aumentada con dos modos: **Rescate de Rehenes (cooperativo)** y **Captura la Bandera (cooperativo o versus con bots configurables)**.
 
 El historial técnico anterior se conserva debajo, con descripciones correspondientes a cada etapa del desarrollo.
+
+## V32 — Soldados tácticos, combate automático y escolta en movimiento
+
+- **Terroristas sin traje:** los hombres de traje de MakeHuman se sustituyen por el soldado militar texturizado y animado `soldier.glb` (BAMEN, CC BY 4.0, fuente cktang88/3d-fps). Distintos equipos usan tintes discretos de uniforme, sin mochilas o cascos flotantes. La rehén Maya conserva su modelo humano independiente. La atribución está documentada en THIRD_PARTY_NOTICES.md.
+- **Ahora sí disparan:** eliminada la confirmación manual permanente "VEO A LOS ENEMIGOS". Los bots pueden combatir automáticamente **después de los 12,5 segundos de protección inicial**, manteniendo la regla de enemigo en pantalla, oclusión por obstáculos virtuales y línea de tiro. El reloj de misión empieza tras la protección.
+- **La rehén queda en el piso** de la entrada calibrada, aunque se intente colocar mediante un hit-test sobre mesa, lavabo o mueble.
+- **Escolta operativa:** la rehén puede caminar hacia la entrada mientras el jugador está cerca, sin quedarse esperando a que se aleje. Si se separan, lo sigue a pie; no se teletransporta. La planificación de movimiento se aisló en `escort-motion.js` y se probó en recorridos de 2,1 m y 1,45 m.
+- Se mantiene la selección de coberturas, Captura la Bandera y el resguardo de los primeros segundos. Para verificar aspecto, disparos y tracking final hace falta prueba física en celular Android con ARCore.
 
 ## V31 — Escolta guiada y extracción visible
 

@@ -53,9 +53,9 @@ test('tap fallback works on mobile WebXR without pointer events',()=>{
  assert.equal(h.count,1);
 });
 test('studio human fighters have the SAME realism pipeline as hostage Maya',()=>{
- assert.match(humans,/raiderA:CDN\+'npc-jordan-locomotion\.glb'/);
- assert.match(humans,/raiderB:CDN\+'npc-sam-locomotion\.glb'/);
- assert.match(humans,/raiderC:CDN\+'npc-harper-locomotion\.glb'/);
+ assert.match(humans,/raiderA:MILITARY\+'soldier\.glb'/);
+ assert.match(humans,/raiderB:MILITARY\+'soldier\.glb'/);
+ assert.match(humans,/raiderC:MILITARY\+'soldier\.glb'/);
  assert.match(humans,/hostage:CDN\+'npc-maya-locomotion\.glb'/);
  assert.doesNotMatch(humans,/ORIGINAL_BOTS\+/);
  assert.doesNotMatch(humans,/equipStudioHuman|V29_REALISTIC_KIT|bones\[0\]\.add\(rifle\)/);

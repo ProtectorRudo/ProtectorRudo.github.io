@@ -5,6 +5,7 @@ import {createCaptureFlag} from './capture-flag.js';
 import {attachHuman,animateHuman,playHuman,disposeHuman} from './animated-humans.js';
 import {makeHostageFallback,animateHostageFallback} from './hostage-fallback.js';
 import {beginEscort,updateEscort} from './escort-rules.js';
+import {escortMotion} from './escort-motion.js';
 const $=id=>document.getElementById(id),clamp=(a,b,v)=>Math.max(a,Math.min(b,v));
 const PHASES=[
 {title:'01 / DESACTIVAR TRES CARGAS',detail:'Encontrá los dispositivos y desactivalos de cerca. Repartan las tareas.',target:3},
@@ -352,6 +353,8 @@ export function createMission(api){
     if(o.running){api.toast('La operación ya comenzó');return false}
     if(!worldPoint)return false;
     const relative=o.origin.worldToLocal(worldPoint.clone());
+    // Re-use the calibrated entrance floor: AR hit tests may land on counters.
+    relative.y=0;
     if(Math.hypot(relative.x,relative.z)<1.40){
       api.toast('UBICÁ AL REHÉN A 1,4 M O MÁS DE LA ENTRADA PARA PODER ESCOLTARLO');
       return false;
@@ -365,7 +368,7 @@ export function createMission(api){
   function syncHostage(payload,rescued=false){
     if(rescued)clearRescueButton();
     if(!Array.isArray(payload)||payload.length!==3||payload.some(v=>!Number.isFinite(v)))return;
-    o.hostagePos=from(payload);o.hostageRescued=!!rescued;
+    o.hostagePos=from(payload);o.hostagePos.y=0;o.hostageRescued=!!rescued;
     if(!o.hostageActor)buildHostage();
     else if(isGuest())o.hostageActor.root.position.lerp(o.hostagePos,.65);
     if(o.hostageActor&&o.hostageRescued){o.hostageActor.hostage=false;playHuman(o.hostageActor,'walk')}
@@ -732,17 +735,11 @@ if(Array.isArray(msg.environment)){
     if(o.running&&isHost()&&o.phase===-1&&o.hostageActor){
       const player=localPositionOf(o.escortPlayer)||position();
       if(player){
-        const current=o.hostageActor.root.position,delta=player.clone().sub(current);delta.y=0;
-        const dist=delta.length();
-        const maxGap=1.35;
-        let desired=null,speed=0;
-        if(dist>maxGap){
-          // Follow the player without running in front of them or retreating
-          // backwards when they stand close to the hostage.
-          const direction=delta.normalize();
-          desired=current.clone().addScaledVector(direction,Math.max(0,dist-.86));
-          desired.y=current.y;speed=dist>3?1.45:1.18;
-        }
+        const current=o.hostageActor.root.position;
+        current.y=0;
+        const plan=escortMotion(current,player);
+        const desired=plan.target?new THREE.Vector3(plan.target.x,0,plan.target.z):null;
+        const speed=plan.speed;
         if(desired){
           let goal=desired;
           if(api.environmentNextPoint&&o.origin){
