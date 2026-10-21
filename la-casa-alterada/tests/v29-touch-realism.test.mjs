@@ -8,7 +8,7 @@ const mission=read('missions.js'),humans=read('animated-humans.js');
 
 function actionHarness(){
  const s=mission.indexOf("  let lastMissionTapAt=-10000;");
- const e=mission.indexOf("  teamUpdate();ui();",s);
+ const e=mission.indexOf("  $(\'createRoom\')",s);
  assert.ok(s>0&&e>s,'mobile rescue input code exists');
  const handlers=new Map(),receipts=[];
  const interact={addEventListener(name,callback,options){
