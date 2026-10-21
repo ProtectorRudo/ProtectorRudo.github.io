@@ -138,3 +138,40 @@ NOTA: el cañón es un modelo de vista en primera persona superpuesto (no está 
 - Los cambios de salud del rehén y los terroristas son controlados por el anfitrión. Los derribos de enemigos se notifican al instante además de reproducirse en las instantáneas periódicas.
 - Los disparos de compañeros se transmiten con coordenadas relativas al ancla inicial y se representan con estelas y sonido. Solo el anfitrión determina daño y bajas, por lo que el efecto visual no genera un segundo impacto.
 - La calibración local del plano inicial de cada teléfono sigue siendo aproximada y puede derivar; para precisión comercial robusta se necesitará anclaje espacial compartido y un servidor autoritativo persistente. PeerJS funciona como prototipo entre teléfonos, pero no equivale a un servidor competitivo de baja latencia.
+
+
+## V11 — Controles ultrafáciles y mapeo de un toque (20/10/2026)
+
+**Objetivo:** todos los jugadores colaboran en una sola misión antiterrorista y ven los mismos enemigos y rehén. Cada participante solo necesita aprender a apuntar, disparar y sostener el botón de liberar.
+
+### Primera partida en tres pasos
+
+1. Apuntar al piso, presionar **MARCAR ENTRADA** una vez. Se priorizan intersecciones físicas con WebXR hit-test; si no se detecta un piso se permite una ubicación estimada, marcada explícitamente como aproximada. Todos en una misma habitación deben marcar el mismo punto físico.
+2. Apuntar al lugar donde estará el rehén y pulsar **COLOCAR REHÉN**. El rehén se sitúa a altura del piso, no encima de mesas.
+3. Pulsar **EMPEZAR RESCATE**. Mapear muebles y paredes es opcional, nunca condición para iniciar el juego.
+
+### Mapeo en un toque
+
+- Después de marcar la entrada, el anfitrión toca **MARCAR PAREDES O MUEBLES (OPCIONAL)**. Apunta al centro de una superficie, elige PARED o MUEBLE y presiona **AGREGAR** una vez.
+- PARED genera un tramo de ancho ajustable (2 m predeterminado); MUEBLE genera una caja de cobertura horizontal (~0,9 m de altura). Una silueta translúcida sobre la cámara anticipa qué volumen será colisionable.
+- Si necesita precisión, el anfitrión activa **AJUSTE FINO: 2 EXTREMOS** para delimitar el objeto manualmente.
+- WebXR usa fuentes de hit-test reales y, cuando el navegador habilita la función opcional `plane-detection`, puede consultar los polígonos de planos detectados. Cuando está disponible el sensor `depth-sensing`, puede ayudar a elegir la distancia.
+- Si ninguna tecnología espacial está disponible, un control de distancia permite estimar la posición delante de la cámara. El usuario ve claramente **ESTIMADO** en la pantalla y puede corregir la ubicación.
+- El mapa del anfitrión se replica mediante coordenadas relativas para apoyar línea de visión, rutas y colisiones. Sin calibración compartida exacta, puede existir deriva entre celulares.
+
+### Controles y rendimiento
+
+- Un botón de acción grande y contextual antes de empezar; combate con botones amplios de **DISPARAR**, **MIRA** y **RECARGAR**, y joystick circular solo en Práctica 3D.
+- Suprimido del HUD de combate el antiguo botón **+ NIDO**, innecesario para la partida actual.
+- El toque sobre una interfaz WebXR no debería interpretarse también como un disparo o una marca en el mundo virtual: la UI filtra eventos táctiles superpuestos.
+- Menos escrituras al DOM durante el combate; el contador de munición solo vuelve a dibujarse cuando cambia.
+
+**Límites que hay que probar físicamente:** WebXR plane-detection, profundidad y anclas no están universalmente disponibles; el modo estimado no reconoce mágicamente toda la habitación. No está validada aún la precisión multijugador de posición ni los gestos en todos los modelos Android/iOS.
+
+### Referencias de desarrollo
+
+- Ejemplo oficial Three.js WebXR AR hit test: https://github.com/mrdoob/three.js/blob/dev/examples/webxr_ar_hittest.html
+- Ejemplo WebXR de planos geométricos: https://github.com/immersive-web/webxr-samples/blob/main/proposals/plane-detection.html
+- WebXR Plane Detection spec: https://immersive-web.github.io/plane-detection/
+- Google ARCore/WebXR hit-test: https://developers.google.com/ar/develop/webxr/hello-webxr
+- Implementación V11 original; se consultaron los ejemplos pero no se copiaron modelos ni activos propietarios.
