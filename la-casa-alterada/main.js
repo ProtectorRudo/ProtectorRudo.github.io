@@ -86,8 +86,12 @@ function placeHostage(){
  if(!where){toast('APUNTÁ A UNA SUPERFICIE PARA UBICAR AL REHÉN');return}
  if(mission?.placeHostage(where)){hud();toast('REHÉN POSICIONADO · INICIÁ EL RESCATE')}
 }
-function wave(total=6,boss=false){if(mission?.isGuest())return;round++;total=Math.max(1,Math.min(18,total));for(let i=0;i<total;i++){const n=nests[(i+round)%nests.length],e=creature(boss?1:(i+round)%5===0?1:(i+round)%3===0?2:0),theta=(i/total)*Math.PI*2+rnd(-.25,.25),dist=Math.sqrt(Math.random())*n.radius;e.root.position.set(Math.cos(theta)*dist,.016,Math.sin(theta)*dist);e.id=++monsterId;e.boss=boss;e.floor=n.floor;e.roamRadius=n.floor?3:.27;e.next=now+rnd(1800,3500);e.hit.userData.enemy=e;n.root.add(e.root);n.root.updateMatrixWorld(true);world.updateMatrixWorld(true);world.attach(e.root);e.root.scale.multiplyScalar(n.surfaceScale);if(boss){e.hp=22;e.root.scale.multiplyScalar(1.85)}e.size*=n.surfaceScale*(boss?1.85:1);e.home=e.root.position.clone();e.groundY=e.root.position.y;e.start.copy(e.root.position);e.nextTarget=0;e.targetId=null;e.burst=0;e.flashUntil=0;enemies.push(e);attachHuman(e,(i+round)%2?'raiderB':'raiderA')}event('OLEADA '+round+' / MOVIMIENTO HOSTIL');tone('hurt');hud()}
-function begin(){if(mapping)toggleMap(false);if(!nests.length)return;if(!mission?.start())return;if(!gunReady)buildGun();combatFX.unlock();if(!active){active=true;round=0;if(!mission?.isGuest())wave(3,false)}placing=false;ui();mission?.ui()}
+function wave(total=6,boss=false){if(mission?.isGuest())return;round++;total=Math.max(1,Math.min(13,total));for(let i=0;i<total;i++){const n=nests[(i+round)%nests.length],e=creature(boss?1:(i+round)%5===0?1:(i+round)%3===0?2:0),theta=(i/total)*Math.PI*2+rnd(-.35,.35),dist=n.floor?rnd(1.15,2.8):Math.sqrt(Math.random())*n.radius;
+ e.root.position.set(Math.cos(theta)*dist,.016,Math.sin(theta)*dist);e.id=++monsterId;e.boss=boss;e.floor=n.floor;e.roamRadius=n.floor?3:.27;e.next=now+rnd(1800,3500);e.hit.userData.enemy=e;n.root.add(e.root);n.root.updateMatrixWorld(true);world.updateMatrixWorld(true);world.attach(e.root);const tacticalScale=n.floor?.68:.84;
+ e.root.scale.multiplyScalar(n.surfaceScale*tacticalScale);
+ if(boss){e.hp=22;e.root.scale.multiplyScalar(1.48)}
+ e.size*=n.surfaceScale*tacticalScale*(boss?1.48:1);e.home=e.root.position.clone();e.groundY=e.root.position.y;e.start.copy(e.root.position);e.nextTarget=0;e.targetId=null;e.burst=0;e.flashUntil=0;enemies.push(e);attachHuman(e,(i+round)%2?'raiderB':'raiderA')}event('OLEADA '+round+' / MOVIMIENTO HOSTIL');tone('hurt');hud()}
+function begin(){if(mapping)toggleMap(false);if(!nests.length)return;if(!mission?.start())return;if(!gunReady)buildGun();combatFX.unlock();if(!active){active=true;round=0;if(!mission?.isGuest())wave(8,false)}placing=false;ui();mission?.ui()}
 function more(){placing=true;ui();toast('Localizá otra superficie; la amenaza sigue activa.')}
 function trail(start,end){let d=end.clone().sub(start),o=new THREE.Mesh(new THREE.CylinderGeometry(.003,.006,d.length(),5),mat.shot.clone());o.position.copy(start).addScaledVector(d,.5);o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.clone().normalize());world.add(o);trails.push({mesh:o,until:now+120})}
 function impact(p){for(let j=0;j<12;j++){let m=new THREE.Mesh(new THREE.TetrahedronGeometry(rnd(.01,.04)),mat.blood.clone());m.position.copy(p);world.add(m);splinters.push({mesh:m,velocity:new THREE.Vector3(rnd(-.8,.8),rnd(.2,1.3),rnd(-.8,.8)),until:now+rnd(300,850)})}}
@@ -168,6 +172,10 @@ function updateBattle(dt,t){
    e.nextTarget=t+rnd(1750,3100)
   }
   const target=mission?.getPlayerWorld(e.targetId)||eye;
+  // Keep enemies from crowding the mobile camera.
+  if(target===eye&&e.floor){
+    e.screenDistance=Math.hypot(target.x-e.root.position.x,target.z-e.root.position.z);
+  }
   const moved=steerEnemy(e,dt,t,target,mode,spatialMap);
   animateEnemy(e,dt,moved);
   animateHuman(e,dt,moved);
