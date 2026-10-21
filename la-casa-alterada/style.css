@@ -327,7 +327,7 @@
 
 
 /* BLACKZONE V20 — quick floor-zone scanner and unobtrusive spatial safety */
-#mapPanel .mapChoices{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:5px}
+#mapPanel .mapZoneChoices{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:5px}
 #mapPanel .mapChoices button{font-size:9px;letter-spacing:.02em;padding:10px 5px;min-height:42px}
 #mapPanel #mapArea{border:1px solid #a5edc8;background:#173f3b;color:#c8ffde}
 #mapPanel #mapArea.active{background:linear-gradient(135deg,#64dba8,#317e77);color:#071c1b;box-shadow:inset 0 1px 0 #b7ffda6f,0 4px 14px #29967d38}
@@ -356,7 +356,7 @@
 }
 .zoneProximity.outside{border-color:#ff8d79;color:#ffe8df;background:#441d22ef}
 @media(max-width:385px){
- #mapPanel .mapChoices{gap:4px;grid-template-columns:1.35fr 1fr 1fr}
+ #mapPanel .mapZoneChoices{gap:4px;grid-template-columns:1.35fr 1fr 1fr}
  #mapPanel .mapChoices button{font-size:8px;padding:9px 4px}
  #mapPanel .areaSafety{font-size:9px}
  .zoneProximity{font-size:9px;padding:8px}
