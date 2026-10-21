@@ -638,7 +638,7 @@ function spawnCTFBot(team,index,id,localPos){
  band.position.set(.05,1.33,.03);band.rotation.x=Math.PI/2;e.root.add(band);
  attachRespawnShield(e);attachContactShadow(e);
  world.add(e.root);enemies.push(e);
- e.appearance=team==='blue'?'operator':['raiderA','raiderB','raiderC','raiderD'][index%4];
+ e.appearance=team==='blue'?(index%2===0?'operator':'operatorTac'):['raiderA','raiderB','raiderC','raiderD'][index%4];
  // Keep the original tactical fallback until a detailed skinned GLB is ready.
  attachHuman(e,e.appearance).catch(err=>console.warn('Tactical fallback remains',err));
  return e;
@@ -1189,7 +1189,7 @@ mission=createMission({scene:world,getCam,toast,event,teammateShot,resolveTeamma
  hasCover:(from,to)=>spatialMap.lineBlocked(from,to,.11),
  spawn:(n,boss)=>wave(n,boss),spawnPending:()=>spawnQueue.length,animateEnemy,animateHuman,projectiles:()=>orbs,enemies:()=>enemies,enemyShot:pos=>combatFX.shot(pos,true,'rifle'),spawnCTFBot,ctfBotShot,ctfTag:applyCTFTag,ctfFinish:finishCTF,
  buildEnemy:(variant,boss,appearance,team)=>{const e=createTacticalActor(THREE,variant,team==='blue'?'operator':'raider');e.team=team||'red';e.ctfBot=!!team;e.boss=boss;if(boss){e.root.scale.setScalar(1.85);e.hp=22;e.size*=1.85}
- e.appearance=['raiderA','raiderB','raiderC','raiderD','operator'].includes(appearance)?appearance:'raiderA';
+ e.appearance=['raiderA','raiderB','raiderC','raiderD','operator','operatorTac'].includes(appearance)?appearance:'raiderA';
  if(e.ctfBot){
    e.floor=true;e.root.scale.setScalar(.92);e.hp=3;e.size=.94;
    const teamColor=e.team==='blue'?0x46c7ff:0xff6158;
