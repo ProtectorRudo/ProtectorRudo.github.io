@@ -15,7 +15,7 @@ const advanceCode=mission.slice(tickStart,tickEnd);
 
 function createSimulation(position={x:.7,z:0}){
  const o={running:true,phase:-2,rescueActionStartedAt:0,
-  hostagePos:{x:0,z:0},origin:{localToWorld:point=>point}};
+  hostagePos:{x:0,z:0,clone(){return {...this}}},origin:{localToWorld:point=>point}};
  const style=new Map(),classes=new Set(),messages=[];
  const interact={classList:{add:s=>classes.add(s),remove:s=>classes.delete(s)},
   style:{setProperty:(a,b)=>style.set(a,b),removeProperty:a=>style.delete(a)}};
