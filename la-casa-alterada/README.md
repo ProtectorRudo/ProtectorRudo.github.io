@@ -1,10 +1,20 @@
-# BLACKZONE — Tactical AR (V27)
+# BLACKZONE — Tactical AR (V28)
 
 **Nombre actual del juego: BLACKZONE.** Anteriormente denominado *La Casa Alterada*, conservado en la ruta heredada del repositorio y en el enlace Vercel existente para evitar romper enlaces de versiones anteriores.
 
 Shooter táctico web de realidad aumentada con dos modos: **Rescate de Rehenes (cooperativo)** y **Captura la Bandera (cooperativo o versus con bots configurables)**.
 
 El historial técnico anterior se conserva debajo, con descripciones correspondientes a cada etapa del desarrollo.
+
+## V28 — Rescate instantáneo: fin del bloqueo en 99 %
+
+- **Un toque = rehén liberado inmediatamente.** Eliminada la espera de 1,55 segundos ligada al reloj WebXR. No hay barra de progreso ni existe el estado 99 %.
+- El anfitrión valida cercanía y obstáculos, **confirma la fase de escolta antes de invocar animaciones y eventos**, y envía el cambio al equipo. Un fallo visual no deshace la liberación.
+- El chequeo de obstáculos ahora usa altura torso-torso, evitando falsas obstrucciones entre la cámara y los pies del rehén. A menos de 78 cm se considera contacto directo.
+- Los refuerzos aparecen 3 segundos después en un ciclo separado, no dentro de la interacción táctil.
+- Los invitados pueden reintentar si el anfitrión no confirma en 1,6 segundos. No quedan trabados esperando eternamente.
+- Nuevas pruebas validan transición completa a 60 cm, fallos de animación y sonido, distancia máxima y ausencia de dependencia del reloj AR.
+- Falta validación en un teléfono real; las pruebas automáticas no certifican WebXR físico.
 
 ## V27 — Bandera, IA y coberturas tácticas
 
