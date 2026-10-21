@@ -131,6 +131,7 @@ export function createMission(api){
   }
   function holdStart(){
     if(!o.running)return;
+    if(o.rescueHoldStart)return;
     if(o.phase!==-2){interactNow();return}
     const p=position();if(!p||!o.hostagePos)return;
     if(Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z)>1.12){api.toast('ACERCATE UN POCO MÁS AL REHÉN');return}
@@ -143,11 +144,11 @@ export function createMission(api){
     if(!o.rescueHoldStart)return;
     const elapsed=performance.now()-o.rescueHoldStart;
     o.rescueHoldStart=0;
-    if(o.phase===-2&&elapsed>=1750){
+    if(o.phase===-2&&elapsed>=920){
       if(isGuest())send(o.conn,{t:'interact'});else doInteract(o.myId);
-    }else{
+    }else if(o.phase===-2){
       if(isGuest())send(o.conn,{t:'holdCancel'});
-      api.toast('MANTENÉ PRESIONADO PARA LIBERARLO');
+      api.toast('MANTENÉ PRESIONADO 1 SEGUNDO PARA LIBERARLO');
     }
   }
   function doInteract(id){
@@ -159,10 +160,10 @@ export function createMission(api){
      if(id===o.myId)api.toast('ACERCATE AL REHÉN PARA LIBERARLO');else send(o.connections.get(id),{t:'msg',text:'Acercate más al rehén'});
      return;
    }
-   if(performance.now()-(o.lastActions.get(id+':holdStart')||0)<1400){if(id===o.myId)api.toast('MANTENÉ PARA LIBERAR');return}
+   if(performance.now()-(o.lastActions.get(id+':holdStart')||0)<750){if(id===o.myId)api.toast('MANTENÉ PARA LIBERAR');return}
    if(api.hasCover?.(o.origin.localToWorld(p.clone()),o.origin.localToWorld(o.hostagePos.clone())))return;
-   o.hostageRescued=true;o.escortPlayer=id;o.hostageShieldUntil=performance.now()+1100;
-   if(isHost())api.spawn(3,false);
+   o.rescueHoldStart=0;o.lastActions.delete(id+':holdStart');o.hostageRescued=true;o.escortPlayer=id;o.hostageShieldUntil=performance.now()+1300;
+   if(isHost())api.spawn(5,false);
    if(o.hostageActor){o.hostageActor.hostage=false;playHuman(o.hostageActor,'walk')}
    o.phase=-1;broadcast({t:'phase',phase:-1,mask:o.mask,held:o.held,rescued:true});
    api.event('¡REHÉN LIBERADO! LLEVALO AL PUNTO DE ENTRADA');ui();return;
@@ -216,6 +217,14 @@ if(Array.isArray(msg.environment)){
   function chooseTarget(){const t=targets();if(!t.length)return null;return t[Math.floor(Math.random()*t.length)]}
   function originToWorld(pos){if(!o.origin)return null;return o.origin.localToWorld(pos.clone())}
   function tick(dt,time){
+    if(o.rescueHoldStart&&o.running&&o.phase===-2&&performance.now()-o.rescueHoldStart>=1120){
+      const p=position();
+      const inRange=p&&o.hostagePos&&Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z)<1.22;
+      if(inRange){
+        o.rescueHoldStart=0;
+        if(isGuest())send(o.conn,{t:'interact'});else doInteract(o.myId);
+      }
+    }
     if(o.running&&isHost()&&o.phase===-1&&o.hostageActor){
       const player=localPositionOf(o.escortPlayer)||position();
       if(player){
@@ -267,10 +276,10 @@ if(Array.isArray(msg.environment)){
     if(isGuest()&&o.running){const at=position();if(at){let near=false;for(const e of o.remoteEnemy.values()){const prev=e.root.position.clone();e.root.position.lerp(e.start,clamp(0,1,dt*9));if(Number.isFinite(e.remoteYaw)){let delta=(e.remoteYaw-e.root.rotation.y+Math.PI)%(Math.PI*2);if(delta<0)delta+=Math.PI*2;delta-=Math.PI;e.root.rotation.y+=delta*clamp(0,1,dt*9)}const moved=e.root.position.distanceTo(prev)/Math.max(.001,dt);api.animateEnemy(e,dt,moved);if(Math.hypot(e.root.position.x-at.x,e.root.position.z-at.z)<2.4)near=true;}const el=$('alert');el.classList.toggle('hidden',!near)}for(const obj of o.remoteBullet.values())if(obj.userData.target)obj.position.lerp(obj.userData.target,clamp(0,1,dt*13))}
     for(const [id,g] of o.remoteAvatar){g.rotation.y+=dt*.4}
     if(o.running&&p&&(o.phase===0||o.phase===-2)){
-     const near=o.phase===-2?!!o.hostagePos&&Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z)<1.17:
+     const near=o.phase===-2?!!o.rescueHoldStart||!!o.hostagePos&&Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z)<1.24:
       POSITION.some((v,i)=>!(o.mask&(1<<i))&&Math.hypot(p.x-v[0],p.z-v[2])<.93);
      interact.classList.toggle('hidden',!near);
-     interact.textContent=o.phase===-2?(o.rescueHoldStart?'LIBERANDO '+Math.min(99,Math.floor((performance.now()-o.rescueHoldStart)/1750*100))+'%':'MANTENER PARA LIBERAR'):'DESACTIVAR CARGA';
+     interact.textContent=o.phase===-2?(o.rescueHoldStart?'LIBERANDO '+Math.min(99,Math.floor((performance.now()-o.rescueHoldStart)/1100*100))+'%':'MANTENER PARA LIBERAR'):'DESACTIVAR CARGA';
     }else interact.classList.add('hidden');
     for(const name of ['pulse','shield','heal']){const element=$(name);if(!element)continue;const remain=Math.max(0,(o.cd[name]||0)-performance.now());element.disabled=!o.running||remain>0;element.querySelector('small').textContent=remain?Math.ceil(remain/1000)+' s':'LISTO'}
     $('hud')?.classList.toggle('shieldOn',shielded());if(o.running)ui();}
@@ -284,7 +293,8 @@ if(Array.isArray(msg.environment)){
   const query=new URLSearchParams(location.search).get('sala');if(query&&/^[a-z0-9]{6}$/i.test(query)){$('joinCode').value=query.toUpperCase();lobby('Código recibido. Tocá UNIRME antes de iniciar la cámara.')}
   interact.addEventListener('pointerdown',e=>{e.preventDefault();holdStart();try{interact.setPointerCapture(e.pointerId)}catch(_){}});
   interact.addEventListener('pointerup',holdEnd);
-  interact.addEventListener('pointercancel',()=>{o.rescueHoldStart=0;if(isGuest())send(o.conn,{t:'holdCancel'})});
+  interact.addEventListener('pointercancel',holdEnd);
+  interact.addEventListener('lostpointercapture',()=>{if(o.rescueHoldStart&&performance.now()-o.rescueHoldStart>1000)holdEnd()});
   $('createRoom').addEventListener('click',createRoom);$('joinRoom').addEventListener('click',joinRoom);$('copyRoom').addEventListener('click',copyCode);$('pulse').addEventListener('click',()=>abilityNow('pulse'));$('shield').addEventListener('click',()=>abilityNow('shield'));$('heal').addEventListener('click',()=>abilityNow('heal'));
   teamUpdate();ui();return{align,reset,start,placeHostage,hostageWorld,hostageExposed:()=>o.running&&o.phase<0&&o.hostageHealth>0,damageHostage,healHostage,hasHostage:()=>!!o.hostagePos,isGuest,isHost,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result})},remoteHit:id=>send(o.conn,{t:'hit',id}),localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
 }
