@@ -146,6 +146,15 @@ export function animateEnemy(e,dt,speed){
  e.flesh.rotation.x=.05+Math.sin(angle)*intensity*.06;
  e.flesh.rotation.z=Math.sin(angle*.53+e.phase)*(.025+intensity*.048)+(e.coverState==='fire'?.055:0);
  e.flesh.position.y=Math.abs(Math.sin(angle))*intensity*.015;
+ // Procedural backup mimics prone-to-cover without sinking into the floor.
+ // The head hit region tracks the height of the visible crouching figure.
+ const crouching=e.ctfStance==='crouch'||e.coverState==='hold'||e.coverState==='retreat';
+ const desired=crouching?.72:1;
+ e.flesh.scale.y+=(desired-e.flesh.scale.y)*Math.min(1,dt*9);
+ if(e.headHit){
+   const targetHead=1.56-(1-desired)*.45;
+   e.headHit.position.y+=(targetHead-e.headHit.position.y)*Math.min(1,dt*9);
+ }
  if(e.jaw)e.jaw.scale.y=1+Math.max(0,Math.sin(angle*.65+e.phase))*.23;
  if(e.shadow)e.shadow.material.opacity=.29-.04*intensity;
 }
