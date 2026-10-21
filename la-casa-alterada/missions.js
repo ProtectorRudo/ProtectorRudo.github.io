@@ -61,7 +61,7 @@ function tintAvatar(group,team){
 }
 function visualWave(scene,origin,color=0x65d9ee){const m=new THREE.Mesh(new THREE.RingGeometry(.14,.18,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.8,side:THREE.DoubleSide,depthWrite:false}));m.position.copy(origin);m.position.y-=1.1;scene.add(m);return{mesh:m,t:0,duration:.7}}
 export function createMission(api){
-  const o={api,peer:null,room:null,role:'solo',conn:null,connections:new Map(),peers:new Map(),origin:null,angle:0,phase:-2,hostagePos:null,hostageRescued:false,hostageActor:null,escortPlayer:null,hostageHealth:100,hostageShieldUntil:0,rescueHoldStart:0,routeCache:null,routeCacheAt:0,routeTarget:null,mask:0,held:40,spawnAfter:0,lastSnap:0,lastMove:0,ready:false,running:false,finished:false,objects:[],remoteEnemy:new Map(),remoteAvatar:new Map(),remoteBullet:new Map(),effects:[],cd:{pulse:0,shield:0,heal:0},shields:new Map(),lastActions:new Map(),myId:'local',lastHostSnapshot:0,lastSnapshotSeq:-1,snapshotSeq:0,lastShotAt:new Map(),localPositions:new Map(),enemySeq:0,seed:0,startedByHost:false,joined:false,referenceReady:false,referenceLength:0,expectedLength:null,calibrationQuality:'waiting',calibrationSeen:new Map(),gameMode:'rescue',myTeam:'blue',teams:new Map(),ctf:null,lastMoveAt:new Map()};
+  const o={api,peer:null,room:null,role:'solo',conn:null,connections:new Map(),peers:new Map(),origin:null,angle:0,phase:-2,hostagePos:null,hostageRescued:false,hostageActor:null,escortPlayer:null,hostageHealth:100,hostageShieldUntil:0,rescueActionStartedAt:0,routeCache:null,routeCacheAt:0,routeTarget:null,mask:0,held:40,spawnAfter:0,lastSnap:0,lastMove:0,ready:false,running:false,finished:false,objects:[],remoteEnemy:new Map(),remoteAvatar:new Map(),remoteBullet:new Map(),effects:[],cd:{pulse:0,shield:0,heal:0},shields:new Map(),lastActions:new Map(),myId:'local',lastHostSnapshot:0,lastSnapshotSeq:-1,snapshotSeq:0,lastShotAt:new Map(),localPositions:new Map(),enemySeq:0,seed:0,startedByHost:false,joined:false,referenceReady:false,referenceLength:0,expectedLength:null,calibrationQuality:'waiting',calibrationSeen:new Map(),gameMode:'rescue',myTeam:'blue',teams:new Map(),ctf:null,lastMoveAt:new Map()};
   const info=$('missionInfo'),phaseEl=$('missionStage'),desc=$('missionText'),progress=$('missionProgress'),team=$('teamStatus'),interact=$('interact'),ability=$('abilities');
   function teamUpdate(){const count=1+(o.role==='host'?o.connections.size:o.role==='guest'&&o.conn?.open?1:0);team.textContent=o.role==='solo'?'SOLO / OPERACIÓN':o.role==='host'?'JEFE DE SALA / '+count+' JUGADOR'+(count===1?'':'ES'):o.conn?.open?'EQUIPO CONECTADO':'RECONECTANDO…';$('crew').textContent=count+' / '+maxPlayers}
   function lobby(msg){$('lobbyMsg').textContent=msg}
@@ -340,7 +340,7 @@ export function createMission(api){
     else if(isGuest())o.hostageActor.root.position.lerp(o.hostagePos,.65);
     if(o.hostageActor&&o.hostageRescued){o.hostageActor.hostage=false;playHuman(o.hostageActor,'walk')}
   }
-  function reset(){if(o.hostageActor){disposeHuman(o.hostageActor);o.hostageActor.root.parent?.remove(o.hostageActor.root)}o.hostageActor=null;o.hostagePos=null;o.lastEnvironment=null;o.routeCache=null;o.routeCacheAt=0;o.routeTarget=null;o.hostageHealth=100;o.hostageShieldUntil=0;o.rescueHoldStart=0;o.hostageRescued=false;o.escortPlayer=null;o.running=false;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;o.ready=false;o.startedByHost=false;o.referenceReady=false;o.referenceLength=0;o.expectedLength=null;o.calibrationQuality='waiting';o.calibrationSeen.clear();o.localPositions.clear();o.lastMoveAt.clear();ctf.reset();o.shields.clear();o.lastSnap=0;o.lastSnapshotSeq=-1;o.snapshotSeq=0;o.lastShotAt.clear();o.enemySeq=0;o.origin?.parent?.remove(o.origin);o.origin=null;removeRemote();ui();}
+  function reset(){if(o.hostageActor){disposeHuman(o.hostageActor);o.hostageActor.root.parent?.remove(o.hostageActor.root)}o.hostageActor=null;o.hostagePos=null;o.lastEnvironment=null;o.routeCache=null;o.routeCacheAt=0;o.routeTarget=null;o.hostageHealth=100;o.hostageShieldUntil=0;o.rescueActionStartedAt=0;o.hostageRescued=false;o.escortPlayer=null;o.running=false;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;o.ready=false;o.startedByHost=false;o.referenceReady=false;o.referenceLength=0;o.expectedLength=null;o.calibrationQuality='waiting';o.calibrationSeen.clear();o.localPositions.clear();o.lastMoveAt.clear();ctf.reset();o.shields.clear();o.lastSnap=0;o.lastSnapshotSeq=-1;o.snapshotSeq=0;o.lastShotAt.clear();o.enemySeq=0;o.origin?.parent?.remove(o.origin);o.origin=null;removeRemote();ui();}
   function start(){if(!o.ready){api.toast('Primero fijá un punto común en el piso');return false}
  if(isCapture()){
    if(isGuest()){
@@ -381,40 +381,45 @@ export function createMission(api){
     o.hostageShieldUntil=performance.now()+1200;
     ui();
   }
-  function holdStart(){
+  // Start with one tap and finish automatically in the frame loop.
+  // No pointer capture or pointerup timer: that is what stranded progress at 99%.
+  const RESCUE_TAP_MS=1550,RESCUE_RANGE=1.55;
+  function beginRescueTap(){
     if(!o.running)return;
-    if(o.rescueHoldStart)return;
     if(o.phase!==-2){interactNow();return}
-    const p=position();if(!p||!o.hostagePos)return;
-    if(Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z)>1.12){api.toast('ACERCATE UN POCO MÁS AL REHÉN');return}
-    if(api.hasCover?.(o.origin.localToWorld(p.clone()),o.origin.localToWorld(o.hostagePos.clone()))){api.toast('NO PODÉS LIBERARLO A TRAVÉS DE UNA PARED');return}
-    o.rescueHoldStart=performance.now();
-    if(isGuest())send(o.conn,{t:'holdBegin'});
-    else o.lastActions.set(o.myId+':holdStart',performance.now());
-  }
-  function holdEnd(){
-    if(!o.rescueHoldStart)return;
-    const elapsed=performance.now()-o.rescueHoldStart;
-    o.rescueHoldStart=0;
-    if(o.phase===-2&&elapsed>=920){
-      if(isGuest())send(o.conn,{t:'interact'});else doInteract(o.myId);
-    }else if(o.phase===-2){
-      if(isGuest())send(o.conn,{t:'holdCancel'});
-      api.toast('MANTENÉ PRESIONADO 1 SEGUNDO PARA LIBERARLO');
+    if(o.rescueActionStartedAt)return;
+    const p=position();
+    if(!p||!o.hostagePos)return;
+    if(Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z)>RESCUE_RANGE){
+      api.toast('ACERCATE AL REHÉN PARA LIBERARLO');return;
     }
+    if(api.hasCover?.(o.origin.localToWorld(p.clone()),
+                      o.origin.localToWorld(o.hostagePos.clone()))){
+      api.toast('NO PODÉS LIBERARLO A TRAVÉS DE UNA PARED');return;
+    }
+    o.rescueActionStartedAt=performance.now();
+    interact.classList.add('rescuing');
+    interact.style.setProperty('--rescue-progress','0%');
+    api.toast('LIBERANDO · NO NECESITÁS MANTENER PRESIONADO');
+  }
+  function cancelRescueTap(message){
+    if(!o.rescueActionStartedAt)return;
+    o.rescueActionStartedAt=0;
+    interact.classList.remove('rescuing');
+    interact.style.removeProperty('--rescue-progress');
+    if(message)api.toast(message);
   }
   function doInteract(id){
  if(!o.running)return;
  const p=localPositionOf(id);if(!p)return;
  if(o.phase===-2){
    if(!o.hostagePos){return}
-   if(Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z)>1.12){
+   if(Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z)>RESCUE_RANGE){
      if(id===o.myId)api.toast('ACERCATE AL REHÉN PARA LIBERARLO');else send(o.connections.get(id),{t:'msg',text:'Acercate más al rehén'});
      return;
    }
-   if(performance.now()-(o.lastActions.get(id+':holdStart')||0)<750){if(id===o.myId)api.toast('MANTENÉ PARA LIBERAR');return}
    if(api.hasCover?.(o.origin.localToWorld(p.clone()),o.origin.localToWorld(o.hostagePos.clone())))return;
-   o.rescueHoldStart=0;o.lastActions.delete(id+':holdStart');o.hostageRescued=true;o.escortPlayer=id;o.hostageShieldUntil=performance.now()+2400;
+   o.rescueActionStartedAt=0;interact.classList.remove('rescuing');interact.style.removeProperty('--rescue-progress');o.hostageRescued=true;o.escortPlayer=id;o.hostageShieldUntil=performance.now()+2400;
    if(isHost())api.spawn(5,false);
    if(o.hostageActor){o.hostageActor.hostage=false;playHuman(o.hostageActor,'walk')}
    o.phase=-1;broadcast({t:'phase',phase:-1,mask:o.mask,held:o.held,rescued:true});
@@ -525,8 +530,6 @@ if(Array.isArray(msg.environment)){
     if(msg.t==='syncRequest'&&o.origin&&o.ready){
       send(conn,makeSnapshot());
     }
-    if(msg.t==='holdBegin')o.lastActions.set(conn.peer+':holdStart',performance.now());
-    if(msg.t==='holdCancel')o.lastActions.delete(conn.peer+':holdStart');
     if(msg.t==='move'&&Array.isArray(msg.p)&&msg.p.length===3&&msg.p.every(v=>Number.isFinite(v)&&Math.abs(v)<50)){
        const p=from(msg.p),last=o.localPositions.get(conn.peer),now=performance.now();
        // Large instantaneous changes are not accepted as teleports onto flags.
@@ -630,12 +633,15 @@ if(Array.isArray(msg.environment)){
       if(time-(o.lastHudUpdate||0)>160){o.lastHudUpdate=time;ui()}
       return;
     }
-    if(o.rescueHoldStart&&o.running&&o.phase===-2&&performance.now()-o.rescueHoldStart>=1120){
+    if(o.rescueActionStartedAt&&o.running&&o.phase===-2){
       const p=position();
-      const inRange=p&&o.hostagePos&&Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z)<1.22;
-      if(inRange){
-        o.rescueHoldStart=0;
-        if(isGuest())send(o.conn,{t:'interact'});else doInteract(o.myId);
+      const close=!!p&&!!o.hostagePos&&
+        Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z)<=RESCUE_RANGE+.08;
+      if(!close)cancelRescueTap('TE ALEJASTE · VOLVÉ A ACERCARTE PARA LIBERAR');
+      else if(time-o.rescueActionStartedAt>=RESCUE_TAP_MS){
+        cancelRescueTap();
+        if(isGuest())send(o.conn,{t:'interact'});
+        else doInteract(o.myId);
       }
     }
     if(o.running&&isHost()&&o.phase===-1&&o.hostageActor){
@@ -697,10 +703,17 @@ if(Array.isArray(msg.environment)){
  if(Math.hypot(e.root.position.x-at.x,e.root.position.z-at.z)<2.4)near=true;}const el=$('alert');el.classList.toggle('hidden',!near)}for(const obj of o.remoteBullet.values())if(obj.userData.target)obj.position.lerp(obj.userData.target,clamp(0,1,dt*13))}
     for(const [id,g] of o.remoteAvatar){g.rotation.y+=dt*.4}
     if(o.running&&p&&(o.phase===0||o.phase===-2)){
-     const near=o.phase===-2?!!o.rescueHoldStart||!!o.hostagePos&&Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z)<1.24:
-      POSITION.some((v,i)=>!(o.mask&(1<<i))&&Math.hypot(p.x-v[0],p.z-v[2])<.93);
+     const near=o.phase===-2?!!o.rescueActionStartedAt||
+        !!o.hostagePos&&Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z)<RESCUE_RANGE+.10:
+        POSITION.some((v,i)=>!(o.mask&(1<<i))&&Math.hypot(p.x-v[0],p.z-v[2])<.93);
      interact.classList.toggle('hidden',!near);
-     interact.textContent=o.phase===-2?(o.rescueHoldStart?'LIBERANDO '+Math.min(99,Math.floor((performance.now()-o.rescueHoldStart)/1100*100))+'%':'MANTENER PARA LIBERAR'):'DESACTIVAR CARGA';
+     if(o.phase===-2){
+       const progress=o.rescueActionStartedAt?
+         Math.min(100,Math.floor((time-o.rescueActionStartedAt)/RESCUE_TAP_MS*100)):0;
+       interact.textContent=o.rescueActionStartedAt?'LIBERANDO '+progress+'%':'LIBERAR REHÉN';
+       interact.classList.toggle('rescuing',!!o.rescueActionStartedAt);
+       if(o.rescueActionStartedAt)interact.style.setProperty('--rescue-progress',progress+'%');
+     }else interact.textContent='DESACTIVAR CARGA';
     }else interact.classList.add('hidden');
     for(const name of ['pulse','shield','heal']){const element=$(name);if(!element)continue;const remain=Math.max(0,(o.cd[name]||0)-performance.now());element.disabled=!o.running||remain>0;element.querySelector('small').textContent=remain?Math.ceil(remain/1000)+' s':'LISTO'}
     $('hud')?.classList.toggle('shieldOn',shielded());if(o.running&&time-(o.lastHudUpdate||0)>110){o.lastHudUpdate=time;ui()}}
@@ -724,10 +737,9 @@ if(Array.isArray(msg.environment)){
     if(o.phase<0){phaseEl.textContent=o.phase===-2?'01 / LIBERAR AL REHÉN':'01 / ESCOLTAR AL REHÉN';desc.textContent=o.phase===-2?'Acercate al rehén sin quedar expuesto. Tocá LIBERAR cuando estés cerca.':'Llevalo al primer punto de entrada. El equipo debe cubrir la extracción.';progress.textContent=o.phase===-2?(position()&&o.hostagePos?Math.hypot(position().x-o.hostagePos.x,position().z-o.hostagePos.z).toFixed(1)+' m AL REHÉN':'REHÉN RETENIDO'):(position()&&o.hostagePos?Math.hypot(o.hostagePos.x,o.hostagePos.z).toFixed(1)+' m A ZONA SEGURA':'EXTRACCIÓN EN CURSO');return}
     const phase=PHASES[Math.min(o.phase,3)];phaseEl.textContent=phase.title;desc.textContent=phase.detail;if(o.phase===0)progress.textContent=[o.mask&1?1:0,o.mask&2?1:0,o.mask&4?1:0].reduce((a,b)=>a+b,0)+'/3 CARGAS';if(o.phase===1)progress.textContent=api.enemies().filter(e=>e.alive).length+' INTRUSOS';if(o.phase===2)progress.textContent=Math.ceil(o.held)+' S PARA RESISTIR';if(o.phase===3)progress.textContent='REDUCIR AL JEFE';teamUpdate()}
   const query=new URLSearchParams(location.search).get('sala');if(query&&/^[a-z0-9]{6}$/i.test(query)){$('joinCode').value=query.toUpperCase();lobby('Código recibido. Tocá UNIRME antes de iniciar la cámara.')}
-  interact.addEventListener('pointerdown',e=>{e.preventDefault();holdStart();try{interact.setPointerCapture(e.pointerId)}catch(_){}});
-  interact.addEventListener('pointerup',holdEnd);
-  interact.addEventListener('pointercancel',holdEnd);
-  interact.addEventListener('lostpointercapture',()=>{if(o.rescueHoldStart&&performance.now()-o.rescueHoldStart>1000)holdEnd()});
+  interact.addEventListener('click',event=>{
+     event.preventDefault();beginRescueTap();
+   });
   $('createRoom').addEventListener('click',createRoom);$('joinRoom').addEventListener('click',joinRoom);$('copyRoom').addEventListener('click',copyCode);$('pulse').addEventListener('click',()=>abilityNow('pulse'));$('shield').addEventListener('click',()=>abilityNow('shield'));$('heal').addEventListener('click',()=>abilityNow('heal'));
   teamUpdate();ui();function navigationTarget(){
  if(isCapture()&&o.origin&&o.running){
