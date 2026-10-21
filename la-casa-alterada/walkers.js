@@ -49,14 +49,14 @@ function nextWaypoint(start,end){
  while(prev[next]>0)next=prev[next];
  return pts[next]||end;
 }
-export function steerEnemy(e,dt,time,target,mode){
+export function steerEnemy(e,dt,time,target,mode,map){
  if(!e?.alive||!dt)return 0;
  const p=e.root.position;
  let goal=target;
- if(mode==='demo'&&e.floor&&target){
+ if(e.floor&&target&&(mode==='demo'||map?.walls.length||map?.boxes.length)){
   const change=!e.lastGoal||Math.hypot(target.x-e.lastGoal.x,target.z-e.lastGoal.z)>.7;
   if(!e.waypoint||change||Math.hypot(p.x-e.waypoint.x,p.z-e.waypoint.z)<.15){
-    e.waypoint=nextWaypoint(p,target);
+    e.waypoint=(map?.walls.length||map?.boxes.length)?(map.nearestWaypoint(p,target)||p):nextWaypoint(p,target);
     e.lastGoal={x:target.x,z:target.z};
   }
   goal=e.waypoint;
@@ -83,9 +83,12 @@ export function steerEnemy(e,dt,time,target,mode){
   const dx=newX-h.x,dz=newZ-h.z,dist=Math.hypot(dx,dz);
   p.x=dist>radius?h.x+dx/dist*radius:newX;
   p.z=dist>radius?h.z+dz/dist*radius:newZ;
- }else if(mode!=='demo'||walkable(newX,newZ)){p.x=newX;p.z=newZ}
- else if(walkable(newX,oldZ))p.x=newX;
- else if(walkable(oldX,newZ))p.z=newZ;
+  }else{
+ const can=(x,z)=>(mode!=='demo'||walkable(x,z))&&(!map||map.canMove(p,{x,y:p.y,z},.18));
+ if(can(newX,newZ)){p.x=newX;p.z=newZ}
+ else if(can(newX,oldZ))p.x=newX;
+ else if(can(oldX,newZ))p.z=newZ;
+ }
  const moved=Math.hypot(p.x-oldX,p.z-oldZ)/Math.max(.001,dt);
  const desiredX=d>.2?dX:e.walkVX,desiredZ=d>.2?dZ:e.walkVZ;
  if(Math.hypot(desiredX,desiredZ)>.01){
