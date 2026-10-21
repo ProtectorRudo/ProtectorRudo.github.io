@@ -87,3 +87,6 @@
 #interact{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;white-space:nowrap}
 
 .mapDepthLabel{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.075em;color:#c5ddda;margin-top:12px}.mapDepthLabel output{color:#ecce88;font-weight:800}#mapDistance{width:100%;accent-color:#e4bc79;height:23px;margin:4px 0}#mapMethod{color:#91cbcb!important;display:block;font-size:10px!important;margin:3px 0 8px!important}
+
+/* V9.2 firearm impact confirmation */
+#hitConfirm{position:absolute;top:calc(50% + 37px);left:50%;transform:translate(-50%,-5px);z-index:6;color:#e2f7ee;text-shadow:0 1px 8px #0219;font:900 11px/1.4 system-ui,sans-serif;letter-spacing:.1em;opacity:0;pointer-events:none;white-space:nowrap;transition:opacity .1s,transform .13s}#hitConfirm.visible{opacity:1;transform:translate(-50%,0)}#hitConfirm.critical{color:#f6b477;font-size:13px}
