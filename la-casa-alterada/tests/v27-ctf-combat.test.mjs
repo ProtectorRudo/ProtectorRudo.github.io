@@ -97,7 +97,15 @@ test('placed virtual covers block paths and incoming bullets and remain visible'
  space.setVisible(false);
  assert.equal(cover.mesh.visible,true);
  assert.equal(space.addCover(new V(0,0,0),{kind:'crate',floorY:0}),false);
- const remote=space.exportData(new Object()); // custom origin follows below
+ const anchor={worldToLocal:p=>p,localToWorld:p=>p};
+ const remote=space.exportData(anchor);
+ assert.equal(remote[0].type,'cover');
+ assert.equal(remote[0].kind,'barricade');
+ const guest=f(THREE)(THREE,new G());
+ guest.importData(remote,anchor);
+ guest.setVisible(false);
+ assert.equal(guest.boxes.length,1);
+ assert.equal(guest.boxes[0].mesh.visible,true);
 });
 test('cover placement and flag controls are wired during combat',()=>{
  const main=read('main.js'),ui=read('index.html'),mission=read('missions.js');
