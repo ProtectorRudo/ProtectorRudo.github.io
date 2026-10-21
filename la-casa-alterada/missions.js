@@ -162,7 +162,7 @@ export function createMission(api){
    }
    if(performance.now()-(o.lastActions.get(id+':holdStart')||0)<750){if(id===o.myId)api.toast('MANTENÉ PARA LIBERAR');return}
    if(api.hasCover?.(o.origin.localToWorld(p.clone()),o.origin.localToWorld(o.hostagePos.clone())))return;
-   o.rescueHoldStart=0;o.lastActions.delete(id+':holdStart');o.hostageRescued=true;o.escortPlayer=id;o.hostageShieldUntil=performance.now()+1300;
+   o.rescueHoldStart=0;o.lastActions.delete(id+':holdStart');o.hostageRescued=true;o.escortPlayer=id;o.hostageShieldUntil=performance.now()+2400;
    if(isHost())api.spawn(5,false);
    if(o.hostageActor){o.hostageActor.hostage=false;playHuman(o.hostageActor,'walk')}
    o.phase=-1;broadcast({t:'phase',phase:-1,mask:o.mask,held:o.held,rescued:true});
