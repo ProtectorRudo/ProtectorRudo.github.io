@@ -57,3 +57,16 @@ SOFTWARE.
 ## V9 — Navegación y profundidad
 - Los algoritmos y módulos de colisión/mapeo spatial-map.js fueron escritos para este proyecto; se consultaron conceptos de YUKA (MIT) y three-pathfinding (MIT), sin copiar su código.
 - ARCore Depth y WebXR Depth son APIs del dispositivo/navegador usadas cuando están disponibles; no incorporan assets con licencia adicional.
+
+
+## V14 — Enemigos humanos originales con estética de shooter táctico
+
+**Fuente de las cuatro apariencias en formato GLB:**
+- Autor/proyecto original: StarKnightt, *Counter-Strike in the browser*: https://github.com/StarKnightt/counter-strike-in-browser
+- Revisión del proyecto utilizada (inmutable): `92f3e6ddee40c6b531c0788c2cf3db4c56853a37`
+- Archivos utilizados bajo `public/models/`: `bot_mask.glb`, `bot_wrap.glb`, `bot_mask_cap.glb`, `bot_wrap_goggles.glb`.
+- Los modelos se crearon de forma procedimental en Blender con cuerpos MPFB2/MakeHuman y un esqueleto/animaciones derivados del ejemplo `Soldier.glb` de Three.js. Los materiales del proyecto contienen geometría y texturas propias horneadas; el código del proyecto se declara MIT, pero los componentes de terceros conservan sus licencias originales. La licencia de los modelos y sus partes se debe verificar nuevamente antes de una comercialización amplia, especialmente las condiciones del rig/animaciones originales.
+- Se consumen desde un CDN público con URL de revisión fijada; no son archivos de Valve, de CS:GO ni de Counter-Strike 2. Tampoco se utiliza nombre, emblemas, marcas o trajes oficiales.
+- Diseño de apariencia usado como referencia: ropa civil de tonos naturales, pasamontañas, máscaras textiles, gorra, pañuelos, gafas de protección y chalecos con bolsillos. Este juego no está afiliado a Valve.
+
+Código MIT del proyecto citado: Copyright (c) 2026 StarKnightt, sujeto a su archivo LICENSE: https://github.com/StarKnightt/counter-strike-in-browser/blob/main/LICENSE. No se copió ni adaptó su motor FPS; se consumen los recursos GLB.
