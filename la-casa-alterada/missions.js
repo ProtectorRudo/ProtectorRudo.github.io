@@ -293,6 +293,8 @@ export function createMission(api){
  function alignmentStatus(){return {needsSecond:needsReference(),ready:o.ready,quality:o.calibrationQuality,expectedLength:o.expectedLength,referenceLength:o.referenceLength}}
  function setReferenceTarget(expected){
   if(!Number.isFinite(expected)||expected<.85||expected>7)return;
+  if(o.referenceReady&&o.ready&&Number.isFinite(o.expectedLength)&&
+     Math.abs(o.expectedLength-expected)<.012)return;
   o.expectedLength=expected;
   if(o.role!=='guest'||!o.referenceLength)return;
   const verdict=checkSharedDistance(o.referenceLength,expected);
