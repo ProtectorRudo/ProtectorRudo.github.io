@@ -256,7 +256,7 @@ function cleanup(){
  killFeedUntil=0;$('killFeed').classList.add('hidden');
  if(referenceAnchor){try{referenceAnchor.delete()}catch(_){}}referenceAnchor=null;
  if(referenceMarker){referenceMarker.parent?.remove(referenceMarker);referenceMarker.traverse(x=>{x.geometry?.dispose?.();if(x.material&&!Array.isArray(x.material))x.material.dispose?.()});referenceMarker=null}
- ctfTaggedUntil=0;spawnQueue.length=0;nextSpawnTime=0;$('ctfScoreboard').classList.add('hidden');$('navGuide').classList.add('hidden');$('netSignal').classList.add('hidden');spatialMap.clear();mapping=false;if(mapGhost)mapGhost.visible=false;if(mapFirstGhost)mapFirstGhost.visible=false;$('mapPanel').classList.add('hidden');mapFirst=null;mapPoint=null;mapStatus();for(const e of enemies){disposeHuman(e);e.root.parent?.remove(e.root)}for(const n of nests){try{n.anchor?.delete()}catch(e){}world.remove(n.root)}for(const i of [...orbs,...trails,...splinters])world.remove(i.mesh);nests=[];enemies=[];orbs=[];trails=[];splinters=[]}
+ ctfTaggedUntil=0;spawnQueue.length=0;nextSpawnTime=0;$('zoneProximity').classList.add('hidden');$('ctfScoreboard').classList.add('hidden');$('navGuide').classList.add('hidden');$('netSignal').classList.add('hidden');spatialMap.clear();mapping=false;if(mapGhost)mapGhost.visible=false;if(mapFirstGhost)mapFirstGhost.visible=false;$('mapPanel').classList.add('hidden');mapFirst=null;mapPoint=null;mapStatus();for(const e of enemies){disposeHuman(e);e.root.parent?.remove(e.root)}for(const n of nests){try{n.anchor?.delete()}catch(e){}world.remove(n.root)}for(const i of [...orbs,...trails,...splinters])world.remove(i.mesh);nests=[];enemies=[];orbs=[];trails=[];splinters=[]}
 function reset(){mission?.reset();triggerHeld=false;aiming=false;aimBlend=0;$('aimMode').classList.remove('aimed');$('aimMode').textContent='MIRA ◎';$('sight').classList.remove('ads');if(mode==='demo'){camera.fov=65;camera.updateProjectionMatrix()}cleanup();placing=true;active=false;ended=false;round=0;kills=0;currentWeapon='rifle';magazines={rifle:28,pistol:12};ammo=28;if(gunReady)syncWeapon();reloading=false;seconds=480;life=100;newRound=0;pose=null;hitResult=null;previous=0;lastHudRefresh=0;lastReferenceUpdate=0;ui();toast('APUNTÁ AL PISO Y TOCÁ MARCAR ENTRADA')}
 function estimateFloorPoint(floorY=null){
  const c=getCam(),eye=new THREE.Vector3(),forward=new THREE.Vector3();
@@ -313,6 +313,8 @@ function placeFlag(team){
  if(mission?.isGuest()){toast('EL ANFITRIÓN ELIGE LAS BANDERAS');return}
  const target=currentFloorTarget(),at=target.point.clone();
  at.y=nests[0].root.position.y;
+ if(spatialMap.area&&spatialMap.areaDistance(at)<.38)
+   return toast('BANDERA FUERA DE LA ZONA SEGURA · APUNTÁ DENTRO DEL PERÍMETRO');
  if(mission?.placeFlag?.(team,at)){hud(true);tone('hit');vibrate(40);toast('BANDERA '+(team==='blue'?'AZUL':'ROJA')+' COLOCADA ✓')}
  else toast('COLOCÁ LA BANDERA MÁS LEJOS DE LA OTRA · MÍNIMO 1,6 m');
 }
@@ -332,6 +334,8 @@ function placeHostage(){
  if(mission?.needsReference?.())return toast('PRIMERO MARCÁ TAMBIÉN EL PUNTO B');
  if(mission?.isGuest())return toast('EL ANFITRIÓN COLOCA AL REHÉN');
  const where=currentFloorTarget().point;where.y=nests[0].root.position.y;
+ if(spatialMap.area&&spatialMap.areaDistance(where)<.45)
+   return toast('REHÉN FUERA DE LA ZONA · UBICALO DENTRO DEL PERÍMETRO');
  const distance=Math.hypot(where.x-nests[0].root.position.x,where.z-nests[0].root.position.z);
  if(distance<1.25)return toast('APUNTÁ MÁS LEJOS DE LA ENTRADA');
  if(mission?.placeHostage(where)){hud(true);tone('hit');toast('REHÉN UBICADO ✓ · EMPEZÁ EL RESCATE')}
@@ -899,9 +903,27 @@ function updateGuidance(t){
   if(status.textContent!==message)status.textContent=message;
  }
 }
+let lastZoneCheck=0;
+function updateZoneProximity(t){
+ if(t-lastZoneCheck<240)return;
+ lastZoneCheck=t;
+ const warning=$('zoneProximity'),zone=spatialMap.area;
+ const visible=active&&!ended&&mode==='ar'&&!!zone;
+ if(!visible){warning.classList.add('hidden');return}
+ const eye=new THREE.Vector3();getCam().getWorldPosition(eye);
+ const remaining=spatialMap.areaDistance(eye);
+ const near=remaining!==null&&remaining<.62;
+ warning.classList.toggle('hidden',!near);
+ if(near){
+   warning.classList.toggle('outside',remaining<0);
+   const text=remaining<0?'FUERA DE ZONA VIRTUAL · DETENETE':
+     'BORDE VIRTUAL CERCA · MIRÁ EL ENTORNO REAL';
+   if(warning.textContent!==text)warning.textContent=text;
+ }
+}
 function updateFrame(t,frame){now=t;
  if(hitConfirmUntil&&t>=hitConfirmUntil){hitConfirmUntil=0;$('hitConfirm').classList.remove('visible')}
- if(killFeedUntil&&t>=killFeedUntil){killFeedUntil=0;$('killFeed').classList.add('hidden')}if(triggerHeld&&currentWeapon==='rifle'&&active&&!placing)fire();const dt=previous?Math.min(.052,(t-previous)/1000):0;previous=t;if(mode==='ar')updateXR(frame);if(mode==='demo'){moveDemo(dt);updateDemo()}processSpawns(t);updateBattle(dt,t);mission?.tick(dt,t);updateRespawnShields(t);updateGuidance(t);effects(dt,t);combatFX.tick(dt);renderer.render(world,camera);updateGun(dt,t)}
+ if(killFeedUntil&&t>=killFeedUntil){killFeedUntil=0;$('killFeed').classList.add('hidden')}if(triggerHeld&&currentWeapon==='rifle'&&active&&!placing)fire();const dt=previous?Math.min(.052,(t-previous)/1000):0;previous=t;if(mode==='ar')updateXR(frame);if(mode==='demo'){moveDemo(dt);updateDemo()}processSpawns(t);updateBattle(dt,t);mission?.tick(dt,t);updateRespawnShields(t);updateGuidance(t);updateZoneProximity(t);effects(dt,t);combatFX.tick(dt);renderer.render(world,camera);updateGun(dt,t)}
 renderer.setAnimationLoop(updateFrame);preloadHumans();
 
 function remoteStart(){if(!nests.length||active)return;begin()}
@@ -940,7 +962,7 @@ async function startAR(){if(!navigator.xr){toast('Este navegador no admite WebXR
  requiredFeatures:['hit-test'],optionalFeatures:['anchors','dom-overlay','depth-sensing','plane-detection'],domOverlay:{root:$('ui')},
  depthSensing:{usagePreference:['cpu-optimized'],dataFormatPreference:['luminance-alpha','float32']}
 }).catch(()=>navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['anchors','dom-overlay'],domOverlay:{root:$('ui')}}));ar.addEventListener('end',()=>{ar=null;mode='idle';$('intro').classList.remove('hidden');$('hud').classList.add('hidden');$('outro').classList.add('hidden');world.background=null;cleanup();$('startAR').disabled=false});ar.addEventListener('select',()=>{const t=performance.now();if(t-lastTouch<310)return;lastTouch=t;if(mapping)markMapPoint();else if(placing)smartAction();else fire()});await renderer.xr.setSession(ar);local=renderer.xr.getReferenceSpace();const viewer=await ar.requestReferenceSpace('viewer');source=await ar.requestHitTestSource({space:viewer});mode='ar';$('mode').textContent=mission?.isCapture?.()?'CAPTURA LA BANDERA / CÁMARA AR':'RESCATE DE REHENES / CÁMARA AR';$('intro').classList.add('hidden');$('hud').classList.remove('hidden');reset()}catch(e){$('startAR').disabled=false;$('compat').textContent='AR no disponible: '+(e.message||'sin permiso')+'. Usá Chrome en Android compatible con ARCore.'}}
-function demo(){mode='demo';occluders=[];$('demoMovement').classList.remove('hidden');world.background=new THREE.Color(0x17191f);world.fog=new THREE.Fog(0x17191f,5,14);camera.position.set(0,1.55,3.45);camera.rotation.order='YXZ';const floor=new THREE.Mesh(new THREE.PlaneGeometry(12,12),new THREE.MeshStandardMaterial({color:0x333138,roughness:.98}));floor.rotation.x=-Math.PI/2;world.add(floor);const wall=new THREE.Mesh(new THREE.BoxGeometry(9,4,.16),new THREE.MeshStandardMaterial({color:0x29292b,roughness:1}));wall.position.set(0,1.8,-3);world.add(wall);occluders.push(wall);
+function demo(){mode='demo';occluders=[];$('demoMovement').classList.remove('hidden');world.background=new THREE.Color(0x17191f);world.fog=new THREE.Fog(0x17191f,5,14);camera.position.set(0,1.55,3.45);camera.rotation.order='YXZ';const floor=new THREE.Mesh(new THREE.PlaneGeometry(12,12),new THREE.MeshStandardMaterial({color:0x303a42,roughness:.91,metalness:.05}));floor.rotation.x=-Math.PI/2;world.add(floor);const wall=new THREE.Mesh(new THREE.BoxGeometry(9,4,.16),new THREE.MeshStandardMaterial({color:0x23303b,roughness:.95,metalness:.08}));wall.position.set(0,1.8,-3);world.add(wall);occluders.push(wall);
 
 const box=(w,h,d,x,y,z,c)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:c,roughness:.92}));o.position.set(x,y,z);world.add(o);occluders.push(o)};
 box(1.7,.13,.85,-1,.83,-1,0x523c34);for(const x of [-1.71,-.29])for(const z of [-1.35,-.65])box(.07,.81,.07,x,.41,z,0x33211f);
@@ -949,7 +971,7 @@ spatialMap.addWall({x:-4.3,y:0,z:-2.92},{x:4.3,y:0,z:-2.92},{floorY:0,height:3.5
 spatialMap.addBox({x:-1.87,y:0,z:-1.48},{x:-.14,y:0,z:-.52},{floorY:0,height:.95});
 spatialMap.addBox({x:.19,y:0,z:-2.20},{x:2.22,y:0,z:-.92},{floorY:0,height:.7});
 spatialMap.setVisible(false);mapStatus();
-toast('Deslizá el dedo para mirar. Marcá el punto de entrada.')}
+toast('Deslizá para mirar. Marcá la entrada. Delimitá la zona en 2 toques si querés.')}
 $('startAR').addEventListener('click',startAR);$('startDemo').addEventListener('click',demo);$('place').addEventListener('click',()=>{lastTouch=performance.now();place()});$('hostage').addEventListener('click',()=>{lastTouch=performance.now();placeHostage()});$('begin').addEventListener('click',()=>{lastTouch=performance.now();begin()});
 // DOM Overlay touches must not generate a second XR select action.
 for(const kind of ['pointerdown','pointerup','pointercancel']){
