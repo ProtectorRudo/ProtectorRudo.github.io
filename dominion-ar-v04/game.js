@@ -9,6 +9,17 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
   {name:'Artillería',icon:'💥',cost:5,spell:true,color:0xeeb178},
   {name:'Escudo',icon:'🧱',cost:3,shield:true,color:0x8fc5ef}
  ];
+ const iconParts=[
+ '<path d="M4 15a8 8 0 0 1 16 0v2H4zM2 18h20M8 9V6h8v3"/>',
+ '<path d="M3 18 20 4l-6 16-4-6-7 4zM10 14 20 4"/>',
+ '<path d="m12 2 9 4v7c0 5-4 8-9 10-5-2-9-5-9-10V6zM12 7v11M7 12h10"/>',
+ '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><path d="M12 1v5m0 12v5M1 12h5m12 0h5"/>',
+ '<path d="M4 12h16M12 4v16"/><circle cx="5" cy="5" r="3"/><circle cx="19" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><path d="m8 8 8 8M16 8l-8 8"/>',
+ '<path d="M21 4a5 5 0 0 1-7 6L5 19a3 3 0 0 1-4-4l9-9a5 5 0 0 1 6-5l-3 3 4 4zM5 16l2 2"/>',
+ '<path d="M12 2v5M5 5l4 4M2 12h5M5 19l4-4M12 22v-5m7 2-4-4m7-3h-5m2-7-4 4m-5 1 4-4 4 4-4 4-4-4z"/>',
+ '<path d="m12 2 9 4v7c0 5-4 8-9 10-5-2-9-5-9-10V6zM12 7v11M7 12h10"/>'
+ ];
+ const iconVectors=iconParts.map(path=>'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+'</svg>');
  const lanes=[-.20,0,.20],teamColors=[0x78eac0,0xff987b];
  const group=new THREE.Group();field.add(group);
  const style=document.createElement('style');
@@ -56,7 +67,7 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
   '<button id="launch" class="dbprimary">▶ INICIAR BATALLA</button><div><button id="close" class="dbaux" style="margin-top:10px">SOLO MIRAR LA ARENA</button></div></div>',
   '<div class="dbtaplayer" id="taplayer"></div><div class="dbghost" id="dragghost"></div><div class="dbguide" id="dragguide">Arrastrá la carta sobre tu mitad de la mesa</div>',
   '<div class="dbbottom" id="dbbottom" style="display:none"><div class="dbresource"><span>✦ ENERGÍA <b id="energyvalue">5 / 10</b></span>',
-  '<span id="nextcard">PRÓXIMA: DRON</span><button id="sound" class="dbaux" aria-label="Activar sonido">🔇</button><button id="quit" class="dbaux">SALIR ×</button></div>',
+  '<span id="nextcard">PRÓXIMA: DRON</span><button id="sound" class="dbaux" aria-label="Silenciar sonido">🔊</button><button id="quit" class="dbaux">SALIR ×</button></div>',
   '<div class="dbenergy"><i id="energyfill"></i></div>',
   '<div class="dblanes" id="lanecontrols"><button data-lane="0">◀ IZQUIERDA</button><button data-lane="1">● CENTRO</button><button data-lane="2">DERECHA ▶</button></div>',
   '<div class="dbdeck" id="carddeck"></div><div class="dbtutorial" id="dbtip">DESLIZÁ UNA CARTA A LA ARENA · O TOCÁ UNA CARTA Y LA MESA</div></div>'
@@ -67,14 +78,14 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
  let status='idle',time=0,maxTime=150,overtime=false,energy=6,enemyEnergy=4,units=[],buildings=[],effects=[],hand=[0,1,2,3],next=4,selected=null,aiCooldown=3.8,unitSerial=0,finalNotice=false,notifyUntil=0,elapsedHud=0,deckRenderKey='',model=null,cloneFn=cloneSkeleton,modelAnimations=[];
  const rng=(a,b)=>a+(b-a)*Math.random();
  function signal(msg,duration=1.1){H.toast.textContent=msg;H.toast.classList.add('visible');notifyUntil=duration;}
- let soundOn=false,audioContext=null;
+ let soundOn=true,audioContext=null,lastShot=0;
  function feedback(kind='deploy'){
   if(typeof navigator!=='undefined'&&typeof navigator.vibrate==='function'&&kind!=='shot')try{navigator.vibrate(kind==='hit'?25:12)}catch(e){}
   if(!soundOn)return;
   try{audioContext??=new (window.AudioContext||window.webkitAudioContext)();if(audioContext.state==='suspended')audioContext.resume();
    const osc=audioContext.createOscillator(),gain=audioContext.createGain(),t=audioContext.currentTime;
-   osc.type=kind==='hit'?'sawtooth':'triangle';osc.frequency.setValueAtTime(kind==='hit'?130:kind==='win'?580:350,t);
-   osc.frequency.exponentialRampToValueAtTime(kind==='hit'?60:200,t+.11);gain.gain.setValueAtTime(.018,t);gain.gain.exponentialRampToValueAtTime(.0001,t+.14);osc.connect(gain);gain.connect(audioContext.destination);osc.start(t);osc.stop(t+.15);
+   osc.type=kind==='hit'?'sawtooth':kind==='shot'?'square':'triangle';osc.frequency.setValueAtTime(kind==='hit'?130:kind==='win'?580:kind==='shot'?180:350,t);
+   osc.frequency.exponentialRampToValueAtTime(kind==='hit'?60:200,t+.11);gain.gain.setValueAtTime(kind==='shot'?.005:.018,t);gain.gain.exponentialRampToValueAtTime(.0001,t+.14);osc.connect(gain);gain.connect(audioContext.destination);osc.start(t);osc.stop(t+.15);
   }catch(e){soundOn=false;}
  }
  function box(w,h,d,x,y,z,mat,parent){const g=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);g.position.set(x,y,z);g.castShadow=true;g.receiveShadow=true;parent.add(g);return g;}
@@ -207,6 +218,7 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
    if('card' in target)dealUnit(target,u.card.dmg);
    else dealBuilding(target,u.card.dmg);
    tracer(u,target,u.team);blast(target.x,target.z,u.team?0xf8a487:0x92eed0,.017);u.cooldown=u.card.rate;
+   if(soundOn&&typeof performance!=='undefined'&&performance.now()-lastShot>320){lastShot=performance.now();feedback('shot');}
   }else if(!target){
    const nearest=foes.filter(x=>Math.abs(x.x-u.x)<.1).sort((a,b)=>dist(u,a)-dist(u,b))[0];
    const targetMove=nearest&&dist(u,nearest)<u.card.range+.13?nearest:base;
@@ -284,7 +296,7 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
   const renderKey=hand.join(',')+'|'+selected+'|'+hand.map(i=>energy>=catalogue[i].cost?'1':'0').join('');
   if(renderKey!==deckRenderKey){deckRenderKey=renderKey;H.deck.innerHTML=hand.map((index,slot)=>{
    const c=catalogue[index];
-   return '<button type="button" class="dbcard '+(energy<c.cost?'locked ':'')+(selected===index?'selected':'')+'" style="--a:#'+c.color.toString(16).padStart(6,'0')+'" data-slot="'+slot+'" aria-label="'+c.name+' cuesta '+c.cost+' de energía"><em>'+c.cost+'</em><strong class="dbart">'+c.icon+'</strong><span class="dbname">'+c.name+'</span><span class="dbrole">'+(c.spell?'ÁREA':c.shield?'DEFENSA':c.air?'AÉREO':c.heal?'SOPORTE':c.speed>.07?'RÁPIDO':c.hp>200?'TANQUE':c.range>.14?'PRECISIÓN':'ASALTO')+'</span></button>';
+   return '<button type="button" class="dbcard '+(energy<c.cost?'locked ':'')+(selected===index?'selected':'')+'" style="--a:#'+c.color.toString(16).padStart(6,'0')+'" data-slot="'+slot+'" aria-label="'+c.name+' cuesta '+c.cost+' de energía"><em>'+c.cost+'</em><strong class="dbart">'+iconVectors[index]+'</strong><span class="dbname">'+c.name+'</span><span class="dbrole">'+(c.spell?'ÁREA':c.shield?'DEFENSA':c.air?'AÉREO':c.heal?'SOPORTE':c.speed>.07?'RÁPIDO':c.hp>200?'TANQUE':c.range>.14?'PRECISIÓN':'ASALTO')+'</span></button>';
   }).join('');}
  }
  function show(){
@@ -370,7 +382,7 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
   if(!dragging)return;
   if(e.cancelable)e.preventDefault();
   H.ghost.classList.add('on');H.ghost.style.left=e.clientX+'px';H.ghost.style.top=e.clientY+'px';
-  H.ghost.innerHTML='<b>'+catalogue[drag.index].icon+'</b>'+catalogue[drag.index].name;
+  H.ghost.innerHTML='<b style="color:#'+catalogue[drag.index].color.toString(16).padStart(6,'0')+'">'+iconVectors[drag.index]+'</b>'+catalogue[drag.index].name;
   const position=mapDrop(e.clientX,e.clientY);
   showDrops(position.lane,true);
   H.guide.classList.add('on');
