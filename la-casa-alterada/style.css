@@ -67,3 +67,15 @@
 #missionInfo{max-width:360px}
 
 .footer .credits{pointer-events:auto;color:#bdbaa7;font-size:9px;letter-spacing:.1em;text-decoration:underline;margin-left:9px}
+
+/* V9 assisted room scan */
+.mapLaunch{width:100%;min-height:40px;margin-top:8px;letter-spacing:.09em;font-size:11px!important;background:#132934e9;border:1px solid #72b7b8;color:#d1f4f2}
+.mapLaunch span{font-size:18px;vertical-align:middle}
+.environmentStatus{position:absolute;top:calc(112px + env(safe-area-inset-top));right:11px;max-width:48%;font-size:9px;letter-spacing:.09em;text-align:right;color:#9fd8d8;text-shadow:0 2px 7px black}
+.mapPanel{position:absolute;top:calc(164px + env(safe-area-inset-top));left:10px;right:10px;z-index:6;background:linear-gradient(150deg,#101f2dec,#091824ed);border:1px solid #6ea7a4;border-radius:5px;padding:12px;pointer-events:auto;box-shadow:0 14px 27px #0007;max-width:420px}
+.mapPanel>strong{color:#a7e4d6;letter-spacing:.15em;font-size:11px}
+.mapPanel>span{display:block;font-size:11px;color:#d5e1dd;margin:9px 0;line-height:1.5}
+.mapChoices{display:flex;gap:6px;margin-top:7px}.mapChoices button{min-height:39px;padding:8px 5px;flex:1;font-size:9px;letter-spacing:.05em}
+#mapWall.active,#mapFurniture.active{border:2px solid #e7c68f}
+@media (max-height:750px){.mapPanel{top:calc(130px + env(safe-area-inset-top))}}
+@media (orientation:landscape){.mapPanel{top:calc(52px + env(safe-area-inset-top));max-width:480px;left:auto;right:10px}.environmentStatus{top:calc(55px + env(safe-area-inset-top));left:10px;right:auto;text-align:left}}
