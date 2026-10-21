@@ -341,6 +341,7 @@ function spawnCTFBot(team,index,id,localPos){
  if(!mission?.isCapture?.()||!localPos||enemies.some(e=>e.id===id))return null;
  const e=createTacticalActor(THREE,index%4,team==='blue'?'operator':'raider');
  e.id=id;e.ctfBot=true;e.ctfIndex=index;e.team=team;e.floor=true;e.alive=true;e.hp=3;e.size=.94;
+ e.ctfProtectedUntil=performance.now()+1000;
  e.home=mission.originToWorld(localPos.clone());e.root.position.copy(e.home);e.groundY=e.root.position.y;
  e.root.scale.setScalar(.92);e.start.copy(e.root.position);e.next=0;e.nextTarget=0;
  e.hit.userData.enemy=e;if(e.headHit)e.headHit.userData.enemy=e;
@@ -383,7 +384,10 @@ function resolveFlagShot(start,direction,shooterId){
  if(!closest)return null;
  if(cover&&cover.distance+.04<closest.distance)return null;
  if(spatialMap.lineBlocked(start,closest.point,.04))return null;
- if(closest.bot)damageEnemy(closest.bot,closest.headshot?3:1,closest.headshot,shooterId);
+ if(closest.bot){
+   if(performance.now()<(closest.bot.ctfProtectedUntil||0))return null;
+   damageEnemy(closest.bot,closest.headshot?3:1,closest.headshot,shooterId);
+ }
  else if(!mission.tagEnemyPlayer?.(closest.playerId,shooterId))return null;
  combatFX.dust(closest.point,6);
  return{id:closest.bot?.id||0,headshot:closest.headshot};
@@ -446,7 +450,8 @@ function confirmedRemoteShot(headshot){
  tone('hit');
 }
 function damageEnemy(e,amount=1,headshot=false,shooterId=null){
- if(!e?.alive||mission?.isCapture?.()&&!e.ctfBot)return;
+ if(!e?.alive||mission?.isCapture?.()&&!e.ctfBot||
+   e.ctfBot&&performance.now()<(e.ctfProtectedUntil||0))return;
  e.hp-=amount;
  e.staggerUntil=performance.now()+170;
  e.hitStagger=amount>1?.14:.08;if(e.hp<=0){e.alive=false;e.root.visible=false;if(e.ctfBot)mission?.captureBotDown?.(e);kills++;teamElimination(!shooterId||shooterId===mission?.localId?.(),headshot,kills);
