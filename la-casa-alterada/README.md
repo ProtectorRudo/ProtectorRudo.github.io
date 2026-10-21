@@ -260,3 +260,19 @@ Fuentes: [WebXR Hit Test (W3C)](https://www.w3.org/TR/webxr-hit-test-1/), [WebXR
 - Tests simulados de lógica: colocar banderas, rechazar bases demasiado juntas, capturar tres veces, ganar, robar del equipo rojo incluso ante un defensor azul, puntuar rojo, transmitir marcador, soltar bandera y devolverla automáticamente.
 - Las pruebas de sintaxis e integración no sustituyen jugar con dos o más teléfonos físicos. El juego conserva la limitación de precisión de WebXR entre celulares y no ofrece infraestructura de servidor dedicada ni compensación temporal avanzada de latencia.
 - Con 6 bots por bando hay hasta 12 personajes animados y el rendimiento puede variar; se recomienda comenzar con 1–2 por equipo para las primeras pruebas.
+
+
+## V17 — Equipos tácticos y estado de red más justo (21/10/2026)
+
+- **Roles de bots en Captura la Bandera.** Con dos o más bots por equipo, aproximadamente uno de cada tres toma posiciones defensivas cerca de la bandera propia, mientras los otros atacan la base rival. Si la bandera propia es robada, los defensores la persiguen; si un aliado lleva la bandera enemiga, los atacantes lo escoltan. Cuando hay un solo bot, sale a atacar para evitar un empate permanente.
+- **Zona de movimiento aproximada.** Los bots ya no pueden alejarse ilimitadamente de las bases que se marcaron en la habitación. El radio operativo, calculado a partir de la distancia entre banderas, complementa las paredes y muebles manualmente escaneados. **No sustituye la detección real de obstáculos ni prueba que el camino esté despejado.**
+- **Flecha contextual de misión.** La guía muestra «CAPTURÁ LA BANDERA», «VOLVÉ A TU BASE» si el jugador la lleva, «ESCOLTÁ LA BANDERA» si la lleva un compañero, «RECUPERÁ TU BANDERA» si la roba el rival y «DEVOLVÉ TU BANDERA» si quedó abandonada. El marcador usa ese objetivo para que nunca se pierda la próxima tarea.
+- **Evitar capturas fantasma.** El anfitrión verifica la antigüedad de las posiciones enviadas por los invitados y rechaza desplazamientos instantáneos improbables. Un jugador cuyo último dato supere aproximadamente 2,6 s no puede capturar una bandera ni recibir nuevos impactos como si siguiera allí.
+- **Recuperación por desconexión.** Si alguien desaparece mientras transporta una bandera, esta se suelta en su última posición válida y puede recuperarse. Se liberan sus datos de equipo y movimiento.
+- **Bandera portada sin teletransportes visuales.** Si todavía no se conoce la posición del portador en otro celular, el indicador se oculta temporalmente en lugar de reaparecer de manera engañosa sobre la base.
+- **Corrección de daño.** Se evita modificar la salud de entidades ajenas al modo de banderas antes de validar que el objetivo es un bot válido.
+
+### Validación
+Se ejecutaron 14 pruebas independientes de las reglas V17: movimiento del bot único, separación defensa/ataque, robo azul, entrega azul, escolta, caída por impacto, bloqueo de impactos consecutivos, devolución automática, pérdida de conexión con bandera, robo rojo, puntuación roja y sincronización por instantánea. Todas pasaron. El módulo de rescate mantiene su ruta de código y no se modificaron sus objetivos.
+
+La sincronización P2P mediante celulares y el registro espacial manual todavía requieren pruebas físicas reales con varios dispositivos. El filtro de movimiento es solo una validación básica, **no sustituye** un servidor dedicado con seguridad y compensación de latencia competitiva.
