@@ -1,1 +1,44 @@
-<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0a1426"><title>MICROCAOS · Ver en realidad aumentada</title><style>*{box-sizing:border-box}body{margin:0;min-height:100dvh;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 0%,#28475e,#091323 66%);color:#e9fff9;font-family:system-ui,-apple-system,sans-serif;padding:22px}.panel{width:min(100%,460px);border:1px solid #ffffff2b;border-radius:24px;padding:30px 24px;text-align:center;background:#102239a8;box-shadow:0 20px 70px #0018}.mark{margin:auto;width:68px;height:68px;border-radius:24px;display:grid;place-items:center;background:linear-gradient(145deg,#7bffe5,#34c9b6);color:#073e3b;font-weight:900;font-size:43px;transform:rotate(-8deg)}h1{font-size:30px;letter-spacing:-.04em;line-height:1.03;margin:25px auto 12px}p{font-size:15px;line-height:1.6;color:#bdcdda}a.button{display:block;margin-top:23px;border-radius:18px;background:linear-gradient(145deg,#a6ffe7,#50debd);padding:18px;color:#063a3a;text-decoration:none;font-weight:900;letter-spacing:.02em}.secondary{display:inline-block;color:#9ff3df;text-decoration:none;margin-top:24px;font-size:14px}.note{font-size:12px;color:#9bb9c1;margin-top:18px;border-top:1px solid #ffffff24;padding-top:19px}</style></head><body><main class="panel"><div class="mark">m</div><h1>Tu mesa.<br>Una arena diminuta.</h1><p>Abrí la cámara de realidad aumentada y colocá la arena 3D en una superficie de tu casa.</p><a class="button" href="intent://arvr.google.com/scene-viewer/1.0?file=https%3A%2F%2Fcdn.jsdelivr.net%2Fgh%2FProtectorRudo%2FProtectorRudo.github.io%40main%2Fmicrocaos%2Farena.glb&mode=ar_preferred#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=https%3A%2F%2Fmicrocaos-party-rush.vercel.app%2F%3Far-error%3D1;end;">◈ VER LA ARENA EN MI ESPACIO ↗</a><p class="note">Android + Chrome + Servicios de Google Play para RA.<br>Este visor permite colocar y explorar la arena. La carrera interactiva se juega desde el modo WebXR del sitio principal.</p><a class="secondary" href="/">← Volver a MICROCAOS</a></main></body></html>
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0c1a2a"><title>MICROCAOS · Realidad aumentada</title>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.1.0/dist/model-viewer.min.js"></script>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}body{margin:0;background:radial-gradient(circle at 50% 19%,#385067,#101f31 49%,#091423);color:#e6fff5;font-family:system-ui,-apple-system,sans-serif}main{min-height:100dvh;max-width:620px;margin:auto;display:flex;flex-direction:column;padding:max(18px,env(safe-area-inset-top)) 17px max(24px,env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;gap:11px}.brand{background:linear-gradient(140deg,#9ffde8,#29c9b3);color:#13433e;width:39px;height:39px;border-radius:14px;font-size:29px;font-weight:1000;display:grid;place-items:center;transform:rotate(-8deg)}header span{font-size:17px;font-weight:900;letter-spacing:.025em}header small{display:block;font-size:10px;letter-spacing:.15em;color:#bad4de;margin-top:3px}
+h1{font-size:clamp(26px,6vw,39px);line-height:1.02;letter-spacing:-.05em;margin:20px 0 10px;font-weight:900}h1 strong{color:#7ff7d3}p{color:#bed4df;font-size:13px;line-height:1.55;margin:0 0 12px}
+viewer-wrapper{display:block}model-viewer{display:block;width:100%;height:min(40dvh,340px);min-height:210px;border:1px solid #ffffff2b;border-radius:23px;background:radial-gradient(circle,#315468,#091729);margin:8px 0 15px;--poster-color:transparent;overflow:hidden}
+button,a.button{border:0;display:flex;align-items:center;justify-content:center;gap:9px;width:100%;border-radius:16px;padding:15px 12px;text-align:center;min-height:56px;font-size:14px;font-weight:900;letter-spacing:.01em;text-decoration:none;cursor:pointer}
+button.primary{background:linear-gradient(115deg,#adffe5,#61e1ca);color:#05392f;box-shadow:0 10px 34px #37e2b833}
+a.backup{background:#e6edff15;color:#e8fbff;border:1px solid #f4ffff32;margin-top:9px}
+.info{font-size:12px;color:#9cb7c9;background:#0a1728bc;border-radius:14px;border:1px solid #ffffff22;padding:12px 14px;line-height:1.45;margin:11px 0}.warn{background:#602d38c2;border-color:#ffb6bc65;color:#fff}
+a.return{font-size:13px;color:#8df8df;text-decoration:none;display:block;text-align:center;margin-top:17px}
+ol{padding-left:21px;color:#cfdee7;font-size:12px;line-height:1.55;margin:9px 0 0}ol li{margin:3px 0}
+</style></head><body><main>
+<header><div class="brand">m</div><div><span>MICROCAOS</span><small>ARENA · CÁMARA AR</small></div></header>
+<h1>La arena en tu <strong>propia mesa.</strong></h1>
+<p>Esta es la versión de visualización espacial: podés colocar y recorrer la arena desde la cámara, con seguimiento real de la superficie. La carrera interactiva sigue siendo una función separada.</p>
+<model-viewer id="viewer" src="https://raw.githubusercontent.com/ProtectorRudo/ProtectorRudo.github.io/main/microcaos/arena.glb" alt="Maqueta 3D de MICROCAOS, arena con seis corredores" camera-controls touch-action="pan-y" auto-rotate ar ar-modes="scene-viewer webxr" ar-placement="floor" shadow-intensity="1" exposure="1.05" interaction-prompt="none">
+ <div slot="progress-bar" style="position:absolute;left:16px;right:16px;bottom:15px;height:4px;background:#ffffff22;border-radius:10px"><div id="progress" style="width:10%;height:100%;background:#8ef4d9;border-radius:10px"></div></div>
+</model-viewer>
+<button class="primary" id="openCam">◈ ABRIR CÁMARA EN REALIDAD AUMENTADA</button>
+<a class="button backup" href="intent://arvr.google.com/scene-viewer/1.0?file=https%3A%2F%2Fraw.githubusercontent.com%2FProtectorRudo%2FProtectorRudo.github.io%2Fmain%2Fmicrocaos%2Farena.glb&amp;mode=ar_only&amp;title=MICROCAOS%20Party%20Rush#Intent;scheme=https;package=com.google.ar.core;action=android.intent.action.VIEW;S.browser_fallback_url=https%3A%2F%2Fmicrocaos-party-rush.vercel.app%2Far.html%3Fsin-ar%3D1;end;">ABRIR AR CON SERVICIOS DE GOOGLE PLAY</a>
+<a class="button backup" href="intent://arvr.google.com/scene-viewer/1.0?file=https%3A%2F%2Fraw.githubusercontent.com%2FProtectorRudo%2FProtectorRudo.github.io%2Fmain%2Fmicrocaos%2Farena.glb&amp;mode=ar_preferred&amp;title=MICROCAOS%20Party%20Rush#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=https%3A%2F%2Fmicrocaos-party-rush.vercel.app%2Far.html%3Fsin-ar%3D1;end;">ABRIR CON APP DE GOOGLE</a>
+<div id="status" class="info">Verificá que estás en Chrome para Android, no dentro de ChatGPT u otra aplicación. Necesitás Servicios de Google Play para RA y la app de Google actualizados.</div>
+<ol><li>Abrí este enlace en <strong>Google Chrome</strong>.</li><li>Tocá «Abrir cámara en realidad aumentada».</li><li>Apuntá a una mesa bien iluminada y mové despacio el teléfono.</li></ol>
+<a class="return" href="/">← Volver al juego MICROCAOS</a>
+<script>
+const viewer=document.getElementById("viewer"),status=document.getElementById("status"),button=document.getElementById("openCam");
+const show=(msg,warn=false)=>{status.textContent=msg;status.className="info"+(warn?" warn":"")};
+const android=/Android/i.test(navigator.userAgent);
+if(!android)show("La colocación AR nativa en este enlace está preparada para Android. En iPhone necesitaremos una versión ARKit o un archivo USDZ compatible.",true);
+if(location.search.includes("sin-ar=1"))show("Android no pudo abrir el visor AR. Probá en Chrome (fuera de ChatGPT), actualizá Servicios de Google Play para RA y la app de Google. Si no funciona, usá el botón alternativo.",true);
+viewer.addEventListener("progress",e=>{const v=document.getElementById("progress");if(v)v.style.width=(e.detail.totalProgress*100)+"%"});
+viewer.addEventListener("error",e=>show("No se pudo cargar el modelo 3D. Comprobá conexión y probá de nuevo.",true));
+viewer.addEventListener("load",()=>show("Modelo 3D cargado. Tocá el botón para abrir el visor espacial en tu cámara."));
+viewer.addEventListener("ar-status",e=>{if(e.detail.status==="session-started")show("Cámara AR iniciada. Apuntá a una mesa iluminada.");if(e.detail.status==="failed")show("No se inició AR. Probá los enlaces alternativos o Google Chrome.",true)});
+button.addEventListener("click",()=>{
+ if(!android){show("Esta modalidad nativa usa Android. En iOS la vista previa 3D sí funciona, pero falta ARKit.",true);return}
+ if(typeof viewer.activateAR==="function"){show("Solicitando apertura del visor nativo de realidad aumentada...");viewer.activateAR().catch(e=>show("No se pudo abrir la cámara AR: "+(e?.message||"compatibilidad del navegador")+". Probá el enlace directo de Google Play.",true))}
+ else show("El visor web no cargó. Probá directamente con Servicios de Google Play.",true)
+});
+</script></main></body></html>
