@@ -524,7 +524,8 @@ function processSpawns(t){
  indicator.position.set(0,2.22,0);indicator.renderOrder=90;
  e.root.add(indicator);e.threatMarker=indicator;
  enemies.push(e);
- if(mode!=='ar')attachHuman(e,e.appearance);
+ // Keep the original tactical fallback until a detailed skinned GLB is ready.
+ attachHuman(e,e.appearance).catch(err=>console.warn('Tactical fallback remains',err));
 }
 function begin(){
  if(mapping)toggleMap(false);
@@ -609,7 +610,8 @@ function spawnCTFBot(team,index,id,localPos){
  attachRespawnShield(e);attachContactShadow(e);
  world.add(e.root);enemies.push(e);
  e.appearance=team==='blue'?'operator':['raiderA','raiderB','raiderC','raiderD'][index%4];
- if(mode!=='ar')attachHuman(e,e.appearance);
+ // Keep the original tactical fallback until a detailed skinned GLB is ready.
+ attachHuman(e,e.appearance).catch(err=>console.warn('Tactical fallback remains',err));
  return e;
 }
 function ctfBotShot(from,to,team){
@@ -1167,7 +1169,8 @@ mission=createMission({scene:world,getCam,toast,event,teammateShot,resolveTeamma
    attachRespawnShield(e);
  }
  attachContactShadow(e);
- if(mode!=='ar')attachHuman(e,e.appearance);return e},damageEnemy,damage,heal,remoteStart,clock:()=>seconds,wave:()=>round,setGuestStats:(clock,wave,teamKills)=>{if(Number.isFinite(clock))seconds=clock;if(Number.isFinite(wave))round=wave;if(Number.isInteger(teamKills)&&teamKills>=0)kills=Math.max(kills,teamKills)},victory:finish});
+ // Keep the original tactical fallback until a detailed skinned GLB is ready.
+ attachHuman(e,e.appearance).catch(err=>console.warn('Tactical fallback remains',err));return e},damageEnemy,damage,heal,remoteStart,clock:()=>seconds,wave:()=>round,setGuestStats:(clock,wave,teamKills)=>{if(Number.isFinite(clock))seconds=clock;if(Number.isFinite(wave))round=wave;if(Number.isInteger(teamKills)&&teamKills>=0)kills=Math.max(kills,teamKills)},victory:finish});
 mission.configureLobby();
 for(const id of ['gameSelect','ctfTeamMode','ctfBots','ctfDifficulty']){
  $(id).addEventListener('change',()=>{mission.configureLobby();hud(true)});
