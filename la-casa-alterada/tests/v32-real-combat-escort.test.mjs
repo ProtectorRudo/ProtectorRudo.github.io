@@ -17,7 +17,7 @@ test('the enemy GLB is an authentic military soldier, NOT the office-suit source
  assert.doesNotMatch(asset,/raiderA:CDN\+'npc-jordan/);
  assert.doesNotMatch(asset,/raiderB:CDN\+'npc-sam/);
  assert.doesNotMatch(asset,/equipStudioHuman|V29_REALISTIC_KIT/);
- assert.match(asset,/const urlCache=new Map\(\)/);
+ assert.match(asset,/urlCache=new Map\(\)/);
 });
 test('rescue combat begins without a special acknowledgment and remains safe 12.5s',()=>{
  assert.match(main,/RESCUE_OPENING_MS=12500/);
