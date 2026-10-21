@@ -493,7 +493,7 @@ function updateRenderStatus(t){
 function rescueProtectionLeft(t=performance.now()){
  return Math.max(0,Math.ceil((rescueProtectedUntil-t)/1000));
 }
-function safeRescueSpawn(index,total,base){
+function safeRescueSpawn(index,total,base,waveNo=1){
  const eye=new THREE.Vector3(),direction=new THREE.Vector3(),camera=getCam();
  camera.getWorldPosition(eye);camera.getWorldDirection(direction);
  const floorY=nests[0]?.root.position.y??base.y;
@@ -504,7 +504,11 @@ function safeRescueSpawn(index,total,base){
  });
  // No overlapping bots when a tiny marked zone offers insufficient space.
  // Never spawn a dangerous hidden character outside the delimited room.
- const spot=candidates[index]||null;
+ const shift=((waveNo-1)*3)%Math.max(1,candidates.length);
+ const selected=candidates.length?candidates[(index+shift)%candidates.length]:null;
+ const occupied=enemies.filter(e=>e.alive).some(e=>selected&&
+   Math.hypot(e.root.position.x-selected.x,e.root.position.z-selected.z)<.85);
+ const spot=occupied?null:selected;
  return spot?new THREE.Vector3(spot.x,spot.y,spot.z):null;
 }
 function wave(total=6,boss=false){
@@ -524,7 +528,7 @@ function processSpawns(t){
  const n=nests[(i+waveNo)%nests.length];
  if(!n)return;
  const variant=boss?1:(i+waveNo)%5===0?1:(i+waveNo)%3===0?2:0;
- const spawnPoint=safeRescueSpawn(i,total,n.root.position);
+ const spawnPoint=safeRescueSpawn(i,total,n.root.position,waveNo);
  if(!spawnPoint){
    // Retry as the player finishes delimiting a very narrow play area.
    if((task.attempts||0)<4)spawnQueue.push({...task,attempts:(task.attempts||0)+1});
@@ -534,6 +538,8 @@ function processSpawns(t){
  const e=creature(variant);
  e.root.position.copy(spawnPoint);
  e.id=++monsterId;e.boss=boss;e.floor=n.floor;
+ e.combatRole=['rusher','flanker','marksman','defender','scout'][(i+waveNo)%5];
+ e.paceMultiplier={rusher:1.72,flanker:1.55,marksman:.93,defender:1.04,scout:1.93}[e.combatRole];
  e.roamRadius=n.floor?3:.27;e.next=Math.max(t+rnd(3700,5800),rescueProtectedUntil+900);
  e.hit.userData.enemy=e;if(e.headHit)e.headHit.userData.enemy=e;
  world.add(e.root);
@@ -909,10 +915,24 @@ function updateBattle(dt,t){
   if(target===eye&&e.floor){
     e.screenDistance=Math.hypot(target.x-e.root.position.x,target.z-e.root.position.z);
   }
-  const tacticalTarget=tacticalDestination(e,t,target,target,
+  let destination=target;
+  if(e.floor&&['flanker','scout'].includes(e.combatRole)){
+    const dx=target.x-e.home.x,dz=target.z-e.home.z;
+    const l=Math.hypot(dx,dz)||1,side=e.id%2===0?1:-1;
+    const offset=e.combatRole==='flanker'?1.25:.85;
+    destination=target.clone().add(new THREE.Vector3(
+      -dz/l*side*offset,0,dx/l*side*offset));
+  }else if(e.floor&&e.combatRole==='marksman'){
+    const dx=e.root.position.x-target.x,dz=e.root.position.z-target.z;
+    const l=Math.hypot(dx,dz)||1;
+    destination=target.clone().add(new THREE.Vector3(dx/l*2.6,0,dz/l*2.6));
+  }
+  const tacticalTarget=tacticalDestination(e,t,destination,target,
     (from,threat)=>spatialMap.findCoverSpot(from,threat),
     !!e.floor&&!e.boss&&(spatialMap.walls.length+spatialMap.boxes.length)>0);
-   const moved=steerEnemy(e,dt,t,tacticalTarget,mode,spatialMap,enemies);
+  const moved=steerEnemy(e,dt,t,tacticalTarget,mode,spatialMap,enemies);
+  e.ctfStance=['hold','retreat'].includes(e.coverState)?'crouch':
+    moved>.73?'sprint':moved>.06?'advance':'idle';
   animateEnemy(e,dt,moved);
   const worldPosition=new THREE.Vector3();e.root.getWorldPosition(worldPosition);
   const dist=worldPosition.distanceTo(eye);
