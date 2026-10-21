@@ -4,6 +4,8 @@ import {readFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 const read=f=>readFileSync(new URL('../'+f,import.meta.url),'utf8');
 const mission=read('missions.js'),main=read('main.js');
+const {beginEscort}=await import('data:text/javascript;base64,'+
+ Buffer.from(read('escort-rules.js')).toString('base64'));
 const start=mission.indexOf('  const RESCUE_RANGE=1.55;');
 const end=mission.indexOf('  function shielded(',start);
 assert.ok(start>0&&end>start);
@@ -24,12 +26,12 @@ function createSimulation(x=.6,{guest=false,throwAnimation=false,throwEvent=fals
   event:a=>{events.push(a);if(throwEvent)throw Error('audio problem')}};
  let animationCalls=0,spawnCalls=0;
  const deps=new Function('o','position','localPositionOf','api','interact','isGuest','send',
-  'performance','broadcast','playHuman','ui','POSITION','setPhase',
+  'performance','broadcast','playHuman','ui','POSITION','setPhase','beginEscort',
   rescueCode+';return {beginRescueTap,doInteract,clearRescueButton};')
   (o,()=>p,()=>p,api,interact,()=>guest,
    (conn,msg)=>sent.push(msg),{now:()=>1200},
    msg=>sent.push(msg),()=>{animationCalls++;if(throwAnimation)throw Error('mixer problem')},
-   ()=>{},[],()=>{});
+   ()=>{},[],()=>{},beginEscort);
  return{p,o,interact,deps,classes,messages,events,sent,
    get animationCalls(){return animationCalls},get spawnCalls(){return spawnCalls}};
 }
