@@ -4,61 +4,74 @@ import {readFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 const read=f=>readFileSync(new URL('../'+f,import.meta.url),'utf8');
 const mission=read('missions.js'),main=read('main.js');
-const start=mission.indexOf('  const RESCUE_TAP_MS=1550,RESCUE_RANGE=1.55;');
-const end=mission.indexOf('  function doInteract(id){',start);
-assert.ok(start>0&&end>start,'one-tap action definitions are present');
-const functions=mission.slice(start,end);
-const tickStart=mission.indexOf('    if(o.rescueActionStartedAt&&o.running&&o.phase===-2)');
-const tickEnd=mission.indexOf('    if(o.running&&isHost()&&o.phase===-1',tickStart);
-assert.ok(tickStart>0&&tickEnd>tickStart,'rescue action advances in game clock');
-const advanceCode=mission.slice(tickStart,tickEnd);
-
-function createSimulation(position={x:.7,z:0}){
- const o={running:true,phase:-2,rescueActionStartedAt:0,
-  hostagePos:{x:0,z:0,clone(){return {...this}}},origin:{localToWorld:point=>point}};
- const style=new Map(),classes=new Set(),messages=[];
- const interact={classList:{add:s=>classes.add(s),remove:s=>classes.delete(s)},
-  style:{setProperty:(a,b)=>style.set(a,b),removeProperty:a=>style.delete(a)}};
- let now=1000,completed=0,remoteSends=0;
- const p={...position,clone(){return {...this}}};
- const api={toast:t=>messages.push(t),hasCover:()=>false};
- const deps=new Function('o','position','api','interact','isGuest','send','performance',
-  functions+'; return {beginRescueTap,cancelRescueTap,RESCUE_TAP_MS,RESCUE_RANGE};')
-  (o,()=>p,api,interact,()=>false,()=>remoteSends++,{now:()=>now});
- const advance=new Function('o','position','time','RESCUE_TAP_MS','RESCUE_RANGE',
-  'cancelRescueTap','isGuest','send','doInteract',advanceCode);
- const step=time=>advance(o,()=>p,time,deps.RESCUE_TAP_MS,deps.RESCUE_RANGE,
-  deps.cancelRescueTap,()=>false,()=>remoteSends++,()=>completed++);
- return{o,deps,style,classes,messages,p,step,get completed(){return completed}};
+const start=mission.indexOf('  const RESCUE_RANGE=1.55;');
+const end=mission.indexOf('  function shielded(',start);
+assert.ok(start>0&&end>start);
+const rescueCode=mission.slice(start,end);
+function createSimulation(x=.6,{guest=false,throwAnimation=false,throwEvent=false,hasCover=false}={}){
+ const Vector=class{
+  constructor(a,b=0,c=0){this.x=a;this.y=b;this.z=c}
+  clone(){return new Vector(this.x,this.y,this.z)}
+ };
+ const p=new Vector(x,0,0),o={
+  running:true,phase:-2,hostagePos:new Vector(0,0,0),rescueActionStartedAt:0,
+  rescueRequestAt:0,origin:{localToWorld:a=>a},hostageActor:{hostage:true}
+ };
+ const classes=new Set(),messages=[],events=[],sent=[];
+ const interact={classList:{add:a=>classes.add(a),remove:a=>classes.delete(a)},
+  style:{removeProperty(){}},disabled:false};
+ const api={toast:a=>messages.push(a),hasCover:()=>hasCover,
+  event:a=>{events.push(a);if(throwEvent)throw Error('audio problem')}};
+ let animationCalls=0,spawnCalls=0;
+ const deps=new Function('o','position','localPositionOf','api','interact','isGuest','send',
+  'performance','broadcast','playHuman','ui','POSITION','setPhase',
+  rescueCode+';return {beginRescueTap,doInteract,clearRescueButton};')
+  (o,()=>p,()=>p,api,interact,()=>guest,
+   (conn,msg)=>sent.push(msg),{now:()=>1200},
+   msg=>sent.push(msg),()=>{animationCalls++;if(throwAnimation)throw Error('mixer problem')},
+   ()=>{},[],()=>{});
+ return{p,o,interact,deps,classes,messages,events,sent,
+   get animationCalls(){return animationCalls},get spawnCalls(){return spawnCalls}};
 }
-test('one tap starts release; no pointer-up or held input is required',()=>{
+test('single tap immediately changes hostage mission to escort; not 99%',()=>{
  const s=createSimulation();
- s.deps.beginRescueTap();
- assert.equal(s.o.rescueActionStartedAt,1000);
- assert.ok(s.classes.has('rescuing'));
- s.step(1500);assert.equal(s.completed,0);
- s.step(2551);assert.equal(s.completed,1);
+ assert.equal(s.deps.beginRescueTap(),true);
+ assert.equal(s.o.phase,-1);
+ assert.equal(s.o.hostageRescued,true);
+ assert.equal(s.o.escortPlayer,'local');
  assert.equal(s.o.rescueActionStartedAt,0);
+ assert.equal(s.o.rescueRequestAt,0);
+ assert.ok(s.o.rescueReinforcementAt>1200);
  assert.equal(s.classes.has('rescuing'),false);
- s.step(3100);assert.equal(s.completed,1,'release finishes only once');
+ assert.equal(s.deps.beginRescueTap(),false,'does not release twice');
+ assert.doesNotMatch(mission,/RESCUE_TAP_MS|LIBERANDO '\+progress/);
 });
-test('walking out of rescue range cancels without completing',()=>{
- const s=createSimulation();
- s.deps.beginRescueTap();
- s.p.x=2.0;
- s.step(2400);
- assert.equal(s.o.rescueActionStartedAt,0);
- assert.equal(s.completed,0);
- assert.ok(s.messages.some(msg=>msg.includes('TE ALEJASTE')));
+test('at 0.6m it succeeds even when an optional 3D animation throws',()=>{
+ const s=createSimulation(.6,{throwAnimation:true,throwEvent:true});
+ assert.equal(s.deps.beginRescueTap(),true);
+ assert.equal(s.o.phase,-1);
+ assert.equal(s.o.hostageRescued,true);
+ assert.equal(s.animationCalls,1);
 });
-test('tap never begins behind a wall, and remote completion is range checked',()=>{
- const s=createSimulation({x:2,z:0});
- s.deps.beginRescueTap();
- assert.equal(s.o.rescueActionStartedAt,0);
- assert.ok(s.messages.some(msg=>msg.includes('ACERCATE')));
- assert.match(mission,/if\(Math\.hypot\(p\.x-o\.hostagePos\.x,p\.z-o\.hostagePos\.z\)>RESCUE_RANGE\)/);
- assert.doesNotMatch(mission,/MANTENÉ PARA LIBERAR|setPointerCapture\(e\.pointerId\)/);
+test('tap outside reach is rejected and never changes phase',()=>{
+ const s=createSimulation(2.4);
+ assert.equal(s.deps.beginRescueTap(),false);
+ assert.equal(s.o.phase,-2);
+ assert.ok(s.messages.some(m=>m.includes('ACERCATE')));
 });
+test('virtual cover blocks release unless player is actually close',()=>{
+ const s=createSimulation(1.3,{hasCover:true});
+ assert.equal(s.deps.beginRescueTap(),false);
+ assert.equal(s.o.phase,-2);
+ assert.ok(s.messages.some(m=>m.includes('OBSTÁCULO')));
+});
+test('rescue no longer depends on WebXR animation clock or on keeping pressed',()=>{
+ assert.doesNotMatch(mission,/time-o\.rescueActionStartedAt>=/);
+ assert.doesNotMatch(mission,/setPointerCapture\(e\.pointerId\)/);
+ assert.match(mission,/o\.phase=-1;o\.hostageRescued=true;o\.escortPlayer=id/);
+ assert.match(mission,/o\.rescueReinforcementAt=performance\.now\(\)\+3000/);
+});
+
 test('V26 restores textured GLB in both AR and demo, fallback remains visible',()=>{
  assert.match(mission,/attachHuman\(actor,'hostage'\)\.then/);
  assert.doesNotMatch(mission,/if\(api\.getMode\?\.\(\)!=='ar'\)/);
