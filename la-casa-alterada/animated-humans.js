@@ -26,7 +26,7 @@ const backUp={
  raiderD:CDN+'npc-harper-locomotion.glb'
 };
 const TACTICAL='https://cdn.jsdelivr.net/gh/cktang88/3d-fps@main/public/assets/models/characters/soldier.glb';
-const cache=new Map(),loader=new GLTFLoader();
+const cache=new Map(),urlCache=new Map(),loader=new GLTFLoader();
 const cloneQueue=[];let cloneBusy=false;
 function staggerClone(work){
  return new Promise(resolve=>{
@@ -51,13 +51,18 @@ function load(type){
   // Rigged original shooter characters: painted clothing, masks, cargo and kit.
   // Independent source asset (not any Valve/CS2 game files). Keep studio
   // humanoids as a fallback when a phone cannot fetch these models.
+  // Multiple raid skins reuse 3 CC0 human sources; decode each GLB only once.
+  const fetchOnce=url=>{
+    if(!urlCache.has(url))urlCache.set(url,loader.loadAsync(url));
+    return urlCache.get(url);
+  };
   const get=async()=>{
-    try{return await loader.loadAsync(preferred)}
+    try{return await fetchOnce(preferred)}
     catch(err){
       if(!fallback)throw err;
-      console.warn('Tactical character unavailable; loading studio fallback',type,err);
-      try{return await loader.loadAsync(fallback)}
-      catch(err2){return loader.loadAsync(TACTICAL)}
+      console.warn('Studio human unavailable; trying fallback',type,err);
+      try{return await fetchOnce(fallback)}
+      catch(err2){return fetchOnce(TACTICAL)}
     }
   };
   cache.set(type,get().then(g=>{
