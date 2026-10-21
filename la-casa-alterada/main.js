@@ -166,8 +166,9 @@ function hud(force=false){
    $('ctfRedScore').textContent=sc.red+' ROJO';
    const flags=team?.flags||{};
    const holder=Object.keys(flags).find(t=>flags[t]?.carrier);
-   $('ctfFlagStatus').textContent=holder?'BANDERA '+(holder==='blue'?'AZUL':'ROJA')+' ROBADA':
-     team?.winner?'RONDA TERMINADA':'PRIMER EQUIPO CON 3 CAPTURAS';
+   $('ctfFlagStatus').textContent=team?.winner?'RONDA TERMINADA':
+     holder?'BANDERA '+(holder==='blue'?'AZUL':'ROJA')+' ROBADA':
+     (team?.objective||'PRIMERO EN LLEGAR A 3 CAPTURAS');
  }else{
    $('ctfScoreboard').classList.add('hidden');
    stage=!hasEntrance?0:needsB?1:!hostageReady?2:3;
@@ -339,7 +340,7 @@ function more(){placing=true;ui();toast('Localizá otra superficie; la amenaza s
 function spawnCTFBot(team,index,id,localPos){
  if(!mission?.isCapture?.()||!localPos||enemies.some(e=>e.id===id))return null;
  const e=createTacticalActor(THREE,index%4,team==='blue'?'operator':'raider');
- e.id=id;e.ctfBot=true;e.team=team;e.floor=true;e.alive=true;e.hp=3;e.size=.94;
+ e.id=id;e.ctfBot=true;e.ctfIndex=index;e.team=team;e.floor=true;e.alive=true;e.hp=3;e.size=.94;
  e.home=mission.originToWorld(localPos.clone());e.root.position.copy(e.home);e.groundY=e.root.position.y;
  e.root.scale.setScalar(.92);e.start.copy(e.root.position);e.next=0;e.nextTarget=0;
  e.hit.userData.enemy=e;if(e.headHit)e.headHit.userData.enemy=e;
