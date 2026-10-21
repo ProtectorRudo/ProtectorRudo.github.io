@@ -739,17 +739,18 @@ if(Array.isArray(msg.environment)){
         const delta=player.clone().sub(current);delta.y=0;
         const dist=delta.length(),entryDist=Math.hypot(current.x,current.z);
         const maxGap=1.02;
+        const operatorExitDistance=Math.hypot(player.x,player.z);
         let desired=null,speed=0;
-        if(dist>maxGap){
-          // Catch up to the player, stopping slightly behind them.
-          const direction=delta.normalize();
-          desired=current.clone().addScaledVector(direction,Math.max(0,dist-.68));
-          desired.y=0;speed=dist>2.2?1.55:1.18;
-        }else if(entryDist>1.01&&dist<1.8){
-          // Walk toward the marked entrance when the operator is nearby.
-          // Waiting beside the hostage must never stall the escort.
+        if(entryDist>1.01&&dist<2.35&&operatorExitDistance<=entryDist+.45){
+          // Progress toward entry alongside the operator, even if they are
+          // standing nearby. Do not zig-zag backward toward a lagging player.
           desired=new THREE.Vector3(0,0,0);
-          speed=.64;
+          speed=.72;
+        }else if(dist>maxGap){
+          // Follow the real player's path if separated.
+          const direction=delta.normalize();
+          desired=current.clone().addScaledVector(direction,Math.max(0,dist-.70));
+          desired.y=0;speed=dist>2.2?1.55:1.20;
         }
         if(desired){
           let goal=desired;
