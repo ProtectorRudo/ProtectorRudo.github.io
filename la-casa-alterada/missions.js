@@ -755,7 +755,7 @@ if(Array.isArray(msg.environment)){
   function originToWorld(pos){if(!o.origin)return null;return o.origin.localToWorld(pos.clone())}
   function tick(dt,time){
     if(isCapture()){
-      if(isHost()&&isPvP()&&o.pvp.tick(time))applyPvPState(o.pvp.view(o.myId,time));
+      if(isHost()&&isPvP()){const clock=performance.now();if(o.pvp.tick(clock))applyPvPState(o.pvp.view(o.myId,clock));}
       if(o.origin&&api.firstNest())o.origin.position.copy(api.firstNest().root.position);
       const p=position();
       if(isGuest()&&o.conn?.open&&p&&time-o.lastMove>140){o.lastMove=time;send(o.conn,{t:'move',p:P(p)})}
