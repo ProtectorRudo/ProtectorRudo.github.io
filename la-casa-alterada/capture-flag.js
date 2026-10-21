@@ -119,6 +119,20 @@ export function createCaptureFlag(THREE,api){
    api.event?.('¡BANDERA '+(rival==='blue'?'AZUL':'ROJA')+' ROBADA! · VOLVÉ A TU BASE');
    return true;
  }
+ function pickupInfo(team,pos){
+   if(!S.running||!TEAMS.includes(team)||!pos)return null;
+   const rival=other(team),flag=S.flags[rival];
+   let at=flagLocation(rival),handoff=false;
+   if(flag.carrier){
+     const ally=bots().find(e=>flag.carrier==='bot:'+e.id&&e.alive&&e.team===team);
+     if(!ally)return null;
+     at=botPosition(ally);handoff=true;
+   }
+   if(!at)return null;
+   const distance=gap(pos,at);
+   return{distance,available:distance<=HUMAN_PICKUP_RADIUS,
+     handoff,label:handoff?'RECIBIR BANDERA':'ROBAR BANDERA'};
+ }
  function flagsStep(time){
    const members=roster();
    for(const t of TEAMS){
@@ -321,7 +335,7 @@ export function createCaptureFlag(THREE,api){
    S.flags={blue:fresh(),red:fresh()};S.running=false;S.finished=false;S.winner=null;S.clock=480;
    S.spawned=false;S.tagged={};
  }
- return{configure,place,ready,start,tick,snapshot,applyState,reset,flagLocation,target,objective,tryPickup,removePlayer,eliminateCarrier,tagPlayer,
+ return{configure,place,ready,start,tick,snapshot,applyState,reset,flagLocation,target,objective,tryPickup,removePlayer,eliminateCarrier,tagPlayer,pickupInfo,
    get config(){return S.config},get bases(){return S.bases},get scores(){return S.scores},
    get running(){return S.running},get flags(){return S.flags},get clock(){return S.clock},get winner(){return S.winner}};
 }
