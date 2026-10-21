@@ -15,6 +15,7 @@ const source={
  raiderB:ORIGINAL_BOTS+'bot_wrap.glb',
  raiderC:ORIGINAL_BOTS+'bot_mask_cap.glb',
  raiderD:ORIGINAL_BOTS+'bot_wrap_goggles.glb',
+ operator:'https://cdn.jsdelivr.net/gh/cktang88/3d-fps@main/public/assets/models/characters/soldier.glb',
  hostage:CDN+'npc-maya-locomotion.glb'
 };
 const backUp={
@@ -67,10 +68,10 @@ function load(type){
  return cache.get(type)
 }
 export function preloadHumans(){
- return Promise.allSettled([load('raiderA'),load('raiderB'),load('hostage')])
+ return Promise.allSettled([load('raiderA'),load('raiderB'),load('operator'),load('hostage')])
 }
 export async function attachHuman(actor,type='raiderA'){
- const key=type==='hostage'?'hostage':['raiderA','raiderB','raiderC','raiderD'].includes(type)?type:'raiderA';
+ const key=type==='hostage'?'hostage':['raiderA','raiderB','raiderC','raiderD','operator'].includes(type)?type:'raiderA';
  const data=await load(key);
  if(!data||!actor?.root||!actor?.root.parent)return false;
  return staggerClone(()=>{
