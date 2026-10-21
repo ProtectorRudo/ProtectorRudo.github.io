@@ -290,7 +290,9 @@ function hud(force=false){
   hostageReady?'A ✓ · B ✓ · REHÉN ✓':'ALINEACIÓN ✓';
  $('begin').textContent=ctf?'▶ EMPEZAR CAPTURA':'▶ EMPEZAR RESCATE';
 }
-function ui(){if(mapping){$('mapPanel').classList.remove('hidden')}$('swapGun').classList.toggle('hidden',!active);$('setup').classList.toggle('hidden',!placing);$('fight').classList.toggle('hidden',placing);$('gunCanvas').classList.toggle('hidden',!active);$('hint').classList.toggle('hidden',!placing);$('sightText').textContent=placing?'APUNTÁ AL PISO':'';hud(true)}
+function ui(){
+ $('coverDeploy').classList.toggle('hidden',!active||ended||placing||mission?.isGuest?.());
+ if(mapping){$('mapPanel').classList.remove('hidden')}$('swapGun').classList.toggle('hidden',!active);$('setup').classList.toggle('hidden',!placing);$('fight').classList.toggle('hidden',placing);$('gunCanvas').classList.toggle('hidden',!active);$('hint').classList.toggle('hidden',!placing);$('sightText').textContent=placing?'APUNTÁ AL PISO':'';hud(true)}
 function cleanup(){
  killFeedUntil=0;$('killFeed').classList.add('hidden');
  if(referenceAnchor){try{referenceAnchor.delete()}catch(_){}}referenceAnchor=null;
@@ -361,6 +363,33 @@ function placeFlag(team){
  if(mission?.placeFlag?.(team,at)){hud(true);tone('hit');vibrate(40);toast('BANDERA '+(team==='blue'?'AZUL':'ROJA')+' COLOCADA ✓')}
  else toast('COLOCÁ LA BANDERA MÁS LEJOS DE LA OTRA · MÍNIMO 1,6 m');
 }
+function placeTacticalCover(){
+ if(!active||ended||placing||mapping||!nests.length)return;
+ if(mission?.isGuest?.())return toast('SOLO EL ANFITRIÓN COLOCA COBERTURAS');
+ const c=getCam(),eye=new THREE.Vector3(),dir=new THREE.Vector3();
+ c.getWorldPosition(eye);c.getWorldDirection(dir);dir.y=0;
+ if(dir.lengthSq()<.01)dir.set(0,0,-1);
+ dir.normalize();
+ // Camera's horizontal bearing and floor calibration determine the location,
+ // so the cover occupies a STABLE 3D point rather than following the screen.
+ const floor=nests[0].root.position.y;
+ let point=currentFloorTarget()?.point?.clone();
+ if(!point)point=eye.clone().addScaledVector(dir,2.1);
+ point.y=floor;
+ const d=Math.hypot(point.x-eye.x,point.z-eye.z);
+ if(d<1.6||d>3.7){point.set(eye.x+dir.x*2.2,floor,eye.z+dir.z*2.2)}
+ const feet=new THREE.Vector3(eye.x,floor,eye.z);
+ if(!spatialMap.canMove(feet,point,.22))
+   return toast('NO PODÉS PONER LA COBERTURA DETRÁS DE UN OBSTÁCULO');
+ if(spatialMap.area&&spatialMap.areaDistance(point)<.85)
+   return toast('COLOCÁ LA COBERTURA MÁS ADENTRO DE LA ZONA');
+ const kind=$('coverPreset').value;
+ const created=spatialMap.addCover(point,{kind,forward:dir,floorY:floor});
+ if(!created)return toast('COBERTURA SUPERPUESTA O LÍMITE ALCANZADO · PROBÁ OTRO LUGAR');
+ tone('hit');vibrate([25,35,25]);mapStatus();
+ toast('COBERTURA COLOCADA ✓ · LOS BOTS LA EVITAN Y PUEDEN ESCONDERSE');
+}
+$('placeCover').addEventListener('click',()=>{lastTouch=performance.now();placeTacticalCover()});
 function smartAction(){
  if(!nests.length){place();return}
  if(mission?.needsReference?.()){markReferenceB();return}
