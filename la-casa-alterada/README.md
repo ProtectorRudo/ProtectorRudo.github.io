@@ -202,3 +202,16 @@ NOTA: el cañón es un modelo de vista en primera persona superpuesto (no está 
 **Limitación esencial:** estos son puntos calibrados manualmente, no una verdadera *Cloud Anchor*, ni un ARWorldMap/SLAM compartido. Si cada usuario marca físicamente puntos diferentes, los sensores derivan o falla la detección de superficie, habrá desplazamientos. Una garantía de alineación centimétrica, reconocimiento global del espacio y relocalización automática entre Android e iPhone no están disponibles de forma universal desde WebXR. Hace falta probar la V13 físicamente con varios teléfonos antes de venderla como experiencia profesional.
 
 Fuentes: [WebXR Hit Test (W3C)](https://www.w3.org/TR/webxr-hit-test-1/), [WebXR Anchors (Immersive Web)](https://github.com/immersive-web/anchors/blob/main/explainer.md), [SharedSpheres (Unity/ARKit, estudio de referencia)](https://github.com/Unity-Technologies/SharedSpheres). Esta V13 utiliza una implementación geométrica original en `shared-calibration.js`.
+
+
+## V14 — Terroristas de calidad superior y cuatro uniformes
+
+- Investigación visual basada en el diseño de las facciones ficticias Phoenix Connexion, Elite Crew y Guerrilla Warfare del shooter *Counter-Strike*: siluetas humanas reconocibles, pasamontañas, tela, ropa de colores terrosos, guantes, chalecos, accesorios y armas con postura natural. No se usan recursos de Valve.
+- Se actualizaron los enemigos a cuatro modelos originales riggeados de otro shooter independiente [StarKnightt/counter-strike-in-browser](https://github.com/StarKnightt/counter-strike-in-browser), con geometría realista/atlas de texturas horneadas, indumentaria diferenciada y animaciones Idle/Walk/Run. Versiones: pasamontañas, pañuelo de desierto, pasamontañas con gorra y pañuelo con gafas. Fuente fijada a commit inmutable para evitar cambios de arte imprevistos.
+- El cargador mantiene respaldo de personajes 3D del estudio; si no se puede obtener el nuevo modelo se usa el humano antiguo y, si tampoco está disponible, un soldado de reserva. Por último queda el cuerpo procedimental mientras se espera la descarga. Ninguna de las variantes necesita instalar una aplicación.
+- Host asigna el índice de vestimenta una vez por enemigo y lo comparte en cada snapshot; todos los compañeros ven la **misma variante** para cada terrorista. La selección se conserva estable durante la ronda.
+- Se suprimieron los cascos primitivos superpuestos a la cabeza de los nuevos modelos y se conserva el rifle sujeto al hueso de la mano en rigs compatibles.
+- Rendimiento móvil: modelos con descarga/caché por tipo, creación escalonada de esqueletos, animaciones aproximadamente 30 Hz de cerca y 15 Hz a distancia.
+- El nuevo arte procedimentalmente generado pertenece a sus respectivos creadores. Consultar `THIRD_PARTY_NOTICES.md` y verificar condiciones de licencias de terceros antes de vender la experiencia a clientes.
+
+**Validación pendiente:** comprobar descarga del CDN, texturas, escala, posturas de armas y FPS con 2–4 celulares reales. Las pruebas automáticas de código y presencia de archivos no reemplazan una revisión visual en dispositivos.
