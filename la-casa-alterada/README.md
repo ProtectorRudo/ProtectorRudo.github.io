@@ -101,3 +101,13 @@ NOTA: el cañón es un modelo de vista en primera persona superpuesto (no está 
 - Motor, grafo y colisiones de V9 implementados con código original en spatial-map.js; no se copió código de los proyectos referenciados.
 
 **Validación pendiente:** hace falta comprobar escaneo, alineación, rendimiento, y colisiones en teléfonos reales; el juego no es aún un sistema certificado de captura espacial, ni un producto listo para cobrar miles de dólares.
+
+## V9.1 — Correcciones de jugabilidad, gráficos y mapeo (beta)
+
+- Rescate: mantener LIBERAR alrededor de 1 segundo, completado automáticamente aunque el botón táctil no reciba el evento `pointerup`; también conserva captura de puntero, y el anfitrión valida que hubo pulsación real.
+- Rendimiento: creación de enemigos escalonada (un enemigo cada ~145 ms) y creación de esqueletos animados escalonada (~95 ms). Mezcladores de animación a unos 29–30 fps para reducir tirones en Android.
+- Enemigos: 8 aparecen durante el inicio de la operación, más 5 durante la emboscada; límite de 14 vivos simultáneos. Se distribuyen a mayor distancia, son aproximadamente un 32 % más pequeños en el piso y se mantienen a distancia para no bloquear la vista de cámara.
+- Estética: humanos realistas originales Jordan/Sam (familia del modelo de rehén Maya) como opción principal; antiguo soldado militar como respaldo. Casco discreto y rifle unido al hueso de la mano si lo admite el personaje, en vez de un arma flotando rígidamente.
+- Mapeo: la opción MARCAR PUNTO puede usarse sin profundidad ni planos AR detectados. Apunta a un punto estimado delante de la cámara; un control de 0,6 a 5 metros permite ajustar la distancia. El modo indica si el punto procede de un plano real, profundidad o estimación manual.
+- En la Práctica 3D se reinstalan las colisiones de pared, sofá y mesa después del reinicio y se cierra correctamente el panel de mapeo al salir.
+- LIMITACIÓN: la distancia manual es **una estimación**. No supone reconocimiento automático de paredes, ni garantiza colisiones de habitaciones no mapeadas. Verificar con calma en celulares compatibles antes de ofrecerlo comercialmente.
