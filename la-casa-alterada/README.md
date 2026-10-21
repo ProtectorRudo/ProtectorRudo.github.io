@@ -1,10 +1,20 @@
-# BLACKZONE — Tactical AR (V25)
+# BLACKZONE — Tactical AR (V26)
 
 **Nombre actual del juego: BLACKZONE.** Anteriormente denominado *La Casa Alterada*, conservado en la ruta heredada del repositorio y en el enlace Vercel existente para evitar romper enlaces de versiones anteriores.
 
 Shooter táctico web de realidad aumentada con dos modos: **Rescate de Rehenes (cooperativo)** y **Captura la Bandera (cooperativo o versus con bots configurables)**.
 
 El historial técnico anterior se conserva debajo, con descripciones correspondientes a cada etapa del desarrollo.
+
+## V26 — Modelos de personaje detallados y rescate sin mantener presionado
+
+- Restablecidos **modelos GLB animados de alta calidad también en WebXR**: la rehén Maya y los combatientes tácticos con equipamiento, máscaras y distintas apariencias. Se cargan progresivamente después del modelo de respaldo; si el archivo no está disponible, se conserva la figura básica.
+- Nuevo **modelo de rehén de respaldo más humano**: torso, rostro, ojos, nariz, cabello, brazos articulados y piernas proporcionadas. Sustituye el conjunto de esferas sobredimensionadas.
+- **Escala corporal** de la rehén normalizada; ahora la cámara puede acercarse sin ver una cabeza desproporcionada. Marcadores del objetivo reducidos para no distraer.
+- **Liberación con un solo toque**: barra automática de 1,55 s, sin pointer capture, sin mantener presionado ni esperar al soltar el dedo. Se cancela únicamente si te alejás del radio de 1,55 m. El anfitrión confirma el rescate también en cooperativo.
+- El ciclo de progreso no utiliza el antiguo máximo de 99 % ni la comprobación de 750 ms de pulsación; incluye regresiones de finalización, cancelación y multijugador.
+- Mantiene el compositor AR V25 y la protección frente a ataques hasta confirmar que los jugadores enemigos son visibles.
+- Modelos externos documentados en THIRD_PARTY_NOTICES.md. Su disponibilidad en teléfonos reales depende de conexión y decodificación GLB; CI no puede certificar la apariencia final en cada dispositivo.
 
 ## V25 — AR visible y combate con confirmación
 

@@ -421,3 +421,14 @@
  #hud.arActive #renderStatus{top:calc(70px + env(safe-area-inset-top))}
  #hud.arActive #test3D{top:calc(125px + env(safe-area-inset-top))}
 }
+
+/* V26: an autonomous one-tap rescue progress bar, no held touch required. */
+#interact{position:relative;overflow:hidden;min-width:156px;min-height:50px;
+ touch-action:manipulation;user-select:none;-webkit-user-select:none;
+ -webkit-tap-highlight-color:transparent}
+#interact.rescuing{
+ background:linear-gradient(110deg,#3f6a58,#1c4c49);
+ border-color:#a9e8cb;color:#edfff4;pointer-events:none}
+#interact.rescuing::after{content:'';display:block;position:absolute;
+ height:5px;left:0;bottom:0;max-width:100%;width:var(--rescue-progress,0%);
+ background:#b8f8d7;box-shadow:0 0 10px #90e4c9;transition:width .09s linear}
