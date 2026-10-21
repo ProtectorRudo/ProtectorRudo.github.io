@@ -5,6 +5,7 @@
 export function createCaptureFlag(THREE,api){
  const TEAMS=['blue','red'],COLORS={blue:0x51caff,red:0xff6c66};
  const fresh=()=>({carrier:null,dropped:null,stamp:0});
+ const safe2D=(a,b)=>a&&b?Math.hypot(a.x-b.x,a.z-b.z):Infinity;
  const S={config:{bots:2,difficulty:'normal',versus:false},bases:{blue:null,red:null},
   scores:{blue:0,red:0},flags:{blue:fresh(),red:fresh()},visuals:{},running:false,
   finished:false,winner:null,clock:480,spawned:false,tagged:{}};
@@ -42,7 +43,9 @@ export function createCaptureFlag(THREE,api){
      const at=holder||flag.dropped||S.bases[t];
      if(!S.visuals[t]){S.visuals[t]=model(t);origin().add(S.visuals[t])}
      const m=S.visuals[t];if(m.parent!==origin())origin().add(m);
-     m.visible=!!at;
+     // Never show a stolen flag at its old base when the carrier has not
+     // received a recent network position: hide it rather than teleport.
+     m.visible=!!at&&(!flag.carrier||!!holder);
      if(at){m.position.copy(at);
        if(holder)m.position.y+=flag.carrier.startsWith('bot:')?.16:-1.12;
        m.rotation.y=Math.sin(time*.001)*.13;m.userData.cloth.rotation.y=Math.sin(time*.002)*.12}
@@ -72,6 +75,13 @@ export function createCaptureFlag(THREE,api){
  }
  function eliminateCarrier(id,pos,time){
    for(const t of TEAMS)if(S.flags[t].carrier===id)drop(t,pos,time);
+ }
+ function removePlayer(id){
+   if(typeof id!=='string')return;
+   for(const t of TEAMS){
+     if(S.flags[t].carrier===id)drop(t,S.bases[t],performance.now());
+   }
+   delete S.tagged[id];
  }
  function tagPlayer(id,pos,time=performance.now()){
    if(S.tagged[id]&&S.tagged[id]>time)return false;
@@ -129,12 +139,31 @@ export function createCaptureFlag(THREE,api){
        e.root.position.copy(origin().localToWorld(S.bases[e.team].clone()));
      }
      const carrying=TEAMS.some(t=>S.flags[t].carrier==='bot:'+e.id);
-     const defenderTarget=S.flags[e.team].carrier?ownerPosition(S.flags[e.team].carrier):null;
-     const targetLocal=carrying?S.bases[e.team]:defenderTarget||flagLocation(other(e.team));
+     const ownFlag=S.flags[e.team],rivalFlag=S.flags[other(e.team)];
+     const defenderTarget=ownFlag.carrier?ownerPosition(ownFlag.carrier):null;
+     // One in every three bots guards home. The others attack as a squad.
+     // On flag theft defenders become interceptors; attackers can escort
+     // a teammate who is carrying the enemy flag.
+     const defender=(e.ctfIndex%3===0);
+     const teamCarrier=rivalFlag.carrier&&rivalFlag.carrier!=='bot:'+e.id
+       ?ownerPosition(rivalFlag.carrier):null;
+     let targetLocal=null,guarding=false;
+     if(carrying)targetLocal=S.bases[e.team];
+     else if(defenderTarget)targetLocal=defenderTarget;
+     else if(defender&&ownFlag.dropped)targetLocal=ownFlag.dropped;
+     else if(defender){
+       const home=S.bases[e.team],enemy=S.bases[other(e.team)];
+       const vx=enemy.x-home.x,vz=enemy.z-home.z,length=Math.hypot(vx,vz)||1;
+       const lane=(e.ctfIndex%2===0?1:-1);
+       targetLocal=home.clone().add(new THREE.Vector3(vx/length*.95-vz/length*.32*lane,0,
+         vz/length*.95+vx/length*.32*lane));
+       guarding=true;
+     }else if(teamCarrier)targetLocal=teamCarrier;
+     else targetLocal=flagLocation(other(e.team));
      if(!targetLocal)continue;
      const at=e.root.position,to=origin().localToWorld(targetLocal.clone());
      const dist=gap(at,to);
-     if(dist>.35){
+     if(dist>(guarding?.45:.35)){
        const waypoint=api.nextPoint?.(at,to)||to;
        const delta=waypoint.clone().sub(at);delta.y=0;
        if(delta.lengthSq()>.001){
@@ -196,10 +225,26 @@ export function createCaptureFlag(THREE,api){
    S.running=!!state.running;S.finished=!!state.finished;S.winner=state.winner||null;
    S.clock=Number.isFinite(state.clock)?state.clock:S.clock;refresh();
  }
- function target(team){
-   const enemy=other(team);
-   const pos=S.flags[enemy].carrier?S.bases[team]:flagLocation(enemy);
-   return pos?.clone()||null;
+ function objective(team,playerId){
+   const enemy=other(team),ours=S.flags[team],theirs=S.flags[enemy];
+   const mine=S.bases[team],enemyBase=S.bases[enemy];
+   if(!mine||!enemyBase)return null;
+   if(theirs.carrier===playerId)return {position:mine.clone(),label:'VOLVÉ A TU BASE',kind:'deliver'};
+   if(ours.carrier){
+     const carrier=ownerPosition(ours.carrier);
+     return {position:carrier?.clone()||ours.dropped?.clone()||mine.clone(),
+       label:'RECUPERÁ TU BANDERA',kind:'defend'};
+   }
+   if(ours.dropped)return {position:ours.dropped.clone(),label:'DEVOLVÉ TU BANDERA',kind:'recover'};
+   if(theirs.carrier){
+     const carrier=ownerPosition(theirs.carrier);
+     if(carrier)return{position:carrier.clone(),label:'ESCOLTÁ LA BANDERA',kind:'escort'};
+     return {position:mine.clone(),label:'DEFENDÉ LA BASE',kind:'defend'};
+   }
+   return{position:flagLocation(enemy).clone(),label:'CAPTURÁ LA BANDERA',kind:'attack'};
+ }
+ function target(team,playerId){
+   return objective(team,playerId)?.position||null;
  }
  function reset(){
    for(const g of Object.values(S.visuals)){
@@ -210,7 +255,7 @@ export function createCaptureFlag(THREE,api){
    S.flags={blue:fresh(),red:fresh()};S.running=false;S.finished=false;S.winner=null;S.clock=480;
    S.spawned=false;S.tagged={};
  }
- return{configure,place,ready,start,tick,snapshot,applyState,reset,flagLocation,target,eliminateCarrier,tagPlayer,
+ return{configure,place,ready,start,tick,snapshot,applyState,reset,flagLocation,target,objective,removePlayer,eliminateCarrier,tagPlayer,
    get config(){return S.config},get bases(){return S.bases},get scores(){return S.scores},
    get running(){return S.running},get flags(){return S.flags},get clock(){return S.clock},get winner(){return S.winner}};
 }
