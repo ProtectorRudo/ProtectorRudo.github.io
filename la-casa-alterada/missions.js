@@ -276,6 +276,9 @@ if(Array.isArray(msg.environment)){
     const known=new Set();for(const p of msg.players||[]){if(p.id===o.myId||!Array.isArray(p.pos))continue;known.add(p.id);let g=o.remoteAvatar.get(p.id);if(!g){g=avatar();o.origin.add(g);o.remoteAvatar.set(p.id,g)}const target=from(p.pos);g.position.lerp(target,.5)}for(const [id,g] of o.remoteAvatar)if(!known.has(id)){g.parent?.remove(g);o.remoteAvatar.delete(id)}ui()}
   function makeSnapshot(){const players=[{id:o.myId,pos:P(position()||new THREE.Vector3())}];for(const [id,p] of o.localPositions)players.push({id,pos:P(p)});return{t:'snapshot',seq:++o.snapshotSeq,phase:o.phase,mask:o.mask,held:Math.round(o.held),running:o.running,finished:o.finished,environment:api.exportEnvironment?.(o.origin)||[],hostage:o.hostagePos?P(o.hostagePos):null,hostageHP:o.hostageHealth,rescued:o.hostageRescued,enemies:getEnemyState(),bullets:api.projectiles().map((b,i)=>{const p=b.mesh.position.clone();o.origin.worldToLocal(p);return{id:b.id||i,p:P(p),power:b.power}}),players,clock:api.clock(),wave:api.wave(),kills:api.kills?.()||0}}
 
+  function relayEnemyHit(id,headshot=false,hp=0){
+    if(isHost()&&Number.isInteger(id))broadcast({t:'enemyHit',id,headshot:!!headshot,hp});
+  }
   function relayEnemyDown(id,killerId=null,headshot=false,count=0){
     if(isHost()&&Number.isInteger(id))broadcast({t:'enemyDown',id,killer:killerId||o.myId,headshot:!!headshot,count});
   }
@@ -343,6 +346,12 @@ if(Array.isArray(msg.environment)){
     if(m.t==='snapshot')receiveSnapshot(m);
     if(m.t==='teamShot')playTeamShot(m);
     if(m.t==='shotResult'&&Number.isInteger(m.enemyId))api.confirmedRemoteShot?.(m.headshot===true);
+    if(m.t==='enemyHit'&&Number.isInteger(m.id)){
+      const e=o.remoteEnemy.get(m.id);
+      if(e?.alive){if(Number.isFinite(m.hp))e.hp=m.hp;
+        e.staggerUntil=performance.now()+170;e.hitStagger=m.headshot===true?.14:.08;
+      }
+    }
     if(m.t==='enemyDown'&&Number.isInteger(m.id)){
       const e=o.remoteEnemy.get(m.id);
       if(e){e.alive=false;e.root.visible=false}
@@ -425,7 +434,11 @@ if(Array.isArray(msg.environment)){
     for(let i=o.effects.length-1;i>=0;i--){const e=o.effects[i];e.t+=dt;e.mesh.scale.setScalar(1+e.t*9);e.mesh.material.opacity=Math.max(0,1-e.t/e.duration);if(e.t>e.duration){e.mesh.parent?.remove(e.mesh);o.effects.splice(i,1)}}
     o.objects.forEach((g,i)=>{g.visible=o.running&&o.phase===0&&!(o.mask&(1<<i));if(g.visible){g.userData.cap.position.y=.31+Math.sin(time*.003+i*1.8)*.055;g.userData.cap.rotation.y+=dt*1.4}});
     if(isHost()&&o.origin){const seen=new Set();for(const [id,p] of o.localPositions){seen.add(id);let g=o.remoteAvatar.get(id);if(!g){g=avatar();o.origin.add(g);o.remoteAvatar.set(id,g)}g.position.lerp(p,.42)}for(const [id,g] of o.remoteAvatar)if(!seen.has(id)){g.parent?.remove(g);o.remoteAvatar.delete(id)}}
-    if(isGuest()&&o.running){const at=position();if(at){let near=false;for(const e of o.remoteEnemy.values()){const prev=e.root.position.clone();e.root.position.lerp(e.start,clamp(0,1,dt*9));if(Number.isFinite(e.remoteYaw)){let delta=(e.remoteYaw-e.root.rotation.y+Math.PI)%(Math.PI*2);if(delta<0)delta+=Math.PI*2;delta-=Math.PI;e.root.rotation.y+=delta*clamp(0,1,dt*9)}const moved=e.root.position.distanceTo(prev)/Math.max(.001,dt);e.lodFar=Math.hypot(e.root.position.x-at.x,e.root.position.z-at.z)>5.2;api.animateEnemy(e,dt,moved);api.animateHuman?.(e,dt,moved);if(Math.hypot(e.root.position.x-at.x,e.root.position.z-at.z)<2.4)near=true;}const el=$('alert');el.classList.toggle('hidden',!near)}for(const obj of o.remoteBullet.values())if(obj.userData.target)obj.position.lerp(obj.userData.target,clamp(0,1,dt*13))}
+    if(isGuest()&&o.running){const at=position();if(at){let near=false;for(const e of o.remoteEnemy.values()){const prev=e.root.position.clone();e.root.position.lerp(e.start,clamp(0,1,dt*9));if(Number.isFinite(e.remoteYaw)){let delta=(e.remoteYaw-e.root.rotation.y+Math.PI)%(Math.PI*2);if(delta<0)delta+=Math.PI*2;delta-=Math.PI;e.root.rotation.y+=delta*clamp(0,1,dt*9)}const moved=e.root.position.distanceTo(prev)/Math.max(.001,dt);e.lodFar=Math.hypot(e.root.position.x-at.x,e.root.position.z-at.z)>5.2;api.animateEnemy(e,dt,moved);api.animateHuman?.(e,dt,moved);
+ if(e.staggerUntil&&time<e.staggerUntil){
+   e.root.rotation.x=Math.sin((e.staggerUntil-time)/170*Math.PI)*(e.hitStagger||.08);
+ }else if(e.staggerUntil){e.root.rotation.x=0;e.staggerUntil=0}
+ if(Math.hypot(e.root.position.x-at.x,e.root.position.z-at.z)<2.4)near=true;}const el=$('alert');el.classList.toggle('hidden',!near)}for(const obj of o.remoteBullet.values())if(obj.userData.target)obj.position.lerp(obj.userData.target,clamp(0,1,dt*13))}
     for(const [id,g] of o.remoteAvatar){g.rotation.y+=dt*.4}
     if(o.running&&p&&(o.phase===0||o.phase===-2)){
      const near=o.phase===-2?!!o.rescueHoldStart||!!o.hostagePos&&Math.hypot(p.x-o.hostagePos.x,p.z-o.hostagePos.z)<1.24:
@@ -462,5 +475,5 @@ function networkState(){
  if(!o.lastHostSnapshot)return 'waiting';
  return delta>3100?'stale':'synced';
 }
-return{align,alignSecond,alignmentStatus,needsReference,teamCalibration,updateTrackedFrame,reset,start,navigationTarget,networkState,relayShot,relayEnemyDown,placeHostage,hostageWorld,hostageExposed:()=>o.running&&o.phase<0&&o.hostageHealth>0,damageHostage,healHostage,hasHostage:()=>!!o.hostagePos,isGuest,isHost,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result,clock:api.clock(),wave:api.wave(),kills:api.kills?.()||0})},localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
+return{align,alignSecond,alignmentStatus,needsReference,teamCalibration,updateTrackedFrame,reset,start,navigationTarget,networkState,relayShot,relayEnemyHit,relayEnemyDown,placeHostage,hostageWorld,hostageExposed:()=>o.running&&o.phase<0&&o.hostageHealth>0,damageHostage,healHostage,hasHostage:()=>!!o.hostagePos,isGuest,isHost,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result,clock:api.clock(),wave:api.wave(),kills:api.kills?.()||0})},localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
 }
