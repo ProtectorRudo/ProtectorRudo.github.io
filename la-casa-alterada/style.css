@@ -79,3 +79,6 @@
 #mapWall.active,#mapFurniture.active{border:2px solid #e7c68f}
 @media (max-height:750px){.mapPanel{top:calc(130px + env(safe-area-inset-top))}}
 @media (orientation:landscape){.mapPanel{top:calc(52px + env(safe-area-inset-top));max-width:480px;left:auto;right:10px}.environmentStatus{top:calc(55px + env(safe-area-inset-top));left:10px;right:auto;text-align:left}}
+
+.hostageMeter{margin-top:4px;max-width:245px}.hostageMeter>span{display:flex;justify-content:space-between;font-weight:800;font-size:9px;letter-spacing:.11em;color:#cce8d8}.hostageMeter>div{height:5px;background:#393a45;margin-top:5px}.hostageMeter i{display:block;width:100%;height:100%;background:linear-gradient(90deg,#db6f61,#84dcc1);transition:width .12s}
+#interact{min-width:150px;min-height:49px;border:1px solid #d1bb72}
