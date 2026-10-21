@@ -209,7 +209,7 @@ function cleanup(){
  killFeedUntil=0;$('killFeed').classList.add('hidden');
  if(referenceAnchor){try{referenceAnchor.delete()}catch(_){}}referenceAnchor=null;
  if(referenceMarker){referenceMarker.parent?.remove(referenceMarker);referenceMarker.traverse(x=>{x.geometry?.dispose?.();if(x.material&&!Array.isArray(x.material))x.material.dispose?.()});referenceMarker=null}
- spawnQueue.length=0;nextSpawnTime=0;$('navGuide').classList.add('hidden');$('netSignal').classList.add('hidden');spatialMap.clear();mapping=false;if(mapGhost)mapGhost.visible=false;if(mapFirstGhost)mapFirstGhost.visible=false;$('mapPanel').classList.add('hidden');mapFirst=null;mapPoint=null;mapStatus();for(const e of enemies){disposeHuman(e);e.root.parent?.remove(e.root)}for(const n of nests){try{n.anchor?.delete()}catch(e){}world.remove(n.root)}for(const i of [...orbs,...trails,...splinters])world.remove(i.mesh);nests=[];enemies=[];orbs=[];trails=[];splinters=[]}
+ ctfTaggedUntil=0;spawnQueue.length=0;nextSpawnTime=0;$('ctfScoreboard').classList.add('hidden');$('navGuide').classList.add('hidden');$('netSignal').classList.add('hidden');spatialMap.clear();mapping=false;if(mapGhost)mapGhost.visible=false;if(mapFirstGhost)mapFirstGhost.visible=false;$('mapPanel').classList.add('hidden');mapFirst=null;mapPoint=null;mapStatus();for(const e of enemies){disposeHuman(e);e.root.parent?.remove(e.root)}for(const n of nests){try{n.anchor?.delete()}catch(e){}world.remove(n.root)}for(const i of [...orbs,...trails,...splinters])world.remove(i.mesh);nests=[];enemies=[];orbs=[];trails=[];splinters=[]}
 function reset(){mission?.reset();triggerHeld=false;aiming=false;aimBlend=0;$('aimMode').classList.remove('aimed');$('aimMode').textContent='MIRA ◎';$('sight').classList.remove('ads');if(mode==='demo'){camera.fov=65;camera.updateProjectionMatrix()}cleanup();placing=true;active=false;ended=false;round=0;kills=0;currentWeapon='rifle';magazines={rifle:28,pistol:12};ammo=28;if(gunReady)syncWeapon();reloading=false;seconds=480;life=100;newRound=0;pose=null;hitResult=null;previous=0;lastHudRefresh=0;lastReferenceUpdate=0;ui();toast('APUNTÁ AL PISO Y TOCÁ MARCAR ENTRADA')}
 function estimateFloorPoint(floorY=null){
  const c=getCam(),eye=new THREE.Vector3(),forward=new THREE.Vector3();
@@ -261,6 +261,24 @@ function markReferenceB(){
  }
  tone('hit');vibrate(35);hud(true);
 }
+function placeFlag(team){
+ if(mapping||!placing||!nests.length)return;
+ if(mission?.isGuest()){toast('EL ANFITRIÓN ELIGE LAS BANDERAS');return}
+ const target=currentFloorTarget(),at=target.point.clone();
+ at.y=nests[0].root.position.y;
+ if(mission?.placeFlag?.(team,at)){hud(true);tone('hit');vibrate(40);toast('BANDERA '+(team==='blue'?'AZUL':'ROJA')+' COLOCADA ✓')}
+ else toast('COLOCÁ LA BANDERA MÁS LEJOS DE LA OTRA · MÍNIMO 1,6 m');
+}
+function smartAction(){
+ if(!nests.length){place();return}
+ if(mission?.needsReference?.()){markReferenceB();return}
+ if(mission?.isCapture?.()){
+  const bases=mission.captureStatus()?.bases||{};
+  if(!bases.blue)placeFlag('blue');else if(!bases.red)placeFlag('red');
+  return;
+ }
+ placeHostage();
+}
 function placeHostage(){
  if(mapping)return toast('TERMINÁ EL MAPEO PRIMERO');
  if(!placing||!nests.length)return toast('PRIMERO MARCÁ LA ENTRADA');
@@ -310,7 +328,13 @@ function processSpawns(t){
  enemies.push(e);
  attachHuman(e,e.appearance);
 }
-function begin(){if(mapping)toggleMap(false);if(!nests.length)return;if(!mission?.start())return;if(!gunReady)buildGun();combatFX.unlock();if(!active){active=true;round=0;if(!mission?.isGuest())wave(8,false)}placing=false;ui();mission?.ui()}
+function begin(){
+ if(mapping)toggleMap(false);
+ if(!nests.length||!mission?.start())return;
+ if(!gunReady)buildGun();combatFX.unlock();
+ if(!active){active=true;round=0;if(!mission?.isGuest()&&!mission?.isCapture?.())wave(8,false)}
+ placing=false;ui();mission?.ui();
+}
 function more(){placing=true;ui();toast('Localizá otra superficie; la amenaza sigue activa.')}
 function teammateShot(start,direction,id){
   if(!active||ended)return;
@@ -369,11 +393,19 @@ function confirmedRemoteShot(headshot){
  tone('hit');
 }
 function damageEnemy(e,amount=1,headshot=false,shooterId=null){if(!e?.alive)return;e.hp-=amount;
+ if(mission?.isCapture?.()&&!e.ctfBot)return;
  e.staggerUntil=performance.now()+170;
- e.hitStagger=amount>1?.14:.08;if(e.hp<=0){e.alive=false;e.root.visible=false;kills++;teamElimination(!shooterId||shooterId===mission?.localId?.(),headshot,kills);
- mission?.relayEnemyDown(e.id,shooterId,headshot,kills);mission?.onKill(e)}else {mission?.relayEnemyHit?.(e.id,headshot,e.hp);
+ e.hitStagger=amount>1?.14:.08;if(e.hp<=0){e.alive=false;e.root.visible=false;if(e.ctfBot)mission?.captureBotDown?.(e);kills++;teamElimination(!shooterId||shooterId===mission?.localId?.(),headshot,kills);
+ mission?.relayEnemyDown(e.id,shooterId,headshot,kills);if(!mission?.isCapture?.())mission?.onKill(e)}else {mission?.relayEnemyHit?.(e.id,headshot,e.hp);
  if(!shooterId||shooterId===mission?.localId?.())toast('IMPACTO / '+e.hp+' RESISTENCIA')}}
-function fire(){if(mapping||!active||ended||placing||reloading)return;if(ammo===0){reload();return}let t=performance.now();if(t-lastShot<(currentWeapon==='rifle'?105:170))return;lastShot=t;ammo--;gunShot();combatFX.shot(null,false,currentWeapon);vibrate(35);hud();const c=getCam(),p=new THREE.Vector3(),q=new THREE.Quaternion();c.getWorldPosition(p);c.getWorldQuaternion(q);const forward=new THREE.Vector3(0,0,-1).applyQuaternion(q);ray.set(p,forward);ray.far=12;mission?.relayShot(p,forward);const hits=ray.intersectObjects(enemies.filter(e=>e.alive).flatMap(e=>e.headHit?[e.hit,e.headHit]:[e.hit]),false);const cover=mode==='demo'?ray.intersectObjects(occluders,false)[0]:null;let end=p.clone().addScaledVector(forward,7);const geometryHit=spatialMap.lineBlocked(p,hits[0]?.point||end,.03);
+function fire(){if(mapping||!active||ended||placing||reloading||performance.now()<ctfTaggedUntil)return;if(ammo===0){reload();return}let t=performance.now();if(t-lastShot<(currentWeapon==='rifle'?105:170))return;lastShot=t;ammo--;gunShot();combatFX.shot(null,false,currentWeapon);vibrate(35);hud();const c=getCam(),p=new THREE.Vector3(),q=new THREE.Quaternion();c.getWorldPosition(p);c.getWorldQuaternion(q);const forward=new THREE.Vector3(0,0,-1).applyQuaternion(q);ray.set(p,forward);ray.far=12;mission?.relayShot(p,forward);
+ if(mission?.isCapture?.()){
+  if(!mission?.isGuest())resolveFlagShot(p,forward,mission.localId());
+  trail(weaponMuzzleOrigin(c),p.clone().addScaledVector(forward,5.5));
+  if(ammo===0)setTimeout(reload,240);
+  return;
+ }
+ const hits=ray.intersectObjects(enemies.filter(e=>e.alive).flatMap(e=>e.headHit?[e.hit,e.headHit]:[e.hit]),false);const cover=mode==='demo'?ray.intersectObjects(occluders,false)[0]:null;let end=p.clone().addScaledVector(forward,7);const geometryHit=spatialMap.lineBlocked(p,hits[0]?.point||end,.03);
  if(geometryHit||cover&&(!hits.length||cover.distance<hits[0].distance)){
    if(cover)end.copy(cover.point);combatFX.dust(end,11);
  }else if(hits.length){const h=hits[0],e=h.object.userData.enemy;end.copy(h.point);if(!mission?.isGuest()){impact(end);combatFX.dust(end,5);tone('hit')}const headshot=h.object.userData.part==='head';
@@ -384,6 +416,22 @@ function reload(){if(!active||ended||reloading||ammo===capacity())return;
  const type=currentWeapon;setTimeout(()=>{if(ended)return;magazines[type]=type==='rifle'?28:12;if(type===currentWeapon)ammo=magazines[type];reloading=false;hud()},currentWeapon==='rifle'?1600:1200);
 }
 function damage(value){if(mission?.shielded())return;life=Math.max(0,life-value);$('damage').classList.add('active');setTimeout(()=>$('damage').classList.remove('active'),180);tone('hurt');vibrate([90,35,90]);hud();if(life===0)finish(false)}
+function finishCTF(winner,myTeam,state){
+ if(ended)return;
+ ended=true;active=false;placing=false;triggerHeld=false;
+ $('hud').classList.add('hidden');$('outro').classList.remove('hidden');
+ const won=winner===myTeam,draw=winner==='draw';
+ $('status').textContent=draw?'TIEMPO TERMINADO':won?'¡TU EQUIPO GANÓ!':'EQUIPO RIVAL GANADOR';
+ $('outcome').innerHTML=draw?'EMPATE<br><em>TÁCTICO</em>':won?'BANDERA<br><em>CAPTURADA</em>':'MISIÓN<br><em>TERMINADA</em>';
+ $('outcomeText').textContent='AZULES '+(state?.scores?.blue||0)+' — '+(state?.scores?.red||0)+' ROJOS · '+kills+' bajas del equipo.';
+}
+function applyCTFTag(power=1){
+ if(ended||!active)return;
+ ctfTaggedUntil=performance.now()+2700;
+ $('damage').classList.add('active');
+ setTimeout(()=>$('damage').classList.remove('active'),350);
+ tone('hurt');vibrate([80,50,80]);toast('TOCADO · 3 SEGUNDOS SIN DISPARAR');
+}
 function finish(win){if(ended)return;mission?.onVictory(win);ended=true;active=false;placing=false;$('hud').classList.add('hidden');$('outro').classList.remove('hidden');$('status').textContent=win?'MISIÓN CUMPLIDA':'SEÑAL PERDIDA';$('outcome').innerHTML=win?'ZONA<br><em>ASEGURADA</em>':'MISIÓN<br><em>FALLIDA</em>';$('outcomeText').textContent=(win?'El equipo evacuó al rehén con vida. ':'El rescate del rehén fracasó. ')+kills+' intrusos neutralizados.'}
 // WebXR plane-detection (when available): use bounded plane geometry as a
 // secondary source if normal hit-test cannot find the floor or a wall.
@@ -494,6 +542,7 @@ function updateDemo(){if(mapping){ray.setFromCamera({x:0,y:0},camera);const pick
  $('place').disabled=nests.length>=7;$('sight').classList.toggle('found',!!hit);$('surface').textContent=hit?'PISO DETECTADO':'PISO ESTIMADO';$('sightText').textContent=hit?'PISO DETECTADO':'PISO ESTIMADO · TOCÁ MARCAR'}
 function updateBattle(dt,t){
  if(!active||ended)return;
+ if(mission?.isCapture?.()){hud();return}
  if(mission?.isGuest()){hud();return}
  seconds=Math.max(0,seconds-dt);
  if(!seconds){finish(false);return}
@@ -743,7 +792,7 @@ mission=createMission({scene:world,getCam,toast,event,teammateShot,resolveTeamma
 async function startAR(){if(!navigator.xr){toast('Este navegador no admite WebXR');return}$('startAR').disabled=true;try{ar=await navigator.xr.requestSession('immersive-ar',{
  requiredFeatures:['hit-test'],optionalFeatures:['anchors','dom-overlay','depth-sensing','plane-detection'],domOverlay:{root:$('ui')},
  depthSensing:{usagePreference:['cpu-optimized'],dataFormatPreference:['luminance-alpha','float32']}
-}).catch(()=>navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['anchors','dom-overlay'],domOverlay:{root:$('ui')}}));ar.addEventListener('end',()=>{ar=null;mode='idle';$('intro').classList.remove('hidden');$('hud').classList.add('hidden');$('outro').classList.add('hidden');world.background=null;cleanup();$('startAR').disabled=false});ar.addEventListener('select',()=>{const t=performance.now();if(t-lastTouch<310)return;lastTouch=t;if(mapping)markMapPoint();else if(placing){if(!nests.length)place();else if(mission?.needsReference?.())markReferenceB();else placeHostage()}else fire()});await renderer.xr.setSession(ar);local=renderer.xr.getReferenceSpace();const viewer=await ar.requestReferenceSpace('viewer');source=await ar.requestHitTestSource({space:viewer});mode='ar';$('mode').textContent='OPERACIÓN SOMBRA / CÁMARA AR';$('intro').classList.add('hidden');$('hud').classList.remove('hidden');reset()}catch(e){$('startAR').disabled=false;$('compat').textContent='AR no disponible: '+(e.message||'sin permiso')+'. Usá Chrome en Android compatible con ARCore.'}}
+}).catch(()=>navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['anchors','dom-overlay'],domOverlay:{root:$('ui')}}));ar.addEventListener('end',()=>{ar=null;mode='idle';$('intro').classList.remove('hidden');$('hud').classList.add('hidden');$('outro').classList.add('hidden');world.background=null;cleanup();$('startAR').disabled=false});ar.addEventListener('select',()=>{const t=performance.now();if(t-lastTouch<310)return;lastTouch=t;if(mapping)markMapPoint();else if(placing)smartAction();else fire()});await renderer.xr.setSession(ar);local=renderer.xr.getReferenceSpace();const viewer=await ar.requestReferenceSpace('viewer');source=await ar.requestHitTestSource({space:viewer});mode='ar';$('mode').textContent='OPERACIÓN SOMBRA / CÁMARA AR';$('intro').classList.add('hidden');$('hud').classList.remove('hidden');reset()}catch(e){$('startAR').disabled=false;$('compat').textContent='AR no disponible: '+(e.message||'sin permiso')+'. Usá Chrome en Android compatible con ARCore.'}}
 function demo(){mode='demo';occluders=[];$('demoMovement').classList.remove('hidden');world.background=new THREE.Color(0x17191f);world.fog=new THREE.Fog(0x17191f,5,14);camera.position.set(0,1.55,3.45);camera.rotation.order='YXZ';const floor=new THREE.Mesh(new THREE.PlaneGeometry(12,12),new THREE.MeshStandardMaterial({color:0x333138,roughness:.98}));floor.rotation.x=-Math.PI/2;world.add(floor);const wall=new THREE.Mesh(new THREE.BoxGeometry(9,4,.16),new THREE.MeshStandardMaterial({color:0x29292b,roughness:1}));wall.position.set(0,1.8,-3);world.add(wall);occluders.push(wall);
 
 const box=(w,h,d,x,y,z,c)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:c,roughness:.92}));o.position.set(x,y,z);world.add(o);occluders.push(o)};
@@ -765,7 +814,7 @@ $('mapToggle').addEventListener('click',()=>{lastTouch=performance.now();toggleM
 $('mapWall').addEventListener('click',()=>{mapKind='wall';mapFirst=null;mapControls(true)});
 $('mapSize').addEventListener('input',e=>{mapFastSpan=Math.max(.7,Math.min(4.5,Number(e.target.value)||2));$('mapSizeText').textContent=mapFastSpan.toFixed(1).replace('.',',')+' m';mapControls(true)});
 $('mapPrecision').addEventListener('click',()=>{mapPrecise=!mapPrecise;mapFirst=null;mapControls(true)});
-$('smartPlace').addEventListener('click',()=>{lastTouch=performance.now();if(!nests.length)place();else if(mission?.needsReference?.())markReferenceB();else placeHostage()});
+$('smartPlace').addEventListener('click',()=>{lastTouch=performance.now();smartAction()});
 $('mapFurniture').addEventListener('click',()=>{mapKind='box';mapFirst=null;mapControls(true)});
 $('mapMark').addEventListener('click',()=>{lastTouch=performance.now();markMapPoint()});
 $('mapDistance').addEventListener('input',e=>{
