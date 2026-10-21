@@ -130,3 +130,11 @@ NOTA: el cañón es un modelo de vista en primera persona superpuesto (no está 
 - Los jugadores que se conectan o calibran tarde solicitan de inmediato una copia del estado al anfitrión, incluso antes de que comience la partida, para ver rehenes colocados y obstáculos.
 - Cada disparo de un miembro del equipo produce una estela visual en los demás teléfonos. El anfitrión reenvía esos eventos, mientras sigue siendo autoridad en el cálculo de daño; no se duplica daño por mostrar un disparo.
 - Requiere que cada teléfono calibre el mismo punto del piso y mire hacia la misma pared; PeerJS/P2P puede tener latencia o desajustes de anclas. No equivale aún a posicionamiento compartido a precisión centimétrica ni a un backend de servidor dedicado.
+
+
+### V10 modo principal: una ronda, una extracción
+- Objetivo de la ronda: liberar al rehén y escoltarlo vivo hasta la extracción común. Si llega a salvo, gana **todo el equipo**. Se omiten las fases secundarias de cargas y jefes posteriores a la extracción para acercar la misión al modo de rescate táctico solicitado.
+- Todos los usuarios son miembros del mismo equipo antiterrorista, con las mismas armas, enemigos, rehén y riesgos. No hay reparto obligatorio de roles.
+- Los cambios de salud del rehén y los terroristas son controlados por el anfitrión. Los derribos de enemigos se notifican al instante además de reproducirse en las instantáneas periódicas.
+- Los disparos de compañeros se transmiten con coordenadas relativas al ancla inicial y se representan con estelas y sonido. Solo el anfitrión determina daño y bajas, por lo que el efecto visual no genera un segundo impacto.
+- La calibración local del plano inicial de cada teléfono sigue siendo aproximada y puede derivar; para precisión comercial robusta se necesitará anclaje espacial compartido y un servidor autoritativo persistente. PeerJS funciona como prototipo entre teléfonos, pero no equivale a un servidor competitivo de baja latencia.
