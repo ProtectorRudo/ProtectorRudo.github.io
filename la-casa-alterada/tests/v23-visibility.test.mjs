@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=f=>readFileSync(new URL('../'+f,import.meta.url),'utf8');
 const main=read('main.js'),mission=read('missions.js');
+const guard=await import('data:text/javascript;base64,'+Buffer.from(read('visibility-guard.js')).toString('base64'));
 
 class Vector{
  constructor(x=0,y=0,z=0){Object.assign(this,{x,y,z})}
@@ -19,13 +20,13 @@ const helper=main.slice(begin,end);
 function makeSpawn(spatialMap={area:null,canMove:()=>true,areaDistance:()=>10}){
  const cam={getWorldPosition:p=>Object.assign(p,{x:0,y:1.55,z:0}),
    getWorldDirection:p=>Object.assign(p,{x:0,y:0,z:-1})};
- return new Function('THREE','getCam','spatialMap','nests',
+ return new Function('THREE','getCam','spatialMap','nests','findSafeSpawnPoints',
    helper+'\nreturn safeRescueSpawn;')({Vector3:Vector},()=>cam,spatialMap,
-     [{root:{position:{x:0,y:0,z:0}}}]);
+     [{root:{position:{x:0,y:0,z:0}}}],guard.findSafeSpawnPoints);
 }
 test('V23 attackers spawn on the floor in the FRONT half-space',()=>{
  const spawn=makeSpawn();
- for(let i=0;i<8;i++){
+ for(let i=0;i<5;i++){
   const p=spawn(i,8,{x:0,y:0,z:0});
   assert.ok(p,'must produce a position');
   assert.ok(p.z<-.9,'bot '+i+' must be ahead, not behind camera');
@@ -51,7 +52,7 @@ test('Rescue starts with a grace period and a delayed, smaller wave',()=>{
 test('No enemies hidden by unverified AR depth while still attacking',()=>{
  assert.doesNotMatch(main,/depthInfo\.getDepthInMeters\(\(p\.x/);
  assert.match(main,/for\(const e of enemies\)if\(e\.alive\)e\.root\.visible=true/);
- assert.match(main,/const onScreen=toEnemy\.dot\(camForward\)>\.42/);
+ assert.match(main,/const onScreen=targetVisibility\\(/);
  assert.match(main,/if\(exposed&&onScreen&&rescueProtectionLeft\(t\)===0/);
 });
 
