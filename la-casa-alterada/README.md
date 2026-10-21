@@ -1,10 +1,19 @@
-# BLACKZONE — Tactical AR (V30)
+# BLACKZONE — Tactical AR (V31)
 
 **Nombre actual del juego: BLACKZONE.** Anteriormente denominado *La Casa Alterada*, conservado en la ruta heredada del repositorio y en el enlace Vercel existente para evitar romper enlaces de versiones anteriores.
 
 Shooter táctico web de realidad aumentada con dos modos: **Rescate de Rehenes (cooperativo)** y **Captura la Bandera (cooperativo o versus con bots configurables)**.
 
 El historial técnico anterior se conserva debajo, con descripciones correspondientes a cada etapa del desarrollo.
+
+## V31 — Escolta guiada y extracción visible
+
+- **Rumbo claro:** durante la escolta, el indicador señala la entrada; si te separás más de 2,25 m de la rehén, cambia automáticamente a **REHÉN ATRÁS** para ayudarte a recuperarla sin correr.
+- **Recorrido real y alcanzable:** la distancia mínima que debe caminar la rehén se adapta a la separación inicial respecto de la entrada (mínimo 0,45 m, máximo 1,20 m). Esto permite evacuar en habitaciones pequeñas sin caminar más allá de la entrada y tener que volver. Se mantienen el bloqueo de victorias instantáneas, el tiempo mínimo y el rechazo de saltos de seguimiento AR.
+- **Zona de extracción 3D:** anillo luminoso fijo en el punto de entrada, solo visible durante la escolta. Se limpia al reiniciar.
+- **HUD:** identifica si la rehén quedó atrás, si está siguiendo o si llegó a la entrada, y muestra metros caminados para la extracción.
+- El rehén debe colocarse por lo menos a 1,4 m del punto inicial. Mantener despejado el entorno real; no correr.
+- Cambios listos en GitHub. Su publicación en Vercel depende del límite diario de despliegues.
 
 ## V30 — Escolta real y personajes sin equipamiento deformado
 
