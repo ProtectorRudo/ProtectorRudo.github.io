@@ -120,3 +120,22 @@
 #setup button,#mapPanel button{touch-action:manipulation}
 @media(max-height:680px){.mapPanel{top:calc(76px + env(safe-area-inset-top));max-height:calc(100dvh - 170px)}#setup.setupWizard{gap:5px}#setup .wizardTop strong{font-size:13px}#setup .smartPlace,#setup .missionLaunch{height:46px;min-height:46px}#setup p#setupDetail{font-size:9px}}
 @media(orientation:landscape){.mapPanel{right:8px;left:auto;transform:none;width:min(48vw,440px);max-height:calc(100dvh - 70px);top:calc(45px + env(safe-area-inset-top))}#setup{max-width:600px!important}#setup .wizardTop{flex-direction:row;align-items:center;justify-content:center}}
+
+/* V11 — one-thumb combat controls, sized for actual Android phones */
+#fight{display:flex;justify-content:space-between;align-items:end;gap:8px;min-height:86px}
+.weaponInfo{min-width:76px;flex:1;display:flex;flex-direction:column;justify-content:end;gap:4px;padding:0 0 7px 2px}
+.weaponInfo small{color:#dfd4bd;font-size:9px;letter-spacing:.07em;line-height:1.35;font-weight:900}
+.weaponInfo b{font-size:30px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.weaponInfo b span{font-size:12px;color:#94b7bb}
+.combatButtons{display:flex;gap:6px;align-items:end}
+.combatButtons .mini{min-height:49px;padding:8px 11px;font-weight:900;border-radius:8px;font-size:11px}
+.combatButtons .actionReload{min-width:44px;font-size:25px;font-weight:500;padding:7px}
+.combatButtons .actionAim{min-width:67px}
+.combatButtons .trigger{width:111px;height:87px;min-width:90px;border-radius:11px;box-shadow:0 9px 25px #0009;font-size:12px;touch-action:none}
+.combatButtons .trigger strong{font-size:31px}
+.combatButtons .actionAim.aimed{background:#305d55;color:#fff;border-color:#9de5cd}
+#fight #placeMore{display:none!important}
+#fight button,#interact{user-select:none;-webkit-user-select:none}
+#interact:not(.hidden){min-height:55px;min-width:154px;border-radius:10px;font-size:12px;box-shadow:0 5px 19px #0008}
+@media(max-width:390px){#fight{gap:5px}.weaponInfo{min-width:69px}.weaponInfo small{font-size:8px}.weaponInfo b{font-size:25px}.weaponInfo b span{font-size:10px}.combatButtons{gap:4px}.combatButtons .mini{padding:6px;min-height:46px;font-size:10px}.combatButtons .actionReload{min-width:40px;font-size:21px}.combatButtons .actionAim{min-width:55px}.combatButtons .trigger{width:90px;height:76px;font-size:10px}.combatButtons .trigger strong{font-size:27px}}
+@media(orientation:landscape){#fight{min-height:52px}.combatButtons .trigger{height:62px}.weaponInfo{padding:0}}
