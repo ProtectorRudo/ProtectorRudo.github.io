@@ -224,6 +224,7 @@ export function createMission(api){
     if(typeof attacker==='string'&&!attacker.startsWith('bot')&&
        teamOf(id)===teamOf(attacker))return null;
     const now=performance.now(),at=localPositionOf(id);
+    if(shielded(id))return null;
     if(!at||id!==o.myId&&now-(o.lastMoveAt.get(id)||0)>2600)return null;
     if(typeof attacker==='string'&&!attacker.startsWith('bot')&&
        !o.pvp.alive(attacker,now))return null;
