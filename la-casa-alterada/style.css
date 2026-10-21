@@ -82,3 +82,6 @@
 
 .hostageMeter{margin-top:4px;max-width:245px}.hostageMeter>span{display:flex;justify-content:space-between;font-weight:800;font-size:9px;letter-spacing:.11em;color:#cce8d8}.hostageMeter>div{height:5px;background:#393a45;margin-top:5px}.hostageMeter i{display:block;width:100%;height:100%;background:linear-gradient(90deg,#db6f61,#84dcc1);transition:width .12s}
 #interact{min-width:150px;min-height:49px;border:1px solid #d1bb72}
+
+/* V9.1: release must retain pointer capture across Android browser gestures */
+#interact{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;white-space:nowrap}
