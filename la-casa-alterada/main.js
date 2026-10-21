@@ -270,7 +270,7 @@ function cleanup(){
  killFeedUntil=0;$('killFeed').classList.add('hidden');
  if(referenceAnchor){try{referenceAnchor.delete()}catch(_){}}referenceAnchor=null;
  if(referenceMarker){referenceMarker.parent?.remove(referenceMarker);referenceMarker.traverse(x=>{x.geometry?.dispose?.();if(x.material&&!Array.isArray(x.material))x.material.dispose?.()});referenceMarker=null}
- ctfTaggedUntil=0;spawnQueue.length=0;nextSpawnTime=0;$('zoneProximity').classList.add('hidden');$('ctfScoreboard').classList.add('hidden');$('navGuide').classList.add('hidden');$('netSignal').classList.add('hidden');spatialMap.clear();mapping=false;if(mapGhost)mapGhost.visible=false;if(mapFirstGhost)mapFirstGhost.visible=false;$('mapPanel').classList.add('hidden');mapFirst=null;mapPoint=null;mapStatus();for(const e of enemies){disposeHuman(e);e.root.parent?.remove(e.root)}for(const n of nests){try{n.anchor?.delete()}catch(e){}world.remove(n.root)}for(const i of [...orbs,...trails,...splinters])world.remove(i.mesh);nests=[];enemies=[];orbs=[];trails=[];splinters=[]}
+ ctfTaggedUntil=0;rescueProtectedUntil=0;spawnQueue.length=0;nextSpawnTime=0;$('zoneProximity').classList.add('hidden');$('ctfScoreboard').classList.add('hidden');$('navGuide').classList.add('hidden');$('netSignal').classList.add('hidden');spatialMap.clear();mapping=false;if(mapGhost)mapGhost.visible=false;if(mapFirstGhost)mapFirstGhost.visible=false;$('mapPanel').classList.add('hidden');mapFirst=null;mapPoint=null;mapStatus();for(const e of enemies){disposeHuman(e);e.root.parent?.remove(e.root)}for(const n of nests){try{n.anchor?.delete()}catch(e){}world.remove(n.root)}for(const i of [...orbs,...trails,...splinters])world.remove(i.mesh);nests=[];enemies=[];orbs=[];trails=[];splinters=[]}
 function reset(){mission?.reset();triggerHeld=false;aiming=false;aimBlend=0;$('aimMode').classList.remove('aimed');$('aimMode').textContent='MIRA ◎';$('sight').classList.remove('ads');if(mode==='demo'){camera.fov=65;camera.updateProjectionMatrix()}cleanup();placing=true;active=false;ended=false;round=0;kills=0;currentWeapon='rifle';magazines={rifle:28,pistol:12};ammo=28;if(gunReady)syncWeapon();reloading=false;seconds=480;life=100;newRound=0;pose=null;hitResult=null;previous=0;lastHudRefresh=0;lastReferenceUpdate=0;ui();toast('APUNTÁ AL PISO Y TOCÁ MARCAR ENTRADA')}
 function estimateFloorPoint(floorY=null){
  const c=getCam(),eye=new THREE.Vector3(),forward=new THREE.Vector3();
@@ -354,11 +354,48 @@ function placeHostage(){
  if(distance<1.25)return toast('APUNTÁ MÁS LEJOS DE LA ENTRADA');
  if(mission?.placeHostage(where)){hud(true);tone('hit');toast('REHÉN UBICADO ✓ · EMPEZÁ EL RESCATE')}
 }
-const spawnQueue=[];let nextSpawnTime=0;
+const spawnQueue=[];
+let nextSpawnTime=0,rescueProtectedUntil=0;
+// Do not begin the hostage operation with eight armed enemies around the
+// player's shoulders. The first seconds are for camera orientation.
+const RESCUE_OPENING_MS=12500,RESCUE_FIRST_SPAWN_MS=7400;
+function rescueProtectionLeft(t=performance.now()){
+ return Math.max(0,Math.ceil((rescueProtectedUntil-t)/1000));
+}
+function safeRescueSpawn(index,total,base){
+ const eye=new THREE.Vector3(),direction=new THREE.Vector3();
+ getCam().getWorldPosition(eye);getCam().getWorldDirection(direction);
+ direction.y=0;
+ if(direction.lengthSq()<.001)direction.set(0,0,-1);
+ direction.normalize();
+ const side=new THREE.Vector3(-direction.z,0,direction.x);
+ // Keep waves ahead of the camera, spread horizontally in two ranks.
+ // Positions are anchored to the selected floor, not to the HUD.
+ const floorY=nests[0]?.root.position.y??base.y;
+ const lane=(index%5)-2,depth=2.1+Math.floor(index/5)*.54;
+ const candidates=[];
+ for(let attempt=0;attempt<12;attempt++){
+   const offset=lane*.67+(attempt%3-1)*.24;
+   const distance=Math.max(1.6,depth-Math.floor(attempt/3)*.22);
+   const p=eye.clone().addScaledVector(direction,distance)
+     .addScaledVector(side,offset);
+   p.y=floorY+.016;
+   candidates.push(p);
+ }
+ for(const p of candidates){
+   if(spatialMap.area&&spatialMap.areaDistance(p)<.3)continue;
+   if(!spatialMap.canMove(eye.clone().setY(floorY),p,.18))continue;
+   if(p.distanceTo(new THREE.Vector3(eye.x,floorY,eye.z))<1.4)continue;
+   return p;
+ }
+ // Fail closed: don't create invisible enemies outside a small mapped zone.
+ return null;
+}
 function wave(total=6,boss=false){
  if(mission?.isGuest())return;
  round++;total=Math.max(1,Math.min(13,total));
  for(let i=0;i<total;i++)spawnQueue.push({index:i,total,boss,waveNo:round});
+ if(round===1)nextSpawnTime=Math.max(nextSpawnTime,performance.now()+RESCUE_FIRST_SPAWN_MS);
  event('OLEADA '+round+' / MOVIMIENTO HOSTIL');
  tone('hurt');hud();
 }
@@ -371,15 +408,19 @@ function processSpawns(t){
  const n=nests[(i+waveNo)%nests.length];
  if(!n)return;
  const variant=boss?1:(i+waveNo)%5===0?1:(i+waveNo)%3===0?2:0;
+ const spawnPoint=safeRescueSpawn(i,total,n.root.position);
+ if(!spawnPoint){
+   // Retry as the player finishes delimiting a very narrow play area.
+   if((task.attempts||0)<4)spawnQueue.push({...task,attempts:(task.attempts||0)+1});
+   nextSpawnTime=t+1100;
+   return;
+ }
  const e=creature(variant);
- const theta=(i/total)*Math.PI*2+rnd(-.35,.35);
- const distance=n.floor?rnd(1.15,2.8):Math.sqrt(Math.random())*n.radius;
- e.root.position.set(Math.cos(theta)*distance,.016,Math.sin(theta)*distance);
+ e.root.position.copy(spawnPoint);
  e.id=++monsterId;e.boss=boss;e.floor=n.floor;
- e.roamRadius=n.floor?3:.27;e.next=t+rnd(1500,3200);
+ e.roamRadius=n.floor?3:.27;e.next=Math.max(t+rnd(3700,5800),rescueProtectedUntil+900);
  e.hit.userData.enemy=e;if(e.headHit)e.headHit.userData.enemy=e;
- n.root.add(e.root);
- n.root.updateMatrixWorld(true);world.updateMatrixWorld(true);world.attach(e.root);
+ world.add(e.root);
  const tacticalScale=n.floor?.68:.84;
  e.root.scale.multiplyScalar(n.surfaceScale*tacticalScale);
  if(boss){e.hp=22;e.root.scale.multiplyScalar(1.48)}
@@ -398,8 +439,18 @@ function begin(){
  if(mapping)toggleMap(false);
  if(!nests.length||!mission?.start())return;
  if(!gunReady)buildGun();combatFX.unlock();
- if(!active){active=true;round=0;if(!mission?.isGuest()&&!mission?.isCapture?.())wave(8,false)}
+ if(!active){
+  active=true;round=0;
+  if(!mission?.isCapture?.()){
+   rescueProtectedUntil=performance.now()+RESCUE_OPENING_MS;
+   if(!mission?.isGuest())wave(5,false);
+  }
+ }
  placing=false;ui();mission?.ui();
+ if(!mission?.isCapture?.()){
+   event('INICIO PROTEGIDO · UBICÁ AL REHÉN');
+   toast('12 S SIN DAÑO · MIRÁ HACIA EL REHÉN, PREPARÁ TU MIRA');
+ }
 }
 function more(){placing=true;ui();toast('Localizá otra superficie; la amenaza sigue activa.')}
 function attachRespawnShield(actor){
@@ -588,7 +639,7 @@ function reload(){if(!active||ended||reloading||ammo===capacity())return;
  reloading=true;gunReload();tone('hit');toast('RECARGANDO '+(currentWeapon==='rifle'?'CARBINA':'PISTOLA')+'…');
  const type=currentWeapon;setTimeout(()=>{if(ended)return;magazines[type]=type==='rifle'?28:12;if(type===currentWeapon)ammo=magazines[type];reloading=false;hud()},currentWeapon==='rifle'?1600:1200);
 }
-function damage(value){if(mission?.shielded())return;life=Math.max(0,life-value);$('damage').classList.add('active');setTimeout(()=>$('damage').classList.remove('active'),180);tone('hurt');vibrate([90,35,90]);hud();if(life===0)finish(false)}
+function damage(value){if(!mission?.isCapture?.()&&rescueProtectionLeft()>0)return;if(mission?.shielded())return;life=Math.max(0,life-value);$('damage').classList.add('active');setTimeout(()=>$('damage').classList.remove('active'),180);tone('hurt');vibrate([90,35,90]);hud();if(life===0)finish(false)}
 function finishCTF(winner,myTeam,state){
  if(ended)return;
  ended=true;active=false;placing=false;triggerHeld=false;
@@ -699,7 +750,10 @@ function updateXR(frame){
    lastReferenceUpdate=performance.now();
    mission?.updateTrackedFrame?.(nests[0].root,referenceMarker.position);
  }
- if(depthInfo&&view&&mapDepthSource==='cpu'&&!mapping){
+ if(false&&depthInfo&&view&&mapDepthSource==='cpu'&&!mapping){
+  // Disabled in V23: raw phone depth can incorrectly hide tactical actors.
+  // Never make an attacker invisible but still dangerous. Revisit only with
+  // proven per-object occlusion and physical-device validation.
    const c=getCam(),eye=new THREE.Vector3();c.getWorldPosition(eye);
    for(const e of enemies)if(e.alive){
      const center=new THREE.Vector3();e.hit.getWorldPosition(center);
@@ -759,13 +813,18 @@ function updateBattle(dt,t){
   const firingPoint=worldPosition.clone().add(new THREE.Vector3(0,1.08,0));
   const exposed=!e.coverPlan||e.coverState==='fire';
   if(!exposed){e.burst=0;e.next=Math.min(e.next||t,t+120)}
-  if(exposed&&t>e.next&&worldPosition.distanceTo(target)<8.5&&
+  // Firing requires being inside the player's field of view. It must never
+   // be possible to die from a bot that has not been rendered on screen.
+   const camForward=new THREE.Vector3();getCam().getWorldDirection(camForward);
+   const toEnemy=worldPosition.clone().sub(eye).normalize();
+   const onScreen=toEnemy.dot(camForward)>.42;
+   if(exposed&&onScreen&&rescueProtectionLeft(t)===0&&t>e.next&&worldPosition.distanceTo(target)<8.5&&
      !spatialMap.lineBlocked(firingPoint,target,.05)){
    e.burst=3+(e.boss?1:0);
    e.burstAt=t;
    e.next=t+rnd(3800,5900);
   }
-  if(exposed&&e.burst>0&&t>=(e.burstAt||0)&&shooting<6&&orbs.length<68){
+  if(exposed&&onScreen&&rescueProtectionLeft(t)===0&&e.burst>0&&t>=(e.burstAt||0)&&shooting<4&&orbs.length<42){
    e.burst--;
    e.burstAt=t+rnd(160,235);
    shooting++;
@@ -786,7 +845,9 @@ function updateBattle(dt,t){
    combatFX.shot(from,true,'rifle');
   }
  }
- $('alert').classList.toggle('hidden',!near);
+ const countdown=rescueProtectionLeft(t);
+ $('alert').classList.toggle('hidden',!near&&!countdown);
+ $('alert').textContent=countdown?'PROTECCIÓN INICIAL · '+countdown+' S':'⚠ MOVIMIENTO HOSTIL';
  for(let i=orbs.length-1;i>=0;i--){
   const shot=orbs[i];
   const before=shot.mesh.position.clone();
