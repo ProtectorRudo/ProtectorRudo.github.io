@@ -144,7 +144,7 @@ export function createCaptureFlag(THREE,api){
      // One in every three bots guards home. The others attack as a squad.
      // On flag theft defenders become interceptors; attackers can escort
      // a teammate who is carrying the enemy flag.
-     const defender=(e.ctfIndex%3===0);
+     const defender=S.config.bots>=2&&e.ctfIndex%3===0;
      const teamCarrier=rivalFlag.carrier&&rivalFlag.carrier!=='bot:'+e.id
        ?ownerPosition(rivalFlag.carrier):null;
      let targetLocal=null,guarding=false;
@@ -169,7 +169,12 @@ export function createCaptureFlag(THREE,api){
        if(delta.lengthSq()>.001){
          delta.normalize();
          const next=at.clone().addScaledVector(delta,Math.min(specs[0]*dt,dist));
-         if(api.canMove?.(at,next,.21)!==false)at.copy(next);
+         // Even without room-mesh data, prevent bots wandering far beyond both
+         // marked flag bases in an unknown real-world room.
+         const a=S.bases.blue,b=S.bases.red,mid=a.clone().add(b).multiplyScalar(.5);
+         const radius=Math.min(6,Math.max(2.6,gap(a,b)*.75+1.25));
+         const near=origin().worldToLocal(next.clone());
+         if(gap(near,mid)<=radius&&api.canMove?.(at,next,.21)!==false)at.copy(next);
          e.root.rotation.y=Math.atan2(delta.x,delta.z);
        }
      }
