@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Blackzone">
+<defs>
+ <linearGradient id="armor" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#182837"/><stop offset=".55" stop-color="#0a121c"/><stop offset="1" stop-color="#05080d"/></linearGradient>
+ <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e5e6de"/><stop offset=".45" stop-color="#96abb2"/><stop offset="1" stop-color="#d6d7ce"/></linearGradient>
+ <linearGradient id="energy" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ec9168"/><stop offset="1" stop-color="#cb4b47"/></linearGradient>
+</defs>
+<path d="M40 16H216L240 40V216L216 240H40L16 216V40Z" fill="url(#armor)" stroke="#45616e" stroke-width="3"/>
+<path d="M47 30H209L226 47V209L209 226H47L30 209V47Z" fill="none" stroke="#223847" stroke-width="3"/>
+<path d="M57 59H99L120 80V108L108 120L124 137V174L102 196H57V59ZM77 81V112H95L103 104V90L95 81H77ZM77 132V173H97L105 165V140L97 132H77Z" fill="url(#metal)"/>
+<path d="M136 59H201V80L161 173H201V196H125V176L166 81H136Z" fill="url(#metal)"/>
+<path d="M136 116H205L201 131H130Z" fill="url(#energy)"/>
+<path d="M36 43V36H60M196 36H220V60M220 196V220H196M60 220H36V196" fill="none" stroke="#db7a5c" stroke-width="4" stroke-linecap="square"/>
+</svg>
