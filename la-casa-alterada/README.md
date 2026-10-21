@@ -111,3 +111,14 @@ NOTA: el cañón es un modelo de vista en primera persona superpuesto (no está 
 - Mapeo: la opción MARCAR PUNTO puede usarse sin profundidad ni planos AR detectados. Apunta a un punto estimado delante de la cámara; un control de 0,6 a 5 metros permite ajustar la distancia. El modo indica si el punto procede de un plano real, profundidad o estimación manual.
 - En la Práctica 3D se reinstalan las colisiones de pared, sofá y mesa después del reinicio y se cierra correctamente el panel de mapeo al salir.
 - LIMITACIÓN: la distancia manual es **una estimación**. No supone reconocimiento automático de paredes, ni garantiza colisiones de habitaciones no mapeadas. Verificar con calma en celulares compatibles antes de ofrecerlo comercialmente.
+
+
+## V9.2 — Combate táctico y rendimiento
+
+- Se distinguen zonas de impacto de cabeza y torso. Los disparos a la cabeza hacen más daño (3 frente a 1); el servidor anfitrión recibe esa distinción en partidas cooperativas.
+- Reacción animada breve al recibir disparos y confirmación visual de impacto y golpe crítico sobre la mira.
+- Los enemigos separan sus trayectorias para no amontonarse. En multijugador, los invitados actualizan sus animaciones esqueléticas, además del movimiento de posición.
+- Se moderó la iluminación roja artificial a favor de una iluminación de operadores más neutra y matizada.
+- La interfaz del escaneo se actualiza a una frecuencia limitada y el panel de misión no reescribe todo el DOM en cada fotograma.
+- Balance de rescate: no más de dos intrusos eligen a la rehén como objetivo simultáneamente; menor daño recibido por disparo y protección inicial de unos 2,4 segundos, sin eliminar el riesgo de fallo.
+- Estas son mejoras comprobadas a nivel de código. Animaciones, sincronización de varios celulares y AR de profundidad requieren pruebas físicas antes de considerar el juego comercialmente finalizado.
