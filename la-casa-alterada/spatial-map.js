@@ -5,7 +5,7 @@
  * V9 stores only confirmed sample points and explicit user-drawn segments.
  */
 export function createSpatialMap(THREE,scene){
-  const walls=[],boxes=[],dynamic=[],debug=[];let preview=false;
+  const walls=[],boxes=[],dynamic=[],debug=[],order=[];let preview=false;
   const V=(p)=>({x:p.x,y:p.y,z:p.z});
   const len=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
   const cross=(a,b,c)=> (b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x);
@@ -29,7 +29,7 @@ export function createSpatialMap(THREE,scene){
     const g=new THREE.BoxGeometry(.13,height,len(A,B)),m=new THREE.MeshBasicMaterial({color:0x69cdd0,transparent:true,opacity:.12,depthWrite:false,side:THREE.DoubleSide});
     const mesh=new THREE.Mesh(g,m);mesh.position.set((A.x+B.x)/2,floorY+height/2,(A.z+B.z)/2);mesh.rotation.y=angle;scene.add(mesh);mesh.visible=preview;debug.push(mesh);
     const wall={id:walls.length+1,type:'wall',a:A,b:B,base:floorY,top:floorY+height,thickness:.16,mesh};
-    walls.push(wall);return wall;
+    walls.push(wall);order.push(wall);return wall;
   }
   function addBox(a,b,opt={}){
     if(!a||!b||boxes.length>=20)return false;
@@ -40,7 +40,7 @@ export function createSpatialMap(THREE,scene){
     const mesh=new THREE.Mesh(new THREE.BoxGeometry(maxX-minX,height,maxZ-minZ),new THREE.MeshBasicMaterial({color:0xf0b972,transparent:true,opacity:.12,depthWrite:false}));
     mesh.position.set((minX+maxX)/2,floorY+height/2,(minZ+maxZ)/2);scene.add(mesh);mesh.visible=preview;debug.push(mesh);
     const box={type:'box',id:boxes.length+1,minX,maxX,minZ,maxZ,base:floorY,top:floorY+height,mesh};
-    boxes.push(box);return box;
+    boxes.push(box);order.push(box);return box;
   }
   function touchesWall(p,r=.25){
     return walls.some(w=>p.y>=w.base-.55&&p.y<=w.top+.15&&distanceSegment(p,w.a,w.b)<r+w.thickness*.5)
@@ -107,7 +107,15 @@ export function createSpatialMap(THREE,scene){
     const point=v=>{const p=origin.worldToLocal(new THREE.Vector3(v.x,v.y,v.z));return [+p.x.toFixed(2),+p.y.toFixed(2),+p.z.toFixed(2)]};
     return [...walls.map(w=>({type:'wall',a:point(w.a),b:point(w.b),height:w.top-w.base})),...boxes.map(w=>({type:'box',a:point({x:w.minX,y:w.base,z:w.minZ}),b:point({x:w.maxX,y:w.base,z:w.maxZ}),height:w.top-w.base}))];
   }
-  function clear(){for(const o of debug){o.parent?.remove(o);o.geometry.dispose();o.material.dispose()}debug.length=0;walls.length=0;boxes.length=0}
+  function removeLast(){
+ const last=order.pop();if(!last)return null;
+ const list=last.type==='wall'?walls:boxes;
+ const index=list.indexOf(last);if(index>=0)list.splice(index,1);
+ const mesh=last.mesh;const i=debug.indexOf(mesh);if(i>=0)debug.splice(i,1);
+ mesh.parent?.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();
+ return last;
+}
+function clear(){for(const o of debug){o.parent?.remove(o);o.geometry.dispose();o.material.dispose()}debug.length=0;walls.length=0;boxes.length=0;order.length=0}
   function importData(list,origin){
     if(!origin||!Array.isArray(list))return;clear();
     const pt=a=>origin.localToWorld(new THREE.Vector3(a[0],a[1],a[2]));
@@ -118,5 +126,5 @@ export function createSpatialMap(THREE,scene){
     }
   }
   function setVisible(state){preview=!!state;for(const o of debug)o.visible=preview}
-  return {walls,boxes,addWall,addBox,lineBlocked,touchesWall,canMove,getRoute,nearestWaypoint,exportData,importData,clear,setVisible};
+  return {walls,boxes,addWall,addBox,lineBlocked,touchesWall,canMove,getRoute,nearestWaypoint,exportData,importData,clear,removeLast,setVisible};
 }
