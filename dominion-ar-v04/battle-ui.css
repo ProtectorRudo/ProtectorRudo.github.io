@@ -54,3 +54,11 @@ body.dominion-match #ui>header *,body.dominion-match #ui>footer *{pointer-events
 @media(max-width:350px){#dbattle .dbbottom{left:4px;right:4px;padding:8px 5px}#dbattle .dbdeck{gap:4px}#dbattle .dbcard{min-height:83px}#dbattle .dbcard .dbart{height:33px;font-size:26px}#dbattle .dbcard .dbname{font-size:9px}#dbattle .dbcard em{width:19px;height:19px}}
 @media(max-height:700px){#dbattle .dbbottom{padding:7px 7px}#dbattle .dbcard{min-height:76px}#dbattle .dbcard .dbart{height:32px;font-size:26px}#dbattle .dbresource{padding-bottom:4px}#dbattle .dbenergy{margin-bottom:6px}#dbattle .dbhint,#dbattle .dbguide{bottom:calc(env(safe-area-inset-bottom) + 133px)}#dbattle .dbintro{padding:13px 16px}#dbattle .dbintro h2{font-size:22px;margin:8px 0}#dbattle .dbintro .dbsteps{margin:9px 0}#dbattle .dbintro .dbsteps span{padding:6px 3px}}
 @media(prefers-reduced-motion:reduce){#dbattle .dbcard,#dbattle .dbtoast,#dbattle .dbenergy i{transition:none}}
+
+/* v0.6 tactical icon art */
+#dbattle .dbcard .dbart svg{width:34px;height:34px;stroke:var(--a);filter:drop-shadow(0 1px 8px color-mix(in srgb,var(--a) 52%,transparent));overflow:visible}
+#dbattle .dbghost svg{width:29px;height:29px;stroke:currentColor;stroke-width:1.6;fill:none;vertical-align:middle}
+#dbattle .dbcard .dbrole{text-transform:uppercase}
+#dbattle .dbcard.selected .dbart svg{stroke:#caffdc}
+#dbattle .dbcard.locked .dbart svg{stroke:#829899}
+@media(max-height:700px){#dbattle .dbcard .dbart svg{width:26px;height:26px}}
