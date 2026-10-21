@@ -482,3 +482,16 @@
   width:min(55vw,380px);height:48px;min-height:48px;font-size:12px}
  #hud .coverDeploy{bottom:calc(153px + env(safe-area-inset-bottom))}
 }
+
+/* V33 Versus — compact live player HP / elimination strip. */
+#hud .pvpVitals{position:absolute;top:calc(111px + env(safe-area-inset-top));
+ left:50%;transform:translateX(-50%);z-index:6;
+ width:max-content;max-width:91vw;min-width:160px;
+ padding:7px 12px;text-align:center;pointer-events:none;
+ border:1px solid #77d8c1a3;border-radius:6px;
+ background:#09232cdd;color:#dffef0;
+ font:800 10px/1.35 Arial,Helvetica,sans-serif;letter-spacing:.055em;
+ text-shadow:0 1px 4px #000}
+#hud .pvpVitals:has(+ .ctfScoreboard.hidden){display:none!important}
+@media(max-height:740px){#hud .pvpVitals{top:calc(88px + env(safe-area-inset-top));font-size:9px}}
+@media(orientation:landscape){#hud .pvpVitals{top:calc(78px + env(safe-area-inset-top));font-size:9px}}
