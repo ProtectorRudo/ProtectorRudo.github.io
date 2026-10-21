@@ -143,7 +143,7 @@ function hitConfirm(headshot=false){
 let hitConfirmUntil=0;
 function damageEnemy(e,amount=1,headshot=false){if(!e?.alive)return;e.hp-=amount;
  e.staggerUntil=performance.now()+170;
- e.hitStagger=amount>1?.14:.08;if(e.hp<=0){e.alive=false;e.root.visible=false;kills++;event('AMENAZA NEUTRALIZADA / '+kills);mission?.onKill(e)}else toast('IMPACTO / '+e.hp+' RESISTENCIA')}
+ e.hitStagger=amount>1?.14:.08;if(e.hp<=0){e.alive=false;e.root.visible=false;kills++;event('TERRORISTA NEUTRALIZADO / '+kills);mission?.relayEnemyDown(e.id);mission?.onKill(e)}else toast('IMPACTO / '+e.hp+' RESISTENCIA')}
 function fire(){if(mapping||!active||ended||placing||reloading)return;if(ammo===0){reload();return}let t=performance.now();if(t-lastShot<(currentWeapon==='rifle'?105:170))return;lastShot=t;ammo--;gunShot();combatFX.shot(null,false,currentWeapon);vibrate(35);hud();const c=getCam(),p=new THREE.Vector3(),q=new THREE.Quaternion();c.getWorldPosition(p);c.getWorldQuaternion(q);const forward=new THREE.Vector3(0,0,-1).applyQuaternion(q);ray.set(p,forward);ray.far=12;mission?.relayShot(p,forward);const hits=ray.intersectObjects(enemies.filter(e=>e.alive).flatMap(e=>e.headHit?[e.hit,e.headHit]:[e.hit]),false);const cover=mode==='demo'?ray.intersectObjects(occluders,false)[0]:null;let end=p.clone().addScaledVector(forward,7);const geometryHit=spatialMap.lineBlocked(p,hits[0]?.point||end,.03);
  if(geometryHit||cover&&(!hits.length||cover.distance<hits[0].distance)){
    if(cover)end.copy(cover.point);combatFX.dust(end,11);
@@ -155,7 +155,7 @@ function reload(){if(!active||ended||reloading||ammo===capacity())return;
  const type=currentWeapon;setTimeout(()=>{if(ended)return;magazines[type]=type==='rifle'?28:12;if(type===currentWeapon)ammo=magazines[type];reloading=false;hud()},currentWeapon==='rifle'?1600:1200);
 }
 function damage(value){if(mission?.shielded())return;life=Math.max(0,life-value);$('damage').classList.add('active');setTimeout(()=>$('damage').classList.remove('active'),180);tone('hurt');vibrate([90,35,90]);hud();if(life===0)finish(false)}
-function finish(win){if(ended)return;mission?.onVictory(win);ended=true;active=false;placing=false;$('hud').classList.add('hidden');$('outro').classList.remove('hidden');$('status').textContent=win?'MISIÓN CUMPLIDA':'SEÑAL PERDIDA';$('outcome').innerHTML=win?'ZONA<br><em>ASEGURADA</em>':'MISIÓN<br><em>FALLIDA</em>';$('outcomeText').textContent=(win?'Completaste la operación de rescate y aseguraste la zona. ':'La misión de rescate fracasó. ')+kills+' intrusos neutralizados.'}
+function finish(win){if(ended)return;mission?.onVictory(win);ended=true;active=false;placing=false;$('hud').classList.add('hidden');$('outro').classList.remove('hidden');$('status').textContent=win?'MISIÓN CUMPLIDA':'SEÑAL PERDIDA';$('outcome').innerHTML=win?'ZONA<br><em>ASEGURADA</em>':'MISIÓN<br><em>FALLIDA</em>';$('outcomeText').textContent=(win?'El equipo evacuó al rehén con vida. ':'El rescate del rehén fracasó. ')+kills+' intrusos neutralizados.'}
 function updateXR(frame){
  if(!frame||!source||!local)return;
  pose=null;hitResult=null;reticle.visible=false;mapPoint=null;mapPointQuality='manual';mapDepth=null;mapDepthSource='none';
