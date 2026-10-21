@@ -49,7 +49,7 @@ function nextWaypoint(start,end){
  while(prev[next]>0)next=prev[next];
  return pts[next]||end;
 }
-export function steerEnemy(e,dt,time,target,mode,map){
+export function steerEnemy(e,dt,time,target,mode,map,peers){
  if(!e?.alive||!dt)return 0;
  const p=e.root.position;
  let goal=target;
@@ -72,6 +72,20 @@ export function steerEnemy(e,dt,time,target,mode,map){
  }
  if(!e.floor){vx+=Math.sin(time*.0008+e.phase)*.58;vz+=Math.cos(time*.0007+e.phase)*.55}
  else if(d>1){vx+=Math.sin(time*.001+e.phase)*.16;vz+=Math.cos(time*.0011+e.phase)*.16}
+ // Squad spacing: enemies avoid occupying the same spot while they flank.
+ if(e.floor&&Array.isArray(peers)){
+   let awayX=0,awayZ=0,neighbors=0;
+   for(const other of peers){
+     if(other===e||!other?.alive||!other.floor)continue;
+     const ox=p.x-other.root.position.x,oz=p.z-other.root.position.z;
+     const distance=Math.hypot(ox,oz);
+     if(distance>.03&&distance<.82){
+       const force=(.82-distance)/.82;
+       awayX+=(ox/distance)*force;awayZ+=(oz/distance)*force;neighbors++;
+     }
+   }
+   if(neighbors){vx+=awayX*.78;vz+=awayZ*.78}
+ }
  const len=Math.hypot(vx,vz);if(len>1){vx/=len;vz/=len}
  e.walkVX??=0;e.walkVZ??=0;
  const ease=1-Math.exp(-dt*3.8);
