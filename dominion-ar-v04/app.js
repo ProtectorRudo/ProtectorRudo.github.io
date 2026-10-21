@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkeleton } from 'three/addons/utils/SkeletonUtils.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import { createBattle } from './game.js';
+import { createBattle } from './game.js?v=0.5.2';
 const $=s=>document.getElementById(s);
 const ui=Object.fromEntries(['ar','preview','place','reset','scale','rotate','beacon','battle','surface','render','models','anchor','dist','hint','msg'].map(k=>[k,$(k)]));
 let mode='idle',session=null,hitSource=null,anchor=null,hit=null,pose=null,placed=false,stability=0,prevHit=null,comp=null,frameN=0,last=0,elapsed=0,size=0,rotation=0,showMarker=false,orbit=.55,elev=.36,zoom=.72,drag=false,px=0,py=0;
