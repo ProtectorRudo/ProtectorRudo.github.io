@@ -12,6 +12,22 @@ const CDN='https://cdn.jsdelivr.net/gh/ProtectorRudo/viralio@main/public/viralio
 const source={raiderA:'npc-jordan-locomotion.glb',raiderB:'npc-sam-locomotion.glb',hostage:'npc-maya-locomotion.glb'};
 const TACTICAL='https://cdn.jsdelivr.net/gh/cktang88/3d-fps@main/public/assets/models/characters/soldier.glb';
 const cache=new Map(),loader=new GLTFLoader();
+const cloneQueue=[];let cloneBusy=false;
+function staggerClone(work){
+ return new Promise(resolve=>{
+   cloneQueue.push({work,resolve});
+   if(!cloneBusy)nextClone();
+ });
+}
+function nextClone(){
+ if(cloneBusy||!cloneQueue.length)return;
+ cloneBusy=true;
+ setTimeout(()=>{
+   const job=cloneQueue.shift();
+   try{job.resolve(job.work())}catch(e){console.warn('Animated actor failed',e);job.resolve(false)}
+   cloneBusy=false;if(cloneQueue.length)nextClone();
+ },95);
+}
 loader.setMeshoptDecoder(MeshoptDecoder);
 function load(type){
  if(!cache.has(type)){
@@ -40,12 +56,14 @@ export async function attachHuman(actor,type='raiderA'){
  const key=type==='hostage'?'hostage':type==='raiderB'?'raiderB':'raiderA';
  const data=await load(key);
  if(!data||!actor?.root||!actor?.root.parent)return false;
+ return staggerClone(()=>{
+ if(!actor.alive||!actor.root.parent)return false;
  const visual=cloneSkeleton(data.scene);
  const bounds=new THREE.Box3().setFromObject(visual);
  const size=new THREE.Vector3(),center=new THREE.Vector3();
  bounds.getSize(size);bounds.getCenter(center);
  if(!Number.isFinite(size.y)||size.y<.3||size.y>30)return false;
- const k=(type==='hostage'?1.62:1.75)/size.y;
+ const k=(type==='hostage'?1.62:1.73)/size.y;
  const rig=new THREE.Group();
  rig.position.set(-center.x*k,-bounds.min.y*k,-center.z*k);
  visual.scale.setScalar(k);
@@ -55,7 +73,21 @@ export async function attachHuman(actor,type='raiderA'){
  if(actor.hit&&actor.hit.parent!==actor.root){actor.root.updateMatrixWorld(true);actor.root.attach(actor.hit)}
  if(actor.flesh){
    const rifle=actor.flesh.getObjectByName('RIFLE_HELD');
-   if(rifle)actor.root.attach(rifle);
+   // A weapon attached to the pelvis/root looks like a floating robot arm.
+   // Place it on the right-hand bone if possible so it follows locomotion.
+   if(rifle){
+     const bones=[];const allNames=[];
+     visual.traverse(n=>{allNames.push(n.name.toLowerCase());if(n.isBone&&/right.*hand|hand.*right|hand_r|r_hand|mixamorig.*righthand/i.test(n.name))bones.push(n)});
+     const integratedWeapon=allNames.some(n=>/(rifle|firearm|gun|weapon)/i.test(n));
+     if(!integratedWeapon&&bones.length){
+       bones[0].add(rifle);
+       rifle.position.set(.04,-.08,-.04);
+       rifle.rotation.set(-.06,Math.PI*.75,-.12);
+       rifle.scale.setScalar(.54);
+     }else{
+       rifle.parent?.remove(rifle); // no unsupported rigid weapon overlay
+     }
+   }
    actor.flesh.visible=false;
  }
  actor.root.add(rig);
@@ -63,7 +95,8 @@ export async function attachHuman(actor,type='raiderA'){
  actor.clips=data.clips;actor.animMode='';
  actor.actions=new Map();actor.assetReady=true;
  playHuman(actor,type==='hostage'?'sit':'idle',true);
- return true
+ return true;
+ });
 }
 function bestClip(actor,kind){
  let clips=actor.clips?.[kind];if(!clips?.length&&kind==='sit')clips=actor.clips?.idle;
@@ -89,7 +122,11 @@ export function playHuman(actor,kind,instant=false){
 export function animateHuman(actor,dt,speed=0){
  if(!actor?.mixer||!actor.root.visible)return false;
  playHuman(actor,speed>.57?'run':speed>.07?'walk':actor.hostage?'sit':'idle');
- actor.mixer.update(dt);
+ actor.animationAccum=(actor.animationAccum||0)+dt;
+ // Keep expensive skeletal updates predictable on midrange phones.
+ if(actor.animationAccum<.034)return true;
+ actor.mixer.update(Math.min(actor.animationAccum,.095));
+ actor.animationAccum=0;
  return true
 }
 export function disposeHuman(actor){
