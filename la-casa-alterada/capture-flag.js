@@ -278,7 +278,10 @@ export function createCaptureFlag(THREE,api){
        const victim=bots().find(b=>b.id===Number(rival.id.slice(4)));
        if(victim?.alive)api.damageBot?.(victim,specs[3],'bot:'+e.id);
      }else{
-       if(tagPlayer(rival.id,rival.pos,time))api.tagPlayer?.(rival.id,specs[3]);
+       // PvP players lose HP per bot bullet. The flag is dropped only if
+       // the host health engine declares them eliminated, not every hit.
+       if(S.config.versus)api.tagPlayer?.(rival.id,specs[3],'bot:'+e.id);
+       else if(tagPlayer(rival.id,rival.pos,time))api.tagPlayer?.(rival.id,specs[3]);
      }
    }
  }

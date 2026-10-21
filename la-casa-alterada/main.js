@@ -11,6 +11,7 @@ import { tacticalDestination } from './tactical-behavior.js';
 import { createAdaptiveQuality } from './adaptive-quality.js';
 import { targetVisibility, findSafeSpawnPoints } from './visibility-guard.js';
 import { createArCompositor } from './ar-compositor.js';
+import { playerRayHit } from './pvp-health.js';
 const $=id=>document.getElementById(id),rnd=(a,b)=>a+Math.random()*(b-a),clamp=THREE.MathUtils.clamp;
 const world=new THREE.Scene(),camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.01,60);
 const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});
@@ -279,6 +280,14 @@ function hud(force=false){
  $('setupDetail').textContent=detail;
  $('hostage').disabled=!hasEntrance||needsB||guest||active;
  $('begin').disabled=!stageDone||guest||teamReady?.ready===false;
+ const pvp=!!team?.pvp,pvpState=team?.health;
+ $('pvpVitals').classList.toggle('hidden',!pvp||!active);
+ if(pvp&&pvpState){
+   const dead=pvpState.dead;
+   const status=dead?'ELIMINADO · REAPARECÉS EN '+Math.max(1,Math.ceil((pvpRespawnAt-t)/1000))+' S':
+     'PVP '+pvpState.hp+'/100 HP · '+pvpState.kills+' BAJAS · '+pvpState.deaths+' MUERTES';
+   if($('pvpVitals').textContent!==status)$('pvpVitals').textContent=status;
+ }
  $('health').textContent=Math.ceil(life)+'%';$('healthBar').style.width=life+'%';
  $('wave').textContent=ctf?'CTF':round?String(round).padStart(2,'0'):'—';
  const clock=ctf?(team?.clock??480):seconds;
@@ -297,11 +306,11 @@ function cleanup(){
  killFeedUntil=0;$('killFeed').classList.add('hidden');
  if(referenceAnchor){try{referenceAnchor.delete()}catch(_){}}referenceAnchor=null;
  if(referenceMarker){referenceMarker.parent?.remove(referenceMarker);referenceMarker.traverse(x=>{x.geometry?.dispose?.();if(x.material&&!Array.isArray(x.material))x.material.dispose?.()});referenceMarker=null}
- ctfTaggedUntil=0;rescueProtectedUntil=0;rescueCombatArmed=true;
+ ctfTaggedUntil=0;pvpRespawnAt=0;pvpWasDead=false;rescueProtectedUntil=0;rescueCombatArmed=true;
  spawnQueue.length=0;nextSpawnTime=0;
  if(testMarker){testMarker.parent?.remove(testMarker);testMarker=null}
  $('activateCombat').classList.add('hidden');$('hud').classList.remove('arActive');
- $('renderStatus').classList.add('hidden');$('test3D').classList.add('hidden');$('zoneProximity').classList.add('hidden');$('ctfScoreboard').classList.add('hidden');$('navGuide').classList.add('hidden');$('netSignal').classList.add('hidden');spatialMap.clear();mapping=false;if(mapGhost)mapGhost.visible=false;if(mapFirstGhost)mapFirstGhost.visible=false;$('mapPanel').classList.add('hidden');mapFirst=null;mapPoint=null;mapStatus();for(const e of enemies){disposeHuman(e);e.root.parent?.remove(e.root)}for(const n of nests){try{n.anchor?.delete()}catch(e){}world.remove(n.root)}for(const i of [...orbs,...trails,...splinters])world.remove(i.mesh);nests=[];enemies=[];orbs=[];trails=[];splinters=[]}
+ $('renderStatus').classList.add('hidden');$('test3D').classList.add('hidden');$('zoneProximity').classList.add('hidden');$('ctfScoreboard').classList.add('hidden');$('pvpVitals').classList.add('hidden');$('navGuide').classList.add('hidden');$('netSignal').classList.add('hidden');spatialMap.clear();mapping=false;if(mapGhost)mapGhost.visible=false;if(mapFirstGhost)mapFirstGhost.visible=false;$('mapPanel').classList.add('hidden');mapFirst=null;mapPoint=null;mapStatus();for(const e of enemies){disposeHuman(e);e.root.parent?.remove(e.root)}for(const n of nests){try{n.anchor?.delete()}catch(e){}world.remove(n.root)}for(const i of [...orbs,...trails,...splinters])world.remove(i.mesh);nests=[];enemies=[];orbs=[];trails=[];splinters=[]}
 function reset(){mission?.reset();triggerHeld=false;aiming=false;aimBlend=0;$('aimMode').classList.remove('aimed');$('aimMode').textContent='MIRA ◎';$('sight').classList.remove('ads');if(mode==='demo'){camera.fov=65;camera.updateProjectionMatrix()}cleanup();placing=true;active=false;ended=false;round=0;kills=0;currentWeapon='rifle';magazines={rifle:28,pistol:12};ammo=28;if(gunReady)syncWeapon();reloading=false;seconds=480;life=100;newRound=0;pose=null;hitResult=null;previous=0;lastHudRefresh=0;lastReferenceUpdate=0;ui();toast('APUNTÁ AL PISO Y TOCÁ MARCAR ENTRADA')}
 function estimateFloorPoint(floorY=null){
  const c=getCam(),eye=new THREE.Vector3(),forward=new THREE.Vector3();
@@ -666,12 +675,11 @@ function resolveFlagShot(start,direction,shooterId){
    headshot:hitBot.object.userData.part==='head'}:null;
  for(const person of mission.capturePlayersWorld?.()||[]){
    if(person.id===shooterId||person.team===shooterTeam||!person.world)continue;
-   const to=person.world.clone().sub(start),forward=cast.ray.direction;
-   const t=to.dot(forward);
-   if(t<.1||t>12||closest&&t>=closest.distance)continue;
-   const closestPoint=start.clone().addScaledVector(forward,t);
-   if(closestPoint.distanceTo(person.world)>.47)continue;
-   closest={distance:t,point:closestPoint,playerId:person.id,headshot:false};
+   const hit=playerRayHit(start,cast.ray.direction,person.world);
+   if(!hit||closest&&hit.distance>=closest.distance)continue;
+   closest={distance:hit.distance,
+     point:new THREE.Vector3(hit.point.x,hit.point.y,hit.point.z),
+     playerId:person.id,headshot:hit.headshot,damage:hit.damage};
  }
  if(!closest)return null;
  if(cover&&cover.distance+.04<closest.distance)return null;
@@ -680,7 +688,14 @@ function resolveFlagShot(start,direction,shooterId){
    if(performance.now()<(closest.bot.ctfProtectedUntil||0))return null;
    damageEnemy(closest.bot,closest.headshot?3:1,closest.headshot,shooterId);
  }
- else if(!mission.tagEnemyPlayer?.(closest.playerId,shooterId))return null;
+ else{
+   const result=mission.damagePvPPlayer?.(closest.playerId,shooterId,
+     closest.damage,closest.headshot);
+   if(!result)return null;
+   combatFX.dust(closest.point,6);
+   return{id:0,player:true,headshot:closest.headshot,
+     victimHp:result.state.hp,lethal:result.lethal};
+ }
  combatFX.dust(closest.point,6);
  return{id:closest.bot?.id||0,headshot:closest.headshot};
 }
@@ -750,9 +765,12 @@ function damageEnemy(e,amount=1,headshot=false,shooterId=null){
  e.hitStagger=amount>1?.14:.08;if(e.hp<=0){e.alive=false;e.root.visible=false;if(e.ctfBot)mission?.captureBotDown?.(e);kills++;teamElimination(!shooterId||shooterId===mission?.localId?.(),headshot,kills);
  mission?.relayEnemyDown(e.id,shooterId,headshot,kills);if(!mission?.isCapture?.())mission?.onKill(e)}else {mission?.relayEnemyHit?.(e.id,headshot,e.hp);
  if(!shooterId||shooterId===mission?.localId?.())toast('IMPACTO / '+e.hp+' RESISTENCIA')}}
-function fire(){if(mapping||!active||ended||placing||reloading||performance.now()<ctfTaggedUntil)return;if(ammo===0){reload();return}let t=performance.now();if(t-lastShot<(currentWeapon==='rifle'?105:170))return;lastShot=t;ammo--;gunShot();combatFX.shot(null,false,currentWeapon);vibrate(35);hud();const c=getCam(),p=new THREE.Vector3(),q=new THREE.Quaternion();c.getWorldPosition(p);c.getWorldQuaternion(q);const forward=new THREE.Vector3(0,0,-1).applyQuaternion(q);ray.set(p,forward);ray.far=12;mission?.relayShot(p,forward);
+function fire(){if(mapping||!active||ended||placing||reloading||performance.now()<ctfTaggedUntil||mission?.canPvPFire?.()===false)return;if(ammo===0){reload();return}let t=performance.now();if(t-lastShot<(currentWeapon==='rifle'?105:170))return;lastShot=t;ammo--;gunShot();combatFX.shot(null,false,currentWeapon);vibrate(35);hud();const c=getCam(),p=new THREE.Vector3(),q=new THREE.Quaternion();c.getWorldPosition(p);c.getWorldQuaternion(q);const forward=new THREE.Vector3(0,0,-1).applyQuaternion(q);ray.set(p,forward);ray.far=12;mission?.relayShot(p,forward);
  if(mission?.isCapture?.()){
-  if(!mission?.isGuest())resolveFlagShot(p,forward,mission.localId());
+  if(!mission?.isGuest()){
+     const ctfHit=resolveFlagShot(p,forward,mission.localId());
+     if(ctfHit?.player)hitConfirm(!!ctfHit.headshot);
+   }
   trail(weaponMuzzleOrigin(c),p.clone().addScaledVector(forward,5.5));
   if(ammo===0)setTimeout(reload,240);
   return;
@@ -777,8 +795,33 @@ function finishCTF(winner,myTeam,state){
  $('outcome').innerHTML=draw?'EMPATE<br><em>TÁCTICO</em>':won?'BANDERA<br><em>CAPTURADA</em>':'MISIÓN<br><em>TERMINADA</em>';
  $('outcomeText').textContent='AZULES '+(state?.scores?.blue||0)+' — '+(state?.scores?.red||0)+' ROJOS · '+kills+' bajas del equipo.';
 }
+let pvpRespawnAt=0,pvpWasDead=false;
+function updatePvPState(state){
+ if(!state||!mission?.isPvP?.()||!active)return;
+ life=Math.max(0,Math.min(100,Number(state.hp)||0));
+ const remaining=Number(state.respawnIn)||0;
+ if(state.dead){
+   pvpRespawnAt=performance.now()+remaining;
+   if(!pvpWasDead)toast('ELIMINADO · REAPARECÉS EN '+Math.ceil(remaining/1000)+' S');
+   pvpWasDead=true;
+ }else{
+   if(pvpWasDead)toast('¡REAPARECISTE! · 1,5 S DE PROTECCIÓN');
+   pvpWasDead=false;pvpRespawnAt=0;
+ }
+ hud(true);
+}
+function pvpImpact(hit){
+ if(!hit||!active)return;
+ $('damage').classList.add('active');
+ setTimeout(()=>$('damage').classList.remove('active'),280);
+ tone('hurt');vibrate([55,30,55]);
+ if(!hit.lethal)toast('IMPACTO '+hit.damage+' HP'+(hit.headshot?' · CABEZA':''));
+}
+function pvpNotice(event){
+ if(event?.lethal)toast('ELIMINACIÓN CONFIRMADA · JUGADOR RIVAL FUERA');
+}
 function applyCTFTag(power=1){
- if(ended||!active)return;
+ if(ended||!active||mission?.isPvP?.())return;
  ctfTaggedUntil=performance.now()+2700;
  $('damage').classList.add('active');
  setTimeout(()=>$('damage').classList.remove('active'),350);
@@ -1206,7 +1249,7 @@ mission=createMission({scene:world,getCam,toast,event,teammateShot,resolveTeamma
  environmentNextPoint:(from,to)=>spatialMap.nearestWaypoint(from,to),
   findCover:(from,to)=>spatialMap.findCoverSpot(from,to),
  hasCover:(from,to)=>spatialMap.lineBlocked(from,to,.11),
- spawn:(n,boss)=>wave(n,boss),spawnPending:()=>spawnQueue.length,animateEnemy,animateHuman,projectiles:()=>orbs,enemies:()=>enemies,enemyShot:pos=>combatFX.shot(pos,true,'rifle'),spawnCTFBot,ctfBotShot,ctfTag:applyCTFTag,ctfFinish:finishCTF,
+ spawn:(n,boss)=>wave(n,boss),spawnPending:()=>spawnQueue.length,animateEnemy,animateHuman,projectiles:()=>orbs,enemies:()=>enemies,enemyShot:pos=>combatFX.shot(pos,true,'rifle'),spawnCTFBot,ctfBotShot,ctfTag:applyCTFTag,pvpUpdate:updatePvPState,pvpImpact,pvpNotice,ctfFinish:finishCTF,
  buildEnemy:(variant,boss,appearance,team)=>{const e=createTacticalActor(THREE,variant,team==='blue'?'operator':'raider');e.team=team||'red';e.ctfBot=!!team;e.boss=boss;if(boss){e.root.scale.setScalar(1.85);e.hp=22;e.size*=1.85}
  e.appearance=['raiderA','raiderB','raiderC','raiderD','operator','operatorTac'].includes(appearance)?appearance:'raiderA';
  if(e.ctfBot){
