@@ -78,7 +78,6 @@ test('Multiplayer client UI shows life, deaths and respawn cooldown',()=>{
  assert.match(main,/PVP '\+pvpState\.hp\+'\/100 HP/);
  assert.match(main,/pvpRespawnAt=performance\.now\(\)\+remaining/);
  assert.match(main,/mission\?\.canPvPFire\?\.\(\)===false/);
- assert.match(mission,/(?:^|\n)/);
 });
 test('V33 project modules are valid ESM',()=>{
  for(const filename of ['pvp-health.js','main.js','missions.js','capture-flag.js']){
