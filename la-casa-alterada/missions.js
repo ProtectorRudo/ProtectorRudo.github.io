@@ -60,7 +60,7 @@ function tintAvatar(group,team){
 }
 function visualWave(scene,origin,color=0x65d9ee){const m=new THREE.Mesh(new THREE.RingGeometry(.14,.18,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.8,side:THREE.DoubleSide,depthWrite:false}));m.position.copy(origin);m.position.y-=1.1;scene.add(m);return{mesh:m,t:0,duration:.7}}
 export function createMission(api){
-  const o={api,peer:null,room:null,role:'solo',conn:null,connections:new Map(),peers:new Map(),origin:null,angle:0,phase:-2,hostagePos:null,hostageRescued:false,hostageActor:null,escortPlayer:null,hostageHealth:100,hostageShieldUntil:0,rescueHoldStart:0,routeCache:null,routeCacheAt:0,routeTarget:null,mask:0,held:40,spawnAfter:0,lastSnap:0,lastMove:0,ready:false,running:false,finished:false,objects:[],remoteEnemy:new Map(),remoteAvatar:new Map(),remoteBullet:new Map(),effects:[],cd:{pulse:0,shield:0,heal:0},shields:new Map(),lastActions:new Map(),myId:'local',lastHostSnapshot:0,lastSnapshotSeq:-1,snapshotSeq:0,lastShotAt:new Map(),localPositions:new Map(),enemySeq:0,seed:0,startedByHost:false,joined:false,referenceReady:false,referenceLength:0,expectedLength:null,calibrationQuality:'waiting',calibrationSeen:new Map(),gameMode:'rescue',myTeam:'blue',teams:new Map(),ctf:null};
+  const o={api,peer:null,room:null,role:'solo',conn:null,connections:new Map(),peers:new Map(),origin:null,angle:0,phase:-2,hostagePos:null,hostageRescued:false,hostageActor:null,escortPlayer:null,hostageHealth:100,hostageShieldUntil:0,rescueHoldStart:0,routeCache:null,routeCacheAt:0,routeTarget:null,mask:0,held:40,spawnAfter:0,lastSnap:0,lastMove:0,ready:false,running:false,finished:false,objects:[],remoteEnemy:new Map(),remoteAvatar:new Map(),remoteBullet:new Map(),effects:[],cd:{pulse:0,shield:0,heal:0},shields:new Map(),lastActions:new Map(),myId:'local',lastHostSnapshot:0,lastSnapshotSeq:-1,snapshotSeq:0,lastShotAt:new Map(),localPositions:new Map(),enemySeq:0,seed:0,startedByHost:false,joined:false,referenceReady:false,referenceLength:0,expectedLength:null,calibrationQuality:'waiting',calibrationSeen:new Map(),gameMode:'rescue',myTeam:'blue',teams:new Map(),ctf:null,lastMoveAt:new Map()};
   const info=$('missionInfo'),phaseEl=$('missionStage'),desc=$('missionText'),progress=$('missionProgress'),team=$('teamStatus'),interact=$('interact'),ability=$('abilities');
   function teamUpdate(){const count=1+(o.role==='host'?o.connections.size:o.role==='guest'&&o.conn?.open?1:0);team.textContent=o.role==='solo'?'SOLO / OPERACIÓN':o.role==='host'?'JEFE DE SALA / '+count+' JUGADOR'+(count===1?'':'ES'):o.conn?.open?'EQUIPO CONECTADO':'RECONECTANDO…';$('crew').textContent=count+' / '+maxPlayers}
   function lobby(msg){$('lobbyMsg').textContent=msg}
@@ -75,9 +75,16 @@ export function createMission(api){
 
   const ctf=createCaptureFlag(THREE,{
     origin:()=>o.origin,isHost,
-    players:()=>{const list=[];const me=position();if(me)list.push({id:o.myId,team:o.myTeam,pos:me});
-      for(const [id,p] of o.localPositions)if(p)list.push({id,team:o.teams.get(id)||'blue',pos:p});
-      return list;},
+    players:()=>{
+      const list=[],me=position(),now=performance.now();
+      if(me)list.push({id:o.myId,team:o.myTeam,pos:me});
+      for(const [id,p] of o.localPositions){
+        if(!p)continue;
+        if(isHost()&&now-(o.lastMoveAt.get(id)||0)>2600)continue;
+        list.push({id,team:o.teams.get(id)||'blue',pos:p});
+      }
+      return list;
+    },
     bots:()=>api.enemies(),spawnBot:(team,i,id,local)=>api.spawnCTFBot?.(team,i,id,local),
     canMove:(a,b,r)=>api.environmentCanMove?.(a,b,r),
     nextPoint:(a,b)=>api.environmentNextPoint?.(a,b),
@@ -150,7 +157,8 @@ export function createMission(api){
   }
   function captureStatus(){
     const state=ctf.snapshot();
-    return{...state,myTeam:o.myTeam,mode:o.gameMode,ready:ctf.ready()};
+    return{...state,myTeam:o.myTeam,mode:o.gameMode,ready:ctf.ready(),
+      objective:ctf.objective(o.myTeam,o.myId)?.label||null};
   }
   function relayCTFBotShot(from,to,team){
     if(!isCapture()||!o.running||!isHost()||!o.origin)return;
@@ -306,7 +314,7 @@ export function createMission(api){
     else if(isGuest())o.hostageActor.root.position.lerp(o.hostagePos,.65);
     if(o.hostageActor&&o.hostageRescued){o.hostageActor.hostage=false;playHuman(o.hostageActor,'walk')}
   }
-  function reset(){if(o.hostageActor){disposeHuman(o.hostageActor);o.hostageActor.root.parent?.remove(o.hostageActor.root)}o.hostageActor=null;o.hostagePos=null;o.lastEnvironment=null;o.routeCache=null;o.routeCacheAt=0;o.routeTarget=null;o.hostageHealth=100;o.hostageShieldUntil=0;o.rescueHoldStart=0;o.hostageRescued=false;o.escortPlayer=null;o.running=false;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;o.ready=false;o.startedByHost=false;o.referenceReady=false;o.referenceLength=0;o.expectedLength=null;o.calibrationQuality='waiting';o.calibrationSeen.clear();o.localPositions.clear();ctf.reset();o.shields.clear();o.lastSnap=0;o.lastSnapshotSeq=-1;o.snapshotSeq=0;o.lastShotAt.clear();o.enemySeq=0;o.origin?.parent?.remove(o.origin);o.origin=null;removeRemote();ui();}
+  function reset(){if(o.hostageActor){disposeHuman(o.hostageActor);o.hostageActor.root.parent?.remove(o.hostageActor.root)}o.hostageActor=null;o.hostagePos=null;o.lastEnvironment=null;o.routeCache=null;o.routeCacheAt=0;o.routeTarget=null;o.hostageHealth=100;o.hostageShieldUntil=0;o.rescueHoldStart=0;o.hostageRescued=false;o.escortPlayer=null;o.running=false;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;o.ready=false;o.startedByHost=false;o.referenceReady=false;o.referenceLength=0;o.expectedLength=null;o.calibrationQuality='waiting';o.calibrationSeen.clear();o.localPositions.clear();o.lastMoveAt.clear();ctf.reset();o.shields.clear();o.lastSnap=0;o.lastSnapshotSeq=-1;o.snapshotSeq=0;o.lastShotAt.clear();o.enemySeq=0;o.origin?.parent?.remove(o.origin);o.origin=null;removeRemote();ui();}
   function start(){if(!o.ready){api.toast('Primero fijá un punto común en el piso');return false}
  if(isCapture()){
    if(isGuest()){
@@ -486,11 +494,27 @@ if(Array.isArray(msg.environment)){
     }
     if(msg.t==='holdBegin')o.lastActions.set(conn.peer+':holdStart',performance.now());
     if(msg.t==='holdCancel')o.lastActions.delete(conn.peer+':holdStart');
-    if(msg.t==='move'&&Array.isArray(msg.p)&&msg.p.length===3&&msg.p.every(v=>Number.isFinite(v)&&Math.abs(v)<50))o.localPositions.set(conn.peer,from(msg.p));
+    if(msg.t==='move'&&Array.isArray(msg.p)&&msg.p.length===3&&msg.p.every(v=>Number.isFinite(v)&&Math.abs(v)<50)){
+       const p=from(msg.p),last=o.localPositions.get(conn.peer),now=performance.now();
+       // Large instantaneous changes are not accepted as teleports onto flags.
+       if(!last||p.distanceTo(last)<=Math.max(.95,(now-(o.lastMoveAt.get(conn.peer)||now))*.0045)){
+          o.localPositions.set(conn.peer,p);o.lastMoveAt.set(conn.peer,now);
+       }
+     }
     if(msg.t==='interact')doInteract(conn.peer);
     if(msg.t==='ability'&&typeof msg.kind==='string')receiveAbility(conn.peer,msg.kind,true);
     // Direct client hit claims intentionally ignored; only host ballistics apply damage.
-  });conn.on('close',()=>{o.connections.delete(conn.peer);o.localPositions.delete(conn.peer);o.teams.delete(conn.peer);o.calibrationSeen.delete(conn.peer);teamUpdate();api.refreshHud?.();api.toast('UN JUGADOR SALIÓ DEL EQUIPO')});conn.on('error',()=>{o.connections.delete(conn.peer);o.localPositions.delete(conn.peer);teamUpdate()})}
+  });conn.on('close',()=>{
+      ctf.removePlayer(conn.peer,o.localPositions.get(conn.peer));o.lastMoveAt.delete(conn.peer);
+      o.connections.delete(conn.peer);o.localPositions.delete(conn.peer);o.teams.delete(conn.peer);
+      o.calibrationSeen.delete(conn.peer);teamUpdate();api.refreshHud?.();
+      api.toast('UN JUGADOR SALIÓ DEL EQUIPO');
+    });
+    conn.on('error',()=>{
+      ctf.removePlayer(conn.peer,o.localPositions.get(conn.peer));o.lastMoveAt.delete(conn.peer);
+      o.connections.delete(conn.peer);o.localPositions.delete(conn.peer);o.teams.delete(conn.peer);
+      o.calibrationSeen.delete(conn.peer);teamUpdate();api.refreshHud?.();
+    })}
   function joinConnection(conn){o.conn=conn;conn.on('open',()=>{o.joined=true;teamUpdate();lobby('Conectado al anfitrión. Marquen los mismos dos puntos A y B del piso, en el mismo orden.');api.toast('CONEXIÓN COOPERATIVA ESTABLECIDA')});conn.on('data',m=>{if(!m||typeof m!=='object')return;
     if(m.t==='welcome'){o.myId=m.id;teamUpdate();
       if(m.gameMode)applyMode(m);
@@ -645,7 +669,9 @@ if(Array.isArray(msg.environment)){
       info.classList.toggle('hidden',!api.active()&&!o.running);
       ability.classList.toggle('hidden',!api.active()&&!o.running);
       phaseEl.textContent='CAPTURA LA BANDERA · '+(o.myTeam==='blue'?'EQUIPO AZUL':'EQUIPO ROJO');
-      desc.textContent=o.running?'Robá la bandera rival y regresá a la tuya.':'Marcá las dos banderas y prepará tu escuadrón.';
+      const objective=ctf.objective(o.myTeam,o.myId);
+      desc.textContent=o.running?(objective?.label||'Protegé a tu equipo y conseguí tres capturas.'):
+        'Marcá las dos banderas y prepará tu escuadrón.';
       progress.textContent='AZUL '+st.scores.blue+' — '+st.scores.red+' ROJO · '+ctf.config.bots+' BOTS/EQUIPO';
       interact.classList.add('hidden');return;
     }
@@ -663,8 +689,8 @@ if(Array.isArray(msg.environment)){
   $('createRoom').addEventListener('click',createRoom);$('joinRoom').addEventListener('click',joinRoom);$('copyRoom').addEventListener('click',copyCode);$('pulse').addEventListener('click',()=>abilityNow('pulse'));$('shield').addEventListener('click',()=>abilityNow('shield'));$('heal').addEventListener('click',()=>abilityNow('heal'));
   teamUpdate();ui();function navigationTarget(){
  if(isCapture()&&o.origin&&o.running){
-   const local=ctf.target(o.myTeam);
-   return local?{world:originToWorld(local),label:'BANDERA '+(o.myTeam==='blue'?'ROJA':'AZUL')}:null;
+   const objective=ctf.objective(o.myTeam,o.myId);
+   return objective?{world:originToWorld(objective.position),label:objective.label}:null;
  }
  if(!o.origin||!o.running||o.finished||!o.hostagePos||o.phase>=0)return null;
  const target=o.phase===-2?o.hostagePos:new THREE.Vector3(0,0,0);
