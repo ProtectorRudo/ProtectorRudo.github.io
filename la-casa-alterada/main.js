@@ -153,7 +153,7 @@ function hud(force=false){
  $('hostage').disabled=!nests.length||guest||active;$('begin').disabled=!nests.length||(!mission?.isGuest()&&!mission?.hasHostage());$('health').textContent=Math.ceil(life)+'%';$('healthBar').style.width=life+'%';$('wave').textContent=round?String(round).padStart(2,'0'):'—';$('clock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(Math.max(0,Math.floor(seconds%60))).padStart(2,'0');const ammoHtml=ammo+'<span> / '+capacity()+'</span>';
  if($('ammo').innerHTML!==ammoHtml)$('ammo').innerHTML=ammoHtml;$('nestCount').textContent='NIDOS FIJADOS: '+nests.length;$('begin').disabled=!hasEntrance||!hostageReady||guest;$('begin').textContent=active?'VOLVER AL COMBATE':'▶ EMPEZAR RESCATE'}
 function ui(){if(mapping){$('mapPanel').classList.remove('hidden')}$('swapGun').classList.toggle('hidden',!active);$('setup').classList.toggle('hidden',!placing);$('fight').classList.toggle('hidden',placing);$('gunCanvas').classList.toggle('hidden',!active);$('hint').classList.toggle('hidden',!placing);$('sightText').textContent=placing?'APUNTÁ AL PISO':'';hud(true)}
-function cleanup(){spawnQueue.length=0;nextSpawnTime=0;spatialMap.clear();mapping=false;if(mapGhost)mapGhost.visible=false;if(mapFirstGhost)mapFirstGhost.visible=false;$('mapPanel').classList.add('hidden');mapFirst=null;mapPoint=null;mapStatus();for(const e of enemies){disposeHuman(e);e.root.parent?.remove(e.root)}for(const n of nests){try{n.anchor?.delete()}catch(e){}world.remove(n.root)}for(const i of [...orbs,...trails,...splinters])world.remove(i.mesh);nests=[];enemies=[];orbs=[];trails=[];splinters=[]}
+function cleanup(){spawnQueue.length=0;nextSpawnTime=0;$('navGuide').classList.add('hidden');$('netSignal').classList.add('hidden');spatialMap.clear();mapping=false;if(mapGhost)mapGhost.visible=false;if(mapFirstGhost)mapFirstGhost.visible=false;$('mapPanel').classList.add('hidden');mapFirst=null;mapPoint=null;mapStatus();for(const e of enemies){disposeHuman(e);e.root.parent?.remove(e.root)}for(const n of nests){try{n.anchor?.delete()}catch(e){}world.remove(n.root)}for(const i of [...orbs,...trails,...splinters])world.remove(i.mesh);nests=[];enemies=[];orbs=[];trails=[];splinters=[]}
 function reset(){mission?.reset();triggerHeld=false;aiming=false;aimBlend=0;$('aimMode').classList.remove('aimed');$('aimMode').textContent='MIRA ◎';$('sight').classList.remove('ads');if(mode==='demo'){camera.fov=65;camera.updateProjectionMatrix()}cleanup();placing=true;active=false;ended=false;round=0;kills=0;currentWeapon='rifle';magazines={rifle:28,pistol:12};ammo=28;if(gunReady)syncWeapon();reloading=false;seconds=480;life=100;newRound=0;pose=null;hitResult=null;previous=0;lastHudRefresh=0;ui();toast('APUNTÁ AL PISO Y TOCÁ MARCAR ENTRADA')}
 function estimateFloorPoint(floorY=null){
  const c=getCam(),eye=new THREE.Vector3(),forward=new THREE.Vector3();
@@ -562,8 +562,35 @@ function updateGun(dt,t){
  }
  gunRenderer.render(gunScene,gunCamera);
 }
+let lastGuidanceUI=0;
+function updateGuidance(t){
+ if(t-lastGuidanceUI<160)return;lastGuidanceUI=t;
+ const item=active&&!ended?mission?.navigationTarget?.():null;
+ const el=$('navGuide');
+ el.classList.toggle('hidden',!item);
+ if(item){
+  const cam=getCam(),eye=new THREE.Vector3(),forward=new THREE.Vector3();
+  cam.getWorldPosition(eye);cam.getWorldDirection(forward);
+  const dx=item.world.x-eye.x,dz=item.world.z-eye.z;
+  const distance=Math.hypot(dx,dz);
+  const length=Math.hypot(forward.x,forward.z)||1;
+  const fX=forward.x/length,fZ=forward.z/length;
+  const angle=-Math.atan2(fZ*dx-fX*dz,fX*dx+fZ*dz);
+  $('navArrow').style.transform='rotate('+angle+'rad)';
+  const readable=distance<1?'YA ESTÁS CERCA':distance.toFixed(1).replace('.',',')+' m';
+  if($('navLabel').textContent!==item.label)$('navLabel').textContent=item.label;
+  if($('navDistance').textContent!==readable)$('navDistance').textContent=readable;
+ }
+ const state=mission?.networkState?.()||'local',status=$('netSignal');
+ const show=state!=='local'&&state!=='synced';
+ status.classList.toggle('hidden',!show);
+ if(show){
+  const message=state==='offline'?'SIN CONEXIÓN':state==='stale'?'SINCRONIZACIÓN LENTA':state==='aligning'?'CALIBRÁ LA ENTRADA':'ESPERANDO AL ANFITRIÓN';
+  if(status.textContent!==message)status.textContent=message;
+ }
+}
 function updateFrame(t,frame){now=t;
- if(hitConfirmUntil&&t>=hitConfirmUntil){hitConfirmUntil=0;$('hitConfirm').classList.remove('visible')}if(triggerHeld&&currentWeapon==='rifle'&&active&&!placing)fire();const dt=previous?Math.min(.052,(t-previous)/1000):0;previous=t;if(mode==='ar')updateXR(frame);if(mode==='demo'){moveDemo(dt);updateDemo()}processSpawns(t);updateBattle(dt,t);mission?.tick(dt,t);effects(dt,t);combatFX.tick(dt);renderer.render(world,camera);updateGun(dt,t)}
+ if(hitConfirmUntil&&t>=hitConfirmUntil){hitConfirmUntil=0;$('hitConfirm').classList.remove('visible')}if(triggerHeld&&currentWeapon==='rifle'&&active&&!placing)fire();const dt=previous?Math.min(.052,(t-previous)/1000):0;previous=t;if(mode==='ar')updateXR(frame);if(mode==='demo'){moveDemo(dt);updateDemo()}processSpawns(t);updateBattle(dt,t);mission?.tick(dt,t);updateGuidance(t);effects(dt,t);combatFX.tick(dt);renderer.render(world,camera);updateGun(dt,t)}
 renderer.setAnimationLoop(updateFrame);preloadHumans();
 
 function remoteStart(){if(!nests.length||active)return;begin()}
@@ -616,7 +643,9 @@ $('mapDistance').addEventListener('input',e=>{
  $('mapDistanceText').textContent=mapManualDistance.toFixed(1)+' m';
  mapPoint=null;mapPointQuality='manual';mapControls(true);
 });
-$('mapUndo').addEventListener('click',()=>{spatialMap.clear();mapFirst=null;mapControls(true);toast('MAPA BORRADO')});
+$('mapUndo').addEventListener('click',()=>{const removed=spatialMap.removeLast();
+mapFirst=null;mapControls(true);
+toast(removed?'ÚLTIMA MARCA DESHECHA ↶':'TODAVÍA NO HAY OBJETOS PARA DESHACER')});
 $('mapFinish').addEventListener('click',()=>toggleMap(false));$('fire').addEventListener('pointerdown',e=>{e.preventDefault();lastTouch=performance.now();triggerHeld=true;try{$('fire').setPointerCapture(e.pointerId)}catch(_){}fire()});
 $('fire').addEventListener('pointerup',()=>triggerHeld=false);
 $('fire').addEventListener('pointercancel',()=>triggerHeld=false);
