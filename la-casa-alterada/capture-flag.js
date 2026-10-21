@@ -95,8 +95,11 @@ export function createCaptureFlag(THREE,api){
      const at=flagLocation(t);
      for(const p of members){
        if(gap(p.pos,at)>.73)continue;
-       if(p.team===t){if(f.dropped)returnHome(t)}
-       else{f.carrier=p.id;f.dropped=null;api.event?.('BANDERA '+(t==='blue'?'AZUL':'ROJA')+' ROBADA')}
+       if(p.team===t){
+         if(f.dropped){returnHome(t);break}
+         continue; // Defenders don't make a flag impossible to steal.
+       }
+       f.carrier=p.id;f.dropped=null;api.event?.('BANDERA '+(t==='blue'?'AZUL':'ROJA')+' ROBADA');
        break;
      }
    }
