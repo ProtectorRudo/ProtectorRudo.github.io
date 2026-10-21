@@ -137,23 +137,25 @@ function vibrate(a){try{navigator.vibrate?.(a)}catch(e){}}
 function tone(type){try{audio??=new (window.AudioContext||window.webkitAudioContext)();audio.resume();const o=audio.createOscillator(),o2=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.type='sawtooth';o2.type='triangle';const f=type==='fire'?145:type==='hurt'?76:440;o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(type==='fire'?36:55,t+.18);o2.frequency.setValueAtTime(f*1.6,t);o2.frequency.exponentialRampToValueAtTime(50,t+.16);g.gain.setValueAtTime(type==='fire'?.13:.055,t);g.gain.exponentialRampToValueAtTime(.0001,t+.2);o.connect(g);o2.connect(g);g.connect(audio.destination);o.start(t);o2.start(t);o.stop(t+.21);o2.stop(t+.20)}catch(e){}}
 function toast(s){$('toast').textContent=s;$('toast').classList.add('show');toastExpiry=performance.now()+2100}
 function event(s){$('event').textContent=s;$('event').classList.remove('hidden');eventExpiry=performance.now()+2400;vibrate([60,30,75])}
-let lastHudRefresh=0,referenceMarker=null,referenceAnchor=null;
+let lastHudRefresh=0,referenceMarker=null,referenceAnchor=null,lastReferenceUpdate=0;
 function hud(force=false){
  const t=performance.now();if(!force&&t-lastHudRefresh<85)return;lastHudRefresh=t;
  const guest=!!mission?.isGuest(),alignment=mission?.alignmentStatus?.(),needsB=!!alignment?.needsSecond;
  const hasEntrance=nests.length>0,hostageReady=!!mission?.hasHostage();
  const stage=!hasEntrance?0:needsB?1:!hostageReady?2:3;
- $('smartPlace').classList.toggle('hidden',stage===3||(stage===2&&guest));
+ const awaitingHost=guest&&needsB&&alignment?.referenceLength>0&&alignment?.quality==='waiting';
+ const teammates=mission?.teamCalibration?.();
+ $('smartPlace').classList.toggle('hidden',stage===3||(stage===2&&guest)||awaitingHost);
  $('smartPlace').disabled=active;
  const captions=['◎ MARCAR PUNTO A','◎ MARCAR PUNTO B','◎ COLOCAR REHÉN','✓ POSICIÓN LISTA'];
  $('smartPlace').textContent=captions[stage];
  $('mapToggle').classList.toggle('hidden',!hasEntrance||needsB||guest||active);
  $('begin').classList.toggle('hidden',stage!==3||guest);
  $('setupStep').textContent=stage===0?'PASO 1 · ENTRADA':stage===1?'PASO 2 · ORIENTACIÓN':stage===2?'PASO 3 · REHÉN':'LISTOS PARA RESCATAR';
- $('setupGuide').textContent=stage===0?'Todos apunten al mismo lugar del piso':stage===1?'Apunten al MISMO segundo punto del piso':stage===2?(guest?'Esperá que el anfitrión coloque al rehén':'Elegí dónde estará el rehén'):(guest?'El anfitrión comienza la partida':'Posiciones compartidas configuradas');
- $('setupDetail').textContent=stage===0?'Marcá el punto A, por ejemplo junto a una esquina. Todos usan el mismo.':stage===1?(alignment?.quality==='mismatch'?'La separación no coincide con el anfitrión. Volvé a marcar B.':'Elegí un punto B a 1–7 m del A, por ejemplo otra baldosa. Todos deben marcar exactamente los mismos A y B.'):stage===2?'Podés mapear paredes o muebles antes de empezar; es opcional.':'Todos verán los mismos enemigos y al mismo rehén.';
+ $('setupGuide').textContent=stage===0?'Todos apunten al mismo lugar del piso':stage===1?(awaitingHost?'Punto B marcado · esperando al anfitrión':'Apunten al MISMO segundo punto del piso'):stage===2?(guest?'Esperá que el anfitrión coloque al rehén':'Elegí dónde estará el rehén'):(guest?'El anfitrión comienza la partida':'Posiciones compartidas configuradas');
+ $('setupDetail').textContent=stage===0?'Marcá el punto A, por ejemplo junto a una esquina. Todos usan el mismo.':stage===1?(alignment?.quality==='mismatch'?'La separación no coincide con el anfitrión. Volvé a marcar B.':awaitingHost?'No hace falta repetir B: el juego lo confirmará al recibir los datos del anfitrión.':'Elegí un punto B a 1–7 m del A, por ejemplo otra baldosa. Todos deben marcar exactamente los mismos A y B.'):stage===2?'Podés mapear paredes o muebles antes de empezar; es opcional.':teammates?.ready===false?'Esperando al equipo: '+teammates.done+' de '+teammates.total+' compañeros calibrados.':'Todos verán los mismos enemigos y al mismo rehén.';
  $('hostage').disabled=!hasEntrance||needsB||guest||active;
- $('begin').disabled=!hasEntrance||needsB||!hostageReady||guest;
+ $('begin').disabled=!hasEntrance||needsB||!hostageReady||guest||teammates?.ready===false;
  $('health').textContent=Math.ceil(life)+'%';$('healthBar').style.width=life+'%';
  $('wave').textContent=round?String(round).padStart(2,'0'):'—';
  $('clock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(Math.max(0,Math.floor(seconds%60))).padStart(2,'0');
@@ -166,7 +168,7 @@ function cleanup(){
  if(referenceAnchor){try{referenceAnchor.delete()}catch(_){}}referenceAnchor=null;
  if(referenceMarker){referenceMarker.parent?.remove(referenceMarker);referenceMarker.traverse(x=>{x.geometry?.dispose?.();if(x.material&&!Array.isArray(x.material))x.material.dispose?.()});referenceMarker=null}
  spawnQueue.length=0;nextSpawnTime=0;$('navGuide').classList.add('hidden');$('netSignal').classList.add('hidden');spatialMap.clear();mapping=false;if(mapGhost)mapGhost.visible=false;if(mapFirstGhost)mapFirstGhost.visible=false;$('mapPanel').classList.add('hidden');mapFirst=null;mapPoint=null;mapStatus();for(const e of enemies){disposeHuman(e);e.root.parent?.remove(e.root)}for(const n of nests){try{n.anchor?.delete()}catch(e){}world.remove(n.root)}for(const i of [...orbs,...trails,...splinters])world.remove(i.mesh);nests=[];enemies=[];orbs=[];trails=[];splinters=[]}
-function reset(){mission?.reset();triggerHeld=false;aiming=false;aimBlend=0;$('aimMode').classList.remove('aimed');$('aimMode').textContent='MIRA ◎';$('sight').classList.remove('ads');if(mode==='demo'){camera.fov=65;camera.updateProjectionMatrix()}cleanup();placing=true;active=false;ended=false;round=0;kills=0;currentWeapon='rifle';magazines={rifle:28,pistol:12};ammo=28;if(gunReady)syncWeapon();reloading=false;seconds=480;life=100;newRound=0;pose=null;hitResult=null;previous=0;lastHudRefresh=0;ui();toast('APUNTÁ AL PISO Y TOCÁ MARCAR ENTRADA')}
+function reset(){mission?.reset();triggerHeld=false;aiming=false;aimBlend=0;$('aimMode').classList.remove('aimed');$('aimMode').textContent='MIRA ◎';$('sight').classList.remove('ads');if(mode==='demo'){camera.fov=65;camera.updateProjectionMatrix()}cleanup();placing=true;active=false;ended=false;round=0;kills=0;currentWeapon='rifle';magazines={rifle:28,pistol:12};ammo=28;if(gunReady)syncWeapon();reloading=false;seconds=480;life=100;newRound=0;pose=null;hitResult=null;previous=0;lastHudRefresh=0;lastReferenceUpdate=0;ui();toast('APUNTÁ AL PISO Y TOCÁ MARCAR ENTRADA')}
 function estimateFloorPoint(floorY=null){
  const c=getCam(),eye=new THREE.Vector3(),forward=new THREE.Vector3();
  c.getWorldPosition(eye);c.getWorldDirection(forward);
@@ -380,7 +382,14 @@ function updateXR(frame){
    }
  }
  for(const n of nests)if(n.anchor){const p=frame.getPose(n.anchor.anchorSpace,local);if(p){n.root.position.set(p.transform.position.x,p.transform.position.y,p.transform.position.z);n.root.quaternion.set(p.transform.orientation.x,p.transform.orientation.y,p.transform.orientation.z,p.transform.orientation.w)}}
- if(referenceAnchor&&referenceMarker){const p=frame.getPose(referenceAnchor.anchorSpace,local);if(p)referenceMarker.position.set(p.transform.position.x,p.transform.position.y,p.transform.position.z)}
+ if(referenceAnchor&&referenceMarker){
+   const p=frame.getPose(referenceAnchor.anchorSpace,local);
+   if(p)referenceMarker.position.set(p.transform.position.x,p.transform.position.y,p.transform.position.z);
+ }
+ if(referenceAnchor&&nests[0]?.anchor&&referenceMarker&&performance.now()-lastReferenceUpdate>280){
+   lastReferenceUpdate=performance.now();
+   mission?.updateTrackedFrame?.(nests[0].root,referenceMarker.position);
+ }
  if(depthInfo&&view&&mapDepthSource==='cpu'&&!mapping){
    const c=getCam(),eye=new THREE.Vector3();c.getWorldPosition(eye);
    for(const e of enemies)if(e.alive){
