@@ -75,10 +75,12 @@ export function createSpatialMap(THREE,scene){
     const nodes=[V(from),V(to)];
     for(const w of walls){
       const dx=w.b.x-w.a.x,dz=w.b.z-w.a.z,l=Math.hypot(dx,dz)||1;
-      const nx=-dz/l,nz=dx/l;
-      for(const p of [w.a,w.b])for(const sign of [-1,1]){
-        const c={x:p.x+nx*.42*sign,y:to.y,z:p.z+nz*.42*sign};
-        if(!touchesWall(c,.16))nodes.push(c);
+      const nx=-dz/l,nz=dx/l,tx=dx/l,tz=dz/l;
+      for(const [index,p] of [w.a,w.b].entries())for(const sign of [-1,1]){
+        // Step beyond the actual end of the wall, then stand on either side.
+        const along=index===0?-.5:.5;
+        const c={x:p.x+tx*along+nx*.43*sign,y:to.y,z:p.z+tz*along+nz*.43*sign};
+        if(!touchesWall(c,.15))nodes.push(c);
       }
     }
     for(const b of boxes){
