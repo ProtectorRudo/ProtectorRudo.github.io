@@ -9,7 +9,20 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 const CDN='https://cdn.jsdelivr.net/gh/ProtectorRudo/viralio@main/public/viralio-3d/models/';
-const source={raiderA:'npc-jordan-locomotion.glb',raiderB:'npc-sam-locomotion.glb',hostage:'npc-maya-locomotion.glb'};
+const ORIGINAL_BOTS='https://cdn.jsdelivr.net/gh/StarKnightt/counter-strike-in-browser@92f3e6ddee40c6b531c0788c2cf3db4c56853a37/public/models/';
+const source={
+ raiderA:ORIGINAL_BOTS+'bot_mask.glb',
+ raiderB:ORIGINAL_BOTS+'bot_wrap.glb',
+ raiderC:ORIGINAL_BOTS+'bot_mask_cap.glb',
+ raiderD:ORIGINAL_BOTS+'bot_wrap_goggles.glb',
+ hostage:CDN+'npc-maya-locomotion.glb'
+};
+const backUp={
+ raiderA:CDN+'npc-jordan-locomotion.glb',
+ raiderB:CDN+'npc-sam-locomotion.glb',
+ raiderC:CDN+'npc-jordan-locomotion.glb',
+ raiderD:CDN+'npc-sam-locomotion.glb'
+};
 const TACTICAL='https://cdn.jsdelivr.net/gh/cktang88/3d-fps@main/public/assets/models/characters/soldier.glb';
 const cache=new Map(),loader=new GLTFLoader();
 const cloneQueue=[];let cloneBusy=false;
@@ -31,15 +44,20 @@ function nextClone(){
 loader.setMeshoptDecoder(MeshoptDecoder);
 function load(type){
  if(!cache.has(type)){
-  const preferred=CDN+source[type];
-  const fallback=type==='hostage'?null:TACTICAL;
-  // A real rigged military character (CC BY 4.0) is preferred.
-  // Reuse studio's CC0 human rigs if the detailed soldier cannot load.
-  const get=()=>loader.loadAsync(preferred).catch(err=>{
-    if(!fallback)throw err;
-    console.warn('Studio human unavailable; using military rig fallback',err);
-    return loader.loadAsync(fallback);
-  });
+  const preferred=source[type];
+  const fallback=backUp[type];
+  // Rigged original shooter characters: painted clothing, masks, cargo and kit.
+  // Independent source asset (not any Valve/CS2 game files). Keep studio
+  // humanoids as a fallback when a phone cannot fetch these models.
+  const get=async()=>{
+    try{return await loader.loadAsync(preferred)}
+    catch(err){
+      if(!fallback)throw err;
+      console.warn('Tactical character unavailable; loading studio fallback',type,err);
+      try{return await loader.loadAsync(fallback)}
+      catch(err2){return loader.loadAsync(TACTICAL)}
+    }
+  };
   cache.set(type,get().then(g=>{
     const clips={};
     for(const clip of g.animations){let name=clip.name.toLowerCase();let key=name.includes('idle')||name.includes('stand')?'idle':name.includes('jog')||name.includes('sprint')||name.includes('run')?'run':name.includes('walk')||name.includes('move')?'walk':name.includes('sit')||name.includes('crouch')?'sit':'other';(clips[key]??=[]).push(clip)}
@@ -52,12 +70,24 @@ export function preloadHumans(){
  return Promise.allSettled([load('raiderA'),load('raiderB'),load('hostage')])
 }
 export async function attachHuman(actor,type='raiderA'){
- const key=type==='hostage'?'hostage':type==='raiderB'?'raiderB':'raiderA';
+ const key=type==='hostage'?'hostage':['raiderA','raiderB','raiderC','raiderD'].includes(type)?type:'raiderA';
  const data=await load(key);
  if(!data||!actor?.root||!actor?.root.parent)return false;
  return staggerClone(()=>{
  if(!actor.alive||!actor.root.parent)return false;
  const visual=cloneSkeleton(data.scene);
+ visual.traverse(n=>{
+   if(n.isSkinnedMesh||n.isMesh){
+     n.frustumCulled=false;
+     n.castShadow=true;
+     n.receiveShadow=false;
+     if(n.material){
+       for(const m of (Array.isArray(n.material)?n.material:[n.material])){
+         if(m.map)m.map.anisotropy=Math.min(4,Math.max(1,m.map.anisotropy||1));
+       }
+     }
+   }
+ });
  const bounds=new THREE.Box3().setFromObject(visual);
  const size=new THREE.Vector3(),center=new THREE.Vector3();
  bounds.getSize(size);bounds.getCenter(center);
@@ -78,12 +108,8 @@ export async function attachHuman(actor,type='raiderA'){
      const bones=[];const allNames=[];
      visual.traverse(n=>{allNames.push(n.name.toLowerCase());if(n.isBone&&/right.*hand|hand.*right|hand_r|r_hand|mixamorig.*righthand/i.test(n.name))bones.push(n)});
      const integratedWeapon=allNames.some(n=>/(rifle|firearm|gun|weapon)/i.test(n));
-     const head=[];
-     visual.traverse(n=>{if(n.isBone&&/(?:^|[:_])head$/i.test(n.name))head.push(n)});
-     if(head.length&&type!=='hostage'){
-       const helmet=new THREE.Mesh(new THREE.SphereGeometry(.16,18,12,0,Math.PI*2,0,Math.PI*.53),new THREE.MeshStandardMaterial({color:type==='raiderA'?0x242c2b:0x423b34,roughness:.94,metalness:0}));
-       helmet.position.set(0,.085,0);head[0].add(helmet);
-     }
+     // Headgear and plate carriers are already authored and skinned in the source GLBs.
+     // Do not overlay low-poly helmets: that made the earlier enemies look artificial.
      if(!integratedWeapon&&bones.length){
        bones[0].add(rifle);
        rifle.position.set(.04,-.08,-.04);
@@ -96,7 +122,7 @@ export async function attachHuman(actor,type='raiderA'){
    actor.flesh.visible=false;
  }
  actor.root.add(rig);
- actor.rig=rig;actor.gltfRoot=visual;actor.mixer=new THREE.AnimationMixer(visual);
+ actor.rig=rig;actor.gltfRoot=visual;actor.mixer=new THREE.AnimationMixer(visual);actor.assetName=key;
  actor.clips=data.clips;actor.animMode='';
  actor.actions=new Map();actor.assetReady=true;
  playHuman(actor,type==='hostage'?'sit':'idle',true);
