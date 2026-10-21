@@ -5,7 +5,7 @@
  * V9 stores only confirmed sample points and explicit user-drawn segments.
  */
 export function createSpatialMap(THREE,scene){
-  const walls=[],boxes=[],dynamic=[],debug=[],order=[];let preview=false;
+  const walls=[],boxes=[],dynamic=[],debug=[],order=[];let preview=false,area=null;
   const V=(p)=>({x:p.x,y:p.y,z:p.z});
   const len=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
   const cross=(a,b,c)=> (b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x);
@@ -42,6 +42,66 @@ export function createSpatialMap(THREE,scene){
     const box={type:'box',id:boxes.length+1,minX,maxX,minZ,maxZ,base:floorY,top:floorY+height,mesh};
     boxes.push(box);order.push(box);return box;
   }
+  // V20: the room play zone is an intentionally user-confirmed floor
+  // rectangle, NOT automatic obstacle recognition.  It restricts AI
+  // movement but never hides real furniture or blocks weapon raycasts.
+  function setArea(worldA,worldB,origin,opt={}){
+    if(!worldA||!worldB||!origin)return false;
+    const A=origin.worldToLocal(new THREE.Vector3(worldA.x,worldA.y,worldA.z));
+    const B=origin.worldToLocal(new THREE.Vector3(worldB.x,worldB.y,worldB.z));
+    const w=Math.abs(B.x-A.x),d=Math.abs(B.z-A.z);
+    if(![A.x,A.y,A.z,B.x,B.y,B.z].every(Number.isFinite)||w<1.4||d<1.4||w>9||d>9||w*d>58)return false;
+    clearArea();
+    const minX=Math.min(A.x,B.x),maxX=Math.max(A.x,B.x),
+          minZ=Math.min(A.z,B.z),maxZ=Math.max(A.z,B.z);
+    const floorY=Math.min(A.y,B.y),group=new THREE.Group();
+    const borderMat=new THREE.MeshBasicMaterial({color:0x71e6bf,transparent:true,opacity:.72,depthWrite:false});
+    const fillMat=new THREE.MeshBasicMaterial({color:0x4bcbac,transparent:true,opacity:.075,depthWrite:false,side:THREE.DoubleSide});
+    const line=(a,b)=>{
+      const dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz);
+      const mesh=new THREE.Mesh(new THREE.BoxGeometry(.018,.014,l),borderMat);
+      mesh.position.set((a.x+b.x)/2,.028,(a.z+b.z)/2);
+      mesh.rotation.y=Math.atan2(dx,dz);
+      group.add(mesh);
+    };
+    const corners=[
+      {x:minX,z:minZ},{x:maxX,z:minZ},{x:maxX,z:maxZ},{x:minX,z:maxZ}
+    ];
+    for(let i=0;i<4;i++)line(corners[i],corners[(i+1)%4]);
+    const floor=new THREE.Mesh(new THREE.PlaneGeometry(w,d),fillMat);
+    floor.rotation.x=-Math.PI/2;
+    floor.position.set((minX+maxX)/2,.014,(minZ+maxZ)/2);
+    group.add(floor);
+    group.position.y=floorY;
+    origin.add(group);
+    area={minX,maxX,minZ,maxZ,base:floorY,width:w,depth:d,group,fill:floor,origin};
+    area.fill.visible=preview;
+    return area;
+  }
+  function clearArea(){
+    if(!area)return;
+    const g=area.group;
+    g.parent?.remove(g);
+    const materials=new Set();
+    g.traverse(mesh=>{
+      mesh.geometry?.dispose?.();
+      if(mesh.material){
+        for(const mat of Array.isArray(mesh.material)?mesh.material:[mesh.material])materials.add(mat);
+      }
+    });
+    for(const material of materials)material.dispose?.();
+    area=null;
+  }
+  function areaDistance(worldPoint){
+    if(!area||!worldPoint)return null;
+    const p=area.origin.worldToLocal(new THREE.Vector3(worldPoint.x,worldPoint.y,worldPoint.z));
+    const {minX,maxX,minZ,maxZ}=area;
+    if(p.x<minX||p.x>maxX||p.z<minZ||p.z>maxZ){
+      const dx=Math.max(minX-p.x,0,p.x-maxX),dz=Math.max(minZ-p.z,0,p.z-maxZ);
+      return -Math.hypot(dx,dz);
+    }
+    return Math.min(p.x-minX,maxX-p.x,p.z-minZ,maxZ-p.z);
+  }
   function touchesWall(p,r=.25){
     return walls.some(w=>p.y>=w.base-.55&&p.y<=w.top+.15&&distanceSegment(p,w.a,w.b)<r+w.thickness*.5)
       ||boxes.some(b=>p.y>=b.base-.45&&p.y<=b.top+.3&&p.x+r>b.minX&&p.x-r<b.maxX&&p.z+r>b.minZ&&p.z-r<b.maxZ);
@@ -68,6 +128,7 @@ export function createSpatialMap(THREE,scene){
     if(!a||!b)return true;
     // Disallow clipping through thin walls during a large timestep or fast chase.
     if(lineBlocked(a,b,r*.4))return false;
+    if(area&&areaDistance(b)<r+.04)return false;
     return !touchesWall(b,r);
   }
   function getRoute(from,to){
@@ -105,7 +166,13 @@ export function createSpatialMap(THREE,scene){
   function exportData(origin){
     if(!origin)return[];
     const point=v=>{const p=origin.worldToLocal(new THREE.Vector3(v.x,v.y,v.z));return [+p.x.toFixed(2),+p.y.toFixed(2),+p.z.toFixed(2)]};
-    return [...walls.map(w=>({type:'wall',a:point(w.a),b:point(w.b),height:w.top-w.base})),...boxes.map(w=>({type:'box',a:point({x:w.minX,y:w.base,z:w.minZ}),b:point({x:w.maxX,y:w.base,z:w.maxZ}),height:w.top-w.base}))];
+    const entries=[...walls.map(w=>({type:'wall',a:point(w.a),b:point(w.b),height:w.top-w.base})),...boxes.map(w=>({type:'box',a:point({x:w.minX,y:w.base,z:w.minZ}),b:point({x:w.maxX,y:w.base,z:w.maxZ}),height:w.top-w.base}))];
+    if(area){
+      const a=area.origin.localToWorld(new THREE.Vector3(area.minX,area.base,area.minZ));
+      const b=area.origin.localToWorld(new THREE.Vector3(area.maxX,area.base,area.maxZ));
+      entries.unshift({type:'area',a:point(a),b:point(b)});
+    }
+    return entries;
   }
   function removeLast(){
  const last=order.pop();if(!last)return null;
@@ -115,16 +182,17 @@ export function createSpatialMap(THREE,scene){
  mesh.parent?.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();
  return last;
 }
-function clear(){for(const o of debug){o.parent?.remove(o);o.geometry.dispose();o.material.dispose()}debug.length=0;walls.length=0;boxes.length=0;order.length=0}
+function clear(){clearArea();for(const o of debug){o.parent?.remove(o);o.geometry.dispose();o.material.dispose()}debug.length=0;walls.length=0;boxes.length=0;order.length=0}
   function importData(list,origin){
     if(!origin||!Array.isArray(list))return;clear();
     const pt=a=>origin.localToWorld(new THREE.Vector3(a[0],a[1],a[2]));
     for(const item of list.slice(0,32)){if(!Array.isArray(item?.a)||!Array.isArray(item?.b))continue;
       if(item.a.length!==3||item.b.length!==3||![...item.a,...item.b].every(n=>Number.isFinite(n)&&Math.abs(n)<35))continue;
-      if(item.type==='wall')addWall(pt(item.a),pt(item.b),{height:item.height,floorY:pt(item.a).y});
+      if(item.type==='area')setArea(pt(item.a),pt(item.b),origin);
+      else if(item.type==='wall')addWall(pt(item.a),pt(item.b),{height:item.height,floorY:pt(item.a).y});
       else if(item.type==='box')addBox(pt(item.a),pt(item.b),{height:item.height,floorY:pt(item.a).y});
     }
   }
-  function setVisible(state){preview=!!state;for(const o of debug)o.visible=preview}
-  return {walls,boxes,addWall,addBox,lineBlocked,touchesWall,canMove,getRoute,nearestWaypoint,exportData,importData,clear,removeLast,setVisible};
+  function setVisible(state){preview=!!state;for(const o of debug)o.visible=preview;if(area)area.fill.visible=preview}
+  return {walls,boxes,addWall,addBox,setArea,clearArea,areaDistance,get area(){return area},lineBlocked,touchesWall,canMove,getRoute,nearestWaypoint,exportData,importData,clear,removeLast,setVisible};
 }
