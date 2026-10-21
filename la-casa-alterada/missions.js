@@ -107,6 +107,7 @@ export function createMission(api){
     $('ctfBots').value=String(ctf.config.bots);
     $('ctfDifficulty').value=ctf.config.difficulty;
     $('ctfMyTeam').value=o.myTeam;
+    $('ctfMyTeam').disabled=o.running;
     $('gameSelect').disabled=o.role==='guest'||o.running;
     for(const id of ['ctfBots','ctfDifficulty','ctfTeamMode'])$(id).disabled=o.role==='guest'||o.running;
     api.refreshHud?.();
@@ -150,6 +151,11 @@ export function createMission(api){
   function captureStatus(){
     const state=ctf.snapshot();
     return{...state,myTeam:o.myTeam,mode:o.gameMode,ready:ctf.ready()};
+  }
+  function relayCTFBotShot(from,to,team){
+    if(!isCapture()||!o.running||!isHost()||!o.origin)return;
+    const a=o.origin.worldToLocal(from.clone()),b=o.origin.worldToLocal(to.clone());
+    broadcast({t:'ctfBotShot',from:P(a),to:P(b),team});
   }
   function captureBotDown(bot){
     if(!isCapture()||!isHost()||!bot||!o.origin)return;
@@ -486,6 +492,10 @@ if(Array.isArray(msg.environment)){
     if(m.t==='gameConfig')applyMode(m);
     if(m.t==='ctfState'&&m.state)ctf.applyState(m.state);
     if(m.t==='ctfTag')api.ctfTag?.(m.power||1);
+    if(m.t==='ctfBotShot'&&isCapture()&&o.origin&&Array.isArray(m.from)&&Array.isArray(m.to)&&m.from.length===3&&m.to.length===3){
+      const a=originToWorld(from(m.from)),b=originToWorld(from(m.to));
+      if(a.distanceTo(b)<12)api.ctfBotShot?.(a,b,m.team);
+    }
     if(m.t==='ctfEnd'){ctf.applyState(m.state);o.finished=true;o.running=false;api.ctfFinish?.(m.winner,o.myTeam,m.state)}
 
     if(m.t==='reference')setReferenceTarget(m.length);
@@ -663,5 +673,5 @@ function networkState(){
  if(!o.lastHostSnapshot)return 'waiting';
  return delta>3100?'stale':'synced';
 }
-return{align,alignSecond,alignmentStatus,needsReference,teamCalibration,updateTrackedFrame,configureLobby,chooseMyTeam,isCapture,teamOf,placeFlag,captureStatus,captureBotDown,capturePlayersWorld,tagEnemyPlayer,reset,start,navigationTarget,networkState,relayShot,relayEnemyHit,relayEnemyDown,placeHostage,hostageWorld,hostageExposed:()=>o.running&&o.phase<0&&o.hostageHealth>0,damageHostage,healHostage,hasHostage:()=>!!o.hostagePos,isGuest,isHost,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result,clock:api.clock(),wave:api.wave(),kills:api.kills?.()||0})},localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
+return{align,alignSecond,alignmentStatus,needsReference,teamCalibration,updateTrackedFrame,configureLobby,chooseMyTeam,isCapture,teamOf,placeFlag,captureStatus,captureBotDown,capturePlayersWorld,relayCTFBotShot,tagEnemyPlayer,reset,start,navigationTarget,networkState,relayShot,relayEnemyHit,relayEnemyDown,placeHostage,hostageWorld,hostageExposed:()=>o.running&&o.phase<0&&o.hostageHealth>0,damageHostage,healHostage,hasHostage:()=>!!o.hostagePos,isGuest,isHost,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result,clock:api.clock(),wave:api.wave(),kills:api.kills?.()||0})},localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
 }
