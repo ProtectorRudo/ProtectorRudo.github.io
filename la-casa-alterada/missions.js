@@ -282,7 +282,7 @@ if(Array.isArray(msg.environment)){
      interact.textContent=o.phase===-2?(o.rescueHoldStart?'LIBERANDO '+Math.min(99,Math.floor((performance.now()-o.rescueHoldStart)/1100*100))+'%':'MANTENER PARA LIBERAR'):'DESACTIVAR CARGA';
     }else interact.classList.add('hidden');
     for(const name of ['pulse','shield','heal']){const element=$(name);if(!element)continue;const remain=Math.max(0,(o.cd[name]||0)-performance.now());element.disabled=!o.running||remain>0;element.querySelector('small').textContent=remain?Math.ceil(remain/1000)+' s':'LISTO'}
-    $('hud')?.classList.toggle('shieldOn',shielded());if(o.running)ui();}
+    $('hud')?.classList.toggle('shieldOn',shielded());if(o.running&&time-(o.lastHudUpdate||0)>110){o.lastHudUpdate=time;ui()}}
   function ui(){
     $('hostageMeter').classList.toggle('hidden',!o.running||o.phase>=0);
     $('hostageHP').textContent=Math.ceil(o.hostageHealth)+'%';
