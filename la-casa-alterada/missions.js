@@ -3,6 +3,7 @@ import { createTacticalActor } from './tactical.js';
 import {calculateSharedFrame,checkSharedDistance} from './shared-calibration.js';
 import {createCaptureFlag} from './capture-flag.js';
 import {createPvPHealth} from './pvp-health.js';
+import {LINK,sessionCode,retryDelay,timedOutConnect,lostHeartbeat,linkErrorMessage} from './multiplayer-link.js';
 import {attachHuman,animateHuman,playHuman,disposeHuman} from './animated-humans.js';
 import {makeHostageFallback,animateHostageFallback} from './hostage-fallback.js';
 import {beginEscort,updateEscort} from './escort-rules.js';
@@ -64,10 +65,30 @@ function tintAvatar(group,team){
 }
 function visualWave(scene,origin,color=0x65d9ee){const m=new THREE.Mesh(new THREE.RingGeometry(.14,.18,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.8,side:THREE.DoubleSide,depthWrite:false}));m.position.copy(origin);m.position.y-=1.1;scene.add(m);return{mesh:m,t:0,duration:.7}}
 export function createMission(api){
-  const o={api,peer:null,room:null,role:'solo',conn:null,connections:new Map(),peers:new Map(),origin:null,angle:0,phase:-2,hostagePos:null,hostageRescued:false,hostageActor:null,escortPlayer:null,escortState:null,hostageHealth:100,hostageShieldUntil:0,rescueActionStartedAt:0,rescueRequestAt:0,rescueReinforcementAt:0,routeCache:null,routeCacheAt:0,routeTarget:null,mask:0,held:40,spawnAfter:0,lastSnap:0,lastMove:0,ready:false,running:false,finished:false,objects:[],remoteEnemy:new Map(),remoteAvatar:new Map(),remoteBullet:new Map(),effects:[],cd:{pulse:0,shield:0,heal:0},shields:new Map(),lastActions:new Map(),myId:'local',lastHostSnapshot:0,lastSnapshotSeq:-1,snapshotSeq:0,lastShotAt:new Map(),localPositions:new Map(),enemySeq:0,seed:0,startedByHost:false,joined:false,referenceReady:false,referenceLength:0,expectedLength:null,calibrationQuality:'waiting',calibrationSeen:new Map(),gameMode:'rescue',myTeam:'blue',teams:new Map(),ctf:null,lastMoveAt:new Map(),pvp:createPvPHealth(),pvpRemote:[]};
+  const o={api,peer:null,room:null,role:'solo',conn:null,connections:new Map(),peers:new Map(),origin:null,angle:0,phase:-2,hostagePos:null,hostageRescued:false,hostageActor:null,escortPlayer:null,escortState:null,hostageHealth:100,hostageShieldUntil:0,rescueActionStartedAt:0,rescueRequestAt:0,rescueReinforcementAt:0,routeCache:null,routeCacheAt:0,routeTarget:null,mask:0,held:40,spawnAfter:0,lastSnap:0,lastMove:0,ready:false,running:false,finished:false,objects:[],remoteEnemy:new Map(),remoteAvatar:new Map(),remoteBullet:new Map(),effects:[],cd:{pulse:0,shield:0,heal:0},shields:new Map(),lastActions:new Map(),myId:'local',lastHostSnapshot:0,lastSnapshotSeq:-1,snapshotSeq:0,lastShotAt:new Map(),localPositions:new Map(),enemySeq:0,seed:0,startedByHost:false,joined:false,referenceReady:false,referenceLength:0,expectedLength:null,calibrationQuality:'waiting',calibrationSeen:new Map(),gameMode:'rescue',myTeam:'blue',teams:new Map(),ctf:null,lastMoveAt:new Map(),pvp:createPvPHealth(),pvpRemote:[],net:{state:'solo',connectedAt:0,lastPong:0,lastPing:0,connectingAt:0,retryAt:0,attempts:0,reason:''}};
   const info=$('missionInfo'),phaseEl=$('missionStage'),desc=$('missionText'),progress=$('missionProgress'),team=$('teamStatus'),interact=$('interact'),ability=$('abilities');
   function teamUpdate(){const count=1+(o.role==='host'?o.connections.size:o.role==='guest'&&o.conn?.open?1:0);team.textContent=o.role==='solo'?'SOLO / OPERACIÓN':o.role==='host'?'JEFE DE SALA / '+count+' JUGADOR'+(count===1?'':'ES'):o.conn?.open?'EQUIPO CONECTADO':'RECONECTANDO…';$('crew').textContent=count+' / '+maxPlayers}
   function lobby(msg){$('lobbyMsg').textContent=msg}
+  function setNetwork(state,details=''){
+    o.net.state=state;
+    const labels={solo:'SOLO',hosting:'CREANDO SALA',waiting:'SALA CREADA · ESPERANDO EQUIPO',
+      connecting:'CONECTANDO DOS CELULARES',online:'DOS CELULARES CONECTADOS',
+      reconnect:'RECONECTANDO',failed:'CONEXIÓN NO DISPONIBLE',signaling:'RECUPERANDO RED'};
+    const detail=details?' · '+details:'';
+    const message=(labels[state]||state)+detail;
+    const intro=$('netStatus'),hud=$('netStatusHud');
+    if(intro){intro.textContent=message;intro.classList.toggle('hidden',state==='solo')}
+    if(hud){hud.textContent=message;hud.classList.toggle('hidden',state==='solo')}
+    api.refreshHud?.();
+  }
+  function manualRetry(){
+    if(!isGuest()){api.toast('CREÁ UNA SALA O UNITE CON UN CÓDIGO');return}
+    o.net.attempts=0;o.net.retryAt=performance.now()+100;
+    if(o.conn){const c=o.conn;o.conn=null;try{c.close()}catch(_){}}
+    if(o.peer){const peer=o.peer;o.peer=null;try{peer.destroy()}catch(_){}}
+    setNetwork('reconnect','REINTENTO MANUAL');
+  }
+  $('retryRoom')?.addEventListener('click',manualRetry);
   const P=(v)=>[+v.x.toFixed(3),+v.y.toFixed(3),+v.z.toFixed(3)];
   function from(v){return new THREE.Vector3(v?.[0]||0,v?.[1]||0,v?.[2]||0)}
   function send(c,msg){try{if(c?.open)c.send(msg)}catch(e){}}
