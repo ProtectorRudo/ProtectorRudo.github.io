@@ -132,7 +132,9 @@ function vibrate(a){try{navigator.vibrate?.(a)}catch(e){}}
 function tone(type){try{audio??=new (window.AudioContext||window.webkitAudioContext)();audio.resume();const o=audio.createOscillator(),o2=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.type='sawtooth';o2.type='triangle';const f=type==='fire'?145:type==='hurt'?76:440;o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(type==='fire'?36:55,t+.18);o2.frequency.setValueAtTime(f*1.6,t);o2.frequency.exponentialRampToValueAtTime(50,t+.16);g.gain.setValueAtTime(type==='fire'?.13:.055,t);g.gain.exponentialRampToValueAtTime(.0001,t+.2);o.connect(g);o2.connect(g);g.connect(audio.destination);o.start(t);o2.start(t);o.stop(t+.21);o2.stop(t+.20)}catch(e){}}
 function toast(s){$('toast').textContent=s;$('toast').classList.add('show');toastExpiry=performance.now()+2100}
 function event(s){$('event').textContent=s;$('event').classList.remove('hidden');eventExpiry=performance.now()+2400;vibrate([60,30,75])}
-function hud(){
+let lastHudRefresh=0;
+function hud(force=false){
+ const t=performance.now();if(!force&&t-lastHudRefresh<85)return;lastHudRefresh=t;
  const guest=!!mission?.isGuest(),hostageReady=!!mission?.hasHostage(),hasEntrance=nests.length>0;
  const stage=!hasEntrance?0:!hostageReady?1:2;
  $('smartPlace').classList.toggle('hidden',stage===2||(stage===1&&guest));
@@ -143,10 +145,11 @@ function hud(){
  $('setupStep').textContent=stage===0?'PASO 1 DE 3':stage===1?'PASO 2 DE 3':'PASO 3 DE 3';
  $('setupGuide').textContent=stage===0?'Apuntá al piso y tocá MARCAR':stage===1?(guest?'El anfitrión coloca al rehén':'Elegí dónde estará el rehén'):(guest?'Esperá a que el anfitrión empiece':'Todo listo para el rescate');
  $('setupDetail').textContent=stage===0?'Los jugadores deben marcar el mismo punto del suelo.':stage===1?(guest?'Podés mirar alrededor mientras esperás.':'El mapeo de paredes es opcional. Después de ubicar el rehén, pueden empezar.'):(guest?'Los terroristas y el rehén serán compartidos por el equipo.':'Podés empezar directamente o marcar paredes antes si querés.');
- $('hostage').disabled=!nests.length||guest||active;$('begin').disabled=!nests.length||(!mission?.isGuest()&&!mission?.hasHostage());$('health').textContent=Math.ceil(life)+'%';$('healthBar').style.width=life+'%';$('wave').textContent=round?String(round).padStart(2,'0'):'—';$('clock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(Math.max(0,Math.floor(seconds%60))).padStart(2,'0');$('ammo').innerHTML=ammo+'<span> / '+capacity()+'</span>';$('nestCount').textContent='NIDOS FIJADOS: '+nests.length;$('begin').disabled=!hasEntrance||!hostageReady||guest;$('begin').textContent=active?'VOLVER AL COMBATE':'▶ EMPEZAR RESCATE'}
-function ui(){if(mapping){$('mapPanel').classList.remove('hidden')}$('swapGun').classList.toggle('hidden',!active);$('setup').classList.toggle('hidden',!placing);$('fight').classList.toggle('hidden',placing);$('gunCanvas').classList.toggle('hidden',!active);$('hint').classList.toggle('hidden',!placing);$('sightText').textContent=placing?'RASTREANDO SUPERFICIE':'';hud()}
+ $('hostage').disabled=!nests.length||guest||active;$('begin').disabled=!nests.length||(!mission?.isGuest()&&!mission?.hasHostage());$('health').textContent=Math.ceil(life)+'%';$('healthBar').style.width=life+'%';$('wave').textContent=round?String(round).padStart(2,'0'):'—';$('clock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(Math.max(0,Math.floor(seconds%60))).padStart(2,'0');const ammoHtml=ammo+'<span> / '+capacity()+'</span>';
+ if($('ammo').innerHTML!==ammoHtml)$('ammo').innerHTML=ammoHtml;$('nestCount').textContent='NIDOS FIJADOS: '+nests.length;$('begin').disabled=!hasEntrance||!hostageReady||guest;$('begin').textContent=active?'VOLVER AL COMBATE':'▶ EMPEZAR RESCATE'}
+function ui(){if(mapping){$('mapPanel').classList.remove('hidden')}$('swapGun').classList.toggle('hidden',!active);$('setup').classList.toggle('hidden',!placing);$('fight').classList.toggle('hidden',placing);$('gunCanvas').classList.toggle('hidden',!active);$('hint').classList.toggle('hidden',!placing);$('sightText').textContent=placing?'APUNTÁ AL PISO':'';hud(true)}
 function cleanup(){spawnQueue.length=0;nextSpawnTime=0;spatialMap.clear();mapping=false;if(mapGhost)mapGhost.visible=false;if(mapFirstGhost)mapFirstGhost.visible=false;$('mapPanel').classList.add('hidden');mapFirst=null;mapPoint=null;mapStatus();for(const e of enemies){disposeHuman(e);e.root.parent?.remove(e.root)}for(const n of nests){try{n.anchor?.delete()}catch(e){}world.remove(n.root)}for(const i of [...orbs,...trails,...splinters])world.remove(i.mesh);nests=[];enemies=[];orbs=[];trails=[];splinters=[]}
-function reset(){mission?.reset();triggerHeld=false;aiming=false;aimBlend=0;$('aimMode').classList.remove('aimed');$('aimMode').textContent='MIRA ◎';$('sight').classList.remove('ads');if(mode==='demo'){camera.fov=65;camera.updateProjectionMatrix()}cleanup();placing=true;active=false;ended=false;round=0;kills=0;currentWeapon='rifle';magazines={rifle:28,pistol:12};ammo=28;if(gunReady)syncWeapon();reloading=false;seconds=480;life=100;newRound=0;pose=null;hitResult=null;previous=0;ui();toast('APUNTÁ AL PISO Y TOCÁ MARCAR ENTRADA')}
+function reset(){mission?.reset();triggerHeld=false;aiming=false;aimBlend=0;$('aimMode').classList.remove('aimed');$('aimMode').textContent='MIRA ◎';$('sight').classList.remove('ads');if(mode==='demo'){camera.fov=65;camera.updateProjectionMatrix()}cleanup();placing=true;active=false;ended=false;round=0;kills=0;currentWeapon='rifle';magazines={rifle:28,pistol:12};ammo=28;if(gunReady)syncWeapon();reloading=false;seconds=480;life=100;newRound=0;pose=null;hitResult=null;previous=0;lastHudRefresh=0;ui();toast('APUNTÁ AL PISO Y TOCÁ MARCAR ENTRADA')}
 function estimateFloorPoint(floorY=null){
  const c=getCam(),eye=new THREE.Vector3(),forward=new THREE.Vector3();
  c.getWorldPosition(eye);c.getWorldDirection(forward);
@@ -179,7 +182,7 @@ function place(){
  const circle=new THREE.Mesh(new THREE.TorusGeometry(.16,.006,6,42).rotateX(-Math.PI/2),mat.sigil);circle.position.y=.012;root.add(circle);
  const n={root,anchor:null,radius:.68,floor:true,surfaceScale:1};nests.push(n);
  if(mode==='ar'&&target.detected&&target.anchor&&typeof target.anchor.createAnchor==='function')Promise.resolve(target.anchor.createAnchor()).then(anchor=>{if(nests.includes(n))n.anchor=anchor}).catch(()=>{});
- if(nests.length===1)mission?.align(n.root);hud();tone('hit');vibrate(30);
+ if(nests.length===1)mission?.align(n.root);hud(true);tone('hit');vibrate(30);
  toast(target.detected?'ENTRADA FIJADA EN EL PISO ✓':'ENTRADA APROXIMADA ✓ · VOLVÉ A MARCAR SI NO COINCIDE');
 }
 function placeHostage(){
@@ -189,7 +192,7 @@ function placeHostage(){
  const where=currentFloorTarget().point;where.y=nests[0].root.position.y;
  const distance=Math.hypot(where.x-nests[0].root.position.x,where.z-nests[0].root.position.z);
  if(distance<1.25)return toast('APUNTÁ MÁS LEJOS DE LA ENTRADA');
- if(mission?.placeHostage(where)){hud();tone('hit');toast('REHÉN UBICADO ✓ · EMPEZÁ EL RESCATE')}
+ if(mission?.placeHostage(where)){hud(true);tone('hit');toast('REHÉN UBICADO ✓ · EMPEZÁ EL RESCATE')}
 }
 const spawnQueue=[];let nextSpawnTime=0;
 function wave(total=6,boss=false){
