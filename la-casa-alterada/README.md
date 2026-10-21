@@ -1,10 +1,20 @@
-# BLACKZONE — Tactical AR (V23)
+# BLACKZONE — Tactical AR (V24)
 
 **Nombre actual del juego: BLACKZONE.** Anteriormente denominado *La Casa Alterada*, conservado en la ruta heredada del repositorio y en el enlace Vercel existente para evitar romper enlaces de versiones anteriores.
 
 Shooter táctico web de realidad aumentada con dos modos: **Rescate de Rehenes (cooperativo)** y **Captura la Bandera (cooperativo o versus con bots configurables)**.
 
 El historial técnico anterior se conserva debajo, con descripciones correspondientes a cada etapa del desarrollo.
+
+## V24 — Emergencia: personajes AR visibles y diagnóstico verificable
+
+- **AR independiente de GLB:** los personajes y el rehén mantienen la geometría táctica nativa (no se oculta el modelo básico para reemplazarlo por un archivo descargado). Las figuras animadas se conservan en práctica 3D; esto es temporal hasta validar renderizado real.
+- **Tamaño:** enemigos de Rescate pasan de escala 0,68 a 0,96; mejor legibilidad desde la cámara. Bots de captura pasan de 0,92 a 1.
+- **Aparición con distancia frontal:** posiciones no superpuestas a más de 3 metros en la dirección inicial de cámara, con rechazo en zonas mapeadas demasiado pequeñas (no se crean amenazas fuera del perímetro).
+- **Disparos condicionados:** solo si el enemigo está en el cono de cámara, visible en el grafo 3D y sin protección de arranque; las posiciones fuera de cámara no pueden infligir daño.
+- **Rehén:** conserva la figura propia y un marcador de objetivo brillante en la escena, independiente de internet.
+- **Diagnóstico in situ:** el HUD muestra cantidad de objetos 3D creados y los que están geométricamente frente a la cámara; *no afirma que efectivamente se hayan dibujado en un celular*. Botón **VERIFICAR 3D** coloca un rombo verde a 1,8 m de la cámara por siete segundos, y prolonga el escudo en Rescate mientras se comprueba el renderizado. Si el rombo tampoco aparece, investigar WebXR/Three renderer/dispositivo, no la IA.
+- Sin pruebas de cámara de un celular real todavía. Los tests cubren geometría y regresiones, pero la prueba de un dispositivo compatible continúa siendo necesaria.
 
 ## V23 — Hotfix visibilidad y arranque seguro del Rescate
 

@@ -291,6 +291,13 @@ export function createMission(api){
     for(const k of [-1,1]){part(0,cloth,k*.3,.93,0,.10,.29,.11);part(0,pants,k*.12,.42,0,.115,.39,.13)}
     const marker=new THREE.Mesh(new THREE.RingGeometry(.34,.35,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x54d7d3,transparent:true,opacity:.88,side:THREE.DoubleSide}));
     marker.position.y=.019;root.add(marker);
+ // Large emissive goal marker, part of the WebGL scene (not screen HUD).
+ const glow=new THREE.Mesh(new THREE.SphereGeometry(.17,16,12),
+   new THREE.MeshBasicMaterial({color:0x5affd5,depthTest:false,depthWrite:false}));
+ glow.position.set(0,1.94,0);glow.renderOrder=101;root.add(glow);
+ const pole=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,1.25,10),
+   new THREE.MeshBasicMaterial({color:0x65f5da,depthTest:false,depthWrite:false}));
+ pole.position.set(0,2.66,0);pole.renderOrder=98;root.add(pole);
     const labelCanvas=document.createElement('canvas');labelCanvas.width=320;labelCanvas.height=80;
  const context=labelCanvas.getContext('2d');context.fillStyle='rgba(10,27,39,0.84)';context.fillRect(2,5,316,69);
  context.strokeStyle='#79dfcb';context.lineWidth=3;context.strokeRect(2,5,316,69);
@@ -309,7 +316,12 @@ export function createMission(api){
  beacon.position.set(0,2.47,0);beacon.renderOrder=99;root.add(beacon);
  const actor={root,flesh,hostage:true,alive:true,phase:0,marker,markerText};
     o.origin.add(root);root.position.copy(o.hostagePos);o.hostageActor=actor;
-    attachHuman(actor,'hostage').then(success=>{if(success&&o.hostageRescued){actor.hostage=false;playHuman(actor,'walk')}});
+    // XR must never hide the native hostage behind an external GLB model:
+ // phones may fail to load/decode or size the downloaded rig.
+ if(api.getMode?.()!=='ar')
+   attachHuman(actor,'hostage').then(success=>{
+     if(success&&o.hostageRescued){actor.hostage=false;playHuman(actor,'walk')}
+   });
   }
   function placeHostage(worldPoint){
     if(isGuest()){api.toast('Solo el anfitrión coloca al rehén');return false}
@@ -735,5 +747,11 @@ function networkState(){
  if(!o.lastHostSnapshot)return 'waiting';
  return delta>3100?'stale':'synced';
 }
-return{align,alignSecond,alignmentStatus,needsReference,teamCalibration,updateTrackedFrame,roomOrigin:()=>o.origin,configureLobby,chooseMyTeam,isCapture,teamOf,placeFlag,captureStatus,captureBotDown,capturePlayersWorld,relayCTFBotShot,tagEnemyPlayer,reset,start,navigationTarget,networkState,relayShot,relayEnemyHit,relayEnemyDown,placeHostage,hostageWorld,hostageExposed:()=>o.running&&o.phase<0&&o.hostageHealth>0,damageHostage,healHostage,hasHostage:()=>!!o.hostagePos,isGuest,isHost,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result,clock:api.clock(),wave:api.wave(),kills:api.kills?.()||0})},localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
+return{align,alignSecond,alignmentStatus,needsReference,teamCalibration,updateTrackedFrame,roomOrigin:()=>o.origin,configureLobby,chooseMyTeam,isCapture,teamOf,placeFlag,captureStatus,captureBotDown,capturePlayersWorld,relayCTFBotShot,tagEnemyPlayer,reset,start,navigationTarget,networkState,relayShot,relayEnemyHit,relayEnemyDown,placeHostage,hostageWorld,hostageExposed:()=>o.running&&o.phase<0&&o.hostageHealth>0,damageHostage,healHostage,hasHostage:()=>!!o.hostagePos,
+ hostageRenderPoint:()=>{
+  if(!o.hostageActor?.root?.parent)return null;
+  const pos=new THREE.Vector3();
+  o.hostageActor.root.getWorldPosition(pos);pos.y+=1.12;return pos;
+ },
+ isGuest,isHost,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result,clock:api.clock(),wave:api.wave(),kills:api.kills?.()||0})},localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
 }
