@@ -156,7 +156,7 @@ export function createMission(api){
     if(!isCapture()||!o.running||!isHost()||!id||teamOf(id)===teamOf(attacker))return false;
     const victim=localPositionOf(id);
     if(!victim)return false;
-    ctf.eliminateCarrier(id,victim,performance.now());
+    if(!ctf.tagPlayer(id,victim,performance.now()))return false;
     if(id===o.myId)api.ctfTag?.(1);else send(o.connections.get(id),{t:'ctfTag',power:1});
     return true;
   }
