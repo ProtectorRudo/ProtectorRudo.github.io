@@ -14,7 +14,7 @@ function createSimulation(x=.6,{guest=false,throwAnimation=false,throwEvent=fals
   clone(){return new Vector(this.x,this.y,this.z)}
  };
  const p=new Vector(x,0,0),o={
-  running:true,phase:-2,hostagePos:new Vector(0,0,0),rescueActionStartedAt:0,
+  running:true,phase:-2,myId:'local',hostagePos:new Vector(0,0,0),rescueActionStartedAt:0,
   rescueRequestAt:0,origin:{localToWorld:a=>a},hostageActor:{hostage:true}
  };
  const classes=new Set(),messages=[],events=[],sent=[];
