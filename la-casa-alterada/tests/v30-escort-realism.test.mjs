@@ -48,7 +48,7 @@ test('escort is committed independently of winning, with clean human fighter ske
  assert.doesNotMatch(mission,/else if\(dist<minGap/);
  assert.match(humans,/if\(actor\.flesh\)actor\.flesh\.visible=false/);
  assert.doesNotMatch(humans,/equipStudioHuman|V29_REALISTIC_KIT|bones\[0\]\.add\(rifle\)/);
- assert.match(humans,/raiderA:CDN\+'npc-jordan-locomotion\.glb'/);
+ assert.match(humans,/raiderA:MILITARY\+'soldier\.glb'/);
 });
 test('all modified runtime JS is parseable',()=>{
  for(const name of ['main.js','missions.js','animated-humans.js','escort-rules.js']){
