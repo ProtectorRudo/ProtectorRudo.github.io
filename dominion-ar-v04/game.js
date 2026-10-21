@@ -43,27 +43,40 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
   'body.dominion-match header,body.dominion-match footer{opacity:0;pointer-events:none!important}',
   '@media(max-height:650px){#dbattle .dbbottom{padding:4px 6px}#dbattle .dbcard{min-height:66px}#dbattle .dbcard strong{font-size:18px}#dbattle .dbtop{top:calc(2px + env(safe-area-inset-top))}}'
  ].join('');
- document.head.appendChild(style);
+ // HUD visual styles are in battle-ui.css, avoiding the old UI cascade.
+
  const hud=document.createElement('div');hud.id='dbattle';hud.innerHTML=[
   '<div class="dbtop"><div class="dbstat"><small>MI BASE</small><strong id="mybase">650</strong><div class="dbprogress"><i id="mybar"></i></div></div>',
   '<div class="dbstat"><small>TIEMPO</small><strong id="matchclock">3:00</strong><small id="phase">DUELO</small></div>',
   '<div class="dbstat opp"><small>IA RIVAL</small><strong id="enemybase">650</strong><div class="dbprogress"><i id="enemybar" style="background:#f3a189"></i></div></div></div>',
   '<div class="dbtoast" id="dbtoast"></div>',
-  '<div class="dbintro" id="intro"><div style="font-size:10px;letter-spacing:.17em;color:#a6f0c8">DOMINION AR · PRIMER DUELO</div>',
-  '<h2 id="introtitle">¡Prepará tu ejército!</h2><p id="introdesc">Partida de 3 minutos contra la computadora. Elegí una carta, desplegá unidades por izquierda, centro o derecha y destruí la base rival.</p>',
+  '<div class="dbintro" id="intro"><div class="dbtag">DOMINION / OPERACIÓN 01</div>',
+  '<h2 id="introtitle">La mesa es tu campo de batalla.</h2><p id="introdesc">Elegí una carta, arrastrala sobre la mesa y soltala para desplegar. Destruí la base rival antes que la tuya.</p>',
+  '<div class="dbsteps"><span><b>01</b> Elegí una carta</span><span><b>02</b> Arrastrá a la mesa</span><span><b>03</b> Atacá su base</span></div>',
   '<button id="launch" class="dbprimary">▶ INICIAR BATALLA</button><div><button id="close" class="dbaux" style="margin-top:10px">SOLO MIRAR LA ARENA</button></div></div>',
-  '<div class="dbbottom" id="dbbottom" style="display:none"><div class="dbresource"><span>⚡ ENERGÍA <b id="energyvalue">5 / 10</b></span>',
-  '<span id="nextcard">SIGUIENTE: DRON</span><button id="quit" class="dbaux">SALIR</button></div>',
+  '<div class="dbtaplayer" id="taplayer"></div><div class="dbghost" id="dragghost"></div><div class="dbguide" id="dragguide">Arrastrá la carta sobre tu mitad de la mesa</div>',
+  '<div class="dbbottom" id="dbbottom" style="display:none"><div class="dbresource"><span>✦ ENERGÍA <b id="energyvalue">5 / 10</b></span>',
+  '<span id="nextcard">PRÓXIMA: DRON</span><button id="sound" class="dbaux" aria-label="Activar sonido">🔇</button><button id="quit" class="dbaux">SALIR ×</button></div>',
   '<div class="dbenergy"><i id="energyfill"></i></div>',
   '<div class="dblanes" id="lanecontrols"><button data-lane="0">◀ IZQUIERDA</button><button data-lane="1">● CENTRO</button><button data-lane="2">DERECHA ▶</button></div>',
-  '<div class="dbdeck" id="carddeck"></div></div>'
+  '<div class="dbdeck" id="carddeck"></div><div class="dbtutorial" id="dbtip">DESLIZÁ UNA CARTA A LA ARENA · O TOCÁ UNA CARTA Y LA MESA</div></div>'
  ].join('');
  document.getElementById('ui').appendChild(hud);
  const el=s=>hud.querySelector('#'+s);
- const H={mine:el('mybase'),enemy:el('enemybase'),mybar:el('mybar'),enemybar:el('enemybar'),clock:el('matchclock'),phase:el('phase'),toast:el('dbtoast'),intro:el('intro'),title:el('introtitle'),desc:el('introdesc'),launch:el('launch'),bottom:el('dbbottom'),energy:el('energyvalue'),energyfill:el('energyfill'),next:el('nextcard'),deck:el('carddeck'),lanes:el('lanecontrols')};
- let status='idle',time=0,maxTime=180,overtime=false,energy=5,enemyEnergy=5,units=[],buildings=[],effects=[],hand=[0,1,2,3],next=4,selected=null,aiCooldown=2.3,unitSerial=0,notifyUntil=0,elapsedHud=0,deckRenderKey='',model=null,cloneFn=cloneSkeleton,modelAnimations=[];
+ const H={mine:el('mybase'),enemy:el('enemybase'),mybar:el('mybar'),enemybar:el('enemybar'),clock:el('matchclock'),phase:el('phase'),toast:el('dbtoast'),intro:el('intro'),title:el('introtitle'),desc:el('introdesc'),launch:el('launch'),bottom:el('dbbottom'),energy:el('energyvalue'),energyfill:el('energyfill'),next:el('nextcard'),deck:el('carddeck'),lanes:el('lanecontrols'),tap:el('taplayer'),ghost:el('dragghost'),guide:el('dragguide'),tip:el('dbtip'),sound:el('sound')};
+ let status='idle',time=0,maxTime=150,overtime=false,energy=6,enemyEnergy=4,units=[],buildings=[],effects=[],hand=[0,1,2,3],next=4,selected=null,aiCooldown=3.8,unitSerial=0,notifyUntil=0,elapsedHud=0,deckRenderKey='',model=null,cloneFn=cloneSkeleton,modelAnimations=[];
  const rng=(a,b)=>a+(b-a)*Math.random();
  function signal(msg,duration=1.1){H.toast.textContent=msg;H.toast.classList.add('visible');notifyUntil=duration;}
+ let soundOn=false,audioContext=null;
+ function feedback(kind='deploy'){
+  if(typeof navigator!=='undefined'&&typeof navigator.vibrate==='function'&&kind!=='shot')try{navigator.vibrate(kind==='hit'?25:12)}catch(e){}
+  if(!soundOn)return;
+  try{audioContext??=new (window.AudioContext||window.webkitAudioContext)();if(audioContext.state==='suspended')audioContext.resume();
+   const osc=audioContext.createOscillator(),gain=audioContext.createGain(),t=audioContext.currentTime;
+   osc.type=kind==='hit'?'sawtooth':'triangle';osc.frequency.setValueAtTime(kind==='hit'?130:kind==='win'?580:350,t);
+   osc.frequency.exponentialRampToValueAtTime(kind==='hit'?60:200,t+.11);gain.gain.setValueAtTime(.018,t);gain.gain.exponentialRampToValueAtTime(.0001,t+.14);osc.connect(gain);gain.connect(audioContext.destination);osc.start(t);osc.stop(t+.15);
+  }catch(e){soundOn=false;}
+ }
  function box(w,h,d,x,y,z,mat,parent){const g=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);g.position.set(x,y,z);g.castShadow=true;g.receiveShadow=true;parent.add(g);return g;}
  function cleanup(){for(const obj of [...units,...buildings])obj.mesh?.parent?.remove(obj.mesh);for(const effect of effects)effect.mesh.parent?.remove(effect.mesh);units=[];buildings=[];effects=[];}
  function healthBar(parent,team,height){
@@ -85,7 +98,8 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
   return b;
  }
  function setup(){
-  cleanup();time=0;maxTime=180;overtime=false;energy=5;enemyEnergy=5;selected=null;next=4;hand=[0,1,2,3];aiCooldown=2.3;elapsedHud=0;deckRenderKey='';
+  cleanup();time=0;maxTime=150;overtime=false;energy=6;enemyEnergy=4;selected=null;next=4;hand=[0,1,2,3];aiCooldown=3.8;elapsedHud=0;deckRenderKey='';
+  H.tap.classList.remove('on');H.guide.classList.remove('on');H.ghost.classList.remove('on');
   for(const team of [0,1]){createBuilding(team,1,true);createBuilding(team,0,false);createBuilding(team,2,false);}
   drawHUD();
  }
@@ -234,6 +248,8 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
  }
  function finish(result){
   status='ended';H.bottom.style.display='none';H.intro.style.display='block';
+  H.tap.classList.remove('on');H.guide.classList.remove('on');H.ghost.classList.remove('on');
+  feedback(result==='win'?'win':'hit');
   H.title.textContent=result==='win'?'🏆 ¡VICTORIA!':result==='lose'?'⚔️ DERROTA':'🤝 EMPATE';
   H.desc.textContent=result==='win'?'¡Destruiste las defensas enemigas!':result==='lose'?'La computadora ganó este duelo. Cambiá de cartas y buscá otra estrategia.':'¡Partida muy pareja!';
   H.launch.textContent='↻ JUGAR REVANCHA';H.lanes.classList.remove('on');
@@ -258,9 +274,9 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
   if(status==='ready'){H.intro.style.display='block';H.bottom.style.display='none';}
  }
  function stop(){
-  status='idle';hud.classList.remove('open');document.body.classList.remove('dominion-match');selected=null;H.lanes.classList.remove('on');H.toast.classList.remove('visible');cleanup();
+  status='idle';hud.classList.remove('open');document.body.classList.remove('dominion-match');selected=null;H.lanes.classList.remove('on');H.tap.classList.remove('on');H.guide.classList.remove('on');H.ghost.classList.remove('on');H.toast.classList.remove('visible');cleanup();
  }
- function begin(){setup();status='playing';H.intro.style.display='none';H.bottom.style.display='block';signal('¡COMIENZA EL COMBATE!',1.4);}
+ function begin(){setup();status='playing';H.intro.style.display='none';H.bottom.style.display='block';signal('¡DEFENDÉ TU BASE!',1.5);feedback();}
  function playCard(index,lane,z){
   if(status!=='playing')return;
   if(energy<catalogue[index].cost){signal('Falta energía ⚡');return;}
@@ -300,6 +316,7 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
   playCard(d.index,lane,z);
  });
  H.launch.addEventListener('click',begin);
+ H.sound.addEventListener('click',()=>{soundOn=!soundOn;H.sound.textContent=soundOn?'🔊':'🔇';H.sound.setAttribute('aria-label',soundOn?'Silenciar':'Activar sonido');if(soundOn)feedback('deploy');});
  for(const name of ['close','quit'])el(name).addEventListener('click',stop);
  return {show,stop,tick(dt){if(status==='playing')step(Math.min(dt,.06));},setModel(gltf){model=gltf;modelAnimations=(gltf.animations||[]).filter(a=>/walk|run|jog/i.test(a.name)).slice(0,1);if(!modelAnimations.length)modelAnimations=(gltf.animations||[]).slice(0,1);},get active(){return status!=='idle'},get state(){return status}};
 }
