@@ -113,7 +113,9 @@ test('cover placement and flag controls are wired during combat',()=>{
  assert.ok(ui.includes('id="coverPreset"'));
  assert.ok(main.includes('spatialMap.addCover(point'));
  assert.ok(main.includes("!active||ended||placing||mapping"));
- assert.ok(mission.includes("if(isCapture())pickupFlag();else beginRescueTap()"));
+ assert.ok(mission.includes("if(isCapture())pickupFlag();"));
+ assert.ok(mission.includes("const result=beginRescueTap();"));
+ assert.ok(mission.includes("interact.addEventListener('pointerdown',missionActionInput"));
  assert.ok(mission.includes("if(msg.t==='ctfPickup'"));
  assert.ok(mission.includes("ctf.tryPickup(conn.peer"));
 });
