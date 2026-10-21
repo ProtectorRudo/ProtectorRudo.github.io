@@ -137,7 +137,7 @@ export function createCaptureFlag(THREE,api){
        if(time<e.ctfRespawnAt)continue;
        e.ctfRespawnAt=0;e.alive=true;e.hp=3;e.root.visible=true;
        e.ctfProtectedUntil=time+1100;
-       e.ctfShotAt=Math.max(e.ctfShotAt||0,time+650);
+       e.ctfShotAt=Math.max(e.ctfShotAt||0,time+1150);
        e.root.position.copy(origin().localToWorld(S.bases[e.team].clone()));
      }
      const carrying=TEAMS.some(t=>S.flags[t].carrier==='bot:'+e.id);
