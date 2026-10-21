@@ -298,6 +298,7 @@ function cleanup(){
  ctfTaggedUntil=0;rescueProtectedUntil=0;rescueCombatArmed=mode!=='ar';
  spawnQueue.length=0;nextSpawnTime=0;
  if(testMarker){testMarker.parent?.remove(testMarker);testMarker=null}
+ $('activateCombat').classList.add('hidden');$('hud').classList.remove('arActive');
  $('renderStatus').classList.add('hidden');$('test3D').classList.add('hidden');$('zoneProximity').classList.add('hidden');$('ctfScoreboard').classList.add('hidden');$('navGuide').classList.add('hidden');$('netSignal').classList.add('hidden');spatialMap.clear();mapping=false;if(mapGhost)mapGhost.visible=false;if(mapFirstGhost)mapFirstGhost.visible=false;$('mapPanel').classList.add('hidden');mapFirst=null;mapPoint=null;mapStatus();for(const e of enemies){disposeHuman(e);e.root.parent?.remove(e.root)}for(const n of nests){try{n.anchor?.delete()}catch(e){}world.remove(n.root)}for(const i of [...orbs,...trails,...splinters])world.remove(i.mesh);nests=[];enemies=[];orbs=[];trails=[];splinters=[]}
 function reset(){mission?.reset();triggerHeld=false;aiming=false;aimBlend=0;$('aimMode').classList.remove('aimed');$('aimMode').textContent='MIRA ◎';$('sight').classList.remove('ads');if(mode==='demo'){camera.fov=65;camera.updateProjectionMatrix()}cleanup();placing=true;active=false;ended=false;round=0;kills=0;currentWeapon='rifle';magazines={rifle:28,pistol:12};ammo=28;if(gunReady)syncWeapon();reloading=false;seconds=480;life=100;newRound=0;pose=null;hitResult=null;previous=0;lastHudRefresh=0;lastReferenceUpdate=0;ui();toast('APUNTÁ AL PISO Y TOCÁ MARCAR ENTRADA')}
 function estimateFloorPoint(floorY=null){
@@ -407,9 +408,29 @@ function verify3D(){
  toast('PRUEBA: ¿VES EL ROMBO VERDE DELANTE DE LA CÁMARA?');
 }
 $('test3D').addEventListener('click',verify3D);
+$('activateCombat').addEventListener('click',()=>{
+  if(mode!=='ar'||!active||ended||mission?.isCapture?.()||rescueCombatArmed)return;
+  if(!enemies.some(e=>e.alive&&e.root.parent)){
+    toast('ESPERÁ A QUE APAREZCAN LOS ENEMIGOS EN EL ESPACIO');
+    return;
+  }
+  if(!arCompositor?.frames){
+    toast('EL RENDERIZADOR 3D TODAVÍA NO ESTÁ LISTO');
+    return;
+  }
+  rescueCombatArmed=true;
+  rescueProtectedUntil=performance.now()+4000;
+  toast('COMBATE ACTIVADO · 4 SEGUNDOS MÁS DE PROTECCIÓN');
+  $('activateCombat').classList.add('hidden');
+  hud(true);
+});
 function updateRenderStatus(t){
  if(t-lastRenderStatus<450)return;lastRenderStatus=t;
  const status=$('renderStatus'),test=$('test3D'),show=mode!=='idle'&&(active||mission?.hasHostage?.());
+ $('hud').classList.toggle('arActive',mode==='ar'&&active);
+ const confirm=mode==='ar'&&active&&!ended&&!mission?.isCapture?.()&&
+   !rescueCombatArmed&&enemies.some(e=>e.alive&&e.root.parent);
+ $('activateCombat').classList.toggle('hidden',!confirm);
  status.classList.toggle('hidden',!show);test.classList.toggle('hidden',!show);
  if(!show)return;
  const c=getCam(),eye=new THREE.Vector3(),forward=new THREE.Vector3();
@@ -429,9 +450,13 @@ function updateRenderStatus(t){
  const botText='BOTS 3D: '+valid.length+
    ' · EN MIRA '+aiming+
    (queued?' · ENTRANDO '+queued:'');
- const text=hostText+' | '+botText;
+ const compositor=mode==='ar'?
+  (' | RENDER: '+(arCompositor?.error?'ERROR':arCompositor?.frames?'WEBGL ACTIVO':'SIN CAPA 3D')):
+  '';
+ const text=hostText+' | '+botText+compositor;
  if(status.textContent!==text)status.textContent=text;
- status.classList.toggle('problem',!hostage&&!mission?.isCapture?.()||(!valid.length&&!queued&&active));
+ status.classList.toggle('problem',!hostage&&!mission?.isCapture?.()||
+   (!valid.length&&!queued&&active)||mode==='ar'&&!arCompositor?.frames);
  if(testMarker&&t>=testMarkerUntil){
    testMarker.parent?.remove(testMarker);testMarker=null;testMarkerUntil=0;
  }
@@ -1105,7 +1130,14 @@ function updateFrame(t,frame){now=t;
  const qualityChange=adaptiveQuality.sample(dt,mode==='demo'&&active&&!document.hidden);
  if(qualityChange&&renderer.getPixelRatio()!==qualityChange.ratio)
    renderer.setPixelRatio(qualityChange.ratio);
- if(mode==='ar')updateXR(frame);if(mode==='demo'){moveDemo(dt);updateDemo()}processSpawns(t);updateBattle(dt,t);mission?.tick(dt,t);updateRespawnShields(t);updateGuidance(t);updateZoneProximity(t);updateRenderStatus(t);effects(dt,t);combatFX.tick(dt);renderer.render(world,camera);updateGun(dt,t)}
+ if(mode==='ar')updateXR(frame);if(mode==='demo'){moveDemo(dt);updateDemo()}processSpawns(t);updateBattle(dt,t);mission?.tick(dt,t);updateRespawnShields(t);updateGuidance(t);updateZoneProximity(t);updateRenderStatus(t);effects(dt,t);combatFX.tick(dt);
+ if(mode==='ar'&&ar){
+   // Update WebXR tracked eye without drawing the tactical world to the
+   // device's unreliable native AR compositor.
+   renderer.render(nativeXRScene,camera);
+   if(arCompositor)arCompositor.render(world,renderer.xr.getCamera(camera));
+ }else renderer.render(world,camera);
+ updateGun(dt,t)}
 renderer.setAnimationLoop(updateFrame);preloadHumans();
 
 function remoteStart(){if(!nests.length||active)return;begin()}
