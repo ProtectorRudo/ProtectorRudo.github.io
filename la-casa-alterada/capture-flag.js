@@ -4,7 +4,7 @@
  */
 export function createCaptureFlag(THREE,api){
  const TEAMS=['blue','red'],COLORS={blue:0x51caff,red:0xff6c66};
- const fresh=()=>({carrier:null,dropped:null,stamp:0});
+ const fresh=()=>({carrier:null,dropped:null,stamp:0,last:null});
  const safe2D=(a,b)=>a&&b?Math.hypot(a.x-b.x,a.z-b.z):Infinity;
  const S={config:{bots:2,difficulty:'normal',versus:false},bases:{blue:null,red:null},
   scores:{blue:0,red:0},flags:{blue:fresh(),red:fresh()},visuals:{},running:false,
@@ -71,7 +71,8 @@ export function createCaptureFlag(THREE,api){
  }
  function returnHome(t){S.flags[t]=fresh();api.event?.('BANDERA '+(t==='blue'?'AZUL':'ROJA')+' RECUPERADA')}
  function drop(t,pos,time){
-   S.flags[t]={carrier:null,dropped:pos?.clone?.()||S.bases[t]?.clone()||null,stamp:time};
+   S.flags[t]={...fresh(),dropped:pos?.clone?.()||S.flags[t].last?.clone()||S.bases[t]?.clone()||null,stamp:time};
+   api.event?.('BANDERA '+(t==='blue'?'AZUL':'ROJA')+' CAÍDA · ¡RECUPERALA!');
  }
  function eliminateCarrier(id,pos,time){
    for(const t of TEAMS)if(S.flags[t].carrier===id)drop(t,pos,time);
@@ -102,7 +103,11 @@ export function createCaptureFlag(THREE,api){
    const members=roster();
    for(const t of TEAMS){
      const f=S.flags[t],base=S.bases[t];if(!base)continue;
-     if(f.carrier&&!ownerPosition(f.carrier))drop(t,f.dropped||base,time);
+     if(f.carrier){
+       const carrier=ownerPosition(f.carrier);
+       if(carrier)f.last=carrier.clone();
+       else drop(t,f.last||base,time);
+     }
      if(f.dropped&&time-f.stamp>=14000){returnHome(t);continue}
      if(f.carrier)continue;
      const at=flagLocation(t);
@@ -112,7 +117,8 @@ export function createCaptureFlag(THREE,api){
          if(f.dropped){returnHome(t);break}
          continue; // Defenders don't make a flag impossible to steal.
        }
-       f.carrier=p.id;f.dropped=null;api.event?.('BANDERA '+(t==='blue'?'AZUL':'ROJA')+' ROBADA');
+       f.carrier=p.id;f.dropped=null;f.last=p.pos.clone();
+       api.event?.('BANDERA '+(t==='blue'?'AZUL':'ROJA')+' ROBADA');
        break;
      }
    }
@@ -226,7 +232,8 @@ export function createCaptureFlag(THREE,api){
    if(!S.running)configure(state.config);
    for(const t of TEAMS){
      const p=point(state.bases?.[t]);if(p)S.bases[t]=p;
-     const f=state.flags?.[t];if(f)S.flags[t]={carrier:typeof f.carrier==='string'?f.carrier:null,dropped:point(f.dropped),stamp:Number(f.stamp)||0};
+     const f=state.flags?.[t];if(f)S.flags[t]={...fresh(),carrier:typeof f.carrier==='string'?f.carrier:null,
+       dropped:point(f.dropped),stamp:Number(f.stamp)||0};
      if(Number.isFinite(state.scores?.[t]))S.scores[t]=Math.max(0,Math.min(99,Math.trunc(state.scores[t])));
    }
    S.running=!!state.running;S.finished=!!state.finished;S.winner=state.winner||null;
