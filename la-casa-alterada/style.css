@@ -432,3 +432,21 @@
 #interact.rescuing::after{content:'';display:block;position:absolute;
  height:5px;left:0;bottom:0;max-width:100%;width:var(--rescue-progress,0%);
  background:#b8f8d7;box-shadow:0 0 10px #90e4c9;transition:width .09s linear}
+
+/* BLACKZONE V27 — tactical cover placement is available during the battle. */
+.coverDeploy{position:absolute;left:11px;bottom:calc(294px + env(safe-area-inset-bottom));
+ display:flex;gap:6px;align-items:center;z-index:5;pointer-events:auto;
+ filter:drop-shadow(0 5px 13px #0007)}
+.coverDeploy select,.coverDeploy button{background:#122735e9;color:#d8f5e9;
+ border:1px solid #749d9d;border-radius:6px;font:800 10px Arial,sans-serif;
+ min-height:37px;padding:7px 9px;touch-action:manipulation}
+.coverDeploy button{background:#1f5658e9;color:#eafff3;border-color:#8cd7c0}
+.coverDeploy select{max-width:123px}
+.coverDeploy button:active{background:#318173}
+#interact:not(.hidden){min-height:48px;font-size:12px;font-weight:900;
+ background:linear-gradient(120deg,#28665c,#1b504c);border-color:#8fe2c2}
+#interact:disabled{opacity:.65}
+@media(max-height:760px){.coverDeploy{bottom:calc(256px + env(safe-area-inset-bottom));
+ left:7px}.coverDeploy select,.coverDeploy button{min-height:32px;font-size:9px}}
+@media(orientation:landscape){.coverDeploy{bottom:calc(113px + env(safe-area-inset-bottom));left:7px}
+ .coverDeploy select,.coverDeploy button{min-height:32px;font-size:9px}}

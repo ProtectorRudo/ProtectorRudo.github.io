@@ -62,7 +62,7 @@ export function steerEnemy(e,dt,time,target,mode,map,peers){
   goal=e.waypoint;
  }
  const dX=(goal?.x??e.home.x)-p.x,dZ=(goal?.z??e.home.z)-p.z,d=Math.hypot(dX,dZ);
- const speed=(e.floor?.39:.16)*(e.variant===2?1.55:e.variant===1?.8:1)*(e.boss?1.15:1);
+ const speed=(e.floor?.39:.16)*(e.variant===2?1.55:e.variant===1?.8:1)*(e.boss?1.15:1)*(e.paceMultiplier||1);
  // Cover waypoints need centimetre-scale accuracy; the generic attack
  // stand-off distance previously prevented bots reaching their peek lane.
  const tactical=!!e.coverPlan&&!!e.coverState;
@@ -146,6 +146,15 @@ export function animateEnemy(e,dt,speed){
  e.flesh.rotation.x=.05+Math.sin(angle)*intensity*.06;
  e.flesh.rotation.z=Math.sin(angle*.53+e.phase)*(.025+intensity*.048)+(e.coverState==='fire'?.055:0);
  e.flesh.position.y=Math.abs(Math.sin(angle))*intensity*.015;
+ // Procedural backup mimics prone-to-cover without sinking into the floor.
+ // The head hit region tracks the height of the visible crouching figure.
+ const crouching=e.ctfStance==='crouch'||e.coverState==='hold'||e.coverState==='retreat';
+ const desired=crouching?.72:1;
+ e.flesh.scale.y+=(desired-e.flesh.scale.y)*Math.min(1,dt*9);
+ if(e.headHit){
+   const targetHead=1.56-(1-desired)*.45;
+   e.headHit.position.y+=(targetHead-e.headHit.position.y)*Math.min(1,dt*9);
+ }
  if(e.jaw)e.jaw.scale.y=1+Math.max(0,Math.sin(angle*.65+e.phase))*.23;
  if(e.shadow)e.shadow.material.opacity=.29-.04*intensity;
 }

@@ -16,6 +16,7 @@ const source={
  raiderC:ORIGINAL_BOTS+'bot_mask_cap.glb',
  raiderD:ORIGINAL_BOTS+'bot_wrap_goggles.glb',
  operator:'https://cdn.jsdelivr.net/gh/cktang88/3d-fps@main/public/assets/models/characters/soldier.glb',
+ operatorTac:'https://cdn.jsdelivr.net/gh/cktang88/3d-fps@main/public/assets/models/characters/soldier_tac.glb',
  hostage:CDN+'npc-maya-locomotion.glb'
 };
 const backUp={
@@ -46,7 +47,7 @@ loader.setMeshoptDecoder(MeshoptDecoder);
 function load(type){
  if(!cache.has(type)){
   const preferred=source[type];
-  const fallback=backUp[type];
+  const fallback=backUp[type]||(type==='operatorTac'?source.operator:null);
   // Rigged original shooter characters: painted clothing, masks, cargo and kit.
   // Independent source asset (not any Valve/CS2 game files). Keep studio
   // humanoids as a fallback when a phone cannot fetch these models.
@@ -71,7 +72,7 @@ export function preloadHumans(){
  return Promise.allSettled([load('raiderA'),load('raiderB'),load('operator'),load('hostage')])
 }
 export async function attachHuman(actor,type='raiderA'){
- const key=type==='hostage'?'hostage':['raiderA','raiderB','raiderC','raiderD','operator'].includes(type)?type:'raiderA';
+ const key=type==='hostage'?'hostage':['raiderA','raiderB','raiderC','raiderD','operator','operatorTac'].includes(type)?type:'raiderA';
  const data=await load(key);
  if(!data||!actor?.root||!actor?.root.parent)return false;
  return staggerClone(()=>{
@@ -161,7 +162,12 @@ export function animateHuman(actor,dt,speed=0){
  actor.mixer.update(Math.min(actor.animationAccum,.11));
  // Subtle shoulder lean when an actor exposes itself from cover.
  if(actor.rig){
-   const lean=actor.coverState==='fire'?(actor.id%2===0?.055:-.055):0;
+   const crouch=actor.ctfStance==='crouch'||actor.coverState==='hold'||
+     actor.coverState==='retreat';
+   const wantedHeight=crouch?.71:1;
+   const smooth=Math.min(1,actor.animationAccum*8);
+   actor.rig.scale.y+=(wantedHeight-actor.rig.scale.y)*smooth;
+   const lean=actor.coverState==='fire'?(actor.id%2===0?.085:-.085):0;
    actor.rig.rotation.z+=(lean-actor.rig.rotation.z)*Math.min(1,actor.animationAccum*7);
  }
  actor.animationAccum=0;

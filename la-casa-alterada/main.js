@@ -290,7 +290,9 @@ function hud(force=false){
   hostageReady?'A ✓ · B ✓ · REHÉN ✓':'ALINEACIÓN ✓';
  $('begin').textContent=ctf?'▶ EMPEZAR CAPTURA':'▶ EMPEZAR RESCATE';
 }
-function ui(){if(mapping){$('mapPanel').classList.remove('hidden')}$('swapGun').classList.toggle('hidden',!active);$('setup').classList.toggle('hidden',!placing);$('fight').classList.toggle('hidden',placing);$('gunCanvas').classList.toggle('hidden',!active);$('hint').classList.toggle('hidden',!placing);$('sightText').textContent=placing?'APUNTÁ AL PISO':'';hud(true)}
+function ui(){
+ $('coverDeploy').classList.toggle('hidden',!active||ended||placing||mission?.isGuest?.());
+ if(mapping){$('mapPanel').classList.remove('hidden')}$('swapGun').classList.toggle('hidden',!active);$('setup').classList.toggle('hidden',!placing);$('fight').classList.toggle('hidden',placing);$('gunCanvas').classList.toggle('hidden',!active);$('hint').classList.toggle('hidden',!placing);$('sightText').textContent=placing?'APUNTÁ AL PISO':'';hud(true)}
 function cleanup(){
  killFeedUntil=0;$('killFeed').classList.add('hidden');
  if(referenceAnchor){try{referenceAnchor.delete()}catch(_){}}referenceAnchor=null;
@@ -361,6 +363,33 @@ function placeFlag(team){
  if(mission?.placeFlag?.(team,at)){hud(true);tone('hit');vibrate(40);toast('BANDERA '+(team==='blue'?'AZUL':'ROJA')+' COLOCADA ✓')}
  else toast('COLOCÁ LA BANDERA MÁS LEJOS DE LA OTRA · MÍNIMO 1,6 m');
 }
+function placeTacticalCover(){
+ if(!active||ended||placing||mapping||!nests.length)return;
+ if(mission?.isGuest?.())return toast('SOLO EL ANFITRIÓN COLOCA COBERTURAS');
+ const c=getCam(),eye=new THREE.Vector3(),dir=new THREE.Vector3();
+ c.getWorldPosition(eye);c.getWorldDirection(dir);dir.y=0;
+ if(dir.lengthSq()<.01)dir.set(0,0,-1);
+ dir.normalize();
+ // Camera's horizontal bearing and floor calibration determine the location,
+ // so the cover occupies a STABLE 3D point rather than following the screen.
+ const floor=nests[0].root.position.y;
+ let point=currentFloorTarget()?.point?.clone();
+ if(!point)point=eye.clone().addScaledVector(dir,2.1);
+ point.y=floor;
+ const d=Math.hypot(point.x-eye.x,point.z-eye.z);
+ if(d<1.6||d>3.7){point.set(eye.x+dir.x*2.2,floor,eye.z+dir.z*2.2)}
+ const feet=new THREE.Vector3(eye.x,floor,eye.z);
+ if(!spatialMap.canMove(feet,point,.22))
+   return toast('NO PODÉS PONER LA COBERTURA DETRÁS DE UN OBSTÁCULO');
+ if(spatialMap.area&&spatialMap.areaDistance(point)<.85)
+   return toast('COLOCÁ LA COBERTURA MÁS ADENTRO DE LA ZONA');
+ const kind=$('coverPreset').value;
+ const created=spatialMap.addCover(point,{kind,forward:dir,floorY:floor});
+ if(!created)return toast('COBERTURA SUPERPUESTA O LÍMITE ALCANZADO · PROBÁ OTRO LUGAR');
+ tone('hit');vibrate([25,35,25]);mapStatus();
+ toast('COBERTURA COLOCADA ✓ · LOS BOTS LA EVITAN Y PUEDEN ESCONDERSE');
+}
+$('placeCover').addEventListener('click',()=>{lastTouch=performance.now();placeTacticalCover()});
 function smartAction(){
  if(!nests.length){place();return}
  if(mission?.needsReference?.()){markReferenceB();return}
@@ -464,7 +493,7 @@ function updateRenderStatus(t){
 function rescueProtectionLeft(t=performance.now()){
  return Math.max(0,Math.ceil((rescueProtectedUntil-t)/1000));
 }
-function safeRescueSpawn(index,total,base){
+function safeRescueSpawn(index,total,base,waveNo=1){
  const eye=new THREE.Vector3(),direction=new THREE.Vector3(),camera=getCam();
  camera.getWorldPosition(eye);camera.getWorldDirection(direction);
  const floorY=nests[0]?.root.position.y??base.y;
@@ -475,7 +504,11 @@ function safeRescueSpawn(index,total,base){
  });
  // No overlapping bots when a tiny marked zone offers insufficient space.
  // Never spawn a dangerous hidden character outside the delimited room.
- const spot=candidates[index]||null;
+ const shift=((waveNo-1)*3)%Math.max(1,candidates.length);
+ const selected=candidates.length?candidates[(index+shift)%candidates.length]:null;
+ const occupied=enemies.filter(e=>e.alive).some(e=>selected&&
+   Math.hypot(e.root.position.x-selected.x,e.root.position.z-selected.z)<.85);
+ const spot=occupied?null:selected;
  return spot?new THREE.Vector3(spot.x,spot.y,spot.z):null;
 }
 function wave(total=6,boss=false){
@@ -495,7 +528,7 @@ function processSpawns(t){
  const n=nests[(i+waveNo)%nests.length];
  if(!n)return;
  const variant=boss?1:(i+waveNo)%5===0?1:(i+waveNo)%3===0?2:0;
- const spawnPoint=safeRescueSpawn(i,total,n.root.position);
+ const spawnPoint=safeRescueSpawn(i,total,n.root.position,waveNo);
  if(!spawnPoint){
    // Retry as the player finishes delimiting a very narrow play area.
    if((task.attempts||0)<4)spawnQueue.push({...task,attempts:(task.attempts||0)+1});
@@ -505,6 +538,8 @@ function processSpawns(t){
  const e=creature(variant);
  e.root.position.copy(spawnPoint);
  e.id=++monsterId;e.boss=boss;e.floor=n.floor;
+ e.combatRole=['rusher','flanker','marksman','defender','scout'][(i+waveNo)%5];
+ e.paceMultiplier={rusher:1.72,flanker:1.55,marksman:.93,defender:1.04,scout:1.93}[e.combatRole];
  e.roamRadius=n.floor?3:.27;e.next=Math.max(t+rnd(3700,5800),rescueProtectedUntil+900);
  e.hit.userData.enemy=e;if(e.headHit)e.headHit.userData.enemy=e;
  world.add(e.root);
@@ -609,7 +644,7 @@ function spawnCTFBot(team,index,id,localPos){
  band.position.set(.05,1.33,.03);band.rotation.x=Math.PI/2;e.root.add(band);
  attachRespawnShield(e);attachContactShadow(e);
  world.add(e.root);enemies.push(e);
- e.appearance=team==='blue'?'operator':['raiderA','raiderB','raiderC','raiderD'][index%4];
+ e.appearance=team==='blue'?(index%2===0?'operator':'operatorTac'):['raiderA','raiderB','raiderC','raiderD'][index%4];
  // Keep the original tactical fallback until a detailed skinned GLB is ready.
  attachHuman(e,e.appearance).catch(err=>console.warn('Tactical fallback remains',err));
  return e;
@@ -880,10 +915,24 @@ function updateBattle(dt,t){
   if(target===eye&&e.floor){
     e.screenDistance=Math.hypot(target.x-e.root.position.x,target.z-e.root.position.z);
   }
-  const tacticalTarget=tacticalDestination(e,t,target,target,
+  let destination=target;
+  if(e.floor&&['flanker','scout'].includes(e.combatRole)){
+    const dx=target.x-e.home.x,dz=target.z-e.home.z;
+    const l=Math.hypot(dx,dz)||1,side=e.id%2===0?1:-1;
+    const offset=e.combatRole==='flanker'?1.25:.85;
+    destination=target.clone().add(new THREE.Vector3(
+      -dz/l*side*offset,0,dx/l*side*offset));
+  }else if(e.floor&&e.combatRole==='marksman'){
+    const dx=e.root.position.x-target.x,dz=e.root.position.z-target.z;
+    const l=Math.hypot(dx,dz)||1;
+    destination=target.clone().add(new THREE.Vector3(dx/l*2.6,0,dz/l*2.6));
+  }
+  const tacticalTarget=tacticalDestination(e,t,destination,target,
     (from,threat)=>spatialMap.findCoverSpot(from,threat),
     !!e.floor&&!e.boss&&(spatialMap.walls.length+spatialMap.boxes.length)>0);
-   const moved=steerEnemy(e,dt,t,tacticalTarget,mode,spatialMap,enemies);
+  const moved=steerEnemy(e,dt,t,tacticalTarget,mode,spatialMap,enemies);
+  e.ctfStance=['hold','retreat'].includes(e.coverState)?'crouch':
+    moved>.73?'sprint':moved>.06?'advance':'idle';
   animateEnemy(e,dt,moved);
   const worldPosition=new THREE.Vector3();e.root.getWorldPosition(worldPosition);
   const dist=worldPosition.distanceTo(eye);
@@ -1160,7 +1209,7 @@ mission=createMission({scene:world,getCam,toast,event,teammateShot,resolveTeamma
  hasCover:(from,to)=>spatialMap.lineBlocked(from,to,.11),
  spawn:(n,boss)=>wave(n,boss),spawnPending:()=>spawnQueue.length,animateEnemy,animateHuman,projectiles:()=>orbs,enemies:()=>enemies,enemyShot:pos=>combatFX.shot(pos,true,'rifle'),spawnCTFBot,ctfBotShot,ctfTag:applyCTFTag,ctfFinish:finishCTF,
  buildEnemy:(variant,boss,appearance,team)=>{const e=createTacticalActor(THREE,variant,team==='blue'?'operator':'raider');e.team=team||'red';e.ctfBot=!!team;e.boss=boss;if(boss){e.root.scale.setScalar(1.85);e.hp=22;e.size*=1.85}
- e.appearance=['raiderA','raiderB','raiderC','raiderD','operator'].includes(appearance)?appearance:'raiderA';
+ e.appearance=['raiderA','raiderB','raiderC','raiderD','operator','operatorTac'].includes(appearance)?appearance:'raiderA';
  if(e.ctfBot){
    e.floor=true;e.root.scale.setScalar(.92);e.hp=3;e.size=.94;
    const teamColor=e.team==='blue'?0x46c7ff:0xff6158;

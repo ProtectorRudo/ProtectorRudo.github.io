@@ -20,9 +20,9 @@ const helper=main.slice(begin,end);
 function makeSpawn(spatialMap={area:null,canMove:()=>true,areaDistance:()=>10}){
  const cam={getWorldPosition:p=>Object.assign(p,{x:0,y:1.55,z:0}),
    getWorldDirection:p=>Object.assign(p,{x:0,y:0,z:-1})};
- return new Function('THREE','getCam','spatialMap','nests','findSafeSpawnPoints',
+ return new Function('THREE','getCam','spatialMap','nests','findSafeSpawnPoints','enemies',
    helper+'\nreturn safeRescueSpawn;')({Vector3:Vector},()=>cam,spatialMap,
-     [{root:{position:{x:0,y:0,z:0}}}],guard.findSafeSpawnPoints);
+     [{root:{position:{x:0,y:0,z:0}}}],guard.findSafeSpawnPoints,[]);
 }
 test('V23 attackers spawn on the floor in the FRONT half-space',()=>{
  const spawn=makeSpawn();
