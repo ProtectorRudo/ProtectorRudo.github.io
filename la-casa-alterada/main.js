@@ -65,8 +65,13 @@ function mapPreview(){
    const dx=mapPoint.x-mapFirst.x,dz=mapPoint.z-mapFirst.z,length=Math.max(.05,Math.hypot(dx,dz));
    const mid=mapFirst.clone().add(mapPoint).multiplyScalar(.5);
    mapGhost.position.set(mid.x,floorY+(mapKind==='wall'?1.2:.465),mid.z);
-   mapGhost.scale.set(mapKind==='wall'?.14:Math.max(.3,Math.abs(dx)),mapKind==='wall'?2.4:.93,length);
-   mapGhost.rotation.y=Math.atan2(dx,dz);
+   if(mapKind==='wall'){
+     mapGhost.scale.set(.14,2.4,length);
+     mapGhost.rotation.y=Math.atan2(dx,dz);
+   }else{
+     mapGhost.scale.set(Math.max(.3,Math.abs(dx)),.93,Math.max(.3,Math.abs(dz)));
+     mapGhost.rotation.y=0;
+   }
  }else if(mapKind==='wall'){
    const dx=zone.b.x-zone.a.x,dz=zone.b.z-zone.a.z;
    mapGhost.position.set(mapPoint.x,floorY+1.2,mapPoint.z);
