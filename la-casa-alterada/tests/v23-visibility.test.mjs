@@ -45,7 +45,7 @@ test('Rescue starts with a grace period and a delayed, smaller wave',()=>{
  assert.match(main,/wave\(5,false\)/);
  assert.doesNotMatch(main,/wave\(8,false\)/);
  assert.match(main,/nextSpawnTime=Math\.max\(nextSpawnTime,performance\.now\(\)\+RESCUE_FIRST_SPAWN_MS\)/);
- assert.match(main,/function damage\(value\)\{if\(!mission\?\.isCapture\?\.\(\)&&rescueProtectionLeft\(\)>0\)return/);
+ assert.ok(main.includes('function damage(value){if(!mission?.isCapture?.()&&(!rescueCombatArmed||rescueProtectionLeft()>0))return;'));
  assert.match(mission,/api\.rescueProtected\?\.\(\)/);
 });
 
