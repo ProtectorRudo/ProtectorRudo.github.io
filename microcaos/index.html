@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
+html.xr-active,html.xr-active body,html.xr-active #scene{background:transparent!important}#ui: xr-overlay{background:transparent!important}#ui:xr-overlay{background:transparent!important;isolation:isolate}#ui.xr-active{background:transparent!important}#ui.xr-active .modalshade.hidden{display:none!important}#ui.xr-active .speedtrails{display:none!important}
+
 #ar{margin-top:2px}.more .secondary{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}.ar-device{font:700 11px DM Sans,sans-serif;line-height:1.55;color:#b4d9e5;margin-top:9px;max-width:390px;margin-left:auto;margin-right:auto}.ar-place{position:absolute;z-index:19;left:50%;bottom:max(195px,calc(env(safe-area-inset-bottom) + 187px));transform:translateX(-50%);box-shadow:0 8px 25px #0009,0 0 22px #53dfbc70;white-space:nowrap;pointer-events:auto!important}.ar-help{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:#071327da;pointer-events:auto;padding:20px}.ar-help-box{width:min(100%,390px);border:1px solid #ffffff36;background:linear-gradient(145deg,#243f53,#0b1b30);box-shadow:0 20px 70px #0008;border-radius:26px;padding:28px;text-align:center}.ar-help-icon{font-size:48px;color:#81f5d8}.ar-help h2{font:900 27px Outfit,sans-serif;letter-spacing:-.03em;margin:10px 0}.ar-help p{font:500 14px/1.6 DM Sans,sans-serif;color:#cfdeeb;margin:10px 0 25px;white-space:pre-line}.ar-help .primary{min-width:165px}.ar-help[style*="display:none"]{display:none!important}
 
 .speedtrails{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .2s;background:repeating-conic-gradient(from 180deg at 50% 68%,transparent 0deg 5deg,#a7fff622 6deg,transparent 6.5deg 14deg);mask-image:radial-gradient(ellipse at 50% 55%,transparent 32%,black 95%);z-index:-1}.speedtrails.active{opacity:.45;animation:trailMove .32s linear infinite}@keyframes trailMove{to{filter:hue-rotate(30deg);opacity:.85}}.pickupCounter{position:absolute;top:149px;right:20px;border:1px solid #ffe7a94d;background:#191f32cf;box-shadow:inset 0 0 14px #f9dc6920;border-radius:13px;padding:7px 13px;color:#ffe199;font:900 16px Outfit;opacity:0;transition:.25s}.pickupCounter.on{opacity:1}
@@ -21,7 +23,7 @@
 <div id="scene"></div>
 <div id="ui">
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · AR V0.4</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · AR V0.5</div></div></div>
 <div class="topright"><span class="tinylabel">✦ <b id="modelstatus">CARGANDO 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel">POSICIÓN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -313,7 +315,7 @@ function animateParticles(dt){for(let i=puffs.length-1;i>=0;i--){let q=puffs[i];
 let previewTarget=new THREE.Vector3();let camStarted=false;let cameraShake=0;
 function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.045);last=t;const sec=t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);move(dt,sec);for(let r of racers)if(r.mixer)r.mixer.update(dt);$("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
 if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished";let zz=follow?clamp(p.z-2,-11,8):0;let target=new THREE.Vector3(0,0,zz);previewTarget.lerp(target,Math.min(.13,dt*2.5));let portrait=innerHeight>innerWidth;let targetCam=portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20.0):new THREE.Vector3(12.4,14.5,previewTarget.z+20);camera.position.lerp(targetCam,Math.min(.12,dt*3));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,0,previewTarget.z-2.8)}
-if(mode==="ar"&&frame&&session){if(!hitRequested){hitRequested=true;session.requestReferenceSpace("viewer").then(viewer=>session.requestHitTestSource({space:viewer})).then(s=>hitSource=s).catch(()=>{})}if(hitSource&&!placed){const results=frame.getHitTestResults(hitSource);if(results.length){let pose=results[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;const m=new THREE.Matrix4().fromArray(pose.transform.matrix);reticle.position.setFromMatrixPosition(m);reticle.quaternion.setFromRotationMatrix(m);$("placeArena").style.display="inline-flex";$("notice").textContent="¡Superficie detectada! Tocá COLOCAR PISTA para anclar la arena."}}else{reticle.visible=false;$("placeArena").style.display="none"}}}
+if(mode==="ar"&&frame&&session){if(!hitRequested){hitRequested=true;session.requestReferenceSpace("viewer").then(viewer=>session.requestHitTestSource({space:viewer})).then(s=>hitSource=s).catch(()=>{})}if(hitSource&&!placed){const results=frame.getHitTestResults(hitSource);if(results.length){let pose=results[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;const m=new THREE.Matrix4().fromArray(pose.transform.matrix);reticle.position.setFromMatrixPosition(m);reticle.quaternion.setFromRotationMatrix(m);$("placeArena").style.display="inline-flex";$("notice").textContent="¡Ya veo la superficie! Tocá COLOCAR PISTA para anclar la arena."}}else{reticle.visible=false;$("placeArena").style.display="none"}}}
 if(performance.now()>lastToast)$("toast").classList.remove("show");renderer.render(scene,camera)}
 const reticle=new THREE.Mesh(new THREE.RingGeometry(.20,.23,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x71ffdf,side:THREE.DoubleSide,depthWrite:false}));reticle.visible=false;scene.add(reticle);
 renderer.setAnimationLoop(render);
@@ -323,9 +325,9 @@ $("cam").onclick=async()=>{if(mode==="camera"){leaveCamera();return}if(!navigato
 
 const androidPlatform=/Android/i.test(navigator.userAgent);
 const iosPlatform=/iPhone|iPad|iPod/i.test(navigator.userAgent);
-const arModelUrl="https://cdn.jsdelivr.net/gh/ProtectorRudo/ProtectorRudo.github.io@main/microcaos/arena.glb";
+const arModelUrl="https://raw.githubusercontent.com/ProtectorRudo/ProtectorRudo.github.io/main/microcaos/arena.glb";
 const arNativeURL="intent://arvr.google.com/scene-viewer/1.0?file="+encodeURIComponent(arModelUrl)+"&mode=ar_preferred#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url="+encodeURIComponent("https://microcaos-party-rush.vercel.app/?ar-error=1")+";end;";
-const nativeLink=$("nativeAR");nativeLink.href=arNativeURL;
+const nativeLink=$("nativeAR");nativeLink.href="/ar.html";
 if(!androidPlatform){nativeLink.style.display="none"}
 function showARHelp(title,body){$("arHelpTitle").textContent=title;$("arHelpText").textContent=body;$("arHelp").style.display="flex"}
 $("arHelpClose").onclick=()=>{$("arHelp").style.display="none"};
@@ -350,10 +352,10 @@ async function setupAR(){
   }
   let started=null;
   try{
-    const options={requiredFeatures:["hit-test","dom-overlay"],optionalFeatures:["local-floor"],domOverlay:{root:document.body}};
+    const options={requiredFeatures:["hit-test","dom-overlay"],optionalFeatures:["local-floor"],domOverlay:{root:$("ui")}};
     started=await navigator.xr.requestSession("immersive-ar",options);
     await renderer.xr.setSession(started);
-    leaveCamera();session=started;mode="ar";scene.background=null;previewTable.visible=false;stage.visible=false;
+    leaveCamera();session=started;mode="ar";document.documentElement.classList.add("xr-active");$("ui").classList.add("xr-active");renderer.setClearColor(0x000000,0);scene.background=null;previewTable.visible=false;stage.visible=false;
     placed=false;hitRequested=false;hitSource=null;
     $("modebar").textContent="AR ESPACIAL · BUSCANDO SUPERFICIE";
     $("intro").classList.add("hidden");
@@ -362,7 +364,7 @@ async function setupAR(){
     $("placeArena").style.display="none";
     session.addEventListener("end",()=>{
       if(hitSource){try{hitSource.cancel()}catch(e){}}
-      mode="preview";scene.background=new THREE.Color(0x172b4a);previewTable.visible=true;stage.visible=true;
+      mode="preview";document.documentElement.classList.remove("xr-active");$("ui").classList.remove("xr-active");renderer.setClearAlpha(1);scene.background=new THREE.Color(0x172b4a);previewTable.visible=true;stage.visible=true;
       stage.position.set(0,0,0);stage.quaternion.identity();stage.scale.setScalar(1);
       $("modebar").textContent="PREVIEW 3D · PC Y CELULAR";$("notice").classList.remove("show");
       $("placeArena").style.display="none";session=null;placed=false;hitSource=null;hitRequested=false;
@@ -372,6 +374,7 @@ async function setupAR(){
   }catch(e){
     console.warn("AR session failed",e?.name,e?.message);
     if(started)try{await started.end()}catch(e2){}
+    document.documentElement.classList.remove("xr-active");$("ui").classList.remove("xr-active");renderer.setClearAlpha(1);
     const reason=e?.name==="NotSupportedError"?"El navegador no admite alguna función de seguimiento AR necesaria.":e?.name==="NotAllowedError"?"Falta permiso de cámara o se bloqueó la sesión AR.":"No se pudo iniciar WebXR en este navegador.";
     showARHelp("No se abrió AR",reason+"\n\nAbrí el enlace directamente en Chrome para Android (no en el navegador interno de otra aplicación) y revisá Servicios de Google Play para RA. Si no funciona, probá VER LA PISTA EN MI MESA.");
   }
