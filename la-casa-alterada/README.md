@@ -276,3 +276,19 @@ Fuentes: [WebXR Hit Test (W3C)](https://www.w3.org/TR/webxr-hit-test-1/), [WebXR
 Se ejecutaron 14 pruebas independientes de las reglas V17: movimiento del bot único, separación defensa/ataque, robo azul, entrega azul, escolta, caída por impacto, bloqueo de impactos consecutivos, devolución automática, pérdida de conexión con bandera, robo rojo, puntuación roja y sincronización por instantánea. Todas pasaron. El módulo de rescate mantiene su ruta de código y no se modificaron sus objetivos.
 
 La sincronización P2P mediante celulares y el registro espacial manual todavía requieren pruebas físicas reales con varios dispositivos. El filtro de movimiento es solo una validación básica, **no sustituye** un servidor dedicado con seguridad y compensación de latencia competitiva.
+
+
+## V18 — Eventos compartidos, banderas persistentes y respawn equilibrado
+
+### Captura la Bandera
+- Los mensajes de **bandera robada, caída, recuperada y punto anotado** se publican desde el anfitrión a todos los integrantes de la sala PeerJS. Se reutiliza el aviso táctico existente sin tapar la mira. Las reglas permanecen autoritativas en el anfitrión y los clientes siguen recibiendo los snapshots.
+- Si el portador pierde señal mientras está conectado, el anfitrión guarda la **última posición válida** de la bandera y la hace caer allí en lugar de devolverla súbitamente a su base. Si el jugador se desconecta, la bandera se deja en la última posición informada.
+- Los bots tienen un **escudo de reaparición durante unos 1,1 segundos**; mientras está activo no pueden recibir daño ni disparar. Al principio de cada ronda tienen aproximadamente 1 segundo de protección. Un aro luminoso de color de equipo, visible para los jugadores conectados, informa esta condición.
+- Los temporizadores de invulnerabilidad restantes se incluyen en la réplica de enemigos para que no parezcan inmunes sin ninguna explicación en los teléfonos invitados. Las reglas de disparo en PvP y las de ataque de bot a bot respetan este intervalo.
+- Se mantienen las funciones de ataque, defensa y escolta de V17, los equipos cooperativos/versus, la configuración de 0 a 6 bots por bando, las tres dificultades y la victoria por tres capturas.
+
+### Pruebas
+- **20 de 20** comprobaciones simuladas de lógica CTF aprobadas: funciones tácticas de bots, capturas y puntos de ambos equipos, acompañamiento y retorno, reconexión / posiciones viejas, eventos de bandera, escudos y retraso de disparo al reaparecer.
+- Se verificaron por separado el parseo de JavaScript, la correspondencia de módulos importados, los controles HTML utilizados y la versión de interfaz antes del despliegue.
+
+**Importante:** estas pruebas son de lógica y no sustituyen una partida en varios teléfonos reales. WebXR y el seguimiento compartido pueden variar según dispositivo, navegador, permisos y condiciones de iluminación. La zona física debe permanecer despejada y el jugador debe poder pausar la partida.
