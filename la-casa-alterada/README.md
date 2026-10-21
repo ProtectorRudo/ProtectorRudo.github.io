@@ -175,3 +175,14 @@ NOTA: el cañón es un modelo de vista en primera persona superpuesto (no está 
 - WebXR Plane Detection spec: https://immersive-web.github.io/plane-detection/
 - Google ARCore/WebXR hit-test: https://developers.google.com/ar/develop/webxr/hello-webxr
 - Implementación V11 original; se consultaron los ejemplos pero no se copiaron modelos ni activos propietarios.
+
+
+## V12 — Objetivo guiado y mapas sin frustraciones
+
+- HUD de navegación táctico: cuando empieza una ronda de rescate muestra distancia horizontal y orientación hacia el rehén. Después de liberarlo, indica dirección/distancia del punto de extracción común. Es una guía visual discreta; no obliga a girar físicamente o correr por una vivienda.
+- HUD cooperativo: los invitados reciben avisos si todavía no calibraron, si esperan el primer snapshot del anfitrión, si su conexión se cortó o si los snapshots dejan de llegar durante más de ~3 segundos. No se afirma que haya sincronización si la red está desactualizada.
+- Mapeo: el botón **DESHACER ÚLTIMO** retira únicamente el último segmento de pared o volumen de mueble, libera sus recursos gráficos y conserva el resto del mapa. Las colisiones de los demás obstáculos permanecen activas. La próxima instantánea envía el mapa actualizado a los compañeros.
+- Rendimiento de interfaz: la guía del objetivo y el estado de conexión se calculan ~6 veces por segundo; se actualizan los textos solo cuando cambian.
+- Pruebas unitarias de geometría realizadas: pared y mueble bloquean trayectorias; la IA calcula desvíos; al deshacer mueble y luego pared, las listas y colisiones restantes son coherentes.
+
+**Importante:** no se ha validado todavía la precisión real compartida entre cuatro teléfonos ni se ha incorporado un sistema de Cloud Anchors. Los anclajes WebXR locales y la calibración mirando la misma pared pueden desalinearse entre dispositivos, y se seguirá informando claramente de esta limitación antes de afirmar calidad comercial final.
