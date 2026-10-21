@@ -76,10 +76,10 @@ export function createCaptureFlag(THREE,api){
  function eliminateCarrier(id,pos,time){
    for(const t of TEAMS)if(S.flags[t].carrier===id)drop(t,pos,time);
  }
- function removePlayer(id){
+ function removePlayer(id,lastPosition=null){
    if(typeof id!=='string')return;
    for(const t of TEAMS){
-     if(S.flags[t].carrier===id)drop(t,S.bases[t],performance.now());
+     if(S.flags[t].carrier===id)drop(t,lastPosition?.clone?.()||S.bases[t],performance.now());
    }
    delete S.tagged[id];
  }
