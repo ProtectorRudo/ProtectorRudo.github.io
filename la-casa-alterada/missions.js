@@ -163,7 +163,21 @@ export function createMission(api){
   function captureStatus(){
     const state=ctf.snapshot();
     return{...state,myTeam:o.myTeam,mode:o.gameMode,ready:ctf.ready(),
-      objective:ctf.objective(o.myTeam,o.myId)?.label||null};
+      objective:ctf.objective(o.myTeam,o.myId)?.label||null,
+      pickup:ctf.pickupInfo(o.myTeam,position())};
+  }
+  function pickupFlag(){
+    if(!isCapture()||!o.running||!o.ready)return false;
+    const local=position(),info=ctf.pickupInfo(o.myTeam,local);
+    if(!info){api.toast('BUSCÁ LA BANDERA ENEMIGA O UN COMPAÑERO QUE LA LLEVE');return false}
+    if(!info.available){
+      api.toast('ACERCATE '+Math.max(0,info.distance-1.55).toFixed(1)+' m MÁS PARA '+info.label);
+      return false;
+    }
+    if(isGuest())send(o.conn,{t:'ctfPickup'});
+    else if(!ctf.tryPickup(o.myId,o.myTeam,local)){api.toast('NO SE PUEDE RECOGER TODAVÍA');return false}
+    api.toast('¡BANDERA ASEGURADA! · VOLVÉ A TU BASE');
+    ui();api.refreshHud?.();return true;
   }
   function relayCTFBotShot(from,to,team){
     if(!isCapture()||!o.running||!isHost()||!o.origin)return;
@@ -538,6 +552,14 @@ if(Array.isArray(msg.environment)){
        }
      }
     if(msg.t==='interact')doInteract(conn.peer);
+    if(msg.t==='ctfPickup'&&isCapture()&&o.running&&o.ready){
+      const last=o.localPositions.get(conn.peer);
+      const connected=o.connections.has(conn.peer)&&
+        performance.now()-(o.lastMoveAt.get(conn.peer)||0)<1800;
+      if(connected&&last&&ctf.tryPickup(conn.peer,o.teams.get(conn.peer)||'blue',last)){
+        broadcast({t:'ctfState',state:ctf.snapshot()});
+      }
+    }
     if(msg.t==='ability'&&typeof msg.kind==='string')receiveAbility(conn.peer,msg.kind,true);
     // Direct client hit claims intentionally ignored; only host ballistics apply damage.
   });conn.on('close',()=>{
@@ -728,7 +750,13 @@ if(Array.isArray(msg.environment)){
       desc.textContent=o.running?(objective?.label||'Protegé a tu equipo y conseguí tres capturas.'):
         'Marcá las dos banderas y prepará tu escuadrón.';
       progress.textContent='AZUL '+st.scores.blue+' — '+st.scores.red+' ROJO · '+ctf.config.bots+' BOTS/EQUIPO';
-      interact.classList.add('hidden');return;
+      const near=ctf.pickupInfo(o.myTeam,position());
+      interact.classList.toggle('hidden',!o.running||!near||near.distance>2.6);
+      interact.disabled=!near?.available;
+      if(near)interact.textContent=near.available?
+        (near.handoff?'RECIBIR BANDERA ✓':'ROBAR BANDERA ✓'):
+        'ACERCATE '+Math.max(0,near.distance-1.55).toFixed(1)+' m';
+      return;
     }
     $('hostageMeter').classList.toggle('hidden',!o.running||o.phase>=0);
     $('hostageHP').textContent=Math.ceil(o.hostageHealth)+'%';
@@ -738,7 +766,7 @@ if(Array.isArray(msg.environment)){
     const phase=PHASES[Math.min(o.phase,3)];phaseEl.textContent=phase.title;desc.textContent=phase.detail;if(o.phase===0)progress.textContent=[o.mask&1?1:0,o.mask&2?1:0,o.mask&4?1:0].reduce((a,b)=>a+b,0)+'/3 CARGAS';if(o.phase===1)progress.textContent=api.enemies().filter(e=>e.alive).length+' INTRUSOS';if(o.phase===2)progress.textContent=Math.ceil(o.held)+' S PARA RESISTIR';if(o.phase===3)progress.textContent='REDUCIR AL JEFE';teamUpdate()}
   const query=new URLSearchParams(location.search).get('sala');if(query&&/^[a-z0-9]{6}$/i.test(query)){$('joinCode').value=query.toUpperCase();lobby('Código recibido. Tocá UNIRME antes de iniciar la cámara.')}
   interact.addEventListener('click',event=>{
-     event.preventDefault();beginRescueTap();
+     event.preventDefault();if(isCapture())pickupFlag();else beginRescueTap();
    });
   $('createRoom').addEventListener('click',createRoom);$('joinRoom').addEventListener('click',joinRoom);$('copyRoom').addEventListener('click',copyCode);$('pulse').addEventListener('click',()=>abilityNow('pulse'));$('shield').addEventListener('click',()=>abilityNow('shield'));$('heal').addEventListener('click',()=>abilityNow('heal'));
   teamUpdate();ui();function navigationTarget(){
@@ -765,5 +793,5 @@ return{align,alignSecond,alignmentStatus,needsReference,teamCalibration,updateTr
   const pos=new THREE.Vector3();
   o.hostageActor.root.getWorldPosition(pos);pos.y+=1.12;return pos;
  },
- isGuest,isHost,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result,clock:api.clock(),wave:api.wave(),kills:api.kills?.()||0})},localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
+ isGuest,isHost,pickupFlag,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result,clock:api.clock(),wave:api.wave(),kills:api.kills?.()||0})},localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
 }
