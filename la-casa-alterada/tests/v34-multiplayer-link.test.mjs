@@ -27,7 +27,11 @@ test('disconnected WebRTC link is detected from missing pongs',()=>{
  assert.match(linkErrorMessage('peer-unavailable'),/SALA NO ENCONTRADA/);
 });
 test('host responds to heartbeat without waiting for mission start',()=>{
- assert.match(mission,/if\(msg\.t==='ping'&&Number\.isFinite\(msg\.at\)\)send\(conn,\{t:'pong',at:msg\.at\}\)/);
+ assert.match(mission,/if\(msg\.t==='ping'&&Number\.isFinite\(msg\.at\)\)/);
+ assert.match(mission,/send\(conn,\{t:'pong',at:msg\.at\}\)/);
+ assert.match(mission,/if\(o\.referenceReady&&o\.referenceLength>\.85\)/);
+ assert.match(mission,/if\(o\.referenceLength>\.85\)send\(o\.conn,\{/);
+ assert.match(mission,/Math\.abs\(o\.expectedLength-expected\)<\.012/);
  assert.match(mission,/if\(m\.t==='pong'&&Number\.isFinite\(m\.at\)\)/);
  assert.match(mission,/function linkMaintenance\(\)/);
  assert.match(mission,/scheduleGuestRetry\('timeout'\)/);
