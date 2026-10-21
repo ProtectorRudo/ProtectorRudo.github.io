@@ -271,7 +271,9 @@ function cleanup(){
  killFeedUntil=0;$('killFeed').classList.add('hidden');
  if(referenceAnchor){try{referenceAnchor.delete()}catch(_){}}referenceAnchor=null;
  if(referenceMarker){referenceMarker.parent?.remove(referenceMarker);referenceMarker.traverse(x=>{x.geometry?.dispose?.();if(x.material&&!Array.isArray(x.material))x.material.dispose?.()});referenceMarker=null}
- ctfTaggedUntil=0;rescueProtectedUntil=0;spawnQueue.length=0;nextSpawnTime=0;$('zoneProximity').classList.add('hidden');$('ctfScoreboard').classList.add('hidden');$('navGuide').classList.add('hidden');$('netSignal').classList.add('hidden');spatialMap.clear();mapping=false;if(mapGhost)mapGhost.visible=false;if(mapFirstGhost)mapFirstGhost.visible=false;$('mapPanel').classList.add('hidden');mapFirst=null;mapPoint=null;mapStatus();for(const e of enemies){disposeHuman(e);e.root.parent?.remove(e.root)}for(const n of nests){try{n.anchor?.delete()}catch(e){}world.remove(n.root)}for(const i of [...orbs,...trails,...splinters])world.remove(i.mesh);nests=[];enemies=[];orbs=[];trails=[];splinters=[]}
+ ctfTaggedUntil=0;rescueProtectedUntil=0;spawnQueue.length=0;nextSpawnTime=0;
+ if(testMarker){testMarker.parent?.remove(testMarker);testMarker=null}
+ $('renderStatus').classList.add('hidden');$('test3D').classList.add('hidden');$('zoneProximity').classList.add('hidden');$('ctfScoreboard').classList.add('hidden');$('navGuide').classList.add('hidden');$('netSignal').classList.add('hidden');spatialMap.clear();mapping=false;if(mapGhost)mapGhost.visible=false;if(mapFirstGhost)mapFirstGhost.visible=false;$('mapPanel').classList.add('hidden');mapFirst=null;mapPoint=null;mapStatus();for(const e of enemies){disposeHuman(e);e.root.parent?.remove(e.root)}for(const n of nests){try{n.anchor?.delete()}catch(e){}world.remove(n.root)}for(const i of [...orbs,...trails,...splinters])world.remove(i.mesh);nests=[];enemies=[];orbs=[];trails=[];splinters=[]}
 function reset(){mission?.reset();triggerHeld=false;aiming=false;aimBlend=0;$('aimMode').classList.remove('aimed');$('aimMode').textContent='MIRA ◎';$('sight').classList.remove('ads');if(mode==='demo'){camera.fov=65;camera.updateProjectionMatrix()}cleanup();placing=true;active=false;ended=false;round=0;kills=0;currentWeapon='rifle';magazines={rifle:28,pistol:12};ammo=28;if(gunReady)syncWeapon();reloading=false;seconds=480;life=100;newRound=0;pose=null;hitResult=null;previous=0;lastHudRefresh=0;lastReferenceUpdate=0;ui();toast('APUNTÁ AL PISO Y TOCÁ MARCAR ENTRADA')}
 function estimateFloorPoint(floorY=null){
  const c=getCam(),eye=new THREE.Vector3(),forward=new THREE.Vector3();
@@ -360,6 +362,55 @@ let nextSpawnTime=0,rescueProtectedUntil=0;
 // Do not begin the hostage operation with eight armed enemies around the
 // player's shoulders. The first seconds are for camera orientation.
 const RESCUE_OPENING_MS=12500,RESCUE_FIRST_SPAWN_MS=7400;
+let testMarker=null,testMarkerUntil=0,lastRenderStatus=0;
+function verify3D(){
+ const c=getCam(),eye=new THREE.Vector3(),forward=new THREE.Vector3();
+ c.getWorldPosition(eye);c.getWorldDirection(forward);
+ if(forward.lengthSq()<.1)forward.set(0,0,-1);
+ forward.normalize();
+ if(testMarker){testMarker.parent?.remove(testMarker);testMarker=null}
+ const g=new THREE.Group();g.position.copy(eye).addScaledVector(forward,1.8);
+ const mesh=new THREE.Mesh(new THREE.IcosahedronGeometry(.31,1),
+   new THREE.MeshBasicMaterial({color:0x47ffb7,depthTest:false,depthWrite:false}));
+ mesh.renderOrder=125;g.add(mesh);
+ const ring=new THREE.Mesh(new THREE.TorusGeometry(.52,.028,8,36),
+   new THREE.MeshBasicMaterial({color:0xffdf73,depthTest:false,depthWrite:false}));
+ ring.renderOrder=126;g.add(ring);
+ world.add(g);testMarker=g;testMarkerUntil=performance.now()+7000;
+ if(active&&!mission?.isCapture?.())rescueProtectedUntil=Math.max(
+    rescueProtectedUntil,performance.now()+11000);
+ toast('PRUEBA: ¿VES EL ROMBO VERDE DELANTE DE LA CÁMARA?');
+}
+$('test3D').addEventListener('click',verify3D);
+function updateRenderStatus(t){
+ if(t-lastRenderStatus<450)return;lastRenderStatus=t;
+ const status=$('renderStatus'),test=$('test3D'),show=mode!=='idle'&&(active||mission?.hasHostage?.());
+ status.classList.toggle('hidden',!show);test.classList.toggle('hidden',!show);
+ if(!show)return;
+ const c=getCam(),eye=new THREE.Vector3(),forward=new THREE.Vector3();
+ c.getWorldPosition(eye);c.getWorldDirection(forward);
+ const view={position:eye,forward};
+ const hostage=mission?.hostageRenderPoint?.();
+ const h=hostage?targetVisibility(view,hostage,{cone:.70,distance:12}):null;
+ const valid=enemies.filter(e=>e.alive&&!!e.root.parent);
+ const aiming=valid.filter(e=>{
+  const p=new THREE.Vector3();e.root.getWorldPosition(p);p.y+=1.2;
+  return targetVisibility(view,p,{cone:.70,distance:12}).visible;
+ }).length;
+ const hostText=mission?.isCapture?.()?'BANDERAS':hostage
+  ?'REHÉN 3D: '+(h.visible?'DELANTE':'GIRÁ PARA BUSCARLO')+' · '+h.distance.toFixed(1)+'m'
+  :'REHÉN 3D: SIN OBJETO';
+ const queued=spawnQueue.length;
+ const botText='BOTS 3D: '+valid.length+
+   ' · EN MIRA '+aiming+
+   (queued?' · ENTRANDO '+queued:'');
+ const text=hostText+' | '+botText;
+ if(status.textContent!==text)status.textContent=text;
+ status.classList.toggle('problem',!hostage&&!mission?.isCapture?.()||(!valid.length&&!queued&&active));
+ if(testMarker&&t>=testMarkerUntil){
+   testMarker.parent?.remove(testMarker);testMarker=null;testMarkerUntil=0;
+ }
+}
 function rescueProtectionLeft(t=performance.now()){
  return Math.max(0,Math.ceil((rescueProtectedUntil-t)/1000));
 }
@@ -1027,7 +1078,7 @@ function updateFrame(t,frame){now=t;
  const qualityChange=adaptiveQuality.sample(dt,mode==='demo'&&active&&!document.hidden);
  if(qualityChange&&renderer.getPixelRatio()!==qualityChange.ratio)
    renderer.setPixelRatio(qualityChange.ratio);
- if(mode==='ar')updateXR(frame);if(mode==='demo'){moveDemo(dt);updateDemo()}processSpawns(t);updateBattle(dt,t);mission?.tick(dt,t);updateRespawnShields(t);updateGuidance(t);updateZoneProximity(t);effects(dt,t);combatFX.tick(dt);renderer.render(world,camera);updateGun(dt,t)}
+ if(mode==='ar')updateXR(frame);if(mode==='demo'){moveDemo(dt);updateDemo()}processSpawns(t);updateBattle(dt,t);mission?.tick(dt,t);updateRespawnShields(t);updateGuidance(t);updateZoneProximity(t);updateRenderStatus(t);effects(dt,t);combatFX.tick(dt);renderer.render(world,camera);updateGun(dt,t)}
 renderer.setAnimationLoop(updateFrame);preloadHumans();
 
 function remoteStart(){if(!nests.length||active)return;begin()}
