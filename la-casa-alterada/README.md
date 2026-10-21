@@ -1,10 +1,20 @@
-# BLACKZONE — Tactical AR (V33)
+# BLACKZONE — Tactical AR (V34)
 
 **Nombre actual del juego: BLACKZONE.** Anteriormente denominado *La Casa Alterada*, conservado en la ruta heredada del repositorio y en el enlace Vercel existente para evitar romper enlaces de versiones anteriores.
 
 Shooter táctico web de realidad aumentada con dos modos: **Rescate de Rehenes (cooperativo)** y **Captura la Bandera (cooperativo o versus con bots configurables)**.
 
 El historial técnico anterior se conserva debajo, con descripciones correspondientes a cada etapa del desarrollo.
+
+## V34 — Multijugador: reconexión, invitaciones y diagnóstico
+
+- **Unirse más fácil:** al abrir una invitación `?sala=ABC123`, el invitado se conecta automáticamente a la sala, sin copiar el código. El anfitrión mantiene su código durante toda la partida.
+- **Reconexión automática:** después de corte de WebRTC o de señalización PeerJS, la app destruye la conexión fallida y reintenta con espera progresiva, hasta ocho intentos; también tiene botón REINTENTAR, sin recargar el juego.
+- **Heartbeat cada 2,6 s:** el invitado envía `ping`; el anfitrión devuelve `pong` incluso antes de iniciar la partida. La app detecta pérdida de señal real y vuelve a conectar.
+- **Mensajes visibles en lobby y HUD AR:** conectando, conectado, latencia, red desconectada, anfitrión ausente y problemas de conexión P2P. Evita confundir fallo de Internet con falta de calibración A/B.
+- **Salas reales:** host e invitado siguen compartiendo A/B, posiciones, enemigos, flags, daños y estado de PvP V33. Tras reconectar, el invitado solicita snapshot actualizado si estaba calibrado.
+- **Limitación de red:** PeerJS necesita comunicación WebRTC P2P. Dos redes NAT estrictas pueden requerir servicio TURN con credenciales gestionadas por el propietario. Sin TURN no se promete conexión universal por datos móviles. Probar la misma red Wi‑Fi es el primer diagnóstico.
+- **Publicación:** GitHub contiene V34; Vercel Free podría seguir bloqueando despliegues por cuota. No declarar jugable en la URL oficial hasta que el deployment sea READY.
 
 ## V33 — PvP REAL: jugadores contra jugadores
 
