@@ -172,3 +172,155 @@
 /* V16 lobby must scroll on compact phones when flag settings are expanded */
 #intro{overflow-y:auto;overscroll-behavior:contain;padding-top:calc(18px + env(safe-area-inset-top));padding-bottom:calc(18px + env(safe-area-inset-bottom));justify-content:flex-start}
 #intro .gameModes{flex-shrink:0}
+
+
+/* BLACKZONE V19 — Premium tactical design system
+   Zero external dependencies; optical markings built in CSS. */
+:root{
+ --paper:#ecf3f2;--rust:#ed805d;--grey:#b4c2c9;
+ --bz-void:#060b12;--bz-ink:#0b1723;--bz-steel:#314657;
+ --bz-line:#395466;--bz-alert:#ea775d;--bz-ice:#c9e4e5;
+}
+#intro{
+ isolation:isolate;min-height:100%;background:
+  radial-gradient(ellipse 66% 34% at 52% 18%,#253748b8 0%,transparent 85%),
+  radial-gradient(ellipse 75% 60% at 104% 85%,#1b344344 0%,transparent 70%),
+  linear-gradient(160deg,#0c1721 0%,#090f18 54%,#05080e 100%);
+}
+#intro::before{
+ position:absolute;inset:12px;width:auto;height:auto;aspect-ratio:auto;
+ border:1px solid #4e67702a;transform:none;border-radius:3px;
+ background:
+  linear-gradient(#c6805b77,#c6805b77) 16px 16px/17px 1px no-repeat,
+  linear-gradient(#c6805b77,#c6805b77) 16px 16px/1px 17px no-repeat,
+  linear-gradient(#c6805b77,#c6805b77) calc(100% - 16px) calc(100% - 16px)/17px 1px no-repeat;
+ box-shadow:inset 0 0 95px #0005;opacity:.6;pointer-events:none;z-index:0;
+}
+#intro::after{
+ content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.45;
+ background:
+  repeating-linear-gradient(0deg,transparent 0,transparent 35px,#678da50b 36px),
+  repeating-linear-gradient(90deg,transparent 0,transparent 35px,#678da50b 36px);
+ -webkit-mask-image:linear-gradient(transparent,#0005 38%,#0008 75%,transparent);
+ mask-image:linear-gradient(transparent,#0005 38%,#0008 75%,transparent);
+}
+#intro>*{position:relative;z-index:1}
+#intro .eyebrow{
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ width:min(100%,430px);margin:0 auto 5px;padding:7px 8px;
+ border-bottom:1px solid #4f65785b;color:#a8c6d2;font-size:9px;
+ letter-spacing:.12em;text-align:left;
+}
+.brandSignal{display:inline-flex;align-items:center;gap:8px}
+.brandSignal i{
+ display:inline-block;width:6px;height:6px;min-width:6px;border-radius:50%;
+ background:#78d9bb;box-shadow:0 0 0 3px #70d4ad1a,0 0 10px #55f0c366;
+ animation:bz-beacon 2.8s ease-in-out infinite;
+}
+.eyebrowNumber{color:#cf916f;white-space:nowrap}
+@keyframes bz-beacon{0%,100%{opacity:.65}50%{opacity:1;box-shadow:0 0 0 4px #70d4ad15,0 0 15px #55f0c3a9}}
+.brandLockup{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0;margin:5px auto 0}
+#intro .insignia{margin:0;line-height:0;filter:drop-shadow(0 9px 17px #0009)}
+#intro .insignia img{width:clamp(66px,16vw,91px);height:auto;display:block}
+#intro .brandTitle{
+ font-family:Impact,'Arial Narrow','Helvetica Neue',Arial,sans-serif;
+ font-size:clamp(47px,12.8vw,89px);font-weight:900;
+ letter-spacing:.018em;line-height:1.05;margin:4px 0 0;
+ color:#e8efef;text-shadow:0 2px 0 #000,0 14px 26px #0007;
+ transform:scaleX(.95);white-space:nowrap;
+}
+#intro .brandTitle span{color:#e58d68}
+#intro .subtitle{
+ font-size:10px;color:#cad6da;font-weight:900;letter-spacing:.18em;
+ margin:6px auto 0;text-shadow:0 2px 8px #0007;
+}
+#intro .subtitle span{color:#e9ad82}
+#intro .subtitle .subtitleSep{color:#698192;padding:0 4px}
+#intro .strap{font-size:clamp(12px,2.8vw,14px);line-height:1.45;color:#d8e4e8;margin:9px auto 13px}
+.brandModes{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;
+ width:min(100%,410px);margin:0 auto 14px;
+}
+.brandModes span{
+ display:flex;justify-content:center;align-items:center;gap:6px;
+ font-size:9px;letter-spacing:.085em;font-weight:900;color:#b9c6ce;
+ padding:8px 5px;border-block:1px solid #45607077;
+ background:linear-gradient(90deg,#1c2d3b55,#0d172255);
+}
+.brandModes b{color:#e7a779;font-size:9px;font-variant-numeric:tabular-nums}
+#intro .gameModes{
+ padding:11px 12px;border:1px solid #40586eaa;border-radius:7px;
+ background:linear-gradient(145deg,#1b2b3bd9,#0b1622e8);
+ box-shadow:0 12px 30px #0006,inset 0 1px 0 #98bed41c;
+ width:min(100%,418px);gap:7px;margin:0 auto 10px;
+}
+#intro .gameModes>label{color:#9eb3c1;font-size:9px;letter-spacing:.17em}
+#intro .gameModes select{
+ border:1px solid #5c7a8a;background:linear-gradient(140deg,#203747,#132331);
+ color:#f1f5f7;font-size:11px;letter-spacing:.04em;border-radius:4px;
+}
+#intro .ctfSettings{
+ background:#080f18be;border-color:#3e5263;border-radius:4px;
+}
+#intro .ctfConfigLine label{color:#9fb7c1}
+#intro .entry{width:min(100%,418px);gap:8px;margin:0 auto 2px}
+#intro .entry .primary{
+ background:linear-gradient(105deg,#f5a278,#c76d55 67%,#a54b44);
+ border:1px solid #f5be94;color:#101b27;min-height:53px;
+ box-shadow:0 5px 0 #4d2727,0 9px 24px #0008;
+}
+#intro .entry .primary:active{transform:translateY(2px);box-shadow:0 3px 0 #4d2727}
+#intro .entry .secondary{background:#132433e9;border-color:#4e6978;color:#d7e6ea}
+#intro button:focus-visible,#intro select:focus-visible,#intro input:focus-visible{
+ outline:2px solid #f6b58c;outline-offset:3px;
+}
+#intro #coopLobby{
+ background:linear-gradient(135deg,#0e1c28dd,#101a24d9);border:1px solid #39576a;
+ border-radius:6px;padding:10px 12px 8px;margin:12px auto 0;width:min(100%,418px);
+}
+#intro .coopTitle{color:#e8b694;letter-spacing:.13em;font-size:9px}
+#intro #coopLobby .coopLine button{border-radius:4px}
+#intro #lobbyMsg{color:#adc3cf;font-size:10px}
+#intro .small{margin:9px auto 5px}
+#intro .footer{color:#8ea0ac;font-size:9px;letter-spacing:.09em}
+#intro .footer a{color:#dfac85}
+#hud header{background:linear-gradient(180deg,#06101ff5 0%,#0a1524e5 64%,transparent 100%);border-top:2px solid #a76e54}
+#hud .logo{width:38px;height:38px;flex:0 0 38px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 2px 7px #0009)}
+#hud .logo img{width:38px;height:38px}
+#hud .gamename{font-size:14px;letter-spacing:.095em;color:#f1f5f3;font-family:Impact,'Arial Narrow',Arial,sans-serif}
+#hud .gamename small{font:700 8px/1.2 Arial,Helvetica,sans-serif;letter-spacing:.12em;color:#aac1cd}
+#hud .score strong{font-size:18px;color:#e4ebe9}
+#hud .ctfScoreboard{border-color:#5c7f92;box-shadow:0 5px 19px #0008}
+#hud #bottom{background:linear-gradient(transparent,#07111eea 37%,#070e18fd)}
+#hud .trigger{border-color:#e9a47b;background:linear-gradient(142deg,#d88963,#93483e);box-shadow:0 0 28px #b54c4438}
+#hud .weaponInfo small,#hud .weaponInfo b{color:#d7e2e9}
+#outro{background:radial-gradient(ellipse at 50% 30%,#283d4a 0%,#101e2a 55%,#050b11 100%)}
+#outro .insignia{line-height:0;filter:drop-shadow(0 7px 18px #000a)}
+#outro .insignia img{max-width:80px;height:auto}
+#outro .eyebrow{color:#ebaa88;letter-spacing:.2em}
+@media(max-width:410px){
+ #intro .eyebrow{font-size:8px;letter-spacing:.07em}
+ #intro .brandTitle{font-size:clamp(46px,13vw,56px);letter-spacing:.006em}
+ .brandModes{margin-bottom:10px}
+ #intro .brandModes span{font-size:8px;gap:4px}
+ #intro .gameModes{padding:9px 10px}
+ #intro .strap{margin:7px auto 10px}
+}
+@media(max-height:740px){
+ #intro .insignia img{width:60px}
+ #intro .brandTitle{font-size:clamp(42px,11vw,65px);margin-top:0}
+ #intro .subtitle{margin:2px auto}
+ #intro .strap{margin:6px auto}
+ .brandModes{margin-bottom:7px}
+ #intro .gameModes{padding:8px;margin-bottom:7px}
+ #intro #coopLobby{margin-top:7px}
+}
+@media(orientation:landscape) and (max-height:500px){
+ #intro .brandLockup{flex-direction:row;gap:12px}
+ #intro .insignia img{width:46px}
+ #intro .brandTitle{font-size:clamp(40px,5.8vw,63px)}
+ #intro .brandModes{display:none}
+ #intro .eyebrow{padding:3px 8px}
+ #intro .strap{margin:2px auto}
+}
+@media(prefers-reduced-motion:reduce){.brandSignal i{animation:none}}
