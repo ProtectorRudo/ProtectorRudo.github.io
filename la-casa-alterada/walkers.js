@@ -62,7 +62,7 @@ export function steerEnemy(e,dt,time,target,mode,map,peers){
   goal=e.waypoint;
  }
  const dX=(goal?.x??e.home.x)-p.x,dZ=(goal?.z??e.home.z)-p.z,d=Math.hypot(dX,dZ);
- const speed=(e.floor?.39:.16)*(e.variant===2?1.55:e.variant===1?.8:1)*(e.boss?1.15:1);
+ const speed=(e.floor?.39:.16)*(e.variant===2?1.55:e.variant===1?.8:1)*(e.boss?1.15:1)*(e.paceMultiplier||1);
  // Cover waypoints need centimetre-scale accuracy; the generic attack
  // stand-off distance previously prevented bots reaching their peek lane.
  const tactical=!!e.coverPlan&&!!e.coverState;
