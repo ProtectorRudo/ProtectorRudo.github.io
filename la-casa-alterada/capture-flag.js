@@ -179,7 +179,10 @@ export function createCaptureFlag(THREE,api){
        !!rival&&(defender||e.hp<=1)&&!carrying);
      const dist=gap(at,tacticalTo),beforeMove=at.clone();
      if(dist>(guarding?.45:.35)){
-       const waypoint=api.nextPoint?.(at,tacticalTo)||tacticalTo;
+       // Spatial navigation returns plain coordinates; normalize before vector operations.
+       const routePoint=api.nextPoint?.(at,tacticalTo)||tacticalTo;
+       const waypoint=routePoint.isVector3?routePoint:
+         new THREE.Vector3(routePoint.x,routePoint.y,routePoint.z);
        const delta=waypoint.clone().sub(at);delta.y=0;
        if(delta.lengthSq()>.001){
          delta.normalize();
@@ -191,6 +194,8 @@ export function createCaptureFlag(THREE,api){
          const near=origin().worldToLocal(next.clone());
          if(gap(near,mid)<=radius&&api.canMove?.(at,next,.21)!==false)at.copy(next);
          e.root.rotation.y=Math.atan2(delta.x,delta.z);
+         if(threat&&(e.coverState==='hold'||e.coverState==='fire'))
+           e.root.rotation.y=Math.atan2(threat.x-at.x,threat.z-at.z);
        }
      }
      api.animate?.(e,dt,gap(at,beforeMove)/Math.max(.001,dt));
