@@ -63,15 +63,18 @@ export function steerEnemy(e,dt,time,target,mode,map,peers){
  }
  const dX=(goal?.x??e.home.x)-p.x,dZ=(goal?.z??e.home.z)-p.z,d=Math.hypot(dX,dZ);
  const speed=(e.floor?.39:.16)*(e.variant===2?1.55:e.variant===1?.8:1)*(e.boss?1.15:1);
- const stop=e.floor?(goal===target?(e.boss?1.75:1.58):.08):.14;
+ // Cover waypoints need centimetre-scale accuracy; the generic attack
+ // stand-off distance previously prevented bots reaching their peek lane.
+ const tactical=!!e.coverPlan&&!!e.coverState;
+ const stop=tactical?.10:e.floor?(goal===target?(e.boss?1.75:1.58):.08):.14;
  let vx=0,vz=0;
  if(d>.0001){
   if(d>stop){vx=dX/d;vz=dZ/d}
-  else if(e.floor&&goal===target&&d<1.1){vx=-dX/d*.6;vz=-dZ/d*.6}
-  else if(e.floor&&goal===target){const side=Math.sin(time*.0007+e.phase)>0?1:-1;vx=-dZ/d*.2*side;vz=dX/d*.2*side}
+  else if(!tactical&&e.floor&&goal===target&&d<1.1){vx=-dX/d*.6;vz=-dZ/d*.6}
+  else if(!tactical&&e.floor&&goal===target){const side=Math.sin(time*.0007+e.phase)>0?1:-1;vx=-dZ/d*.2*side;vz=dX/d*.2*side}
  }
  if(!e.floor){vx+=Math.sin(time*.0008+e.phase)*.58;vz+=Math.cos(time*.0007+e.phase)*.55}
- else if(d>1){vx+=Math.sin(time*.001+e.phase)*.16;vz+=Math.cos(time*.0011+e.phase)*.16}
+ else if(!tactical&&d>1){vx+=Math.sin(time*.001+e.phase)*.16;vz+=Math.cos(time*.0011+e.phase)*.16}
  // Squad spacing: enemies avoid occupying the same spot while they flank.
  if(e.floor&&Array.isArray(peers)){
    let awayX=0,awayZ=0,neighbors=0;
@@ -104,6 +107,16 @@ export function steerEnemy(e,dt,time,target,mode,map,peers){
  else if(can(oldX,newZ))p.z=newZ;
  }
  const moved=Math.hypot(p.x-oldX,p.z-oldZ)/Math.max(.001,dt);
+ // Abort a permanently blocked cover approach rather than walking into a
+ // mapped wall forever. Skip hold/fire because not moving is intentional.
+ if(tactical&&['approach','peek','retreat'].includes(e.coverState)&&
+    Math.hypot((target?.x??p.x)-p.x,(target?.z??p.z)-p.z)>.48){
+   e.coverStall=moved<.025?(e.coverStall||0)+dt:0;
+   if(e.coverStall>3.2){
+     e.coverPlan=null;e.coverState=null;e.waypoint=null;e.lastGoal=null;
+     e.coverRetryAt=time+5200;e.coverStall=0;
+   }
+ }else e.coverStall=0;
  const focus=(e.coverState==='hold'||e.coverState==='fire')&&e.tacticalThreat;
  const desiredX=focus?e.tacticalThreat.x-p.x:d>.2?dX:e.walkVX;
  const desiredZ=focus?e.tacticalThreat.z-p.z:d>.2?dZ:e.walkVZ;

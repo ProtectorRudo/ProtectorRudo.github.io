@@ -178,7 +178,7 @@ export function createCaptureFlag(THREE,api){
      const tacticalTo=tacticalDestination(e,time,to,threat,api.findCover,
        !!rival&&(defender||e.hp<=1)&&!carrying);
      const dist=gap(at,tacticalTo),beforeMove=at.clone();
-     if(dist>(guarding?.45:.35)){
+     if(dist>(e.coverPlan?.10:guarding?.45:.35)){
        // Spatial navigation returns plain coordinates; normalize before vector operations.
        const routePoint=api.nextPoint?.(at,tacticalTo)||tacticalTo;
        const waypoint=routePoint.isVector3?routePoint:
@@ -199,9 +199,12 @@ export function createCaptureFlag(THREE,api){
        }
      }
      api.animate?.(e,dt,gap(at,beforeMove)/Math.max(.001,dt));
+     if(!rival)continue;
+     // Do not fire through an obstacle while ducked behind cover.
+     // Keep shot cooldown ready for the moment the bot actually peeks.
+     if(e.coverPlan&&e.coverState!=='fire')continue;
      if(time<(e.ctfShotAt||0))continue;
      e.ctfShotAt=time+specs[1]+Math.random()*420;
-     if(!rival)continue;
      const from=at.clone().add(new THREE.Vector3(0,1.1,0));
      const dest=origin().localToWorld(rival.pos.clone()).add(new THREE.Vector3(0,.9,0));
      if(api.cover?.(from,dest))continue;

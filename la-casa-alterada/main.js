@@ -8,10 +8,13 @@ import {createSpatialMap} from './spatial-map.js';
 import { createTacticalRifle } from './rifle.js';
 import { steerEnemy, animateEnemy } from './walkers.js';
 import { tacticalDestination } from './tactical-behavior.js';
+import { createAdaptiveQuality } from './adaptive-quality.js';
 const $=id=>document.getElementById(id),rnd=(a,b)=>a+Math.random()*(b-a),clamp=THREE.MathUtils.clamp;
 const world=new THREE.Scene(),camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.01,60);
 const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});
-renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local');renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.28;renderer.setPixelRatio(Math.min(devicePixelRatio,1.55));renderer.setSize(innerWidth,innerHeight);$('world').append(renderer.domElement);
+const basePixelRatio=Math.min(devicePixelRatio,1.55);
+const adaptiveQuality=createAdaptiveQuality(basePixelRatio);
+renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local');renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.28;renderer.setPixelRatio(basePixelRatio);renderer.setSize(innerWidth,innerHeight);$('world').append(renderer.domElement);
 world.add(new THREE.HemisphereLight(0xd8e8f1,0x2c1c28,2.15));const key=new THREE.DirectionalLight(0xf3cbb3,1.95);key.position.set(2,4,1);world.add(key);const rim=new THREE.PointLight(0x86a5b3,2.9,6);rim.position.set(-1,1.7,-2);world.add(rim);
 const geo={ball:new THREE.SphereGeometry(1,16,12),lo:new THREE.SphereGeometry(1,9,7),tube:new THREE.CylinderGeometry(1,1,1,8),fang:new THREE.ConeGeometry(1,1,8)};
 function tex(){const c=document.createElement('canvas');c.width=c.height=256;const ctx=c.getContext('2d');ctx.fillStyle='#aaaaaa';ctx.fillRect(0,0,256,256);for(let i=0;i<11000;i++){let k=Math.floor(rnd(40,200));ctx.fillStyle='rgba('+k+','+k+','+k+','+rnd(.04,.27)+')';const s=rnd(.3,2.6);ctx.fillRect(rnd(0,256),rnd(0,256),s,s)}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(2,2);return t}
@@ -23,6 +26,11 @@ const reticle=new THREE.Group();const ring=new THREE.Mesh(new THREE.RingGeometry
 let ar=null,local=null,source=null,mode='idle',placing=true,active=false,ended=false,pose=null,hitResult=null,surfaces=[],occluders=[],nests=[],enemies=[],orbs=[],trails=[],splinters=[],life=100,round=0,ammo=28,reloading=false,kills=0,seconds=480,newRound=0,now=0,previous=0,lastTouch=0,lastShot=0,monsterId=0,projectileId=0,toastExpiry=0,eventExpiry=0,drag=false,yaw=0,pitch=0,audio,mission=null,joystick={x:0,y:0};
 const ray=new THREE.Raycaster(),vec=new THREE.Vector3(),quat=new THREE.Quaternion(),getCam=()=>mode==='ar'?renderer.xr.getCamera(camera):camera;
 const combatFX=createCombatFX(world,getCam);
+// Shared GPU resources, one per app instead of one per enemy projectile.
+const enemyTracerGeometry=new THREE.CapsuleGeometry(.025,.19,2,5);
+const enemyTracerMaterial=new THREE.MeshBasicMaterial({
+ color:0xffc27d,transparent:true,opacity:.94,depthWrite:false
+});
 const spatialMap=createSpatialMap(THREE,world);
 let mapping=false,mapKind='area',mapFirst=null,mapPoint=null,mapDepth=null,mapDepthSource='none',mapManualDistance=1.8,mapPointQuality='manual',lastMapUI=0,mapFastSpan=2,mapPrecise=false,mapGhost=null,mapFirstGhost=null,mapManualOverride=false;
 const mapHint=$('mapInstruction');
@@ -747,13 +755,17 @@ function updateBattle(dt,t){
   if(e.staggerUntil&&t<e.staggerUntil){
    e.root.rotation.x=Math.sin((e.staggerUntil-t)/170*Math.PI)*(e.hitStagger||.08);
   }else if(e.staggerUntil){e.root.rotation.x=0;e.staggerUntil=0}
-  // The enemies fire tactical bursts, not slow fantasy projectiles.
-  if(t>e.next&&worldPosition.distanceTo(target)<8.5&&!spatialMap.lineBlocked(worldPosition,target,.05)){
+  // Fire from the torso, and ONLY after reaching a usable peek lane.
+  const firingPoint=worldPosition.clone().add(new THREE.Vector3(0,1.08,0));
+  const exposed=!e.coverPlan||e.coverState==='fire';
+  if(!exposed){e.burst=0;e.next=Math.min(e.next||t,t+120)}
+  if(exposed&&t>e.next&&worldPosition.distanceTo(target)<8.5&&
+     !spatialMap.lineBlocked(firingPoint,target,.05)){
    e.burst=3+(e.boss?1:0);
    e.burstAt=t;
    e.next=t+rnd(3800,5900);
   }
-  if(e.burst>0&&t>=(e.burstAt||0)&&shooting<6){
+  if(exposed&&e.burst>0&&t>=(e.burstAt||0)&&shooting<6&&orbs.length<68){
    e.burst--;
    e.burstAt=t+rnd(160,235);
    shooting++;
@@ -765,7 +777,7 @@ function updateBattle(dt,t){
    const aim=playerTarget.clone().add(new THREE.Vector3(rnd(-spread,spread),rnd(-.2,.2),rnd(-spread,spread)));
    const direction=aim.sub(from).normalize();
    const velocity=direction.multiplyScalar(e.variant===2?6.8:5.6);
-   const tracer=new THREE.Mesh(new THREE.CapsuleGeometry(.025,.19,2,5),new THREE.MeshBasicMaterial({color:0xffc27d,transparent:true,opacity:.94,depthWrite:false}));
+   const tracer=new THREE.Mesh(enemyTracerGeometry,enemyTracerMaterial);
    tracer.position.copy(from);tracer.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),velocity.clone().normalize());
    world.add(tracer);
    orbs.push({id:++projectileId,mesh:tracer,vel:velocity,targetId:e.targetId,until:t+2250,power:e.boss?6:e.targetId==='hostage'?3.2:4.6,whizzed:false});
@@ -780,13 +792,13 @@ function updateBattle(dt,t){
   const before=shot.mesh.position.clone();
   const step=shot.vel.clone().multiplyScalar(dt);
   if(spatialMap.lineBlocked(before,before.clone().add(step),.025)){
-    combatFX.impact(before,shot.vel,6);world.remove(shot.mesh);shot.mesh.geometry.dispose();shot.mesh.material.dispose();orbs.splice(i,1);continue;
+    combatFX.impact(before,shot.vel,6);world.remove(shot.mesh);orbs.splice(i,1);continue;
   }
   if(mode==='demo'&&occluders.length&&step.length()>0){
    const obstructionRay=new THREE.Raycaster(before,step.clone().normalize(),0,step.length());
    if(obstructionRay.intersectObjects(occluders,false).length){
     combatFX.impact(before.addScaledVector(step,.7),shot.vel,7);
-    world.remove(shot.mesh);shot.mesh.geometry.dispose();shot.mesh.material.dispose();orbs.splice(i,1);continue;
+    world.remove(shot.mesh);orbs.splice(i,1);continue;
    }
   }
   shot.mesh.position.add(step);
@@ -795,7 +807,7 @@ function updateBattle(dt,t){
    const distance=shot.mesh.position.distanceTo(victim);
    if(distance<.48){
     mission?.requestHit(shot.targetId||'local',shot.power);
-    world.remove(shot.mesh);shot.mesh.geometry.dispose();shot.mesh.material.dispose();orbs.splice(i,1);continue;
+    world.remove(shot.mesh);orbs.splice(i,1);continue;
    }
    if(!shot.whizzed&&distance<1.25){
     shot.whizzed=true;
@@ -804,12 +816,20 @@ function updateBattle(dt,t){
   }
   if(t>shot.until){
    combatFX.impact(shot.mesh.position,shot.vel,4);
-   world.remove(shot.mesh);shot.mesh.geometry.dispose();shot.mesh.material.dispose();orbs.splice(i,1);
+   world.remove(shot.mesh);orbs.splice(i,1);
   }
  }
  const c=getCam();c.getWorldPosition(vec);c.getWorldQuaternion(quat);
  ray.set(vec,new THREE.Vector3(0,0,-1).applyQuaternion(quat));ray.far=12;
- $('sight').classList.toggle('hit',!placing&&ray.intersectObjects(enemies.filter(e=>e.alive).flatMap(e=>e.headHit?[e.hit,e.headHit]:[e.hit]),false).length>0);
+ // A red crosshair must mean a REAL line of fire, not an enemy
+  // occluded by a marked wall or a rendered training obstacle.
+  const sightHits=ray.intersectObjects(
+    enemies.filter(e=>e.alive).flatMap(e=>e.headHit?[e.hit,e.headHit]:[e.hit]),false);
+  const sightCover=mode==='demo'?ray.intersectObjects(occluders,false)[0]:null;
+  const clearSight=!placing&&sightHits.some(hit=>
+    (!sightCover||hit.distance+.025<sightCover.distance)&&
+    !spatialMap.lineBlocked(vec,hit.point,.025));
+  $('sight').classList.toggle('hit',clearSight);
  hud();
 }
 function effects(dt,t){for(let i=trails.length-1;i>=0;i--){const a=trails[i];if(t>a.until){world.remove(a.mesh);a.mesh.material.dispose();trails.splice(i,1)}else a.mesh.material.opacity=Math.max(0,(a.until-t)/130)}for(let i=splinters.length-1;i>=0;i--){const s=splinters[i];s.mesh.position.addScaledVector(s.velocity,dt);s.velocity.y-=dt*3;s.mesh.material.opacity=Math.max(0,(s.until-t)/400);if(t>s.until){world.remove(s.mesh);s.mesh.material.dispose();s.mesh.geometry.dispose();splinters.splice(i,1)}}if(toastExpiry&&t>toastExpiry){$('toast').classList.remove('show');toastExpiry=0}if(eventExpiry&&t>eventExpiry){$('event').classList.add('hidden');eventExpiry=0}}
@@ -960,7 +980,11 @@ function updateZoneProximity(t){
 }
 function updateFrame(t,frame){now=t;
  if(hitConfirmUntil&&t>=hitConfirmUntil){hitConfirmUntil=0;$('hitConfirm').classList.remove('visible')}
- if(killFeedUntil&&t>=killFeedUntil){killFeedUntil=0;$('killFeed').classList.add('hidden')}if(triggerHeld&&currentWeapon==='rifle'&&active&&!placing)fire();const dt=previous?Math.min(.052,(t-previous)/1000):0;previous=t;if(mode==='ar')updateXR(frame);if(mode==='demo'){moveDemo(dt);updateDemo()}processSpawns(t);updateBattle(dt,t);mission?.tick(dt,t);updateRespawnShields(t);updateGuidance(t);updateZoneProximity(t);effects(dt,t);combatFX.tick(dt);renderer.render(world,camera);updateGun(dt,t)}
+ if(killFeedUntil&&t>=killFeedUntil){killFeedUntil=0;$('killFeed').classList.add('hidden')}if(triggerHeld&&currentWeapon==='rifle'&&active&&!placing)fire();const dt=previous?Math.min(.052,(t-previous)/1000):0;previous=t;
+ const qualityChange=adaptiveQuality.sample(dt,mode==='demo'&&active&&!document.hidden);
+ if(qualityChange&&renderer.getPixelRatio()!==qualityChange.ratio)
+   renderer.setPixelRatio(qualityChange.ratio);
+ if(mode==='ar')updateXR(frame);if(mode==='demo'){moveDemo(dt);updateDemo()}processSpawns(t);updateBattle(dt,t);mission?.tick(dt,t);updateRespawnShields(t);updateGuidance(t);updateZoneProximity(t);effects(dt,t);combatFX.tick(dt);renderer.render(world,camera);updateGun(dt,t)}
 renderer.setAnimationLoop(updateFrame);preloadHumans();
 
 function remoteStart(){if(!nests.length||active)return;begin()}

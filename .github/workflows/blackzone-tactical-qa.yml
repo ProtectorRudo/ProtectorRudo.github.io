@@ -25,4 +25,4 @@ jobs:
         with:
           node-version: '22'
       - name: Validate BLACKZONE V21 geometry and tactics
-        run: node --test la-casa-alterada/tests/v21-tactics.test.mjs
+        run: node --test la-casa-alterada/tests/*.test.mjs
