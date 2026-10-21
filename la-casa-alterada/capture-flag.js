@@ -186,6 +186,7 @@ export function createCaptureFlag(THREE,api){
        if(time<e.ctfRespawnAt)continue;
        e.ctfRespawnAt=0;e.alive=true;e.hp=3;e.root.visible=true;
        e.ctfProtectedUntil=time+1100;
+       e.ctfFlankReached=false;e.coverPlan=null;e.coverState=null;
        e.ctfShotAt=Math.max(e.ctfShotAt||0,time+1150);
        e.root.position.copy(e.home||origin().localToWorld(S.bases[e.team].clone()));
      }
@@ -234,6 +235,15 @@ export function createCaptureFlag(THREE,api){
        const waypoint=routePoint.isVector3?routePoint:
          new THREE.Vector3(routePoint.x,routePoint.y,routePoint.z);
        const delta=waypoint.clone().sub(at);delta.y=0;
+       for(const ally of bots()){
+         if(ally===e||!ally.alive||ally.team!==e.team)continue;
+         const dx=at.x-ally.root.position.x,dz=at.z-ally.root.position.z;
+         const separation=Math.hypot(dx,dz);
+         if(separation>.06&&separation<1.10){
+           const strength=(1.10-separation)*1.3;
+           delta.x+=dx/separation*strength;delta.z+=dz/separation*strength;
+         }
+       }
        if(delta.lengthSq()>.001){
          delta.normalize();
          const pace=squadSpeed(role,S.config.difficulty,!!rival&&gap(rival.pos,self)<2.4);
