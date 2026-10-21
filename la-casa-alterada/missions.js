@@ -176,7 +176,7 @@ export function createMission(api){
       pvp:isPvP(),health:pvpView(o.myId),playersHealth:pvpAll()};
   }
   function pickupFlag(){
-    if(!isCapture()||!o.running||!o.ready)return false;
+    if(!isCapture()||!o.running||!o.ready||isPvP()&&pvpView()?.dead)return false;
     const local=position(),info=ctf.pickupInfo(o.myTeam,local);
     if(!info){api.toast('BUSCÁ LA BANDERA ENEMIGA O UN COMPAÑERO QUE LA LLEVE');return false}
     if(!info.available){
@@ -618,7 +618,8 @@ if(Array.isArray(msg.environment)){
         const location=from(msg.p),direction=from(msg.d),sender=o.localPositions.get(conn.peer);
         const length=direction.length();
         // Do not trust a hit ID or an arbitrary muzzle location from a client.
-        if(sender&&location.distanceTo(sender)<1.65&&length>.85&&length<1.15){
+        if(sender&&location.distanceTo(sender)<1.65&&length>.85&&length<1.15&&
+           (!isPvP()||o.pvp.alive(conn.peer,t))){
           o.lastShotAt.set(conn.peer,t);
           direction.normalize();
           const packet={t:'teamShot',id:conn.peer,p:P(location),d:P(direction)};
@@ -968,5 +969,5 @@ return{align,alignSecond,alignmentStatus,needsReference,teamCalibration,updateTr
   const pos=new THREE.Vector3();
   o.hostageActor.root.getWorldPosition(pos);pos.y+=1.12;return pos;
  },
- isGuest,isHost,isPvP,pvpView,pvpAll,damagePvPPlayer,canPvPFire:()=>!isPvP()||pvpView()?.dead!==true,pickupFlag,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result,clock:api.clock(),wave:api.wave(),kills:api.kills?.()||0})},localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
+ isGuest,isHost,isPvP,pvpView,pvpAll,damagePvPPlayer,canPvPFire:(id=o.myId)=>!isPvP()||(isGuest()?pvpView(id)?.dead!==true:o.pvp.alive(id,performance.now())),pickupFlag,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result,clock:api.clock(),wave:api.wave(),kills:api.kills?.()||0})},localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
 }
