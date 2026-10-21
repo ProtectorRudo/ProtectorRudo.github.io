@@ -39,12 +39,21 @@ export function createPvPHealth(options={}){
    const lethal=p.hp===0&&before>0;
    if(lethal){
      p.deaths++;p.deadUntil=now+respawnMs;
-     if(typeof attacker==='string'&&attacker&&attacker!==id)
+     if(typeof attacker==='string'&&attacker&&!attacker.startsWith('bot')&&attacker!==id)
        at(attacker).kills++;
    }
    p.seq=++nextSeq;
    return{victim:id,attacker,damage:before-p.hp,headshot:!!headshot,
      lethal,state:view(id,now),seq:nextSeq};
+ }
+ function heal(id,amount,now){
+   const p=at(id);
+   if(p.deadUntil>now||!Number.isFinite(amount)||amount<=0)return null;
+   const before=p.hp;
+   p.hp=Math.min(maxHp,p.hp+Math.round(amount));
+   if(p.hp===before)return view(id,now);
+   p.seq=++nextSeq;
+   return view(id,now);
  }
  function view(id,now=0){
    const p=at(id);
@@ -54,7 +63,7 @@ export function createPvPHealth(options={}){
  }
  function snapshot(now=0){return Array.from(states.keys()).map(id=>view(id,now))}
  function remove(id){states.delete(id)}
- return{at,reset,alive,tick,hit,view,snapshot,remove,maxHp,respawnMs,graceMs};
+ return{at,reset,alive,tick,hit,heal,view,snapshot,remove,maxHp,respawnMs,graceMs};
 }
 /** World-space ray hit on a tracked remote player's head or upper torso. */
 export function playerRayHit(from,direction,head){
