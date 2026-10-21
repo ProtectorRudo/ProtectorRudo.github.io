@@ -93,7 +93,11 @@ export function createMission(api){
     damageBot:(bot,power,shooter)=>api.damageEnemy(bot,power,false,shooter),
     tagPlayer:(id,power)=>{if(id===o.myId)api.ctfTag?.(power);
       else send(o.connections.get(id),{t:'ctfTag',power});},
-    botShot:(a,b,team)=>api.ctfBotShot?.(a,b,team),event:msg=>api.event(msg),
+    botShot:(a,b,team)=>api.ctfBotShot?.(a,b,team),
+    event:msg=>{
+      api.event(msg);
+      if(isHost())broadcast({t:'ctfEvent',message:String(msg).slice(0,140)});
+    },
     finish:(winner,state)=>{o.running=false;o.finished=true;
       broadcast({t:'ctfEnd',winner,state});
       api.ctfFinish?.(winner,o.myTeam,state);}
@@ -403,7 +407,9 @@ export function createMission(api){
   }
   function abilityNow(kind){if(!o.running||!api.active())return;const t=performance.now(),period={pulse:18000,shield:25000,heal:35000}[kind],left=(o.cd[kind]||0)-t;if(left>0){api.toast('PODER DISPONIBLE EN '+Math.ceil(left/1000)+' S');return}o.cd[kind]=t+period;if(isGuest()){send(o.conn,{t:'ability',kind});if(kind==='shield')o.shields.set(o.myId,t+6000);if(kind==='pulse'){const p=position();if(p)spawnFX(P(p))}}else receiveAbility(o.myId,kind);ui()}
   function spawnFX(p){if(!o.origin)return;const at=from(p);o.origin.localToWorld(at);o.effects.push(visualWave(api.scene,at,0x54dff3))}
-  function getEnemyState(){if(!o.origin)return[];return api.enemies().filter(e=>e.alive).map(e=>{const v=new THREE.Vector3();e.root.getWorldPosition(v);o.origin.worldToLocal(v);return{id:e.id,v:e.variant,team:e.team||'red',ctfBot:!!e.ctfBot,skin:e.appearance||'raiderA',h:e.hp,p:P(v),yaw:e.root.rotation.y-o.origin.rotation.y,boss:!!e.boss,floor:!!e.floor,scale:e.size}})}
+  function getEnemyState(){if(!o.origin)return[];return api.enemies().filter(e=>e.alive).map(e=>{const v=new THREE.Vector3();e.root.getWorldPosition(v);o.origin.worldToLocal(v);return{id:e.id,v:e.variant,team:e.team||'red',ctfBot:!!e.ctfBot,
+    shield:e.ctfBot?Math.max(0,(e.ctfProtectedUntil||0)-performance.now()):0,
+    skin:e.appearance||'raiderA',h:e.hp,p:P(v),yaw:e.root.rotation.y-o.origin.rotation.y,boss:!!e.boss,floor:!!e.floor,scale:e.size}})}
   function receiveSnapshot(msg){
  if(!o.ready||!o.origin)return;
  if(Number.isInteger(msg.seq)){
@@ -417,7 +423,9 @@ export function createMission(api){
 if(Array.isArray(msg.environment)){
  const signature=JSON.stringify(msg.environment);
  if(o.lastEnvironment!==signature){o.lastEnvironment=signature;api.importEnvironment?.(msg.environment,o.origin)}
-}o.phase=msg.phase;o.mask=msg.mask;o.held=msg.held;if(Number.isFinite(msg.hostageHP))o.hostageHealth=msg.hostageHP;if(Array.isArray(msg.hostage))syncHostage(msg.hostage,msg.rescued);if(msg.running)o.startedByHost=true;o.running=msg.running;o.finished=msg.finished;api.setGuestStats(msg.clock,msg.wave,msg.kills);if(msg.running&&!api.active())api.remoteStart();const alive=new Set();for(const x of msg.enemies||[]){if(typeof x.id!=='number'||!Array.isArray(x.p))continue;alive.add(x.id);let e=o.remoteEnemy.get(x.id);if(!e){e=api.buildEnemy(x.v,x.boss,x.skin,x.team);e.team=x.team||'red';e.ctfBot=!!x.ctfBot;e.id=x.id;e.floor=!!x.floor;e.groundY=0;if(Number.isFinite(x.scale)&&x.scale>.05&&x.scale<4){const factor=x.scale/e.size;e.root.scale.multiplyScalar(factor);e.size=x.scale}e.hit.userData.enemy=e;if(e.headHit)e.headHit.userData.enemy=e;o.origin.add(e.root);api.enemies().push(e);o.remoteEnemy.set(x.id,e)}e.hp=x.h;e.alive=true;e.root.visible=true;e.start.copy(from(x.p));e.remoteYaw=Number.isFinite(x.yaw)?x.yaw:0;}for(const [id,e] of o.remoteEnemy)if(!alive.has(id)){
+}o.phase=msg.phase;o.mask=msg.mask;o.held=msg.held;if(Number.isFinite(msg.hostageHP))o.hostageHealth=msg.hostageHP;if(Array.isArray(msg.hostage))syncHostage(msg.hostage,msg.rescued);if(msg.running)o.startedByHost=true;o.running=msg.running;o.finished=msg.finished;api.setGuestStats(msg.clock,msg.wave,msg.kills);if(msg.running&&!api.active())api.remoteStart();const alive=new Set();for(const x of msg.enemies||[]){if(typeof x.id!=='number'||!Array.isArray(x.p))continue;alive.add(x.id);let e=o.remoteEnemy.get(x.id);if(!e){e=api.buildEnemy(x.v,x.boss,x.skin,x.team);e.team=x.team||'red';e.ctfBot=!!x.ctfBot;e.id=x.id;e.floor=!!x.floor;e.groundY=0;if(Number.isFinite(x.scale)&&x.scale>.05&&x.scale<4){const factor=x.scale/e.size;e.root.scale.multiplyScalar(factor);e.size=x.scale}e.hit.userData.enemy=e;if(e.headHit)e.headHit.userData.enemy=e;o.origin.add(e.root);api.enemies().push(e);o.remoteEnemy.set(x.id,e)}e.hp=x.h;e.alive=true;e.root.visible=true;
+ if(e.ctfBot)e.ctfProtectedUntil=performance.now()+Math.min(1800,Math.max(0,Number(x.shield)||0));
+ e.start.copy(from(x.p));e.remoteYaw=Number.isFinite(x.yaw)?x.yaw:0;}for(const [id,e] of o.remoteEnemy)if(!alive.has(id)){
  e.alive=false;disposeHuman(e);e.root.parent?.remove(e.root);
  const pool=api.enemies(),j=pool.indexOf(e);if(j>=0)pool.splice(j,1);
  o.remoteEnemy.delete(id)
@@ -525,6 +533,7 @@ if(Array.isArray(msg.environment)){
     if(m.t==='gameConfig')applyMode(m);
     if(m.t==='ctfState'&&m.state)ctf.applyState(m.state);
     if(m.t==='ctfTag')api.ctfTag?.(m.power||1);
+    if(m.t==='ctfEvent'&&isCapture()&&typeof m.message==='string'&&m.message.length<=140)api.event(m.message);
     if(m.t==='ctfBotShot'&&isCapture()&&o.origin&&Array.isArray(m.from)&&Array.isArray(m.to)&&m.from.length===3&&m.to.length===3){
       const a=originToWorld(from(m.from)),b=originToWorld(from(m.to));
       if(a.distanceTo(b)<12)api.ctfBotShot?.(a,b,m.team);
