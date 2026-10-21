@@ -173,9 +173,15 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
   drawHUD();return true;
  }
  function blast(x,z,color,r=.04){
-  const mesh=new THREE.Mesh(new THREE.SphereGeometry(.011,8,6),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.8,depthWrite:false}));
-  mesh.position.set(x,.055,z);mesh.scale.setScalar(r/.011);group.add(mesh);effects.push({mesh,ttl:.30,init:.30,kind:'flash'});
-  if(effects.length>90){const old=effects.shift();old.mesh.parent?.remove(old.mesh);}
+  // A shallow shock ring is more believable at tabletop scale than a giant orb.
+  const mesh=new THREE.Mesh(new THREE.RingGeometry(.009,.014,24),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.84,depthWrite:false,side:THREE.DoubleSide}));
+  mesh.rotation.x=-Math.PI/2;mesh.position.set(x,.014,z);
+  mesh.scale.setScalar(Math.max(.6,r/.034));group.add(mesh);
+  effects.push({mesh,ttl:.37,init:.37,kind:'flash'});
+  const spark=new THREE.Mesh(new THREE.SphereGeometry(.004,8,6),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.84,depthWrite:false}));
+  spark.position.set(x,.045,z);spark.scale.setScalar(Math.max(1,r/.030));group.add(spark);
+  effects.push({mesh:spark,ttl:.15,init:.15,kind:'spark'});
+  while(effects.length>100){const old=effects.shift();old.mesh.parent?.remove(old.mesh);}
  }
  function tracer(source,target,team){
   const m=new THREE.Mesh(new THREE.SphereGeometry(.0045,8,6),new THREE.MeshBasicMaterial({color:team?0xffa589:0x9bffce}));
@@ -200,7 +206,7 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
   if(target&&u.cooldown<=0){
    if('card' in target)dealUnit(target,u.card.dmg);
    else dealBuilding(target,u.card.dmg);
-   tracer(u,target,u.team);u.cooldown=u.card.rate;
+   tracer(u,target,u.team);blast(target.x,target.z,u.team?0xf8a487:0x92eed0,.017);u.cooldown=u.card.rate;
   }else if(!target){
    const nearest=foes.filter(x=>Math.abs(x.x-u.x)<.1).sort((a,b)=>dist(u,a)-dist(u,b))[0];
    const targetMove=nearest&&dist(u,nearest)<u.card.range+.13?nearest:base;
@@ -229,7 +235,7 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
    if(!b.alive)continue;b.cooldown-=dt;
    if(b.cooldown>0)continue;
    const enemy=units.filter(u=>u.team!==b.team&&u.hp>0&&dist(u,b)<(b.main?.147:.137)).sort((a,c)=>dist(a,b)-dist(c,b))[0];
-   if(enemy){dealUnit(enemy,b.main?17:13);tracer(b,enemy,b.team);b.cooldown=b.main?.8:1.08;}
+   if(enemy){dealUnit(enemy,b.main?17:13);tracer(b,enemy,b.team);blast(enemy.x,enemy.z,0xffb47d,.015);b.cooldown=b.main?.8:1.08;}
   }
   aiCooldown-=dt;
   if(aiCooldown<=0){
@@ -245,7 +251,7 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
   for(const e of effects){
    e.ttl-=dt;
    if(e.kind==='bullet')e.mesh.position.copy(e.a).lerp(e.b,Math.min(1,1-e.ttl/e.init));
-   else{e.mesh.material.opacity=Math.max(0,e.ttl/e.init);e.mesh.scale.multiplyScalar(1+dt);}
+   else{e.mesh.material.opacity=Math.max(0,e.ttl/e.init);e.mesh.scale.multiplyScalar(e.kind==='flash'?1+dt*4:1+dt*2);}
   }
   effects=effects.filter(e=>{if(e.ttl>0)return true;e.mesh.parent?.remove(e.mesh);return false});
   if(notifyUntil>0){notifyUntil-=dt;if(notifyUntil<=0)H.toast.classList.remove('visible');}
