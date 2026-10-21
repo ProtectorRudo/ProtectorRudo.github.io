@@ -336,6 +336,55 @@ function begin(){
  placing=false;ui();mission?.ui();
 }
 function more(){placing=true;ui();toast('Localizá otra superficie; la amenaza sigue activa.')}
+function spawnCTFBot(team,index,id,localPos){
+ if(!mission?.isCapture?.()||!localPos||enemies.some(e=>e.id===id))return null;
+ const e=createTacticalActor(THREE,index%4,team==='blue'?'operator':'raider');
+ e.id=id;e.ctfBot=true;e.team=team;e.floor=true;e.alive=true;e.hp=3;e.size=.94;
+ e.home=mission.originToWorld(localPos.clone());e.root.position.copy(e.home);e.groundY=e.root.position.y;
+ e.root.scale.setScalar(.92);e.start.copy(e.root.position);e.next=0;e.nextTarget=0;
+ e.hit.userData.enemy=e;if(e.headHit)e.headHit.userData.enemy=e;
+ // Colored shoulder ID stays visible even when the detailed GLB hides
+ // the fallback model; allows rapid friend/foe recognition on phone.
+ const color=team==='blue'?0x46c7ff:0xff6158;
+ const band=new THREE.Mesh(new THREE.TorusGeometry(.15,.032,8,18),
+   new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.37}));
+ band.position.set(.05,1.33,.03);band.rotation.x=Math.PI/2;e.root.add(band);
+ world.add(e.root);enemies.push(e);
+ e.appearance=team==='blue'?'operator':['raiderA','raiderB','raiderC','raiderD'][index%4];
+ attachHuman(e,e.appearance);
+ return e;
+}
+function ctfBotShot(from,to,team){
+ combatFX.shot(from,true,'rifle');trail(from,to);
+}
+function resolveFlagShot(start,direction,shooterId){
+ if(!mission?.isCapture?.()||!mission?.isHost?.()||!active||ended)return null;
+ const shooterTeam=mission.teamOf(shooterId);
+ const cast=new THREE.Raycaster(start,direction.clone().normalize(),0,12);
+ world.updateMatrixWorld(true);
+ const eligible=enemies.filter(e=>e.alive&&e.ctfBot&&e.team!==shooterTeam);
+ const objects=eligible.flatMap(e=>e.headHit?[e.hit,e.headHit]:[e.hit]);
+ const hitBot=cast.intersectObjects(objects,false)[0]||null;
+ const cover=mode==='demo'?cast.intersectObjects(occluders,false)[0]:null;
+ let closest=hitBot?{distance:hitBot.distance,point:hitBot.point,bot:hitBot.object.userData.enemy,
+   headshot:hitBot.object.userData.part==='head'}:null;
+ for(const person of mission.capturePlayersWorld?.()||[]){
+   if(person.id===shooterId||person.team===shooterTeam||!person.world)continue;
+   const to=person.world.clone().sub(start),forward=cast.ray.direction;
+   const t=to.dot(forward);
+   if(t<.1||t>12||closest&&t>=closest.distance)continue;
+   const closestPoint=start.clone().addScaledVector(forward,t);
+   if(closestPoint.distanceTo(person.world)>.47)continue;
+   closest={distance:t,point:closestPoint,playerId:person.id,headshot:false};
+ }
+ if(!closest)return null;
+ if(cover&&cover.distance+.04<closest.distance)return null;
+ if(spatialMap.lineBlocked(start,closest.point,.04))return null;
+ if(closest.bot)damageEnemy(closest.bot,closest.headshot?3:1,closest.headshot,shooterId);
+ else if(!mission.tagEnemyPlayer?.(closest.playerId,shooterId))return null;
+ combatFX.dust(closest.point,6);
+ return{id:closest.bot?.id||0,headshot:closest.headshot};
+}
 function teammateShot(start,direction,id){
   if(!active||ended)return;
   const end=start.clone().addScaledVector(direction,Math.min(3.9,ray.far||3.9));
@@ -368,6 +417,7 @@ let hitConfirmUntil=0;
  */
 function resolveTeammateShot(start,direction,shooterId){
  if(!active||ended||placing||!mission?.isHost?.())return null;
+ if(mission?.isCapture?.())return resolveFlagShot(start,direction,shooterId);
  if(!start||!direction||!Number.isFinite(direction.lengthSq())||direction.lengthSq()<.7)return null;
  const cast=new THREE.Raycaster(start,direction.clone().normalize(),0,12);
  world.updateMatrixWorld(true);
@@ -785,8 +835,10 @@ mission=createMission({scene:world,getCam,toast,event,teammateShot,resolveTeamma
  environmentCanMove:(from,to,radius)=>spatialMap.canMove(from,to,radius),
  environmentNextPoint:(from,to)=>spatialMap.nearestWaypoint(from,to),
  hasCover:(from,to)=>spatialMap.lineBlocked(from,to,.11),
- spawn:(n,boss)=>wave(n,boss),spawnPending:()=>spawnQueue.length,animateEnemy,animateHuman,projectiles:()=>orbs,enemies:()=>enemies,enemyShot:pos=>combatFX.shot(pos,true,'rifle'),buildEnemy:(variant,boss,appearance)=>{const e=creature(variant);e.boss=boss;if(boss){e.root.scale.setScalar(1.85);e.hp=22;e.size*=1.85}
- e.appearance=['raiderA','raiderB','raiderC','raiderD'].includes(appearance)?appearance:'raiderA';
+ spawn:(n,boss)=>wave(n,boss),spawnPending:()=>spawnQueue.length,animateEnemy,animateHuman,projectiles:()=>orbs,enemies:()=>enemies,enemyShot:pos=>combatFX.shot(pos,true,'rifle'),spawnCTFBot,ctfBotShot,ctfTag:applyCTFTag,ctfFinish:finishCTF,
+ buildEnemy:(variant,boss,appearance,team)=>{const e=createTacticalActor(THREE,variant,team==='blue'?'operator':'raider');e.team=team||'red';e.ctfBot=!!team;e.boss=boss;if(boss){e.root.scale.setScalar(1.85);e.hp=22;e.size*=1.85}
+ e.appearance=['raiderA','raiderB','raiderC','raiderD','operator'].includes(appearance)?appearance:'raiderA';
+ if(e.ctfBot){e.floor=true;e.root.scale.setScalar(.92);e.hp=3;e.size=.94;}
  attachHuman(e,e.appearance);return e},damageEnemy,damage,heal,remoteStart,clock:()=>seconds,wave:()=>round,setGuestStats:(clock,wave,teamKills)=>{if(Number.isFinite(clock))seconds=clock;if(Number.isFinite(wave))round=wave;if(Number.isInteger(teamKills)&&teamKills>=0)kills=Math.max(kills,teamKills)},victory:finish});
 
 async function startAR(){if(!navigator.xr){toast('Este navegador no admite WebXR');return}$('startAR').disabled=true;try{ar=await navigator.xr.requestSession('immersive-ar',{
