@@ -121,9 +121,9 @@ function pad(z,x){const g=new THREE.Group();g.position.set(x,.13,z);stage.add(g)
 spinner(7.4,0xff80a5);smasher(2.2,0xffcd62,1.1);spinner(-3.6,0x82e5d6);smasher(-8.9,0x9ab2ff,2.4);pad(-6.2,-2.5);pad(-6.2,2.5);
 
 function makePistons(z){
-  const warning=mat(0xffbd71,.16,.31,{emissive:0xc77419,emissiveIntensity:.16}),danger=mat(0xff7f99,.24,.24,{emissive:0xb42b52,emissiveIntensity:.22});
+  const danger=mat(0xff7f99,.24,.24,{emissive:0xb42b52,emissiveIntensity:.22});
   for(let j=0;j<3;j++){
-    const x=(j-1)*2.62,g=new THREE.Group();g.position.set(x,0,z);stage.add(g);
+    const x=(j-1)*2.62,g=new THREE.Group();g.position.set(x,0,z);stage.add(g);const warning=mat(0xffbd71,.16,.31,{emissive:0xc77419,emissiveIntensity:.16});
     cyl(chrome,g,[0,.14,0],.88,.93,.18);
     const frame=cyl(warning,g,[0,.22,0],.65,.72,.08);
     const plunger=new THREE.Group();g.add(plunger);
@@ -131,7 +131,7 @@ function makePistons(z){
     soft(chrome,plunger,[0,1.9,0],[1.2,.12,.84]);
     for(let a of [-.48,.48])ball(white,plunger,[a,1.46,-.53],[.115,.115,.06]);
     cyl(navy,g,[0,2.35,.2],.095,.095,3.1);
-    const indicator=ball(gold,g,[0,.29,-.82],[.21,.08,.11]);indicator.castShadow=false;
+    const indicator=ball(mat(0xffcf7a,.55,.22,{emissive:0xf9a83d,emissiveIntensity:.15}),g,[0,.29,-.82],[.21,.08,.11]);indicator.castShadow=false;
     obstacles.push({kind:"piston",z,x,part:plunger,frame,indicator,phase:j*2.09+(z>0?0:1.04)});
   }
 }
@@ -262,7 +262,7 @@ function cue(f=440,d=.1,type="sine",volume=.06){if(!soundOn)return;try{audio=aud
 function announce(s,ms=1100){$("toast").textContent=s;$("toast").classList.add("show");lastToast=performance.now()+ms}
 function begin(){if(mode==="ar"&&!placed){announce("TOCÁ UNA SUPERFICIE",1400);return}phase="countdown";elapsed=0;countdown=3.5;checkpoint=-1;$("intro").classList.add("hidden");$("finish").classList.remove("show");$("hud").classList.add("on");$("progress").classList.add("on");$("controls").classList.add("on");racers.forEach((r,i)=>{r.x=(i-2.5)*1.29;r.z=12.2+(i%2)*1.0;r.y=0;r.vy=0;r.stun=0;r.dash=0;r.dashCd=0;r.finished=false;r.finishTime=0;r.cool=0;r.stumbles=0;r.stars=0;r.invuln=0;r.animationName="";r.root.position.set(r.x,0,r.z);if(r.mixer)r.mixer.stopAllAction();useAnimation(r,"Idle")});$("progressBar").style.width="0%";$("pickupValue").textContent="0";$("pickupCounter").classList.add("on");for(let s of stars){s.used=false;s.g.visible=true}cue(520,.13);announce("¡PREPARADOS!",1100)}
 function hit(r,power=1){if(r.stun>.2||r.invuln>0||r.y>.44)return;r.stun=.72;r.invuln=2.2;useAnimation(r,"Hit");r.z+=.67*power;r.x=clamp(r.x+rand(-1.15,1.15),-3.4,3.4);r.stumbles++;puff(r.x,r.z,0xffd578,12);if(r.index===0){tactile(55);cameraShake=.28;cue(190,.24,"sawtooth",.07);announce("¡UPS! SEGUÍ CORRIENDO",900)}}
-function finishRace(){phase="finished";$("controls").classList.remove("on");$("hud").classList.remove("on");$("progress").classList.remove("on");$("pickupCounter").classList.remove("on");$("speedtrails").classList.remove("active");const sorted=[...racers].sort((a,b)=>a.finished&&b.finished?a.finishTime-b.finishTime:a.finished?-1:b.finished?1:a.z-b.z);const place=sorted.findIndex(r=>r.index===0)+1;const t=formatTime(elapsed);const record=!bestTime||elapsed<bestTime;if(record){bestTime=elapsed;try{localStorage.setItem("microcaos_best_v2",bestTime.toFixed(2))}catch(e){}}$("medal").textContent=place===1?"🏆":place<=3?"🥈":"🎖️";$("finaltitle").textContent=place===1?"¡SOS IMPARABLE!":place<=3?"¡PODIO DE LOCURA!":"¡REVANCHA YA!";$("finaltext").textContent=record?"¡NUEVO RÉCORD PERSONAL! Volvé a correr y defendé tu marca.":place===1?"La mesa tiene un nuevo campeón. ¿Podés repetirlo?":"Los rivales no perdonan. En la próxima podés llegar primero.";$("finalpos").textContent=place+"º";$("finaltime").textContent=t;$("finalstars").textContent=racers[0].stars||0;$("finish").classList.add("show");if(place===1){for(let j=0;j<4;j++)setTimeout(()=>puff(rand(-2,2),-12.7,colors[j],22),j*180)}cue(730,.2);setTimeout(()=>cue(930,.23),130);window.resultText="¡Salí "+place+"º en MICROCAOS Party Rush! Mi tiempo: "+t+". ¿Podés ganarme?";return place}
+function finishRace(){phase="finished";$("controls").classList.remove("on");$("hud").classList.remove("on");$("progress").classList.remove("on");$("pickupCounter").classList.remove("on");$("speedtrails").classList.remove("active");const sorted=[...racers].sort((a,b)=>a.finished&&b.finished?a.finishTime-b.finishTime:a.finished?-1:b.finished?1:a.z-b.z);const place=sorted.findIndex(r=>r.index===0)+1;const t=formatTime(elapsed);const record=racers[0].finished&&(!bestTime||elapsed<bestTime);if(record){bestTime=elapsed;try{localStorage.setItem("microcaos_best_v2",bestTime.toFixed(2))}catch(e){}}$("medal").textContent=place===1?"🏆":place<=3?"🥈":"🎖️";$("finaltitle").textContent=place===1?"¡SOS IMPARABLE!":place<=3?"¡PODIO DE LOCURA!":"¡REVANCHA YA!";$("finaltext").textContent=!racers[0].finished?"Se acabó el tiempo. ¡Probá una revancha!":record?"¡NUEVO RÉCORD PERSONAL! Volvé a correr y defendé tu marca.":place===1?"La mesa tiene un nuevo campeón. ¿Podés repetirlo?":"Los rivales no perdonan. En la próxima podés llegar primero.";$("finalpos").textContent=place+"º";$("finaltime").textContent=t;$("finalstars").textContent=racers[0].stars||0;$("finish").classList.add("show");if(place===1){for(let j=0;j<4;j++)setTimeout(()=>puff(rand(-2,2),-12.7,colors[j],22),j*180)}cue(730,.2);setTimeout(()=>cue(930,.23),130);window.resultText="¡Salí "+place+"º en MICROCAOS Party Rush! Mi tiempo: "+t+". ¿Podés ganarme?";return place}
 function formatTime(s){const m=Math.floor(s/60),sec=Math.floor(s%60);return String(m).padStart(2,"0")+":"+String(sec).padStart(2,"0")}
 function move(dt,t){const p=racers[0];if(phase==="countdown"){countdown-=dt;const c=Math.ceil(countdown);if(c>=1&&c<=3){if(Math.ceil(countdown+dt)!==c){announce(""+c,690);cue(300+c*110,.09)}}if(countdown<=0){phase="race";announce("¡YA!",800);cue(890,.26,"triangle",.12)}return}
 if(phase!=="race")return;elapsed+=dt;if(elapsed>85){finishRace();return}
@@ -271,7 +271,7 @@ let targetX=0,lateral=0;
 if(bot){
   const temperament=i%5;
   targetX=Math.sin(elapsed*(temperament===0?.72:.32)+r.phase)*(.7+temperament*.3);
-  const approaching=obstacles.filter(o=>r.z-o.z>0&&r.z-o.z<4.5).sort((a,b)=>a.z-b.z).pop();
+  const approaching=obstacles.filter(o=>r.z-o.z>0&&r.z-o.z<4.5).sort((a,b)=>(r.z-a.z)+.22*Math.abs(r.x-(a.x||0))-(r.z-b.z)-.22*Math.abs(r.x-(b.x||0)))[0];
   if(approaching){
     const gap=r.z-approaching.z;
     if(approaching.kind==="spin"){
