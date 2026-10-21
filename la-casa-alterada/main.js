@@ -40,7 +40,7 @@ function mapControls(){
 }
 function toggleMap(enabled){
  if(!nests.length&&enabled){toast('FIJÁ PRIMERO LA ENTRADA EN EL PISO');return}
- mapping=enabled;mapFirst=null;mapPoint=null;
+ mapping=enabled;mapFirst=null;mapPoint=null;spatialMap.setVisible(enabled);
  if(!mapping){$('mapPanel').classList.add('hidden');toast('MAPA GUARDADO · LOS ENEMIGOS EVITARÁN LOS OBSTÁCULOS')}
  else toast('MAPEO ACTIVADO · MARCÁ DOS EXTREMOS POR OBSTÁCULO');
  mapControls();
@@ -346,7 +346,7 @@ window.addEventListener('keydown',e=>{if(['KeyW','ArrowUp'].includes(e.code))mov
 window.addEventListener('keyup',e=>{if(['KeyW','ArrowUp'].includes(e.code))movementKeys.forward=false;if(['KeyS','ArrowDown'].includes(e.code))movementKeys.back=false;if(['KeyA','ArrowLeft'].includes(e.code))movementKeys.left=false;if(['KeyD','ArrowRight'].includes(e.code))movementKeys.right=false});
 mission=createMission({scene:world,getCam,toast,event,active:()=>active,firstNest:()=>nests[0],
  exportEnvironment:origin=>spatialMap.exportData(origin),
- importEnvironment:(items,origin)=>{if(!mission?.isGuest())return;spatialMap.importData(items,origin);mapStatus()},
+ importEnvironment:(items,origin)=>{if(!mission?.isGuest())return;spatialMap.importData(items,origin);spatialMap.setVisible(false);mapStatus()},
  environmentCanMove:(from,to,radius)=>spatialMap.canMove(from,to,radius),
  environmentNextPoint:(from,to)=>spatialMap.nearestWaypoint(from,to),
  hasCover:(from,to)=>spatialMap.lineBlocked(from,to,.11),
@@ -357,6 +357,10 @@ async function startAR(){if(!navigator.xr){toast('Este navegador no admite WebXR
  depthSensing:{usagePreference:['cpu-optimized'],dataFormatPreference:['luminance-alpha','float32']}
 }).catch(()=>navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['anchors','dom-overlay'],domOverlay:{root:$('ui')}}));ar.addEventListener('end',()=>{ar=null;mode='idle';$('intro').classList.remove('hidden');$('hud').classList.add('hidden');$('outro').classList.add('hidden');world.background=null;cleanup();$('startAR').disabled=false});ar.addEventListener('select',()=>{const t=performance.now();if(t-lastTouch<310)return;lastTouch=t;if(mapping)markMapPoint();else if(placing)place();else fire()});await renderer.xr.setSession(ar);local=renderer.xr.getReferenceSpace();const viewer=await ar.requestReferenceSpace('viewer');source=await ar.requestHitTestSource({space:viewer});mode='ar';$('mode').textContent='OPERACIÓN SOMBRA / CÁMARA AR';$('intro').classList.add('hidden');$('hud').classList.remove('hidden');reset()}catch(e){$('startAR').disabled=false;$('compat').textContent='AR no disponible: '+(e.message||'sin permiso')+'. Usá Chrome en Android compatible con ARCore.'}}
 function demo(){mode='demo';occluders=[];$('demoMovement').classList.remove('hidden');world.background=new THREE.Color(0x17191f);world.fog=new THREE.Fog(0x17191f,5,14);camera.position.set(0,1.55,3.45);camera.rotation.order='YXZ';const floor=new THREE.Mesh(new THREE.PlaneGeometry(12,12),new THREE.MeshStandardMaterial({color:0x333138,roughness:.98}));floor.rotation.x=-Math.PI/2;world.add(floor);const wall=new THREE.Mesh(new THREE.BoxGeometry(9,4,.16),new THREE.MeshStandardMaterial({color:0x29292b,roughness:1}));wall.position.set(0,1.8,-3);world.add(wall);occluders.push(wall);
+spatialMap.addWall({x:-4.3,y:0,z:-2.92},{x:4.3,y:0,z:-2.92},{floorY:0,height:3.5});
+spatialMap.addBox({x:-1.87,y:0,z:-1.48},{x:-.14,y:0,z:-.52},{floorY:0,height:.95});
+spatialMap.addBox({x:.19,y:0,z:-2.20},{x:2.22,y:0,z:-.92},{floorY:0,height:.7});
+spatialMap.setVisible(false);mapStatus();
 const box=(w,h,d,x,y,z,c)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:c,roughness:.92}));o.position.set(x,y,z);world.add(o);occluders.push(o)};
 box(1.7,.13,.85,-1,.83,-1,0x523c34);for(const x of [-1.71,-.29])for(const z of [-1.35,-.65])box(.07,.81,.07,x,.41,z,0x33211f);
 box(1.9,.4,.87,1.19,.22,-1.48,0x4c4448);box(1.9,.5,.2,1.19,.58,-1.91,0x3b363f);const plane=(x,y,z,w,h)=>{const o=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({visible:false,side:THREE.DoubleSide}));o.rotation.x=-Math.PI/2;o.position.set(x,y,z);world.add(o);return o};surfaces=[floor,plane(-1,.91,-1,1.65,.82),plane(1.19,.47,-1.48,1.85,.82)];$('intro').classList.add('hidden');$('hud').classList.remove('hidden');$('mode').textContent='PRÁCTICA TÁCTICA 3D';reset();toast('Deslizá el dedo para mirar. Ubicá los nidos.')}
