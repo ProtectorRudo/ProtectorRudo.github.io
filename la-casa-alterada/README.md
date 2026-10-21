@@ -1,10 +1,19 @@
-# BLACKZONE — Tactical AR (V29)
+# BLACKZONE — Tactical AR (V30)
 
 **Nombre actual del juego: BLACKZONE.** Anteriormente denominado *La Casa Alterada*, conservado en la ruta heredada del repositorio y en el enlace Vercel existente para evitar romper enlaces de versiones anteriores.
 
 Shooter táctico web de realidad aumentada con dos modos: **Rescate de Rehenes (cooperativo)** y **Captura la Bandera (cooperativo o versus con bots configurables)**.
 
 El historial técnico anterior se conserva debajo, con descripciones correspondientes a cada etapa del desarrollo.
+
+## V30 — Escolta real y personajes sin equipamiento deformado
+
+- **Rescate y extracción son dos etapas distintas.** Un toque válido cambia a `ESCOLTAR AL REHÉN`, sin dar la victoria. Para ganar, la rehén debe caminar al menos 1,2 m, pasar por fuera del radio de extracción y regresar a la entrada acompañada por el jugador, después de una duración mínima de 4,5 segundos.
+- **Eliminado el final prematuro:** el chequeo anterior `hostage<1.75m && player<1.2m` finalizaba incluso en el primer fotograma de la escolta si el punto de rescate estaba cerca de la entrada.
+- El seguimiento ya no empuja a la rehén hacia atrás cuando te aproximás; ahora sigue al operador manteniendo alrededor de 0,86 m de separación y evita terminar la misión automáticamente por proximidad accidental.
+- **Personajes corregidos:** se desactivó el equipamiento procedural rígido sobre los cuerpos humanos animados. En la V29, las esferas gigantes aparecían porque mochilas, casco o rifle estaban acoplados a coordenadas incompatibles con el esqueleto humano. Ahora solo se dibujan los modelos humanos texturizados; se conserva el respaldo táctico previo únicamente mientras carga el modelo externo.
+- Se mantienen los modos de juego y el botón táctil dedicado de V29.
+- Pruebas automatizadas de extracción real, salida y retorno, caminata, rechazo de teletransportes y jugadores que no están en la entrada. Falta comprobar el recorrido físico en Android.
 
 ## V29 — Entrada táctil AR dedicada y combatientes humanos texturizados
 

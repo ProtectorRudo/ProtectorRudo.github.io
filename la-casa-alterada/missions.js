@@ -4,6 +4,7 @@ import {calculateSharedFrame,checkSharedDistance} from './shared-calibration.js'
 import {createCaptureFlag} from './capture-flag.js';
 import {attachHuman,animateHuman,playHuman,disposeHuman} from './animated-humans.js';
 import {makeHostageFallback,animateHostageFallback} from './hostage-fallback.js';
+import {beginEscort,updateEscort} from './escort-rules.js';
 const $=id=>document.getElementById(id),clamp=(a,b,v)=>Math.max(a,Math.min(b,v));
 const PHASES=[
 {title:'01 / DESACTIVAR TRES CARGAS',detail:'Encontrá los dispositivos y desactivalos de cerca. Repartan las tareas.',target:3},
@@ -61,7 +62,7 @@ function tintAvatar(group,team){
 }
 function visualWave(scene,origin,color=0x65d9ee){const m=new THREE.Mesh(new THREE.RingGeometry(.14,.18,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.8,side:THREE.DoubleSide,depthWrite:false}));m.position.copy(origin);m.position.y-=1.1;scene.add(m);return{mesh:m,t:0,duration:.7}}
 export function createMission(api){
-  const o={api,peer:null,room:null,role:'solo',conn:null,connections:new Map(),peers:new Map(),origin:null,angle:0,phase:-2,hostagePos:null,hostageRescued:false,hostageActor:null,escortPlayer:null,hostageHealth:100,hostageShieldUntil:0,rescueActionStartedAt:0,rescueRequestAt:0,rescueReinforcementAt:0,routeCache:null,routeCacheAt:0,routeTarget:null,mask:0,held:40,spawnAfter:0,lastSnap:0,lastMove:0,ready:false,running:false,finished:false,objects:[],remoteEnemy:new Map(),remoteAvatar:new Map(),remoteBullet:new Map(),effects:[],cd:{pulse:0,shield:0,heal:0},shields:new Map(),lastActions:new Map(),myId:'local',lastHostSnapshot:0,lastSnapshotSeq:-1,snapshotSeq:0,lastShotAt:new Map(),localPositions:new Map(),enemySeq:0,seed:0,startedByHost:false,joined:false,referenceReady:false,referenceLength:0,expectedLength:null,calibrationQuality:'waiting',calibrationSeen:new Map(),gameMode:'rescue',myTeam:'blue',teams:new Map(),ctf:null,lastMoveAt:new Map()};
+  const o={api,peer:null,room:null,role:'solo',conn:null,connections:new Map(),peers:new Map(),origin:null,angle:0,phase:-2,hostagePos:null,hostageRescued:false,hostageActor:null,escortPlayer:null,escortState:null,hostageHealth:100,hostageShieldUntil:0,rescueActionStartedAt:0,rescueRequestAt:0,rescueReinforcementAt:0,routeCache:null,routeCacheAt:0,routeTarget:null,mask:0,held:40,spawnAfter:0,lastSnap:0,lastMove:0,ready:false,running:false,finished:false,objects:[],remoteEnemy:new Map(),remoteAvatar:new Map(),remoteBullet:new Map(),effects:[],cd:{pulse:0,shield:0,heal:0},shields:new Map(),lastActions:new Map(),myId:'local',lastHostSnapshot:0,lastSnapshotSeq:-1,snapshotSeq:0,lastShotAt:new Map(),localPositions:new Map(),enemySeq:0,seed:0,startedByHost:false,joined:false,referenceReady:false,referenceLength:0,expectedLength:null,calibrationQuality:'waiting',calibrationSeen:new Map(),gameMode:'rescue',myTeam:'blue',teams:new Map(),ctf:null,lastMoveAt:new Map()};
   const info=$('missionInfo'),phaseEl=$('missionStage'),desc=$('missionText'),progress=$('missionProgress'),team=$('teamStatus'),interact=$('interact'),ability=$('abilities');
   function teamUpdate(){const count=1+(o.role==='host'?o.connections.size:o.role==='guest'&&o.conn?.open?1:0);team.textContent=o.role==='solo'?'SOLO / OPERACIÓN':o.role==='host'?'JEFE DE SALA / '+count+' JUGADOR'+(count===1?'':'ES'):o.conn?.open?'EQUIPO CONECTADO':'RECONECTANDO…';$('crew').textContent=count+' / '+maxPlayers}
   function lobby(msg){$('lobbyMsg').textContent=msg}
@@ -342,7 +343,7 @@ export function createMission(api){
     const relative=o.origin.worldToLocal(worldPoint.clone());
     if(Math.hypot(relative.x,relative.z)<1.15){api.toast('Ubicá al rehén más lejos del punto de entrada');return false}
     if(o.hostageActor){disposeHuman(o.hostageActor);o.hostageActor.root.parent?.remove(o.hostageActor.root);o.hostageActor=null}
-    o.hostagePos=relative;o.hostageRescued=false;o.escortPlayer=null;o.hostageHealth=100;buildHostage();ui();
+    o.hostagePos=relative;o.hostageRescued=false;o.escortPlayer=null;o.escortState=null;o.hostageHealth=100;buildHostage();ui();
     api.event('REHÉN MARCADO · PREPARATE PARA EL RESCATE');
     broadcast({t:'hostage',pos:P(o.hostagePos),rescued:false});
     return true;
@@ -355,7 +356,7 @@ export function createMission(api){
     else if(isGuest())o.hostageActor.root.position.lerp(o.hostagePos,.65);
     if(o.hostageActor&&o.hostageRescued){o.hostageActor.hostage=false;playHuman(o.hostageActor,'walk')}
   }
-  function reset(){if(o.hostageActor){disposeHuman(o.hostageActor);o.hostageActor.root.parent?.remove(o.hostageActor.root)}o.hostageActor=null;o.hostagePos=null;o.lastEnvironment=null;o.routeCache=null;o.routeCacheAt=0;o.routeTarget=null;o.hostageHealth=100;o.hostageShieldUntil=0;o.rescueActionStartedAt=0;o.rescueRequestAt=0;o.rescueReinforcementAt=0;o.hostageRescued=false;o.escortPlayer=null;o.running=false;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;o.ready=false;o.startedByHost=false;o.referenceReady=false;o.referenceLength=0;o.expectedLength=null;o.calibrationQuality='waiting';o.calibrationSeen.clear();o.localPositions.clear();o.lastMoveAt.clear();ctf.reset();o.shields.clear();o.lastSnap=0;o.lastSnapshotSeq=-1;o.snapshotSeq=0;o.lastShotAt.clear();o.enemySeq=0;o.origin?.parent?.remove(o.origin);o.origin=null;removeRemote();ui();}
+  function reset(){if(o.hostageActor){disposeHuman(o.hostageActor);o.hostageActor.root.parent?.remove(o.hostageActor.root)}o.hostageActor=null;o.hostagePos=null;o.lastEnvironment=null;o.routeCache=null;o.routeCacheAt=0;o.routeTarget=null;o.hostageHealth=100;o.hostageShieldUntil=0;o.rescueActionStartedAt=0;o.rescueRequestAt=0;o.rescueReinforcementAt=0;o.hostageRescued=false;o.escortPlayer=null;o.escortState=null;o.running=false;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;o.ready=false;o.startedByHost=false;o.referenceReady=false;o.referenceLength=0;o.expectedLength=null;o.calibrationQuality='waiting';o.calibrationSeen.clear();o.localPositions.clear();o.lastMoveAt.clear();ctf.reset();o.shields.clear();o.lastSnap=0;o.lastSnapshotSeq=-1;o.snapshotSeq=0;o.lastShotAt.clear();o.enemySeq=0;o.origin?.parent?.remove(o.origin);o.origin=null;removeRemote();ui();}
   function start(){if(!o.ready){api.toast('Primero fijá un punto común en el piso');return false}
  if(isCapture()){
    if(isGuest()){
@@ -370,7 +371,7 @@ export function createMission(api){
    ui();return true;
  }
  if(isGuest()){if(!o.ready){api.toast('MARQUEN LOS DOS PUNTOS DE REFERENCIA');return false}if(!o.startedByHost){api.toast('Esperá a que el anfitrión comience');return false}o.running=true;ui();return true}if(!o.hostagePos){api.toast('COLOCÁ UN REHÉN ANTES DE INICIAR');return false}
- if(o.role==='host'&&!teamCalibration().ready){api.toast('ESPERÁ A QUE TODOS MARQUEN LOS MISMOS PUNTOS A Y B');return false}o.running=true;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;o.rescueReinforcementAt=0;
+ if(o.role==='host'&&!teamCalibration().ready){api.toast('ESPERÁ A QUE TODOS MARQUEN LOS MISMOS PUNTOS A Y B');return false}o.running=true;o.finished=false;o.phase=-2;o.escortState=null;o.mask=0;o.held=40;o.spawnAfter=0;o.rescueReinforcementAt=0;
  o.hostageShieldUntil=performance.now()+17500;
  if(!o.hostageActor)buildHostage();
  broadcast({t:'start',hostage:P(o.hostagePos)});api.event('MISIÓN 01 · LOCALIZAR Y LIBERAR AL REHÉN');ui();return true;}
@@ -446,6 +447,7 @@ export function createMission(api){
       }
       // COMMIT FIRST: later effects and loading can't roll back a rescue.
       o.phase=-1;o.hostageRescued=true;o.escortPlayer=id;
+      o.escortState=beginEscort(o.hostageActor?.root?.position||o.hostagePos,performance.now());
       o.hostageShieldUntil=performance.now()+5000;
       clearRescueButton();interact.classList.add('hidden');
       try{broadcast({t:'phase',phase:-1,mask:o.mask,held:o.held,rescued:true})}
@@ -711,10 +713,15 @@ if(Array.isArray(msg.environment)){
       if(player){
         const current=o.hostageActor.root.position,delta=player.clone().sub(current);delta.y=0;
         const dist=delta.length();
-        const maxGap=1.55,minGap=.98;
+        const maxGap=1.35;
         let desired=null,speed=0;
-        if(dist>maxGap){desired=player.clone();desired.y=current.y;speed=dist>3?1.65:1.25}
-        else if(dist<minGap&&dist>.01){desired=current.clone().addScaledVector(delta.normalize(),-.65);speed=.65}
+        if(dist>maxGap){
+          // Follow the player without running in front of them or retreating
+          // backwards when they stand close to the hostage.
+          const direction=delta.normalize();
+          desired=current.clone().addScaledVector(direction,Math.max(0,dist-.86));
+          desired.y=current.y;speed=dist>3?1.45:1.18;
+        }
         if(desired){
           let goal=desired;
           if(api.environmentNextPoint&&o.origin){
@@ -739,12 +746,16 @@ if(Array.isArray(msg.environment)){
             }
           }
         }
-        const playerDistance=Math.hypot(player.x,player.z);
-        if(Math.hypot(current.x,current.z)<1.75&&playerDistance<1.2){
-          // Counter-terrorist hostage round: extracting alive wins the shared round.
-          o.hostageRescued=true;setPhase(4);
-        }
+        // The hostage must actually WALK a meaningful distance under escort.
+        // Previously this proximity check ended the match the instant the
+        // player pressed LIBERAR when the AR origin was nearby.
+        if(!o.escortState)o.escortState=beginEscort(current,performance.now());
+        const escort=updateEscort(o.escortState,current,player,performance.now());
         o.hostagePos.copy(current);
+        if(escort.complete&&o.hostageHealth>0){
+          api.event('EXTRACCIÓN CONFIRMADA · REHÉN EN ZONA SEGURA');
+          setPhase(4);
+        }
       }
     }
     if(o.hostageActor){
@@ -801,7 +812,7 @@ if(Array.isArray(msg.environment)){
     $('hostageHP').textContent=Math.ceil(o.hostageHealth)+'%';
     $('hostageBar').style.width=o.hostageHealth+'%';
     info.classList.toggle('hidden',!api.active()&&!o.running);ability.classList.toggle('hidden',!api.active()&&!o.running);if(!o.running){phaseEl.textContent=o.hostagePos?'OBJETIVO DE RESCATE LISTO':'CALIBRAR Y UBICAR REHÉN';desc.textContent=o.hostagePos?'Iniciá la operación para liberar al rehén.':'Primero fijá un nido; luego ubicá al rehén lejos de la entrada.';progress.textContent=o.hostagePos?'REHÉN POSICIONADO':o.ready?'FALTA UBICAR REHÉN':'SIN CALIBRAR';return}
-    if(o.phase<0){phaseEl.textContent=o.phase===-2?'01 / LIBERAR AL REHÉN':'01 / ESCOLTAR AL REHÉN';desc.textContent=o.phase===-2?'Acercate al rehén sin quedar expuesto. Tocá LIBERAR cuando estés cerca.':'Llevalo al primer punto de entrada. El equipo debe cubrir la extracción.';progress.textContent=o.phase===-2?(position()&&o.hostagePos?Math.hypot(position().x-o.hostagePos.x,position().z-o.hostagePos.z).toFixed(1)+' m AL REHÉN':'REHÉN RETENIDO'):(position()&&o.hostagePos?Math.hypot(o.hostagePos.x,o.hostagePos.z).toFixed(1)+' m A ZONA SEGURA':'EXTRACCIÓN EN CURSO');return}
+    if(o.phase<0){phaseEl.textContent=o.phase===-2?'01 / LIBERAR AL REHÉN':'01 / ESCOLTAR AL REHÉN';desc.textContent=o.phase===-2?'Acercate al rehén sin quedar expuesto. Tocá LIBERAR cuando estés cerca.':'Acompañá al rehén hasta la entrada. Tiene que caminar con vos: no alcanza con tocar LIBERAR.';progress.textContent=o.phase===-2?(position()&&o.hostagePos?Math.hypot(position().x-o.hostagePos.x,position().z-o.hostagePos.z).toFixed(1)+' m AL REHÉN':'REHÉN RETENIDO'):(position()&&o.hostagePos?Math.hypot(o.hostagePos.x,o.hostagePos.z).toFixed(1)+' m A ZONA SEGURA':'EXTRACCIÓN EN CURSO');return}
     const phase=PHASES[Math.min(o.phase,3)];phaseEl.textContent=phase.title;desc.textContent=phase.detail;if(o.phase===0)progress.textContent=[o.mask&1?1:0,o.mask&2?1:0,o.mask&4?1:0].reduce((a,b)=>a+b,0)+'/3 CARGAS';if(o.phase===1)progress.textContent=api.enemies().filter(e=>e.alive).length+' INTRUSOS';if(o.phase===2)progress.textContent=Math.ceil(o.held)+' S PARA RESISTIR';if(o.phase===3)progress.textContent='REDUCIR AL JEFE';teamUpdate()}
   const query=new URLSearchParams(location.search).get('sala');if(query&&/^[a-z0-9]{6}$/i.test(query)){$('joinCode').value=query.toUpperCase();lobby('Código recibido. Tocá UNIRME antes de iniciar la cámara.')}
   // ARCore DOM-overlay can suppress the eventual synthetic click after

@@ -58,7 +58,8 @@ test('studio human fighters have the SAME realism pipeline as hostage Maya',()=>
  assert.match(humans,/raiderC:CDN\+'npc-harper-locomotion\.glb'/);
  assert.match(humans,/hostage:CDN\+'npc-maya-locomotion\.glb'/);
  assert.doesNotMatch(humans,/ORIGINAL_BOTS\+/);
- assert.match(humans,/equipStudioHuman\(actor,key,rig\)/);
+ assert.doesNotMatch(humans,/equipStudioHuman|V29_REALISTIC_KIT|bones\[0\]\.add\(rifle\)/);
+ assert.match(humans,/if\(actor\.flesh\)actor\.flesh\.visible=false/);
  assert.match(humans,/urlCache=new Map\(\)/);
  assert.match(humans,/actor\.flesh\.visible=false/);
 });

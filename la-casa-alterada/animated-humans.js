@@ -107,93 +107,22 @@ export async function attachHuman(actor,type='raiderA'){
  rig.add(visual);
  // Move hitbox to root before hiding procedural mesh.
  if(actor.hit&&actor.hit.parent!==actor.root){actor.root.updateMatrixWorld(true);actor.root.attach(actor.hit)}
- if(actor.flesh){
-   const rifle=actor.flesh.getObjectByName('RIFLE_HELD');
-   // A weapon attached to the pelvis/root looks like a floating robot arm.
-   // Place it on the right-hand bone if possible so it follows locomotion.
-   if(rifle){
-     const bones=[];const allNames=[];
-     visual.traverse(n=>{allNames.push(n.name.toLowerCase());if(n.isBone&&/right.*hand|hand.*right|hand_r|r_hand|mixamorig.*righthand/i.test(n.name))bones.push(n)});
-     const integratedWeapon=allNames.some(n=>/(rifle|firearm|gun|weapon)/i.test(n));
-     // Headgear and plate carriers are already authored and skinned in the source GLBs.
-     // Do not overlay low-poly helmets: that made the earlier enemies look artificial.
-     if(!integratedWeapon&&bones.length){
-       bones[0].add(rifle);
-       rifle.position.set(.04,-.08,-.04);
-       rifle.rotation.set(-.06,Math.PI*.75,-.12);
-       rifle.scale.setScalar(.54);
-     }else{
-       rifle.parent?.remove(rifle); // no unsupported rigid weapon overlay
-     }
-   }
-   actor.flesh.visible=false;
- }
+ // V30: prohibit attaching a mesh authored in a different skeleton's
+ // coordinate system. That caused colossal balloon-shaped tactical gear
+ // and weapons hanging from shoulders in the live AR screenshots.
+ // The source human body/clothing is now the only visible rig mesh.
+ if(actor.flesh)actor.flesh.visible=false;
  actor.root.add(rig);
  // High-detail textured human skin, hair and limbs come from the SAME
  // library as the hostage, with lightweight tactical equipment layered on.
- if(key.startsWith('raider'))equipStudioHuman(actor,key,rig);
+ // No procedural helmet/balloon packs overlay the studio human:
+ // incompatible rig coordinates can cause oversized floating accessories.
  actor.rig=rig;actor.gltfRoot=visual;actor.mixer=new THREE.AnimationMixer(visual);actor.assetName=key;
  actor.clips=data.clips;actor.animMode='';
  actor.actions=new Map();actor.assetReady=true;
  playHuman(actor,type==='hostage'?'sit':'idle',true);
  return true;
  });
-}
-
-// Tactical outfit intentionally does not replace skin textures or facial
-// geometry from the studio rig. It is scaled in real-world meters and does
-// not contain the enormous box/helmet of the old low-poly bot models.
-function equipStudioHuman(actor,type,rig){
- const palette={
-  raiderA:{plate:0x3f4a3c,cloth:0x353b34,trim:0x86856d},
-  raiderB:{plate:0x444b54,cloth:0x303b45,trim:0x788390},
-  raiderC:{plate:0x575043,cloth:0x3d4138,trim:0x9c8760},
-  raiderD:{plate:0x313839,cloth:0x393d3f,trim:0x918f78}
- }[type]||{plate:0x454640,cloth:0x43443b,trim:0xaaa388};
- const dark=new THREE.MeshStandardMaterial({color:palette.plate,roughness:.89,metalness:.015});
- const cloth=new THREE.MeshStandardMaterial({color:palette.cloth,roughness:.98,metalness:0});
- const webbing=new THREE.MeshStandardMaterial({color:palette.trim,roughness:.84,metalness:.015});
- const gunmetal=new THREE.MeshStandardMaterial({color:0x25292b,roughness:.49,metalness:.41});
- const kit=new THREE.Group();
- kit.name='V29_REALISTIC_KIT';
- // Body armature model normalized to a ground-based height of 1.73m.
- // Slightly raised from the skin to avoid z-fighting, curved polygons rather
- // than opaque rectangular helmets. Keep face visible and identifiable.
- const ellipsoid=(material,x,y,z,sx,sy,sz)=>{
-  const m=new THREE.Mesh(new THREE.SphereGeometry(1,18,14),material);
-  m.position.set(x,y,z);m.scale.set(sx,sy,sz);kit.add(m);return m;
- };
- ellipsoid(dark,0,1.205,.137,.216,.258,.066); // front plate carrier
- ellipsoid(cloth,0,1.215,-.147,.206,.25,.049); // rear carrier
- ellipsoid(webbing,0,.989,.122,.190,.043,.067); // belt
- for(const side of [-1,1]){
-   const strap=ellipsoid(cloth,side*.16,1.335,.025,.050,.188,.054);
-   strap.rotation.z=side*.18;
-   ellipsoid(dark,side*.109,1.014,.21,.076,.067,.037);
-   ellipsoid(webbing,side*.173,1.214,.166,.047,.084,.038);
- }
- // Functional radio, side pouch and helmet strap without a geometric
- // face-hiding visor; human hair and facial features stay visible.
- ellipsoid(gunmetal,-.215,1.234,.067,.055,.11,.066);
- ellipsoid(webbing,-.215,1.372,.061,.013,.10,.018);
- ellipsoid(dark,.220,.898,.033,.078,.125,.058);
- // Small weapon with realistic proportions, carried across torso.
- // Weapon stays a static silhouette when skeleton has no compatible hand.
- // The old head-to-toe 'LEGO' mesh is never displayed once rig is ready.
- const rifle=new THREE.Group();
- rifle.name='LIGHT_TACTICAL_CARBINE';rifle.position.set(.08,1.126,.32);
- rifle.rotation.set(-.16,0,-.32);
- const part=(geo,mat,x,y,z)=>{
-  const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);rifle.add(m);return m;
- };
- part(new THREE.BoxGeometry(.07,.10,.31),gunmetal,0,0,0);
- part(new THREE.CylinderGeometry(.018,.018,.38,10),gunmetal,0,0,-.31).rotation.x=Math.PI/2;
- part(new THREE.BoxGeometry(.086,.037,.20),webbing,0,.066,-.02);
- part(new THREE.BoxGeometry(.068,.16,.07),dark,0,-.115,.055);
- part(new THREE.BoxGeometry(.065,.05,.14),cloth,0,-.017,.205);
- kit.add(rifle);
- actor.root.add(kit);
- actor.tacticalKit=kit;
 }
 
 function bestClip(actor,kind){
