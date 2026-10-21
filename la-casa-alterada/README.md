@@ -230,3 +230,33 @@ Fuentes: [WebXR Hit Test (W3C)](https://www.w3.org/TR/webxr-hit-test-1/), [WebXR
 **Pruebas de código:** ocho casos del resolvedor de disparos (cuerpo, cabeza, pared, cobertura, enemigo eliminado, jugador no anfitrión, ronda cerrada, disparo fallido). Todos confirmaron una sola aplicación de daño o rechazo. También se comprobaron sintaxis de módulos y contratos de red antes de desplegar.
 
 **Limitaciones pendientes:** la compensación de latencia todavía no rebobina posiciones históricas de los enemigos; sobre redes inestables pueden existir fallos de tiro que parezcan aciertos locales. PeerJS/P2P con anfitrión de celular no es un servidor competitivo con validación criptográfica o antitrampas completa. El mapeo espacial y el multijugador requieren pruebas físicas en Android/iPhone compatibles antes de declararse comercialmente terminados.
+
+
+## V16 — Dos modos: rescatar al rehén o Captura la Bandera
+
+### Pantalla de selección
+- **Rescate de rehenes** conserva las reglas cooperativas de V15, con enemigos, rehén y daño sincronizados.
+- **Captura la Bandera** se selecciona en la misma portada antes de entrar a la partida.
+- Ajustes de Captura la Bandera (los define el anfitrión): **Cooperativo**, todos los jugadores humanos azules contra bots rojos; o **Versus**, jugadores humanos de equipos azul y rojo, con selector de equipo para invitados. El anfitrión juega siempre como azul.
+- Bots **por equipo**: 0, 1, 2, 3, 4, 5 o 6 (hasta doce bots). Dificultad **Fácil / Normal / Difícil**, que afecta movimiento, cadencia de tiro, precisión y fuerza de los bots.
+- Se puede crear o entrar a una sala compartida por código; se conserva la calibración espacial común A y B en multijugador. En solitario basta el punto A.
+
+### Colocación y puntuación
+- El anfitrión apunta al suelo y coloca **bandera azul**, luego **bandera roja** separadas por al menos 1,6 m; en solitario también elige ambas.
+- Los jugadores y bots de un equipo intentan tomar la bandera rival, transportarla hasta **su propia base** y anotar si su propia bandera está en casa. La primera facción que logra **3 capturas** gana. Si expiran **8 minutos**, decide el marcador; empate si ambos sumaron igual.
+- Las banderas robadas acompañan visualmente a quienes las llevan. Si el portador cae, la bandera queda en el piso; su equipo original puede recuperarla acercándose, o se devuelve automáticamente a su lugar tras 14 s.
+- Los bots van a por las banderas y también persiguen a quien robó la de su equipo; vuelven a aparecer aproximadamente 4,2 segundos después de ser eliminados.
+- Los jugadores alcanzados en Versus reciben un bloqueo de disparos de aproximadamente 2,7 segundos y sueltan la bandera. **No hay teletransporte físico** ni obligación de correr. La zona real debe estar despejada; los objetos virtuales no representan muebles o paredes que puedan atravesarse de forma segura.
+- La interfaz muestra marcador azul/rojo, mensaje de bandera robada, flecha hacia el objetivo, fuego compartido de bots y un indicador de equipo en los personajes.
+
+### Arquitectura
+- Nuevo módulo \`capture-flag.js\`: estado de equipos, bases, banderas, bots, puntuación, cuenta regresiva, devolución de banderas y sincronización por instantáneas.
+- \`missions.js\` mantiene la sala PeerJS existente y es **anfitrión autoritativo** para ambos modos: envía equipos, opciones, posiciones, bots, golpes y resultado final. Se conserva el control de disparos de V15; en CTF impide dañar a bots aliados y permite enfrentamientos con humanos del otro equipo.
+- \`main.js\` selecciona dinámicamente la interfaz y la lógica de combate del modo activo. Los bots enemigos utilizan los cuatro modelos V14 y los aliados pueden usar un soldado de licencia CC BY 4.0 con distintivos de color. La escena sigue usando Three.js/WebXR, con práctica 3D sin cámara.
+- Se evita que una selección de equipo provoque un ciclo de mensajes entre invitado y anfitrión. Un jugador sin una posición recibida todavía no aparece como personaje fantasma en la entrada. Se liberan actores remotos que mueren y reaparecen.
+- El menú se puede desplazar en teléfonos compactos.
+
+### Validación y límites actuales
+- Tests simulados de lógica: colocar banderas, rechazar bases demasiado juntas, capturar tres veces, ganar, robar del equipo rojo incluso ante un defensor azul, puntuar rojo, transmitir marcador, soltar bandera y devolverla automáticamente.
+- Las pruebas de sintaxis e integración no sustituyen jugar con dos o más teléfonos físicos. El juego conserva la limitación de precisión de WebXR entre celulares y no ofrece infraestructura de servidor dedicada ni compensación temporal avanzada de latencia.
+- Con 6 bots por bando hay hasta 12 personajes animados y el rendimiento puede variar; se recomienda comenzar con 1–2 por equipo para las primeras pruebas.
