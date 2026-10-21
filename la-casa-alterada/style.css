@@ -364,3 +364,20 @@
 @media(orientation:landscape) and (max-height:500px){
  .zoneProximity{bottom:calc(92px + env(safe-area-inset-bottom))}
 }
+
+/* V24 live AR/object diagnostic. HUD displays true world-object counts; it
+   deliberately does not pretend that a device has rendered those meshes. */
+.renderStatus{position:absolute;top:calc(141px + env(safe-area-inset-top));
+ right:9px;z-index:5;max-width:min(66vw,268px);padding:7px 9px;
+ background:#091923d9;border-left:2px solid #69e1c3;border-radius:3px;
+ color:#d5f4eb;font:700 10px/1.5 Arial,sans-serif;text-align:right;
+ letter-spacing:.025em;pointer-events:none}
+.renderStatus.problem{border-left-color:#ffb27f;color:#ffe2b8}
+.test3D{position:absolute;top:calc(199px + env(safe-area-inset-top));
+ right:9px;z-index:7;background:#123242ed;border:1px solid #70b6c8;
+ border-radius:4px;color:#effdfa;padding:8px 10px;
+ font:800 9px Arial,sans-serif;letter-spacing:.045em;pointer-events:auto}
+@media (max-height:690px){.renderStatus{top:calc(105px + env(safe-area-inset-top))}
+ .test3D{top:calc(157px + env(safe-area-inset-top))}}
+@media (orientation:landscape){.renderStatus{top:calc(66px + env(safe-area-inset-top))}
+ .test3D{top:calc(119px + env(safe-area-inset-top))}}
