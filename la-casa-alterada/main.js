@@ -431,9 +431,10 @@ function updateBattle(dt,t){
   }
   const moved=steerEnemy(e,dt,t,target,mode,spatialMap,enemies);
   animateEnemy(e,dt,moved);
-  animateHuman(e,dt,moved);
   const worldPosition=new THREE.Vector3();e.root.getWorldPosition(worldPosition);
   const dist=worldPosition.distanceTo(eye);
+  e.lodFar=dist>5.2;
+  animateHuman(e,dt,moved);
   if(dist<4)near=true;
   if(e.flash)e.flash.intensity=(t<(e.flashUntil||0))?9:0;
   if(e.staggerUntil&&t<e.staggerUntil){
