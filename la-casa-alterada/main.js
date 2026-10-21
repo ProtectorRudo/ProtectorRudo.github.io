@@ -337,6 +337,27 @@ function begin(){
  placing=false;ui();mission?.ui();
 }
 function more(){placing=true;ui();toast('Localizá otra superficie; la amenaza sigue activa.')}
+function attachRespawnShield(actor){
+ if(!actor?.ctfBot||actor.ctfShieldFX)return;
+ const group=new THREE.Group();
+ const mat=new THREE.MeshBasicMaterial({
+   color:actor.team==='blue'?0x82deff:0xffb27c,
+   transparent:true,opacity:.78,depthWrite:false,side:THREE.DoubleSide
+ });
+ const ring=new THREE.Mesh(new THREE.TorusGeometry(.37,.012,6,42).rotateX(-Math.PI/2),mat);
+ const second=new THREE.Mesh(new THREE.TorusGeometry(.43,.008,6,42).rotateX(-Math.PI/2),mat.clone());
+ ring.position.y=.08;second.position.y=.17;group.add(ring,second);
+ group.visible=false;actor.root.add(group);actor.ctfShieldFX=group;
+}
+function updateRespawnShields(t){
+ if(!mission?.isCapture?.()||!active)return;
+ for(const e of enemies){
+   if(!e.ctfShieldFX)continue;
+   const visible=e.alive&&t<(e.ctfProtectedUntil||0);
+   e.ctfShieldFX.visible=visible;
+   if(visible)e.ctfShieldFX.rotation.y=t*.0012;
+ }
+}
 function spawnCTFBot(team,index,id,localPos){
  if(!mission?.isCapture?.()||!localPos||enemies.some(e=>e.id===id))return null;
  const e=createTacticalActor(THREE,index%4,team==='blue'?'operator':'raider');
@@ -351,6 +372,7 @@ function spawnCTFBot(team,index,id,localPos){
  const band=new THREE.Mesh(new THREE.TorusGeometry(.15,.032,8,18),
    new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.37}));
  band.position.set(.05,1.33,.03);band.rotation.x=Math.PI/2;e.root.add(band);
+ attachRespawnShield(e);
  world.add(e.root);enemies.push(e);
  e.appearance=team==='blue'?'operator':['raiderA','raiderB','raiderC','raiderD'][index%4];
  attachHuman(e,e.appearance);
@@ -826,7 +848,7 @@ function updateGuidance(t){
 }
 function updateFrame(t,frame){now=t;
  if(hitConfirmUntil&&t>=hitConfirmUntil){hitConfirmUntil=0;$('hitConfirm').classList.remove('visible')}
- if(killFeedUntil&&t>=killFeedUntil){killFeedUntil=0;$('killFeed').classList.add('hidden')}if(triggerHeld&&currentWeapon==='rifle'&&active&&!placing)fire();const dt=previous?Math.min(.052,(t-previous)/1000):0;previous=t;if(mode==='ar')updateXR(frame);if(mode==='demo'){moveDemo(dt);updateDemo()}processSpawns(t);updateBattle(dt,t);mission?.tick(dt,t);updateGuidance(t);effects(dt,t);combatFX.tick(dt);renderer.render(world,camera);updateGun(dt,t)}
+ if(killFeedUntil&&t>=killFeedUntil){killFeedUntil=0;$('killFeed').classList.add('hidden')}if(triggerHeld&&currentWeapon==='rifle'&&active&&!placing)fire();const dt=previous?Math.min(.052,(t-previous)/1000):0;previous=t;if(mode==='ar')updateXR(frame);if(mode==='demo'){moveDemo(dt);updateDemo()}processSpawns(t);updateBattle(dt,t);mission?.tick(dt,t);updateRespawnShields(t);updateGuidance(t);effects(dt,t);combatFX.tick(dt);renderer.render(world,camera);updateGun(dt,t)}
 renderer.setAnimationLoop(updateFrame);preloadHumans();
 
 function remoteStart(){if(!nests.length||active)return;begin()}
@@ -852,6 +874,7 @@ mission=createMission({scene:world,getCam,toast,event,teammateShot,resolveTeamma
    const teamColor=e.team==='blue'?0x46c7ff:0xff6158;
    const band=new THREE.Mesh(new THREE.TorusGeometry(.15,.032,8,18),new THREE.MeshStandardMaterial({color:teamColor,emissive:teamColor,emissiveIntensity:.37}));
    band.position.set(.05,1.33,.03);band.rotation.x=Math.PI/2;e.root.add(band);
+   attachRespawnShield(e);
  }
  attachHuman(e,e.appearance);return e},damageEnemy,damage,heal,remoteStart,clock:()=>seconds,wave:()=>round,setGuestStats:(clock,wave,teamKills)=>{if(Number.isFinite(clock))seconds=clock;if(Number.isFinite(wave))round=wave;if(Number.isInteger(teamKills)&&teamKills>=0)kills=Math.max(kills,teamKills)},victory:finish});
 mission.configureLobby();
