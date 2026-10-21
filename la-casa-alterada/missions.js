@@ -60,6 +60,23 @@ export function createMission(api){
   function isHost(){return o.role!=='guest'}
   function localPositionOf(id){if(!o.origin)return null;return id===o.myId?position():o.localPositions.get(id)||null}
   function needsReference(){return o.role!=='solo'&&!o.referenceReady}
+ function teamCalibration(){
+  if(o.role!=='host')return{ready:true,done:0,total:0};
+  let done=0;
+  for(const id of o.connections.keys()){
+   const distance=o.calibrationSeen.get(id);
+   if(checkSharedDistance(distance,o.referenceLength).status==='aligned')done++;
+  }
+  return{ready:done===o.connections.size,done,total:o.connections.size};
+ }
+ function updateTrackedFrame(root,point){
+  if(!o.referenceReady||!o.origin||!root||!point)return;
+  const a=new THREE.Vector3();root.getWorldPosition(a);
+  const frame=calculateSharedFrame(THREE,a,point);
+  if(!frame)return;
+  o.origin.position.copy(frame.position);
+  o.origin.quaternion.slerp(frame.rotation,.18);
+ }
  function alignmentStatus(){return {needsSecond:needsReference(),ready:o.ready,quality:o.calibrationQuality,expectedLength:o.expectedLength,referenceLength:o.referenceLength}}
  function setReferenceTarget(expected){
   if(!Number.isFinite(expected)||expected<.85||expected>7)return;
@@ -112,6 +129,10 @@ export function createMission(api){
     if(o.ready)send(o.conn,{t:'syncRequest'});
   }else{
     broadcast({t:'reference',length:+frame.distance.toFixed(3)});
+    for(const [id,distance] of o.calibrationSeen){
+      const result=checkSharedDistance(distance,frame.distance);
+      send(o.connections.get(id),{t:'calibrationResult',status:result.status});
+    }
     o.calibrationQuality='aligned';
     o.ready=o.referenceReady=true;
   }
@@ -167,7 +188,8 @@ export function createMission(api){
     if(o.hostageActor&&o.hostageRescued){o.hostageActor.hostage=false;playHuman(o.hostageActor,'walk')}
   }
   function reset(){if(o.hostageActor){disposeHuman(o.hostageActor);o.hostageActor.root.parent?.remove(o.hostageActor.root)}o.hostageActor=null;o.hostagePos=null;o.lastEnvironment=null;o.routeCache=null;o.routeCacheAt=0;o.routeTarget=null;o.hostageHealth=100;o.hostageShieldUntil=0;o.rescueHoldStart=0;o.hostageRescued=false;o.escortPlayer=null;o.running=false;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;o.ready=false;o.startedByHost=false;o.referenceReady=false;o.referenceLength=0;o.expectedLength=null;o.calibrationQuality='waiting';o.calibrationSeen.clear();o.localPositions.clear();o.shields.clear();o.lastSnap=0;o.lastSnapshotSeq=-1;o.snapshotSeq=0;o.lastShotAt.clear();o.enemySeq=0;o.origin?.parent?.remove(o.origin);o.origin=null;removeRemote();ui();}
-  function start(){if(!o.ready){api.toast('Primero fijá un punto común en el piso');return false}if(isGuest()){if(!o.ready){api.toast('MARQUEN LOS DOS PUNTOS DE REFERENCIA');return false}if(!o.startedByHost){api.toast('Esperá a que el anfitrión comience');return false}o.running=true;ui();return true}if(!o.hostagePos){api.toast('COLOCÁ UN REHÉN ANTES DE INICIAR');return false}o.running=true;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;broadcast({t:'start',hostage:P(o.hostagePos)});api.event('MISIÓN 01 · LOCALIZAR Y LIBERAR AL REHÉN');ui();return true;}
+  function start(){if(!o.ready){api.toast('Primero fijá un punto común en el piso');return false}if(isGuest()){if(!o.ready){api.toast('MARQUEN LOS DOS PUNTOS DE REFERENCIA');return false}if(!o.startedByHost){api.toast('Esperá a que el anfitrión comience');return false}o.running=true;ui();return true}if(!o.hostagePos){api.toast('COLOCÁ UN REHÉN ANTES DE INICIAR');return false}
+ if(o.role==='host'&&!teamCalibration().ready){api.toast('ESPERÁ A QUE TODOS MARQUEN LOS MISMOS PUNTOS A Y B');return false}o.running=true;o.finished=false;o.phase=-2;o.mask=0;o.held=40;o.spawnAfter=0;broadcast({t:'start',hostage:P(o.hostagePos)});api.event('MISIÓN 01 · LOCALIZAR Y LIBERAR AL REHÉN');ui();return true;}
   function setPhase(n){if(isGuest())return;o.phase=n;o.spawnAfter=0;if(n===0)api.event('REHÉN EXTRAÍDO · DESACTIVEN LAS CARGAS');if(n===1){api.event('MISIÓN 02 · INTRUSOS LOCALIZADOS');api.spawn(8,false)}if(n===2){o.held=40;o.spawnAfter=performance.now()+6000;api.event('MISIÓN 03 · ASEGURAR PERÍMETRO')}if(n===3){api.event('MISIÓN FINAL · JEFE LOCALIZADO');api.spawn(1,true)}if(n===4){o.finished=true;api.event('REHÉN EVACUADO · EQUIPO GANADOR');api.victory(true)}broadcast({t:'phase',phase:n,mask:o.mask,held:o.held});ui()}
   function onKill(){if(o.running&&isHost()&&o.phase===1&&api.enemies().filter(e=>e.alive).length===0&&!api.spawnPending?.())setPhase(2);if(o.running&&isHost()&&o.phase===3&&api.enemies().filter(e=>e.alive).length===0)setPhase(4)}
 
@@ -291,6 +313,7 @@ if(Array.isArray(msg.environment)){
     }
     if(msg.t==='calibration'&&Number.isFinite(msg.length)&&msg.length>.85&&msg.length<7){
       o.calibrationSeen.set(conn.peer,msg.length);
+      api.refreshHud?.();
       if(o.referenceReady){
         const check=checkSharedDistance(msg.length,o.referenceLength);
         send(conn,{t:'calibrationResult',status:check.status});
@@ -305,7 +328,7 @@ if(Array.isArray(msg.environment)){
     if(msg.t==='interact')doInteract(conn.peer);
     if(msg.t==='ability'&&typeof msg.kind==='string')receiveAbility(conn.peer,msg.kind,true);
     if(msg.t==='hit'&&Number.isInteger(msg.id)){const p=o.localPositions.get(conn.peer);const e=api.enemies().find(e=>e.id===msg.id&&e.alive);if(p&&e){const w=new THREE.Vector3();e.root.getWorldPosition(w);o.origin?.worldToLocal(w);const k=conn.peer+':hit',t=performance.now();if(p.distanceTo(w)<12&&!api.hasCover?.(originToWorld(p),originToWorld(w))&&(o.lastActions.get(k)||0)<t){o.lastActions.set(k,t+120);api.damageEnemy(e,msg.head===true?3:1,msg.head===true)}}}
-  });conn.on('close',()=>{o.connections.delete(conn.peer);o.localPositions.delete(conn.peer);teamUpdate();api.toast('UN JUGADOR SALIÓ DEL EQUIPO')});conn.on('error',()=>{o.connections.delete(conn.peer);o.localPositions.delete(conn.peer);teamUpdate()})}
+  });conn.on('close',()=>{o.connections.delete(conn.peer);o.localPositions.delete(conn.peer);o.calibrationSeen.delete(conn.peer);teamUpdate();api.refreshHud?.();api.toast('UN JUGADOR SALIÓ DEL EQUIPO')});conn.on('error',()=>{o.connections.delete(conn.peer);o.localPositions.delete(conn.peer);teamUpdate()})}
   function joinConnection(conn){o.conn=conn;conn.on('open',()=>{o.joined=true;teamUpdate();lobby('Conectado al anfitrión. Calibren el mismo punto del piso y miren hacia la misma pared.');api.toast('CONEXIÓN COOPERATIVA ESTABLECIDA')});conn.on('data',m=>{if(!m||typeof m!=='object')return;
     if(m.t==='welcome'){o.myId=m.id;teamUpdate()}
     if(m.t==='reference')setReferenceTarget(m.length);
@@ -430,5 +453,5 @@ function networkState(){
  if(!o.lastHostSnapshot)return 'waiting';
  return delta>3100?'stale':'synced';
 }
-return{align,alignSecond,alignmentStatus,needsReference,reset,start,navigationTarget,networkState,relayShot,relayEnemyDown,placeHostage,hostageWorld,hostageExposed:()=>o.running&&o.phase<0&&o.hostageHealth>0,damageHostage,healHostage,hasHostage:()=>!!o.hostagePos,isGuest,isHost,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result})},remoteHit:(id,head=false)=>send(o.conn,{t:'hit',id,head:!!head}),localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
+return{align,alignSecond,alignmentStatus,needsReference,teamCalibration,updateTrackedFrame,reset,start,navigationTarget,networkState,relayShot,relayEnemyDown,placeHostage,hostageWorld,hostageExposed:()=>o.running&&o.phase<0&&o.hostageHealth>0,damageHostage,healHostage,hasHostage:()=>!!o.hostagePos,isGuest,isHost,ui,tick,onKill,shielded,abilityNow,requestHit,chooseTarget,originToWorld,broadcast,onVictory:(result)=>{if(isHost())broadcast({t:'win',result})},remoteHit:(id,head=false)=>send(o.conn,{t:'hit',id,head:!!head}),localId:()=>o.myId,getPlayerWorld:id=>{if(id==='hostage')return hostageWorld();const p=localPositionOf(id);return p&&o.origin?originToWorld(p):null},playerPosition:id=>localPositionOf(id),room:()=>o.room,ready:()=>o.ready,running:()=>o.running,role:()=>o.role};
 }
