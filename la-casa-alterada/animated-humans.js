@@ -31,14 +31,13 @@ function nextClone(){
 loader.setMeshoptDecoder(MeshoptDecoder);
 function load(type){
  if(!cache.has(type)){
-  const fallback=CDN+source[type];
-  const useSoldier=type!=='hostage';
-  const preferred=useSoldier?TACTICAL:fallback;
+  const preferred=CDN+source[type];
+  const fallback=type==='hostage'?null:TACTICAL;
   // A real rigged military character (CC BY 4.0) is preferred.
   // Reuse studio's CC0 human rigs if the detailed soldier cannot load.
   const get=()=>loader.loadAsync(preferred).catch(err=>{
-    if(!useSoldier)throw err;
-    console.warn('Premium soldier unavailable; using studio CC0 fallback',err);
+    if(!fallback)throw err;
+    console.warn('Studio human unavailable; using military rig fallback',err);
     return loader.loadAsync(fallback);
   });
   cache.set(type,get().then(g=>{
@@ -79,6 +78,12 @@ export async function attachHuman(actor,type='raiderA'){
      const bones=[];const allNames=[];
      visual.traverse(n=>{allNames.push(n.name.toLowerCase());if(n.isBone&&/right.*hand|hand.*right|hand_r|r_hand|mixamorig.*righthand/i.test(n.name))bones.push(n)});
      const integratedWeapon=allNames.some(n=>/(rifle|firearm|gun|weapon)/i.test(n));
+     const head=[];
+     visual.traverse(n=>{if(n.isBone&&/(?:^|[:_])head$/i.test(n.name))head.push(n)});
+     if(head.length&&type!=='hostage'){
+       const helmet=new THREE.Mesh(new THREE.SphereGeometry(.16,18,12,0,Math.PI*2,0,Math.PI*.53),new THREE.MeshStandardMaterial({color:type==='raiderA'?0x242c2b:0x423b34,roughness:.94,metalness:0}));
+       helmet.position.set(0,.085,0);head[0].add(helmet);
+     }
      if(!integratedWeapon&&bones.length){
        bones[0].add(rifle);
        rifle.position.set(.04,-.08,-.04);
