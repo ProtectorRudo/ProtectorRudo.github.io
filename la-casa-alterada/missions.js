@@ -3,6 +3,7 @@ import { createTacticalActor } from './tactical.js';
 import {calculateSharedFrame,checkSharedDistance} from './shared-calibration.js';
 import {createCaptureFlag} from './capture-flag.js';
 import {attachHuman,animateHuman,playHuman,disposeHuman} from './animated-humans.js';
+import {makeHostageFallback,animateHostageFallback} from './hostage-fallback.js';
 const $=id=>document.getElementById(id),clamp=(a,b,v)=>Math.max(a,Math.min(b,v));
 const PHASES=[
 {title:'01 / DESACTIVAR TRES CARGAS',detail:'Encontrá los dispositivos y desactivalos de cerca. Repartan las tareas.',target:3},
@@ -281,23 +282,20 @@ export function createMission(api){
   function buildHostage(){
     if(!o.origin||!o.hostagePos)return;
     if(o.hostageActor)return;
-    const root=new THREE.Group(),flesh=new THREE.Group();root.add(flesh);
-    const cloth=new THREE.MeshStandardMaterial({color:0x726b80,roughness:.91});
-    const pants=new THREE.MeshStandardMaterial({color:0x303844,roughness:.95});
-    const skin=new THREE.MeshStandardMaterial({color:0xa7826b,roughness:.93});
-    const geo=new THREE.SphereGeometry(1,15,12);
-    const part=(p,m,x,y,z,sx,sy,sz)=>{const n=new THREE.Mesh(geo,m);n.position.set(x,y,z);n.scale.set(sx,sy,sz);flesh.add(n);return n};
-    part(0,cloth,0,.97,0,.24,.36,.16);part(0,skin,0,1.44,.03,.145,.19,.135);
-    for(const k of [-1,1]){part(0,cloth,k*.3,.93,0,.10,.29,.11);part(0,pants,k*.12,.42,0,.115,.39,.13)}
+    // Correctly proportioned, immediately visible while premium GLB downloads.
+    const root=new THREE.Group(),fallback=makeHostageFallback(THREE),flesh=fallback.flesh;
+    root.add(flesh);
+    root.scale.setScalar(.96);
+    root.rotation.y=Math.atan2(-o.hostagePos.x,-o.hostagePos.z);
     const marker=new THREE.Mesh(new THREE.RingGeometry(.34,.35,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x54d7d3,transparent:true,opacity:.88,side:THREE.DoubleSide}));
     marker.position.y=.019;root.add(marker);
  // Large emissive goal marker, part of the WebGL scene (not screen HUD).
- const glow=new THREE.Mesh(new THREE.SphereGeometry(.17,16,12),
-   new THREE.MeshBasicMaterial({color:0x5affd5,depthTest:false,depthWrite:false}));
- glow.position.set(0,1.94,0);glow.renderOrder=101;root.add(glow);
- const pole=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,1.25,10),
+ const glow=new THREE.Mesh(new THREE.SphereGeometry(.064,12,8),
+   new THREE.MeshBasicMaterial({color:0x5affd5,depthTest:false,depthWrite:false,transparent:true,opacity:.68}));
+ glow.position.set(0,1.85,0);glow.renderOrder=101;root.add(glow);
+ const pole=new THREE.Mesh(new THREE.CylinderGeometry(.008,.008,.32,8),
    new THREE.MeshBasicMaterial({color:0x65f5da,depthTest:false,depthWrite:false}));
- pole.position.set(0,2.66,0);pole.renderOrder=98;root.add(pole);
+ pole.position.set(0,2.12,0);pole.renderOrder=98;root.add(pole);
     const labelCanvas=document.createElement('canvas');labelCanvas.width=320;labelCanvas.height=80;
  const context=labelCanvas.getContext('2d');context.fillStyle='rgba(10,27,39,0.84)';context.fillRect(2,5,316,69);
  context.strokeStyle='#79dfcb';context.lineWidth=3;context.strokeRect(2,5,316,69);
@@ -306,22 +304,21 @@ export function createMission(api){
  map:new THREE.CanvasTexture(labelCanvas),transparent:true,
  depthWrite:false,depthTest:false
 }));
- markerText.position.set(0,2.04,0);
- markerText.scale.set(1.12,.28,1);markerText.renderOrder=100;root.add(markerText);
+ markerText.position.set(0,1.91,0);
+ markerText.scale.set(.82,.205,1);markerText.renderOrder=100;root.add(markerText);
  // Waypoint remains legible when the detailed 3D model cannot download.
  const beaconMat=new THREE.MeshBasicMaterial({
    color:0x5ee8d1,transparent:true,opacity:.62,depthWrite:false,depthTest:false
  });
- const beacon=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.78,8),beaconMat);
- beacon.position.set(0,2.47,0);beacon.renderOrder=99;root.add(beacon);
- const actor={root,flesh,hostage:true,alive:true,phase:0,marker,markerText};
+ const beacon=new THREE.Mesh(new THREE.CylinderGeometry(.008,.008,.28,8),beaconMat);
+ beacon.position.set(0,2.12,0);beacon.renderOrder=99;root.add(beacon);
+ const actor={root,flesh,hostage:true,alive:true,phase:0,marker,markerText,fallbackArms:fallback.arms,fallbackLegs:fallback.legs};
     o.origin.add(root);root.position.copy(o.hostagePos);o.hostageActor=actor;
-    // XR must never hide the native hostage behind an external GLB model:
- // phones may fail to load/decode or size the downloaded rig.
- if(api.getMode?.()!=='ar')
-   attachHuman(actor,'hostage').then(success=>{
-     if(success&&o.hostageRescued){actor.hostage=false;playHuman(actor,'walk')}
-   });
+    // V25 XR compositor now draws world meshes: restore the textured,
+    // rigged Maya asset in AR, keeping the native fallback until ready.
+    attachHuman(actor,'hostage').then(success=>{
+      if(success&&o.hostageRescued){actor.hostage=false;playHuman(actor,'walk')}
+    }).catch(err=>console.warn('Hostage fallback kept',err));
   }
   function placeHostage(worldPoint){
     if(isGuest()){api.toast('Solo el anfitrión coloca al rehén');return false}
@@ -682,7 +679,10 @@ if(Array.isArray(msg.environment)){
         o.hostagePos.copy(current);
       }
     }
-    if(o.hostageActor)animateHuman(o.hostageActor,dt,o.phase===-1?.26:0);
+    if(o.hostageActor){
+      if(!o.hostageActor.mixer)animateHostageFallback(o.hostageActor,dt,o.phase===-1);
+      animateHuman(o.hostageActor,dt,o.phase===-1?.26:0);
+    }
     if(o.origin&&api.firstNest()){o.origin.position.copy(api.firstNest().root.position)}const p=position();
     if(o.role==='guest'&&o.conn?.open&&p&&time-o.lastMove>140){o.lastMove=time;send(o.conn,{t:'move',p:P(p)})}
     if(o.role==='host'&&o.running&&o.origin&&time-o.lastSnap>165){o.lastSnap=time;broadcast(makeSnapshot())}
