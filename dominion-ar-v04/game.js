@@ -86,7 +86,7 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
   return {g,fg,set(q){const r=Math.max(0,Math.min(1,q));fg.scale.x=r;fg.position.x=-.0245*(1-r);}};
  }
  function createBuilding(team,lane,main){
-  const hp=main?650:245,x=main?0:lanes[lane],z=(team?1:-1)*(main?.225:.169);
+  const hp=main?900:355,x=main?0:lanes[lane],z=(team?1:-1)*(main?.225:.169);
   const b={team,lane,main,x,z,hp,max:hp,shield:0,alive:true,cooldown:0};
   const g=new THREE.Group();g.position.set(x,0,z);group.add(g);
   const concrete=new THREE.MeshStandardMaterial({color:0x4d5f61,roughness:.8});
@@ -191,7 +191,7 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
  function dealBuilding(b,damage){
   if(!b.alive)return;
   const blocked=Math.min(b.shield,damage);b.shield-=blocked;b.hp=Math.max(0,b.hp-damage+blocked);b.bar.set(b.hp/b.max);
-  if(b.main&&b.team===0&&b.hp<220&&!b.critical){b.critical=true;signal('⚠ ¡TU BASE ESTÁ EN PELIGRO!',2);feedback('hit');}
+  if(b.main&&b.team===0&&b.hp<315&&!b.critical){b.critical=true;signal('⚠ ¡TU BASE ESTÁ EN PELIGRO!',2);feedback('hit');}
   if(b.hp<=0){b.alive=false;b.mesh.visible=false;blast(b.x,b.z,0xffb37c,.1);signal(b.main?(b.team?'¡BASE ENEMIGA DESTRUIDA!':'¡TU BASE HA CAÍDO!'):'¡TORRE DESTRUIDA!',1.7);}
  }
  function dealUnit(u,damage){u.hp=Math.max(0,u.hp-damage);u.bar.set(u.hp/u.max);if(!u.hp)blast(u.x,u.z,0xffad76,.045);}
@@ -228,18 +228,18 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
  function step(dt){
   time+=dt;const recharge=dt*(time>105?1.8:1)/1.85;
   if(!finalNotice&&maxTime-time<=30){finalNotice=true;signal('⚡ ÚLTIMOS 30 SEGUNDOS',2.2);}
-  energy=Math.min(10,energy+recharge);enemyEnergy=Math.min(10,enemyEnergy+recharge);
+  energy=Math.min(10,energy+recharge);enemyEnergy=Math.min(10,enemyEnergy+recharge*.89);
   for(const u of units){if(u.hp>0)updateUnit(u,dt);}
   units=units.filter(x=>{if(x.hp>0)return true;x.mesh.parent?.remove(x.mesh);return false});
   for(const b of buildings){
    if(!b.alive)continue;b.cooldown-=dt;
    if(b.cooldown>0)continue;
    const enemy=units.filter(u=>u.team!==b.team&&u.hp>0&&dist(u,b)<(b.main?.147:.137)).sort((a,c)=>dist(a,b)-dist(c,b))[0];
-   if(enemy){dealUnit(enemy,b.main?17:13);tracer(b,enemy,b.team);blast(enemy.x,enemy.z,0xffb47d,.015);b.cooldown=b.main?.8:1.08;}
+   if(enemy){dealUnit(enemy,b.main?25:21);tracer(b,enemy,b.team);blast(enemy.x,enemy.z,0xffb47d,.015);b.cooldown=b.main?.72:.80;}
   }
   aiCooldown-=dt;
   if(aiCooldown<=0){
-   aiCooldown=rng(2.6,3.9);
+   aiCooldown=rng(4.0,5.4);
    const affordable=catalogue.map((c,i)=>i).filter(i=>catalogue[i].cost<=enemyEnergy);
    if(affordable.length){
     const i=affordable[Math.floor(Math.random()*affordable.length)];
