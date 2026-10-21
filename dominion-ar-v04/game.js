@@ -61,7 +61,7 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
  document.getElementById('ui').appendChild(hud);
  const el=s=>hud.querySelector('#'+s);
  const H={mine:el('mybase'),enemy:el('enemybase'),mybar:el('mybar'),enemybar:el('enemybar'),clock:el('matchclock'),phase:el('phase'),toast:el('dbtoast'),intro:el('intro'),title:el('introtitle'),desc:el('introdesc'),launch:el('launch'),bottom:el('dbbottom'),energy:el('energyvalue'),energyfill:el('energyfill'),next:el('nextcard'),deck:el('carddeck'),lanes:el('lanecontrols')};
- let status='idle',time=0,maxTime=180,overtime=false,energy=5,enemyEnergy=5,units=[],buildings=[],effects=[],hand=[0,1,2,3],next=4,selected=null,aiCooldown=2.3,unitSerial=0,notifyUntil=0,elapsedHud=0,model=null,cloneFn=cloneSkeleton,modelAnimations=[];
+ let status='idle',time=0,maxTime=180,overtime=false,energy=5,enemyEnergy=5,units=[],buildings=[],effects=[],hand=[0,1,2,3],next=4,selected=null,aiCooldown=2.3,unitSerial=0,notifyUntil=0,elapsedHud=0,deckRenderKey='',model=null,cloneFn=cloneSkeleton,modelAnimations=[];
  const rng=(a,b)=>a+(b-a)*Math.random();
  function signal(msg,duration=1.1){H.toast.textContent=msg;H.toast.classList.add('visible');notifyUntil=duration;}
  function box(w,h,d,x,y,z,mat,parent){const g=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);g.position.set(x,y,z);g.castShadow=true;g.receiveShadow=true;parent.add(g);return g;}
@@ -85,7 +85,7 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
   return b;
  }
  function setup(){
-  cleanup();time=0;maxTime=180;overtime=false;energy=5;enemyEnergy=5;selected=null;next=4;hand=[0,1,2,3];aiCooldown=2.3;elapsedHud=0;
+  cleanup();time=0;maxTime=180;overtime=false;energy=5;enemyEnergy=5;selected=null;next=4;hand=[0,1,2,3];aiCooldown=2.3;elapsedHud=0;deckRenderKey='';
   for(const team of [0,1]){createBuilding(team,1,true);createBuilding(team,0,false);createBuilding(team,2,false);}
   drawHUD();
  }
@@ -246,10 +246,11 @@ export function createBattle(THREE,field,getCamera,cloneSkeleton){
   const left=Math.max(0,Math.ceil(maxTime-time));H.clock.textContent=Math.floor(left/60)+':'+String(left%60).padStart(2,'0');
   H.phase.textContent=overtime?'PRÓRROGA':'DUELO';H.energy.textContent=energy.toFixed(1)+' / 10';
   H.energyfill.style.width=(energy*10)+'%';H.next.textContent='SIGUIENTE: '+catalogue[next%8].name;
-  H.deck.innerHTML=hand.map((index,slot)=>{
+  const renderKey=hand.join(',')+'|'+selected+'|'+hand.map(i=>energy>=catalogue[i].cost?'1':'0').join('');
+  if(renderKey!==deckRenderKey){deckRenderKey=renderKey;H.deck.innerHTML=hand.map((index,slot)=>{
    const c=catalogue[index];
    return '<button class="dbcard '+(energy<c.cost?'locked ':'')+(selected===index?'chosen':'')+'" data-slot="'+slot+'" aria-label="'+c.name+' cuesta '+c.cost+' de energía"><em>'+c.cost+'</em><strong>'+c.icon+'</strong><span>'+c.name+'</span></button>';
-  }).join('');
+  }).join('');}
  }
  function show(){
   if(status==='idle'){setup();status='ready';}
