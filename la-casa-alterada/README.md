@@ -1,4 +1,14 @@
-# La Casa Alterada — Protocolo Noche V3
+# BLACKZONE — Tactical AR (V19)
+
+**Nombre actual del juego: BLACKZONE.** Anteriormente denominado *La Casa Alterada*, conservado en la ruta heredada del repositorio y en el enlace Vercel existente para evitar romper enlaces de versiones anteriores.
+
+Shooter táctico web de realidad aumentada con dos modos: **Rescate de Rehenes (cooperativo)** y **Captura la Bandera (cooperativo o versus con bots configurables)**.
+
+El historial técnico de V3 a V18 se conserva debajo, con descripciones correspondientes a cada etapa del desarrollo.
+
+---
+
+## Registro original (V3): La Casa Alterada — Protocolo Noche
 
 Juego web de supervivencia AR orientado a Android Chrome/WebXR.
 
@@ -292,3 +302,16 @@ La sincronización P2P mediante celulares y el registro espacial manual todavía
 - Se verificaron por separado el parseo de JavaScript, la correspondencia de módulos importados, los controles HTML utilizados y la versión de interfaz antes del despliegue.
 
 **Importante:** estas pruebas son de lógica y no sustituyen una partida en varios teléfonos reales. WebXR y el seguimiento compartido pueden variar según dispositivo, navegador, permisos y condiciones de iluminación. La zona física debe permanecer despejada y el jugador debe poder pausar la partida.
+
+
+## V19 — Rebranding BLACKZONE
+
+- La marca visible se llama **BLACKZONE**, subtitulada **Tactical AR**. La pantalla inicial, menú de modos, HUD, final de operación, título del navegador, favicon SVG y metadatos de enlace utilizan el nuevo nombre.
+- Emblema original **BZ** en `blackzone-mark.svg`: forma angular, acabado metalizado y acento táctico cálido. No utiliza marcas ni emblemas de otros shooters.
+- Nuevo sistema visual oscuro de diseño táctico: paneles de acero, indicación de sistema activo, retícula de fondo sutil, tipografía condensada, estados de botones más visibles y respuestas al tacto.
+- La página se adapta a pantallas pequeñas, manteniendo selección de modo y opciones de bots, dificultad y equipos con desplazamiento vertical cuando sea necesario.
+- Se conservan los valores internos `rescue` y `capture` y no se alteran las reglas de calibración A/B, combate, rescate, captura y red de la V18.
+- El repositorio y la URL de producción anteriores permanecen por compatibilidad; una nueva URL de marca puede asignarse posteriormente.
+- **Advertencia de marca:** ya existen otros juegos con el nombre BLACKZONE. Antes de un lanzamiento comercial hay que realizar una búsqueda registral y jurídica en las jurisdicciones relevantes. El rebranding del prototipo no implica exclusividad sobre la denominación.
+
+Licencias de terceros conservadas en `THIRD_PARTY_NOTICES.md`.
