@@ -6,8 +6,12 @@
  */
 export function beginEscort(position,now){
  const r=Math.hypot(position?.x||0,position?.z||0);
+ // Small real rooms must still be playable. Required walk distance scales
+ // with the marked hostage spawn distance; never require the hostage to
+ // walk PAST the entrance and double back merely to satisfy a global 2.15m.
+ const requiredDistance=Math.min(1.20,Math.max(.45,r-.82));
  return{startedAt:now,previous:{x:position.x,z:position.z},
-  travelled:0,maxEntryDistance:r,leftEntry:r>2.15};
+  travelled:0,requiredDistance,maxEntryDistance:r,leftEntry:r>1.17};
 }
 export function updateEscort(state,position,player,now){
  if(!state||!position||!player)return{complete:false,reason:'missing'};
@@ -17,14 +21,15 @@ export function updateEscort(state,position,player,now){
  if(move<=.24)state.travelled+=move;
  state.previous={x:position.x,z:position.z};
  state.maxEntryDistance=Math.max(state.maxEntryDistance,r);
- if(r>2.15)state.leftEntry=true;
+ if(r>1.17)state.leftEntry=true;
  const age=Math.max(0,now-state.startedAt);
  const playerDistance=Math.hypot(player.x,player.z);
- const farEnough=state.leftEntry&&state.travelled>=1.20;
+ const requiredDistance=Number.isFinite(state.requiredDistance)?state.requiredDistance:1.2;
+ const farEnough=state.leftEntry&&state.travelled+1e-4>=requiredDistance;
  const complete=age>=4500&&farEnough&&r<=1.02&&playerDistance<=1.28;
  return{complete,reason:!state.leftEntry?'leave-entry':
-    state.travelled<1.20?'not-escorted':
+    state.travelled+1e-4<requiredDistance?'not-escorted':
     age<4500?'too-early':
     r>1.02||playerDistance>1.28?'return-to-entry':'evacuated',
-  age,travelled:state.travelled,hostageDistance:r,playerDistance};
+  age,travelled:state.travelled,requiredDistance,hostageDistance:r,playerDistance};
 }
