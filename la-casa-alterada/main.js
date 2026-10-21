@@ -376,6 +376,7 @@ function processSpawns(t){
  // and wrap+goggles. Appearance remains stable across all player screens.
  e.appearance=['raiderA','raiderB','raiderC','raiderD'][(i+waveNo*3)%4];
  if(boss)e.appearance='raiderD';
+ attachContactShadow(e);
  enemies.push(e);
  attachHuman(e,e.appearance);
 }
@@ -408,6 +409,31 @@ function updateRespawnShields(t){
    if(visible)e.ctfShieldFX.rotation.y=t*.0012;
  }
 }
+// Soft contact shadow: one small procedurally generated texture shared by all
+// actors, so expensive dynamic shadow maps are not required on mobile AR.
+const contactDecal=(()=>{
+ const canvas=document.createElement('canvas');canvas.width=canvas.height=96;
+ const ctx=canvas.getContext('2d');
+ if(!ctx)return null;
+ const g=ctx.createRadialGradient(48,48,3,48,48,48);
+ g.addColorStop(0,'rgba(0,0,0,.70)');
+ g.addColorStop(.42,'rgba(0,0,0,.37)');
+ g.addColorStop(1,'rgba(0,0,0,0)');
+ ctx.fillStyle=g;ctx.fillRect(0,0,96,96);
+ return new THREE.CanvasTexture(canvas);
+})();
+const contactGeometry=new THREE.PlaneGeometry(.92,.66);
+const contactMaterial=new THREE.MeshBasicMaterial({
+ color:0x061019,map:contactDecal,transparent:true,opacity:.46,
+ depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,side:THREE.DoubleSide
+});
+function attachContactShadow(actor){
+ if(!actor?.root||actor.contactShadow||!contactDecal)return;
+ const decal=new THREE.Mesh(contactGeometry,contactMaterial);
+ decal.rotation.x=-Math.PI/2;decal.position.y=.017;
+ decal.renderOrder=2;actor.root.add(decal);
+ actor.contactShadow=decal;
+}
 function spawnCTFBot(team,index,id,localPos){
  if(!mission?.isCapture?.()||!localPos||enemies.some(e=>e.id===id))return null;
  const e=createTacticalActor(THREE,index%4,team==='blue'?'operator':'raider');
@@ -423,7 +449,7 @@ function spawnCTFBot(team,index,id,localPos){
  const band=new THREE.Mesh(new THREE.TorusGeometry(.15,.032,8,18),
    new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.37}));
  band.position.set(.05,1.33,.03);band.rotation.x=Math.PI/2;e.root.add(band);
- attachRespawnShield(e);
+ attachRespawnShield(e);attachContactShadow(e);
  world.add(e.root);enemies.push(e);
  e.appearance=team==='blue'?'operator':['raiderA','raiderB','raiderC','raiderD'][index%4];
  attachHuman(e,e.appearance);
@@ -951,6 +977,7 @@ mission=createMission({scene:world,getCam,toast,event,teammateShot,resolveTeamma
    band.position.set(.05,1.33,.03);band.rotation.x=Math.PI/2;e.root.add(band);
    attachRespawnShield(e);
  }
+ attachContactShadow(e);
  attachHuman(e,e.appearance);return e},damageEnemy,damage,heal,remoteStart,clock:()=>seconds,wave:()=>round,setGuestStats:(clock,wave,teamKills)=>{if(Number.isFinite(clock))seconds=clock;if(Number.isFinite(wave))round=wave;if(Number.isInteger(teamKills)&&teamKills>=0)kills=Math.max(kills,teamKills)},victory:finish});
 mission.configureLobby();
 for(const id of ['gameSelect','ctfTeamMode','ctfBots','ctfDifficulty']){
