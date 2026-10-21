@@ -154,7 +154,10 @@ function updateBattle(dt,t){
  for(const e of enemies){
   if(!e.alive)continue;
   if(!e.targetId||t>e.nextTarget){
-   const target=mission?.chooseTarget();e.targetId=target?.id||'local';e.nextTarget=t+rnd(1600,2600)
+   const hostageAvailable=mission?.hostageExposed()&&mission?.hostageWorld();
+   const target=mission?.chooseTarget();
+   e.targetId=hostageAvailable&&Math.random()<.46?'hostage':target?.id||'local';
+   e.nextTarget=t+rnd(1750,3100)
   }
   const target=mission?.getPlayerWorld(e.targetId)||eye;
   const moved=steerEnemy(e,dt,t,target,mode,spatialMap);
@@ -341,7 +344,13 @@ function joyMove(e){const r=movementPad.getBoundingClientRect(),dx=(e.clientX-r.
 movementPad.addEventListener('pointerdown',e=>{e.preventDefault();movementPad.setPointerCapture(e.pointerId);joyMove(e)});movementPad.addEventListener('pointermove',e=>{if(movementPad.hasPointerCapture(e.pointerId))joyMove(e)});movementPad.addEventListener('pointerup',joyZero);movementPad.addEventListener('pointercancel',joyZero);
 window.addEventListener('keydown',e=>{if(['KeyW','ArrowUp'].includes(e.code))movementKeys.forward=true;if(['KeyS','ArrowDown'].includes(e.code))movementKeys.back=true;if(['KeyA','ArrowLeft'].includes(e.code))movementKeys.left=true;if(['KeyD','ArrowRight'].includes(e.code))movementKeys.right=true});
 window.addEventListener('keyup',e=>{if(['KeyW','ArrowUp'].includes(e.code))movementKeys.forward=false;if(['KeyS','ArrowDown'].includes(e.code))movementKeys.back=false;if(['KeyA','ArrowLeft'].includes(e.code))movementKeys.left=false;if(['KeyD','ArrowRight'].includes(e.code))movementKeys.right=false});
-mission=createMission({scene:world,getCam,toast,event,active:()=>active,firstNest:()=>nests[0],spawn:(n,boss)=>wave(n,boss),animateEnemy,projectiles:()=>orbs,enemies:()=>enemies,enemyShot:pos=>combatFX.shot(pos,true,'rifle'),buildEnemy:(variant,boss)=>{const e=creature(variant);e.boss=boss;if(boss){e.root.scale.setScalar(1.85);e.hp=22;e.size*=1.85}attachHuman(e,variant%2?'raiderA':'raiderB');return e},damageEnemy,damage,heal,remoteStart,clock:()=>seconds,wave:()=>round,setGuestStats:(clock,wave)=>{seconds=clock;round=wave},victory:finish});
+mission=createMission({scene:world,getCam,toast,event,active:()=>active,firstNest:()=>nests[0],
+ exportEnvironment:origin=>spatialMap.exportData(origin),
+ importEnvironment:(items,origin)=>{if(!mission?.isGuest())return;spatialMap.importData(items,origin);mapStatus()},
+ environmentCanMove:(from,to,radius)=>spatialMap.canMove(from,to,radius),
+ environmentNextPoint:(from,to)=>spatialMap.nearestWaypoint(from,to),
+ hasCover:(from,to)=>spatialMap.lineBlocked(from,to,.11),
+ spawn:(n,boss)=>wave(n,boss),animateEnemy,projectiles:()=>orbs,enemies:()=>enemies,enemyShot:pos=>combatFX.shot(pos,true,'rifle'),buildEnemy:(variant,boss)=>{const e=creature(variant);e.boss=boss;if(boss){e.root.scale.setScalar(1.85);e.hp=22;e.size*=1.85}attachHuman(e,variant%2?'raiderA':'raiderB');return e},damageEnemy,damage,heal,remoteStart,clock:()=>seconds,wave:()=>round,setGuestStats:(clock,wave)=>{seconds=clock;round=wave},victory:finish});
 
 async function startAR(){if(!navigator.xr){toast('Este navegador no admite WebXR');return}$('startAR').disabled=true;try{ar=await navigator.xr.requestSession('immersive-ar',{
  requiredFeatures:['hit-test'],optionalFeatures:['anchors','dom-overlay','depth-sensing'],domOverlay:{root:$('ui')},
