@@ -34,7 +34,7 @@
 <h1 class="hero">Mini corredores.<br><strong>Máximo caos.</strong></h1>
 <p class="sub">Seis personajes, una pista imposible y una sola meta. Corré, saltá, esquivá y llegá primero.</p>
 <button id="ar" class="primary mainprimary">◈ JUGAR EN REALIDAD AUMENTADA <span>↗</span></button>
-<div class="more"><button id="play" class="secondary">JUGAR EN 3D SIN CÁMARA</button><a id="nativeAR" class="secondary" href="intent://arvr.google.com/scene-viewer/1.0?file=https%3A%2F%2Fmicrocaos-party-rush.vercel.app%2Farena.glb&mode=ar_preferred#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=https%3A%2F%2Fmicrocaos-party-rush.vercel.app%2F%3Far-error%3D1;end;" role="button">◈ VER LA PISTA EN MI MESA</a><button id="cam" class="secondary" style="display:none" aria-hidden="true">◎ DEMO DE CÁMARA</button></div>
+<div class="more"><button id="play" class="secondary">JUGAR EN 3D SIN CÁMARA</button><a id="nativeAR" class="secondary" href="intent://arvr.google.com/scene-viewer/1.0?file=https%3A%2F%2Fcdn.jsdelivr.net%2Fgh%2FProtectorRudo%2FProtectorRudo.github.io%40main%2Fmicrocaos%2Farena.glb&mode=ar_preferred#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=https%3A%2F%2Fmicrocaos-party-rush.vercel.app%2F%3Far-error%3D1;end;" role="button">◈ VER LA PISTA EN MI MESA</a><button id="cam" class="secondary" style="display:none" aria-hidden="true">◎ DEMO DE CÁMARA</button></div>
 <div id="arDevice" class="ar-device">Comprobando compatibilidad AR...</div>
 <div class="hint" id="gamehint">Joystick, salto y turbo · Recogé estrellas para recuperar energía</div>
 </div></div>
@@ -323,7 +323,7 @@ $("cam").onclick=async()=>{if(mode==="camera"){leaveCamera();return}if(!navigato
 
 const androidPlatform=/Android/i.test(navigator.userAgent);
 const iosPlatform=/iPhone|iPad|iPod/i.test(navigator.userAgent);
-const arModelUrl="https://microcaos-party-rush.vercel.app/arena.glb";
+const arModelUrl="https://cdn.jsdelivr.net/gh/ProtectorRudo/ProtectorRudo.github.io@main/microcaos/arena.glb";
 const arNativeURL="intent://arvr.google.com/scene-viewer/1.0?file="+encodeURIComponent(arModelUrl)+"&mode=ar_preferred#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url="+encodeURIComponent("https://microcaos-party-rush.vercel.app/?ar-error=1")+";end;";
 const nativeLink=$("nativeAR");nativeLink.href=arNativeURL;
 if(!androidPlatform){nativeLink.style.display="none"}
