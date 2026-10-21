@@ -53,7 +53,7 @@ test('No enemies hidden by unverified AR depth while still attacking',()=>{
  assert.doesNotMatch(main,/depthInfo\.getDepthInMeters\(\(p\.x/);
  assert.match(main,/for\(const e of enemies\)if\(e\.alive\)e\.root\.visible=true/);
  assert.match(main,/const onScreen=targetVisibility\(/);
- assert.match(main,/if\(exposed&&onScreen&&e\.root\.visible&&rescueProtectionLeft\(t\)===0/);
+ assert.match(main,/if\(rescueCombatArmed&&exposed&&onScreen&&e\.root\.visible&&rescueProtectionLeft\(t\)===0/);
 });
 
 test('Hostage marker remains visible even if assets cannot load',()=>{
