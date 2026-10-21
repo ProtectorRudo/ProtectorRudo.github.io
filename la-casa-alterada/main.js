@@ -146,19 +146,49 @@ function hud(){
 function ui(){if(mapping){$('mapPanel').classList.remove('hidden')}$('swapGun').classList.toggle('hidden',!active);$('setup').classList.toggle('hidden',!placing);$('fight').classList.toggle('hidden',placing);$('gunCanvas').classList.toggle('hidden',!active);$('hint').classList.toggle('hidden',!placing);$('sightText').textContent=placing?'RASTREANDO SUPERFICIE':'';hud()}
 function cleanup(){spawnQueue.length=0;nextSpawnTime=0;spatialMap.clear();mapping=false;if(mapGhost)mapGhost.visible=false;if(mapFirstGhost)mapFirstGhost.visible=false;$('mapPanel').classList.add('hidden');mapFirst=null;mapPoint=null;mapStatus();for(const e of enemies){disposeHuman(e);e.root.parent?.remove(e.root)}for(const n of nests){try{n.anchor?.delete()}catch(e){}world.remove(n.root)}for(const i of [...orbs,...trails,...splinters])world.remove(i.mesh);nests=[];enemies=[];orbs=[];trails=[];splinters=[]}
 function reset(){mission?.reset();triggerHeld=false;aiming=false;aimBlend=0;$('aimMode').classList.remove('aimed');$('aimMode').textContent='MIRA ◎';$('sight').classList.remove('ads');if(mode==='demo'){camera.fov=65;camera.updateProjectionMatrix()}cleanup();placing=true;active=false;ended=false;round=0;kills=0;currentWeapon='rifle';magazines={rifle:28,pistol:12};ammo=28;if(gunReady)syncWeapon();reloading=false;seconds=480;life=100;newRound=0;pose=null;hitResult=null;previous=0;ui();toast('APUNTÁ AL PISO Y TOCÁ MARCAR ENTRADA')}
-function place(){if(mapping||!placing||nests.length>=7)return;let point,rotation;const old=hitResult;
-if(mode==='demo'){ray.setFromCamera({x:0,y:0},camera);const h=ray.intersectObjects(surfaces,false)[0];if(!h){toast('Apuntá a un mueble o al piso');return}point=h.point.clone();rotation=new THREE.Quaternion()}
-else{if(!pose){toast('No hay una superficie estable todavía');return}point=new THREE.Vector3().setFromMatrixPosition(pose);rotation=new THREE.Quaternion().setFromRotationMatrix(pose)}
-const root=new THREE.Group();root.position.copy(point);root.quaternion.copy(rotation);world.add(root);const circle=new THREE.Mesh(new THREE.TorusGeometry(.16,.006,6,42).rotateX(-Math.PI/2),mat.sigil);circle.position.y=.012;root.add(circle);const eyeAtNest=new THREE.Vector3();getCam().getWorldPosition(eyeAtNest);const verticalGap=eyeAtNest.y-point.y;const isFloor=verticalGap>1.19;const n={root,anchor:null,radius:isFloor?.68:.27,floor:isFloor,surfaceScale:isFloor?1:verticalGap<.84?.34:.5};nests.push(n);if(mode==='ar'&&old&&typeof old.createAnchor==='function')Promise.resolve(old.createAnchor()).then(anchor=>{if(nests.includes(n))n.anchor=anchor}).catch(()=>{});if(nests.length===1)mission?.align(n.root);hud();tone('hit');toast('NIDO '+nests.length+' FIJADO AL ENTORNO')}
+function estimateFloorPoint(floorY=null){
+ const c=getCam(),eye=new THREE.Vector3(),forward=new THREE.Vector3();
+ c.getWorldPosition(eye);c.getWorldDirection(forward);
+ const y=Number.isFinite(floorY)?floorY:eye.y-1.36;
+ let p=null;
+ if(forward.y<-.13){const t=(y-eye.y)/forward.y;if(t>=.65&&t<=5)p=eye.clone().addScaledVector(forward,t)}
+ if(!p){forward.y=0;if(forward.lengthSq()<.02)forward.set(0,0,-1);forward.normalize();p=eye.clone().addScaledVector(forward,1.85)}
+ p.y=y;return p;
+}
+function currentFloorTarget(){
+ let point=null,detected=false,anchor=null;
+ const eye=new THREE.Vector3();getCam().getWorldPosition(eye);
+ if(mode==='ar'&&pose){
+  const found=new THREE.Vector3().setFromMatrixPosition(pose);
+  if(eye.y-found.y>.85&&eye.y-found.y<2.7){point=found;detected=true;anchor=hitResult}
+ }
+ if(mode==='demo'){
+  ray.setFromCamera({x:0,y:0},camera);
+  const floor=ray.intersectObjects(surfaces,false).find(h=>Math.abs(h.point.y)<.18);
+  if(floor){point=floor.point.clone();detected=true}
+ }
+ if(!point)point=estimateFloorPoint(nests[0]?.root.position.y??(mode==='demo'?0:null));
+ return{point,detected,anchor};
+}
+function place(){
+ if(mapping||!placing||nests.length>=7)return;
+ const target=currentFloorTarget(),point=target.point;
+ if(!point)return toast('APUNTÁ HACIA EL PISO');
+ const root=new THREE.Group();root.position.copy(point);world.add(root);
+ const circle=new THREE.Mesh(new THREE.TorusGeometry(.16,.006,6,42).rotateX(-Math.PI/2),mat.sigil);circle.position.y=.012;root.add(circle);
+ const n={root,anchor:null,radius:.68,floor:true,surfaceScale:1};nests.push(n);
+ if(mode==='ar'&&target.detected&&target.anchor&&typeof target.anchor.createAnchor==='function')Promise.resolve(target.anchor.createAnchor()).then(anchor=>{if(nests.includes(n))n.anchor=anchor}).catch(()=>{});
+ if(nests.length===1)mission?.align(n.root);hud();tone('hit');vibrate(30);
+ toast(target.detected?'ENTRADA FIJADA EN EL PISO ✓':'ENTRADA APROXIMADA ✓ · VOLVÉ A MARCAR SI NO COINCIDE');
+}
 function placeHostage(){
- if(mapping)return toast('TERMINÁ EL MAPEO PARA COLOCAR EL REHÉN');
- if(!placing||!nests.length){toast('PRIMERO FIJÁ UN PUNTO DE ENTRADA');return}
- if(mission?.isGuest()){toast('EL ANFITRIÓN UBICA AL REHÉN');return}
- let where=null;
- if(mode==='demo'){ray.setFromCamera({x:0,y:0},camera);const hit=ray.intersectObjects(surfaces,false)[0];if(hit)where=hit.point.clone()}
- else if(pose)where=new THREE.Vector3().setFromMatrixPosition(pose);
- if(!where){toast('APUNTÁ A UNA SUPERFICIE PARA UBICAR AL REHÉN');return}
- if(mission?.placeHostage(where)){hud();toast('REHÉN POSICIONADO · INICIÁ EL RESCATE')}
+ if(mapping)return toast('TERMINÁ EL MAPEO PRIMERO');
+ if(!placing||!nests.length)return toast('PRIMERO MARCÁ LA ENTRADA');
+ if(mission?.isGuest())return toast('EL ANFITRIÓN COLOCA AL REHÉN');
+ const where=currentFloorTarget().point;where.y=nests[0].root.position.y;
+ const distance=Math.hypot(where.x-nests[0].root.position.x,where.z-nests[0].root.position.z);
+ if(distance<1.25)return toast('APUNTÁ MÁS LEJOS DE LA ENTRADA');
+ if(mission?.placeHostage(where)){hud();tone('hit');toast('REHÉN UBICADO ✓ · EMPEZÁ EL RESCATE')}
 }
 const spawnQueue=[];let nextSpawnTime=0;
 function wave(total=6,boss=false){
@@ -511,15 +541,18 @@ spatialMap.setVisible(false);mapStatus();
 toast('Deslizá el dedo para mirar. Marcá el punto de entrada.')}
 $('startAR').addEventListener('click',startAR);$('startDemo').addEventListener('click',demo);$('place').addEventListener('click',()=>{lastTouch=performance.now();place()});$('hostage').addEventListener('click',()=>{lastTouch=performance.now();placeHostage()});$('begin').addEventListener('click',()=>{lastTouch=performance.now();begin()});
 $('mapToggle').addEventListener('click',()=>toggleMap(true));
-$('mapWall').addEventListener('click',()=>{mapKind='wall';mapFirst=null;mapControls()});
-$('mapFurniture').addEventListener('click',()=>{mapKind='box';mapFirst=null;mapControls()});
+$('mapWall').addEventListener('click',()=>{mapKind='wall';mapFirst=null;mapControls(true)});
+$('mapSize').addEventListener('input',e=>{mapFastSpan=Math.max(.7,Math.min(4.5,Number(e.target.value)||2));$('mapSizeText').textContent=mapFastSpan.toFixed(1).replace('.',',')+' m';mapControls(true)});
+$('mapPrecision').addEventListener('click',()=>{mapPrecise=!mapPrecise;mapFirst=null;mapControls(true)});
+$('smartPlace').addEventListener('click',()=>{lastTouch=performance.now();if(!nests.length)place();else placeHostage()});
+$('mapFurniture').addEventListener('click',()=>{mapKind='box';mapFirst=null;mapControls(true)});
 $('mapMark').addEventListener('click',()=>{lastTouch=performance.now();markMapPoint()});
 $('mapDistance').addEventListener('input',e=>{
  mapManualDistance=Math.max(.6,Math.min(5,Number(e.target.value)||1.8));
  $('mapDistanceText').textContent=mapManualDistance.toFixed(1)+' m';
- mapPoint=null;mapPointQuality='manual';mapControls();
+ mapPoint=null;mapPointQuality='manual';mapControls(true);
 });
-$('mapUndo').addEventListener('click',()=>{spatialMap.clear();mapFirst=null;mapControls();toast('MAPA BORRADO')});
+$('mapUndo').addEventListener('click',()=>{spatialMap.clear();mapFirst=null;mapControls(true);toast('MAPA BORRADO')});
 $('mapFinish').addEventListener('click',()=>toggleMap(false));$('fire').addEventListener('pointerdown',e=>{e.preventDefault();lastTouch=performance.now();triggerHeld=true;try{$('fire').setPointerCapture(e.pointerId)}catch(_){}fire()});
 $('fire').addEventListener('pointerup',()=>triggerHeld=false);
 $('fire').addEventListener('pointercancel',()=>triggerHeld=false);
