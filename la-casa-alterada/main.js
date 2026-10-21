@@ -330,7 +330,8 @@ function confirmedRemoteShot(headshot){
 function damageEnemy(e,amount=1,headshot=false,shooterId=null){if(!e?.alive)return;e.hp-=amount;
  e.staggerUntil=performance.now()+170;
  e.hitStagger=amount>1?.14:.08;if(e.hp<=0){e.alive=false;e.root.visible=false;kills++;teamElimination(!shooterId||shooterId===mission?.localId?.(),headshot,kills);
- mission?.relayEnemyDown(e.id,shooterId,headshot,kills);mission?.onKill(e)}else toast('IMPACTO / '+e.hp+' RESISTENCIA')}
+ mission?.relayEnemyDown(e.id,shooterId,headshot,kills);mission?.onKill(e)}else {mission?.relayEnemyHit?.(e.id,headshot,e.hp);
+ if(!shooterId||shooterId===mission?.localId?.())toast('IMPACTO / '+e.hp+' RESISTENCIA')}}
 function fire(){if(mapping||!active||ended||placing||reloading)return;if(ammo===0){reload();return}let t=performance.now();if(t-lastShot<(currentWeapon==='rifle'?105:170))return;lastShot=t;ammo--;gunShot();combatFX.shot(null,false,currentWeapon);vibrate(35);hud();const c=getCam(),p=new THREE.Vector3(),q=new THREE.Quaternion();c.getWorldPosition(p);c.getWorldQuaternion(q);const forward=new THREE.Vector3(0,0,-1).applyQuaternion(q);ray.set(p,forward);ray.far=12;mission?.relayShot(p,forward);const hits=ray.intersectObjects(enemies.filter(e=>e.alive).flatMap(e=>e.headHit?[e.hit,e.headHit]:[e.hit]),false);const cover=mode==='demo'?ray.intersectObjects(occluders,false)[0]:null;let end=p.clone().addScaledVector(forward,7);const geometryHit=spatialMap.lineBlocked(p,hits[0]?.point||end,.03);
  if(geometryHit||cover&&(!hits.length||cover.distance<hits[0].distance)){
    if(cover)end.copy(cover.point);combatFX.dust(end,11);
