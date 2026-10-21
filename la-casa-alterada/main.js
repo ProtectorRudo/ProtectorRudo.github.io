@@ -23,16 +23,24 @@ let ar=null,local=null,source=null,mode='idle',placing=true,active=false,ended=f
 const ray=new THREE.Raycaster(),vec=new THREE.Vector3(),quat=new THREE.Quaternion(),getCam=()=>mode==='ar'?renderer.xr.getCamera(camera):camera;
 const combatFX=createCombatFX(world,getCam);
 const spatialMap=createSpatialMap(THREE,world);
-let mapping=false,mapKind='wall',mapFirst=null,mapPoint=null,mapDepth=null,mapDepthSource='none';
+let mapping=false,mapKind='wall',mapFirst=null,mapPoint=null,mapDepth=null,mapDepthSource='none',mapManualDistance=1.8,mapPointQuality='manual';
 const mapHint=$('mapInstruction');
 function mapStatus(){
  $('environmentStatus').textContent='MAPA: '+spatialMap.walls.length+' PAREDES / '+spatialMap.boxes.length+' MUEBLES · '+(mapDepthSource==='cpu'?'PROFUNDIDAD':'PLANOS');
 }
 function mapControls(){
+ if(mapping&&!mapPoint){
+   const c=getCam(),at=new THREE.Vector3(),dir=new THREE.Vector3();
+   c.getWorldPosition(at);c.getWorldDirection(dir);
+   mapPoint=at.addScaledVector(dir,mapDepth||mapManualDistance);
+   mapPointQuality=mapDepth?'depth':'manual';
+   reticle.position.copy(mapPoint);reticle.visible=true;
+ }
+ $('mapMethod').textContent=mapPointQuality==='plane'?'PLANO REAL DETECTADO':mapPointQuality==='depth'?'PROFUNDIDAD MEDIDA':'MANUAL APROXIMADO · AJUSTÁ LA DISTANCIA';
  $('mapPanel').classList.toggle('hidden',!mapping);
  $('mapWall').classList.toggle('active',mapKind==='wall');
  $('mapFurniture').classList.toggle('active',mapKind==='box');
- $('mapMark').disabled=!mapPoint;
+ $('mapMark').disabled=!mapping;
  $('mapInstruction').textContent=mapFirst?
    'Primer extremo guardado. Apuntá al segundo extremo sobre la misma superficie.':
    'Marcá dos extremos de '+(mapKind==='wall'?'la pared':'un mueble')+'. Mové lentamente la cámara para localizar la superficie.';
@@ -46,12 +54,12 @@ function toggleMap(enabled){
  mapControls();
 }
 function markMapPoint(){
- if(!mapping||!mapPoint){toast('APUNTÁ A UNA PARED O MUEBLE DETECTADO');return}
+ if(!mapping){toast('ACTIVÁ EL MAPEO');return}if(!mapPoint)mapControls();if(!mapPoint){toast('NO SE PUDO OBTENER UN PUNTO');return}
  if(!mapFirst){mapFirst=mapPoint.clone();toast('PRIMER PUNTO CAPTURADO');mapControls();return}
  const floor=nests[0]?.root.position.y??0;
  const a=mapFirst.clone(),b=mapPoint.clone();mapFirst=null;
  const result=mapKind==='wall'?spatialMap.addWall(a,b,{floorY:floor,height:2.4}):spatialMap.addBox(a,b,{floorY:floor,height:.9});
- if(result){tone('hit');toast(mapKind==='wall'?'PARED DELIMITADA':'MUEBLE DELIMITADO')}
+ if(result){tone('hit');toast(mapKind==='wall'?'PARED DELIMITADA':'MUEBLE DELIMITADO');if(mapPointQuality==='manual')setTimeout(()=>toast('LÍMITE APROXIMADO · REVISÁ SI ESTÁ ALINEADO'),750)}
  else toast('DOS PUNTOS DIFERENTES; SEPARALOS AL MENOS 30 CM');
  mapControls();
 }
@@ -96,7 +104,7 @@ function damage(value){if(mission?.shielded())return;life=Math.max(0,life-value)
 function finish(win){if(ended)return;mission?.onVictory(win);ended=true;active=false;placing=false;$('hud').classList.add('hidden');$('outro').classList.remove('hidden');$('status').textContent=win?'MISIÓN CUMPLIDA':'SEÑAL PERDIDA';$('outcome').innerHTML=win?'ZONA<br><em>ASEGURADA</em>':'CASA<br><em>INFECTADA</em>';$('outcomeText').textContent=(win?'Completaste la operación de rescate y aseguraste la zona. ':'La misión de rescate fracasó. ')+kills+' criaturas neutralizadas.'}
 function updateXR(frame){
  if(!frame||!source||!local)return;
- pose=null;hitResult=null;reticle.visible=false;mapPoint=null;mapDepth=null;mapDepthSource='none';
+ pose=null;hitResult=null;reticle.visible=false;mapPoint=null;mapPointQuality='manual';mapDepth=null;mapDepthSource='none';
  const xrPose=frame.getViewerPose(local),view=xrPose?.views?.[0];
  let depthInfo=null;
  if(view&&typeof frame.getDepthInformation==='function'){
@@ -115,12 +123,12 @@ function updateXR(frame){
    if(mapping){
      const selected=mapKind==='wall'?vertical:flat;
      if(selected){
-       mapPoint=new THREE.Vector3().setFromMatrixPosition(selected.matrix);
+       mapPoint=new THREE.Vector3().setFromMatrixPosition(selected.matrix);mapPointQuality='plane';
        reticle.position.copy(mapPoint);reticle.quaternion.copy(selected.q);reticle.visible=true;
      }else if(mapKind==='wall'&&mapDepth){
        const c=getCam(),origin=new THREE.Vector3(),forward=new THREE.Vector3();
        c.getWorldPosition(origin);c.getWorldDirection(forward);
-       mapPoint=origin.addScaledVector(forward,mapDepth);
+       mapPoint=origin.addScaledVector(forward,mapDepth);mapPointQuality='depth';
        reticle.position.copy(mapPoint);reticle.quaternion.identity();reticle.visible=true;
      }
      mapControls();
@@ -143,7 +151,7 @@ function updateXR(frame){
    }
  }else for(const e of enemies)if(e.alive)e.root.visible=true;
 }
-function updateDemo(){if(mapping){ray.setFromCamera({x:0,y:0},camera);const pick=ray.intersectObjects(occluders,false)[0];mapPoint=pick?.point?.clone()||null;mapControls();return}if(!placing)return;ray.setFromCamera({x:0,y:0},camera);const hit=ray.intersectObjects(surfaces,false)[0];reticle.visible=!!hit;if(hit)reticle.position.copy(hit.point);$('place').disabled=!hit||nests.length>=7;$('sight').classList.toggle('found',!!hit);$('surface').textContent=hit?(hit.point.y>.75?'MESA DETECTADA':hit.point.y>.35?'SILLÓN DETECTADO':'PISO DETECTADO'):'BUSCANDO SUPERFICIE';$('sightText').textContent=hit?'SUPERFICIE ESTABLE':'RASTREANDO SUPERFICIE'}
+function updateDemo(){if(mapping){ray.setFromCamera({x:0,y:0},camera);const pick=ray.intersectObjects(occluders,false)[0];mapPoint=pick?.point?.clone()||null;mapPointQuality=mapPoint?'plane':'manual';mapControls();return}if(!placing)return;ray.setFromCamera({x:0,y:0},camera);const hit=ray.intersectObjects(surfaces,false)[0];reticle.visible=!!hit;if(hit)reticle.position.copy(hit.point);$('place').disabled=!hit||nests.length>=7;$('sight').classList.toggle('found',!!hit);$('surface').textContent=hit?(hit.point.y>.75?'MESA DETECTADA':hit.point.y>.35?'SILLÓN DETECTADO':'PISO DETECTADO'):'BUSCANDO SUPERFICIE';$('sightText').textContent=hit?'SUPERFICIE ESTABLE':'RASTREANDO SUPERFICIE'}
 function updateBattle(dt,t){
  if(!active||ended)return;
  if(mission?.isGuest()){hud();return}
@@ -369,6 +377,11 @@ $('mapToggle').addEventListener('click',()=>toggleMap(true));
 $('mapWall').addEventListener('click',()=>{mapKind='wall';mapFirst=null;mapControls()});
 $('mapFurniture').addEventListener('click',()=>{mapKind='box';mapFirst=null;mapControls()});
 $('mapMark').addEventListener('click',()=>{lastTouch=performance.now();markMapPoint()});
+$('mapDistance').addEventListener('input',e=>{
+ mapManualDistance=Math.max(.6,Math.min(5,Number(e.target.value)||1.8));
+ $('mapDistanceText').textContent=mapManualDistance.toFixed(1)+' m';
+ mapPoint=null;mapPointQuality='manual';mapControls();
+});
 $('mapUndo').addEventListener('click',()=>{spatialMap.clear();mapFirst=null;mapControls();toast('MAPA BORRADO')});
 $('mapFinish').addEventListener('click',()=>toggleMap(false));$('fire').addEventListener('pointerdown',e=>{e.preventDefault();lastTouch=performance.now();triggerHeld=true;try{$('fire').setPointerCapture(e.pointerId)}catch(_){}fire()});
 $('fire').addEventListener('pointerup',()=>triggerHeld=false);
