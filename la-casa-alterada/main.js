@@ -94,7 +94,55 @@ function reload(){if(!active||ended||reloading||ammo===capacity())return;
 }
 function damage(value){if(mission?.shielded())return;life=Math.max(0,life-value);$('damage').classList.add('active');setTimeout(()=>$('damage').classList.remove('active'),180);tone('hurt');vibrate([90,35,90]);hud();if(life===0)finish(false)}
 function finish(win){if(ended)return;mission?.onVictory(win);ended=true;active=false;placing=false;$('hud').classList.add('hidden');$('outro').classList.remove('hidden');$('status').textContent=win?'MISIÓN CUMPLIDA':'SEÑAL PERDIDA';$('outcome').innerHTML=win?'ZONA<br><em>ASEGURADA</em>':'CASA<br><em>INFECTADA</em>';$('outcomeText').textContent=(win?'Completaste la operación de rescate y aseguraste la zona. ':'La misión de rescate fracasó. ')+kills+' criaturas neutralizadas.'}
-function updateXR(frame){if(!frame||!source||!local)return;pose=null;hitResult=null;reticle.visible=false;if(placing){for(const hit of frame.getHitTestResults(source)){const p=hit.getPose(local);if(!p)continue;const matrix=new THREE.Matrix4().fromArray(p.transform.matrix);const q=new THREE.Quaternion().setFromRotationMatrix(matrix);const up=new THREE.Vector3(0,1,0).applyQuaternion(q);if(up.y<.55)continue;pose=matrix;hitResult=hit;reticle.position.setFromMatrixPosition(matrix);reticle.quaternion.copy(q);reticle.visible=true;break}}$('place').disabled=!pose||nests.length>=7;$('surface').textContent=pose?'SUPERFICIE DETECTADA':'BUSCANDO SUPERFICIE';$('sight').classList.toggle('found',!!pose);if(placing)$('sightText').textContent=pose?'SUPERFICIE ESTABLE':'RASTREANDO SUPERFICIE';for(const n of nests)if(n.anchor){const p=frame.getPose(n.anchor.anchorSpace,local);if(p){n.root.position.set(p.transform.position.x,p.transform.position.y,p.transform.position.z);n.root.quaternion.set(p.transform.orientation.x,p.transform.orientation.y,p.transform.orientation.z,p.transform.orientation.w)}}}
+function updateXR(frame){
+ if(!frame||!source||!local)return;
+ pose=null;hitResult=null;reticle.visible=false;mapPoint=null;mapDepth=null;mapDepthSource='none';
+ const xrPose=frame.getViewerPose(local),view=xrPose?.views?.[0];
+ let depthInfo=null;
+ if(ar?.enabledFeatures?.includes('depth-sensing')&&view&&frame.getDepthInformation){
+   try{depthInfo=frame.getDepthInformation(view);const d=depthInfo?.getDepthInMeters?.(.5,.5);if(Number.isFinite(d)&&d>.3&&d<7){mapDepth=d;mapDepthSource='cpu'}}catch(_){}
+ }
+ if(placing||mapping){
+   let flat=null,vertical=null;
+   for(const hit of frame.getHitTestResults(source)){
+     const p=hit.getPose(local);if(!p)continue;
+     const matrix=new THREE.Matrix4().fromArray(p.transform.matrix);
+     const q=new THREE.Quaternion().setFromRotationMatrix(matrix);
+     const up=new THREE.Vector3(0,1,0).applyQuaternion(q);
+     if(up.y>.6&&!flat)flat={matrix,q,hit};
+     if(Math.abs(up.y)<.5&&!vertical)vertical={matrix,q,hit};
+   }
+   if(mapping){
+     const selected=mapKind==='wall'?vertical:flat;
+     if(selected){
+       mapPoint=new THREE.Vector3().setFromMatrixPosition(selected.matrix);
+       reticle.position.copy(mapPoint);reticle.quaternion.copy(selected.q);reticle.visible=true;
+     }else if(mapKind==='wall'&&mapDepth){
+       const c=getCam(),origin=new THREE.Vector3(),forward=new THREE.Vector3();
+       c.getWorldPosition(origin);c.getWorldDirection(forward);
+       mapPoint=origin.addScaledVector(forward,mapDepth);
+       reticle.position.copy(mapPoint);reticle.quaternion.identity();reticle.visible=true;
+     }
+     mapControls();
+   }else{
+     if(flat){pose=flat.matrix;hitResult=flat.hit;reticle.position.setFromMatrixPosition(pose);reticle.quaternion.copy(flat.q);reticle.visible=true}
+     $('place').disabled=!pose||nests.length>=7;
+     $('surface').textContent=pose?'SUPERFICIE DETECTADA':'BUSCANDO SUPERFICIE';
+     $('sight').classList.toggle('found',!!pose);
+     $('sightText').textContent=pose?'SUPERFICIE ESTABLE':'RASTREANDO SUPERFICIE';
+   }
+ }
+ for(const n of nests)if(n.anchor){const p=frame.getPose(n.anchor.anchorSpace,local);if(p){n.root.position.set(p.transform.position.x,p.transform.position.y,p.transform.position.z);n.root.quaternion.set(p.transform.orientation.x,p.transform.orientation.y,p.transform.orientation.z,p.transform.orientation.w)}}
+ if(depthInfo&&view&&mapDepthSource==='cpu'&&!mapping){
+   const c=getCam(),eye=new THREE.Vector3();c.getWorldPosition(eye);
+   for(const e of enemies)if(e.alive){
+     const center=new THREE.Vector3();e.hit.getWorldPosition(center);
+     const p=center.clone().project(c);
+     if(p.z<0||p.z>1||Math.abs(p.x)>.92||Math.abs(p.y)>.92){e.root.visible=true;continue}
+     try{const d=depthInfo.getDepthInMeters((p.x+1)/2,(1-p.y)/2);e.root.visible=!(Number.isFinite(d)&&d>.25&&d<eye.distanceTo(center)-.36)}catch(_){e.root.visible=true}
+   }
+ }else for(const e of enemies)if(e.alive)e.root.visible=true;
+}
 function updateDemo(){if(mapping){ray.setFromCamera({x:0,y:0},camera);const pick=ray.intersectObjects(occluders,false)[0];mapPoint=pick?.point?.clone()||null;mapControls();return}if(!placing)return;ray.setFromCamera({x:0,y:0},camera);const hit=ray.intersectObjects(surfaces,false)[0];reticle.visible=!!hit;if(hit)reticle.position.copy(hit.point);$('place').disabled=!hit||nests.length>=7;$('sight').classList.toggle('found',!!hit);$('surface').textContent=hit?(hit.point.y>.75?'MESA DETECTADA':hit.point.y>.35?'SILLÓN DETECTADO':'PISO DETECTADO'):'BUSCANDO SUPERFICIE';$('sightText').textContent=hit?'SUPERFICIE ESTABLE':'RASTREANDO SUPERFICIE'}
 function updateBattle(dt,t){
  if(!active||ended)return;
@@ -295,7 +343,10 @@ window.addEventListener('keydown',e=>{if(['KeyW','ArrowUp'].includes(e.code))mov
 window.addEventListener('keyup',e=>{if(['KeyW','ArrowUp'].includes(e.code))movementKeys.forward=false;if(['KeyS','ArrowDown'].includes(e.code))movementKeys.back=false;if(['KeyA','ArrowLeft'].includes(e.code))movementKeys.left=false;if(['KeyD','ArrowRight'].includes(e.code))movementKeys.right=false});
 mission=createMission({scene:world,getCam,toast,event,active:()=>active,firstNest:()=>nests[0],spawn:(n,boss)=>wave(n,boss),animateEnemy,projectiles:()=>orbs,enemies:()=>enemies,enemyShot:pos=>combatFX.shot(pos,true,'rifle'),buildEnemy:(variant,boss)=>{const e=creature(variant);e.boss=boss;if(boss){e.root.scale.setScalar(1.85);e.hp=22;e.size*=1.85}attachHuman(e,variant%2?'raiderA':'raiderB');return e},damageEnemy,damage,heal,remoteStart,clock:()=>seconds,wave:()=>round,setGuestStats:(clock,wave)=>{seconds=clock;round=wave},victory:finish});
 
-async function startAR(){if(!navigator.xr){toast('Este navegador no admite WebXR');return}$('startAR').disabled=true;try{ar=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['anchors','dom-overlay'],domOverlay:{root:$('ui')}});ar.addEventListener('end',()=>{ar=null;mode='idle';$('intro').classList.remove('hidden');$('hud').classList.add('hidden');$('outro').classList.add('hidden');world.background=null;cleanup();$('startAR').disabled=false});ar.addEventListener('select',()=>{const t=performance.now();if(t-lastTouch<310)return;lastTouch=t;if(placing)place();else fire()});await renderer.xr.setSession(ar);local=renderer.xr.getReferenceSpace();const viewer=await ar.requestReferenceSpace('viewer');source=await ar.requestHitTestSource({space:viewer});mode='ar';$('mode').textContent='OPERACIÓN SOMBRA / CÁMARA AR';$('intro').classList.add('hidden');$('hud').classList.remove('hidden');reset()}catch(e){$('startAR').disabled=false;$('compat').textContent='AR no disponible: '+(e.message||'sin permiso')+'. Usá Chrome en Android compatible con ARCore.'}}
+async function startAR(){if(!navigator.xr){toast('Este navegador no admite WebXR');return}$('startAR').disabled=true;try{ar=await navigator.xr.requestSession('immersive-ar',{
+ requiredFeatures:['hit-test'],optionalFeatures:['anchors','dom-overlay','depth-sensing'],domOverlay:{root:$('ui')},
+ depthSensing:{usagePreference:['cpu-optimized'],dataFormatPreference:['luminance-alpha','float32']}
+}).catch(()=>navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['anchors','dom-overlay'],domOverlay:{root:$('ui')}}));ar.addEventListener('end',()=>{ar=null;mode='idle';$('intro').classList.remove('hidden');$('hud').classList.add('hidden');$('outro').classList.add('hidden');world.background=null;cleanup();$('startAR').disabled=false});ar.addEventListener('select',()=>{const t=performance.now();if(t-lastTouch<310)return;lastTouch=t;if(mapping)markMapPoint();else if(placing)place();else fire()});await renderer.xr.setSession(ar);local=renderer.xr.getReferenceSpace();const viewer=await ar.requestReferenceSpace('viewer');source=await ar.requestHitTestSource({space:viewer});mode='ar';$('mode').textContent='OPERACIÓN SOMBRA / CÁMARA AR';$('intro').classList.add('hidden');$('hud').classList.remove('hidden');reset()}catch(e){$('startAR').disabled=false;$('compat').textContent='AR no disponible: '+(e.message||'sin permiso')+'. Usá Chrome en Android compatible con ARCore.'}}
 function demo(){mode='demo';occluders=[];$('demoMovement').classList.remove('hidden');world.background=new THREE.Color(0x17191f);world.fog=new THREE.Fog(0x17191f,5,14);camera.position.set(0,1.55,3.45);camera.rotation.order='YXZ';const floor=new THREE.Mesh(new THREE.PlaneGeometry(12,12),new THREE.MeshStandardMaterial({color:0x333138,roughness:.98}));floor.rotation.x=-Math.PI/2;world.add(floor);const wall=new THREE.Mesh(new THREE.BoxGeometry(9,4,.16),new THREE.MeshStandardMaterial({color:0x29292b,roughness:1}));wall.position.set(0,1.8,-3);world.add(wall);
 const box=(w,h,d,x,y,z,c)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:c,roughness:.92}));o.position.set(x,y,z);world.add(o);occluders.push(o)};
 box(1.7,.13,.85,-1,.83,-1,0x523c34);for(const x of [-1.71,-.29])for(const z of [-1.35,-.65])box(.07,.81,.07,x,.41,z,0x33211f);
