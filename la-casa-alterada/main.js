@@ -821,7 +821,15 @@ function updateBattle(dt,t){
  }
  const c=getCam();c.getWorldPosition(vec);c.getWorldQuaternion(quat);
  ray.set(vec,new THREE.Vector3(0,0,-1).applyQuaternion(quat));ray.far=12;
- $('sight').classList.toggle('hit',!placing&&ray.intersectObjects(enemies.filter(e=>e.alive).flatMap(e=>e.headHit?[e.hit,e.headHit]:[e.hit]),false).length>0);
+ // A red crosshair must mean a REAL line of fire, not an enemy
+  // occluded by a marked wall or a rendered training obstacle.
+  const sightHits=ray.intersectObjects(
+    enemies.filter(e=>e.alive).flatMap(e=>e.headHit?[e.hit,e.headHit]:[e.hit]),false);
+  const sightCover=mode==='demo'?ray.intersectObjects(occluders,false)[0]:null;
+  const clearSight=!placing&&sightHits.some(hit=>
+    (!sightCover||hit.distance+.025<sightCover.distance)&&
+    !spatialMap.lineBlocked(vec,hit.point,.025));
+  $('sight').classList.toggle('hit',clearSight);
  hud();
 }
 function effects(dt,t){for(let i=trails.length-1;i>=0;i--){const a=trails[i];if(t>a.until){world.remove(a.mesh);a.mesh.material.dispose();trails.splice(i,1)}else a.mesh.material.opacity=Math.max(0,(a.until-t)/130)}for(let i=splinters.length-1;i>=0;i--){const s=splinters[i];s.mesh.position.addScaledVector(s.velocity,dt);s.velocity.y-=dt*3;s.mesh.material.opacity=Math.max(0,(s.until-t)/400);if(t>s.until){world.remove(s.mesh);s.mesh.material.dispose();s.mesh.geometry.dispose();splinters.splice(i,1)}}if(toastExpiry&&t>toastExpiry){$('toast').classList.remove('show');toastExpiry=0}if(eventExpiry&&t>eventExpiry){$('event').classList.add('hidden');eventExpiry=0}}
