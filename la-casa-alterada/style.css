@@ -495,3 +495,19 @@
 #hud .pvpVitals:has(+ .ctfScoreboard.hidden){display:none!important}
 @media(max-height:740px){#hud .pvpVitals{top:calc(88px + env(safe-area-inset-top));font-size:9px}}
 @media(orientation:landscape){#hud .pvpVitals{top:calc(78px + env(safe-area-inset-top));font-size:9px}}
+
+/* V34: live status visible while loading, joining and playing in XR */
+.netStatus{margin:8px auto 3px;padding:9px 11px;border:1px solid #5fa7b5a8;
+ background:#0d2930e8;color:#a9f2e2;border-radius:6px;
+ text-align:center;letter-spacing:.06em;font-size:10px;font-weight:800;line-height:1.5}
+.netHelp{color:#b3c5c9;font-size:10px;line-height:1.45;margin:7px 0}
+.retryRoom{padding:8px 12px!important;min-height:34px!important;font-size:10px!important;
+ border-color:#74bfc5!important;background:#143643dd!important;margin-top:6px}
+#netStatusHud{position:absolute;top:calc(278px + env(safe-area-inset-top));left:50%;
+ transform:translateX(-50%);z-index:7;max-width:min(91vw,395px);
+ padding:6px 10px;color:#aceedc;background:#0b2434e8;
+ border:1px solid #5a929bb8;border-radius:7px;text-align:center;
+ font:700 10px/1.35 Arial,sans-serif;letter-spacing:.03em;pointer-events:none;
+ text-shadow:0 1px 3px #000}
+@media(max-height:750px){#netStatusHud{top:calc(202px + env(safe-area-inset-top));font-size:9px}}
+@media(orientation:landscape){#netStatusHud{top:calc(118px + env(safe-area-inset-top));font-size:9px}}
