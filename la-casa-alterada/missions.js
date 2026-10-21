@@ -5,6 +5,7 @@ import {createCaptureFlag} from './capture-flag.js';
 import {attachHuman,animateHuman,playHuman,disposeHuman} from './animated-humans.js';
 import {makeHostageFallback,animateHostageFallback} from './hostage-fallback.js';
 import {beginEscort,updateEscort} from './escort-rules.js';
+import {escortMotion} from './escort-motion.js';
 const $=id=>document.getElementById(id),clamp=(a,b,v)=>Math.max(a,Math.min(b,v));
 const PHASES=[
 {title:'01 / DESACTIVAR TRES CARGAS',detail:'Encontrá los dispositivos y desactivalos de cerca. Repartan las tareas.',target:3},
@@ -735,23 +736,10 @@ if(Array.isArray(msg.environment)){
       const player=localPositionOf(o.escortPlayer)||position();
       if(player){
         const current=o.hostageActor.root.position;
-        current.y=0; // Follow floor plane instead of furniture hit-test height.
-        const delta=player.clone().sub(current);delta.y=0;
-        const dist=delta.length(),entryDist=Math.hypot(current.x,current.z);
-        const maxGap=1.02;
-        const operatorExitDistance=Math.hypot(player.x,player.z);
-        let desired=null,speed=0;
-        if(entryDist>1.01&&dist<2.35&&operatorExitDistance<=entryDist+.45){
-          // Progress toward entry alongside the operator, even if they are
-          // standing nearby. Do not zig-zag backward toward a lagging player.
-          desired=new THREE.Vector3(0,0,0);
-          speed=.72;
-        }else if(dist>maxGap){
-          // Follow the real player's path if separated.
-          const direction=delta.normalize();
-          desired=current.clone().addScaledVector(direction,Math.max(0,dist-.70));
-          desired.y=0;speed=dist>2.2?1.55:1.20;
-        }
+        current.y=0;
+        const plan=escortMotion(current,player);
+        const desired=plan.target?new THREE.Vector3(plan.target.x,0,plan.target.z):null;
+        const speed=plan.speed;
         if(desired){
           let goal=desired;
           if(api.environmentNextPoint&&o.origin){
