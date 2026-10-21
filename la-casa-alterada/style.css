@@ -168,3 +168,7 @@
 .ctfScoreboard #ctfFlagStatus{font-size:9px;line-height:1.3;letter-spacing:.025em;color:#e2eaf0;text-align:center}
 #ctfScoreboard.hidden,#ctfSettings.hidden,#ctfTeamChoice.hidden{display:none!important}
 @media(max-height:760px){.ctfSettings{padding:7px;gap:4px}.ctfConfigLine select{min-height:32px}.ctfSettings .ctfHelp{font-size:9px}}
+
+/* V16 lobby must scroll on compact phones when flag settings are expanded */
+#intro{overflow-y:auto;overscroll-behavior:contain;padding-top:calc(18px + env(safe-area-inset-top));padding-bottom:calc(18px + env(safe-area-inset-bottom));justify-content:flex-start}
+#intro .gameModes{flex-shrink:0}
