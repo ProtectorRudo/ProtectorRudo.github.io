@@ -754,18 +754,9 @@ function updateXR(frame){
    lastReferenceUpdate=performance.now();
    mission?.updateTrackedFrame?.(nests[0].root,referenceMarker.position);
  }
- if(false&&depthInfo&&view&&mapDepthSource==='cpu'&&!mapping){
-  // Disabled in V23: raw phone depth can incorrectly hide tactical actors.
-  // Never make an attacker invisible but still dangerous. Revisit only with
-  // proven per-object occlusion and physical-device validation.
-   const c=getCam(),eye=new THREE.Vector3();c.getWorldPosition(eye);
-   for(const e of enemies)if(e.alive){
-     const center=new THREE.Vector3();e.hit.getWorldPosition(center);
-     const p=center.clone().project(c);
-     if(p.z<0||p.z>1||Math.abs(p.x)>.92||Math.abs(p.y)>.92){e.root.visible=true;continue}
-     try{const d=depthInfo.getDepthInMeters((p.x+1)/2,(1-p.y)/2);e.root.visible=!(Number.isFinite(d)&&d>.25&&d<eye.distanceTo(center)-.36)}catch(_){e.root.visible=true}
-   }
- }else for(const e of enemies)if(e.alive)e.root.visible=true;
+ // Real AR camera depth is not sufficiently reliable for gameplay actors
+ // until verified on physical devices; never hide a hostile that can shoot.
+ for(const e of enemies)if(e.alive)e.root.visible=true;
 }
 function updateDemo(){if(mapping){
  ray.setFromCamera({x:0,y:0},camera);
