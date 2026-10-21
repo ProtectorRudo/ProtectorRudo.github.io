@@ -363,6 +363,7 @@ function spawnCTFBot(team,index,id,localPos){
  const e=createTacticalActor(THREE,index%4,team==='blue'?'operator':'raider');
  e.id=id;e.ctfBot=true;e.ctfIndex=index;e.team=team;e.floor=true;e.alive=true;e.hp=3;e.size=.94;
  e.ctfProtectedUntil=performance.now()+1000;
+ e.ctfShotAt=e.ctfProtectedUntil+60;
  e.home=mission.originToWorld(localPos.clone());e.root.position.copy(e.home);e.groundY=e.root.position.y;
  e.root.scale.setScalar(.92);e.start.copy(e.root.position);e.next=0;e.nextTarget=0;
  e.hit.userData.enemy=e;if(e.headHit)e.headHit.userData.enemy=e;
