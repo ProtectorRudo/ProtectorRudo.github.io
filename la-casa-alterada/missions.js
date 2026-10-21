@@ -119,7 +119,7 @@ export function createMission(api){
     if(o.role==='guest'){
       // Blue squad for co-op; on versus default to red until the user selects.
       o.myTeam=ctf.config.versus?(o.teams.get(o.myId)||$('ctfMyTeam').value||'red'):'blue';
-      if(o.conn?.open)send(o.conn,{t:'teamPick',team:o.myTeam});
+      if(o.conn?.open&&o.teams.get(o.myId)!==o.myTeam)send(o.conn,{t:'teamPick',team:o.myTeam});
     }
     updateModeVisual();ui();
   }
