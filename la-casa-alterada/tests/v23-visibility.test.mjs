@@ -45,7 +45,7 @@ test('Rescue starts with a grace period and a delayed, smaller wave',()=>{
  assert.match(main,/wave\(5,false\)/);
  assert.doesNotMatch(main,/wave\(8,false\)/);
  assert.match(main,/nextSpawnTime=Math\.max\(nextSpawnTime,performance\.now\(\)\+RESCUE_FIRST_SPAWN_MS\)/);
- assert.match(main,/function damage\(value\)\{if\(!mission\?\.isCapture\?\.\(\)&&rescueProtectionLeft\(\)>0\)return/);
+ assert.ok(main.includes('function damage(value){if(!mission?.isCapture?.()&&(!rescueCombatArmed||rescueProtectionLeft()>0))return;'));
  assert.match(mission,/api\.rescueProtected\?\.\(\)/);
 });
 
@@ -53,7 +53,7 @@ test('No enemies hidden by unverified AR depth while still attacking',()=>{
  assert.doesNotMatch(main,/depthInfo\.getDepthInMeters\(\(p\.x/);
  assert.match(main,/for\(const e of enemies\)if\(e\.alive\)e\.root\.visible=true/);
  assert.match(main,/const onScreen=targetVisibility\(/);
- assert.match(main,/if\(exposed&&onScreen&&e\.root\.visible&&rescueProtectionLeft\(t\)===0/);
+ assert.match(main,/if\(rescueCombatArmed&&exposed&&onScreen&&e\.root\.visible&&rescueProtectionLeft\(t\)===0/);
 });
 
 test('Hostage marker remains visible even if assets cannot load',()=>{

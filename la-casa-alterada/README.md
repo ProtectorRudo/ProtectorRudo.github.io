@@ -1,10 +1,21 @@
-# BLACKZONE — Tactical AR (V24)
+# BLACKZONE — Tactical AR (V25)
 
 **Nombre actual del juego: BLACKZONE.** Anteriormente denominado *La Casa Alterada*, conservado en la ruta heredada del repositorio y en el enlace Vercel existente para evitar romper enlaces de versiones anteriores.
 
 Shooter táctico web de realidad aumentada con dos modos: **Rescate de Rehenes (cooperativo)** y **Captura la Bandera (cooperativo o versus con bots configurables)**.
 
 El historial técnico anterior se conserva debajo, con descripciones correspondientes a cada etapa del desarrollo.
+
+## V25 — AR visible y combate con confirmación
+
+**Problema reportado:** las capturas reales de Android mostraban cámara y rifle, mientras el HUD informaba un rehén a 1,8–2,2 metros y 2 bots dentro del cono de mirada, sin que ninguna figura 3D apareciera.
+
+- **Nuevo compositor WebGL transparente dentro del DOM overlay de WebXR**, separado del framebuffer AR nativo. Copia la posición, matriz de cámara y proyección del ojo XR para dibujar los modelos reales anclados al espacio, no sprites fijos.
+- El renderer nativo AR sigue activo para la pose y hit-test, pero dibuja una escena vacía. La capa DOM dibuja el mundo 3D y elimina el riesgo de mostrar dos veces la escena.
+- Conserva el renderer de arma independiente. Se remueve depth-sensing optativo (no se usa para oclusión hasta validarlo).
+- **Combate seguro por defecto en Rescate AR**: bots y rehén no reciben disparos dañinos mientras el jugador no confirme visualmente que los enemigos se ven; los segundos de misión no se descuentan antes de confirmar. El botón de confirmación solo aparece después de haber creado al menos un enemigo. Al activarlo hay 4 segundos adicionales de protección.
+- HUD de AR reducido para dejar visible el centro de la cámara, y diagnóstico explícito de la capa 3D.
+- Pruebas automatizadas del compositor con un renderer/cámara simulados. **Todavía requiere prueba física en Chrome Android**, porque CI no puede validar la composición ARCore.
 
 ## V24 — Emergencia: personajes AR visibles y diagnóstico verificable
 
