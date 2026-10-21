@@ -1,10 +1,20 @@
-# BLACKZONE — Tactical AR (V26)
+# BLACKZONE — Tactical AR (V27)
 
 **Nombre actual del juego: BLACKZONE.** Anteriormente denominado *La Casa Alterada*, conservado en la ruta heredada del repositorio y en el enlace Vercel existente para evitar romper enlaces de versiones anteriores.
 
 Shooter táctico web de realidad aumentada con dos modos: **Rescate de Rehenes (cooperativo)** y **Captura la Bandera (cooperativo o versus con bots configurables)**.
 
 El historial técnico anterior se conserva debajo, con descripciones correspondientes a cada etapa del desarrollo.
+
+## V27 — Bandera, IA y coberturas tácticas
+
+- **Captura de bandera funcional:** los jugadores pueden recoger la bandera rival a 1,55 m, automáticamente o usando el botón ROBAR BANDERA. Radio de retorno a base ampliado a 1,38 m; transferencia de portadores bots aliados. El anfitrión valida las solicitudes de invitados y sincroniza la partida.
+- **Bots no idénticos:** seis roles (centinela, corredor, flanqueador, apoyo, explorador, asalto), velocidades por dificultad, puntos de entrada distribuidos, separación entre compañeros y flanqueo con destino lateral persistente.
+- **Colocar obstáculos durante la partida:** cajón, barricada y hormigón. Estos objetos se mantienen visibles en 3D, bloquean proyectiles y movimiento, y pueden usarse para buscar protección y agacharse. Se sincronizan con el equipo. Límite de 10 coberturas virtuales y protección frente a solapamientos.
+- **Posturas:** los enemigos se agachan detrás de las coberturas, se incorporan para disparar y usan animación de carrera al avanzar, con estado visible en los clientes cooperativos.
+- **Personajes detallados:** segunda variante de operador GLB con equipamiento táctico.
+- Los obstáculos son virtuales y colocados por el usuario. No detectan automáticamente muebles físicos ni habilitan a desplazarse sin mirar el entorno real.
+- Sigue pendiente una validación física en Android ARCore y con varios celulares.
 
 ## V26 — Modelos de personaje detallados y rescate sin mantener presionado
 
