@@ -122,3 +122,11 @@ NOTA: el cañón es un modelo de vista en primera persona superpuesto (no está 
 - La interfaz del escaneo se actualiza a una frecuencia limitada y el panel de misión no reescribe todo el DOM en cada fotograma.
 - Balance de rescate: no más de dos intrusos eligen a la rehén como objetivo simultáneamente; menor daño recibido por disparo y protección inicial de unos 2,4 segundos, sin eliminar el riesgo de fallo.
 - Estas son mejoras comprobadas a nivel de código. Animaciones, sincronización de varios celulares y AR de profundidad requieren pruebas físicas antes de considerar el juego comercialmente finalizado.
+
+
+## V10 — Rescate táctico único y compartido (prototipo multijugador)
+- Todas las personas son miembros del mismo equipo antiterrorista: una sola misión, objetivos, enemigos y rehenes compartidos.
+- El anfitrión gestiona salud enemiga, estado del rehén, disparos hostiles y fases; los invitados reciben snapshots numerados, descartando actualizaciones antiguas.
+- Los jugadores que se conectan o calibran tarde solicitan de inmediato una copia del estado al anfitrión, incluso antes de que comience la partida, para ver rehenes colocados y obstáculos.
+- Cada disparo de un miembro del equipo produce una estela visual en los demás teléfonos. El anfitrión reenvía esos eventos, mientras sigue siendo autoridad en el cálculo de daño; no se duplica daño por mostrar un disparo.
+- Requiere que cada teléfono calibre el mismo punto del piso y mire hacia la misma pared; PeerJS/P2P puede tener latencia o desajustes de anclas. No equivale aún a posicionamiento compartido a precisión centimétrica ni a un backend de servidor dedicado.
