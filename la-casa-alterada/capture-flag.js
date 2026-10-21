@@ -1,3 +1,4 @@
+import { tacticalDestination } from './tactical-behavior.js';
 /**
  * Capture the Flag V16 — shared, host-authoritative game rules.
  * Uses the A/B calibrated world; positions stored relative to the shared anchor.
@@ -170,9 +171,15 @@ export function createCaptureFlag(THREE,api){
      else targetLocal=flagLocation(other(e.team));
      if(!targetLocal)continue;
      const at=e.root.position,to=origin().localToWorld(targetLocal.clone());
-     const dist=gap(at,to);
+     const self=botPosition(e);
+     const rival=roster().filter(p=>p.team!==e.team&&gap(p.pos,self)<5)
+       .sort((a,b)=>gap(a.pos,self)-gap(b.pos,self))[0];
+     const threat=rival?origin().localToWorld(rival.pos.clone()):null;
+     const tacticalTo=tacticalDestination(e,time,to,threat,api.findCover,
+       !!rival&&(defender||e.hp<=1)&&!carrying);
+     const dist=gap(at,tacticalTo),beforeMove=at.clone();
      if(dist>(guarding?.45:.35)){
-       const waypoint=api.nextPoint?.(at,to)||to;
+       const waypoint=api.nextPoint?.(at,tacticalTo)||tacticalTo;
        const delta=waypoint.clone().sub(at);delta.y=0;
        if(delta.lengthSq()>.001){
          delta.normalize();
@@ -186,11 +193,8 @@ export function createCaptureFlag(THREE,api){
          e.root.rotation.y=Math.atan2(delta.x,delta.z);
        }
      }
-     api.animate?.(e,dt,dist>.4?specs[0]:0);
+     api.animate?.(e,dt,gap(at,beforeMove)/Math.max(.001,dt));
      if(time<(e.ctfShotAt||0))continue;
-     const self=botPosition(e);
-     const rival=roster().filter(p=>p.team!==e.team&&gap(p.pos,self)<5)
-       .sort((a,b)=>gap(a.pos,self)-gap(b.pos,self))[0];
      e.ctfShotAt=time+specs[1]+Math.random()*420;
      if(!rival)continue;
      const from=at.clone().add(new THREE.Vector3(0,1.1,0));
