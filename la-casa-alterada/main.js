@@ -110,14 +110,19 @@ function mapControls(force=false){
  }
  mapPreview();
  const time=performance.now();if(!force&&time-lastMapUI<135)return;lastMapUI=time;
- $('mapMethod').textContent=mapPointQuality==='plane'?'✓ SUPERFICIE DETECTADA POR AR':mapPointQuality==='depth'?'✓ PROFUNDIDAD MEDIDA':'≈ POSICIÓN ESTIMADA: AJUSTÁ LA DISTANCIA SI HACE FALTA';
+ $('mapMethod').textContent=mapPointQuality==='plane'?'✓ PISO O SUPERFICIE DETECTADA':
+  mapKind==='area'?'≈ PISO ESTIMADO · COMPROBÁ LOS BORDES VISUALMENTE':
+  mapPointQuality==='depth'?'✓ PROFUNDIDAD MEDIDA':
+  '≈ POSICIÓN ESTIMADA: AJUSTÁ LA DISTANCIA SI HACE FALTA';
  $('mapPanel').classList.toggle('hidden',!mapping);
  $('mapWall').classList.toggle('active',mapKind==='wall');
  $('mapFurniture').classList.toggle('active',mapKind==='box');
  $('mapArea').classList.toggle('active',mapKind==='area');
  $('mapSize').classList.toggle('hidden',mapKind==='area');
+ $('mapDistance').classList.toggle('hidden',mapKind==='area');
  $('mapPrecision').classList.toggle('hidden',mapKind==='area');
  document.querySelector('label[for="mapSize"]')?.classList.toggle('hidden',mapKind==='area');
+ document.querySelector('label[for="mapDistance"]')?.classList.toggle('hidden',mapKind==='area');
  $('mapMark').disabled=!mapping;
  $('mapMark').textContent=mapKind==='area'?
   (mapFirst?'◎ MARCAR ESQUINA 2 · CERRAR ZONA':'◎ MARCAR ESQUINA 1'):
