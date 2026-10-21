@@ -90,3 +90,33 @@
 
 /* V9.2 firearm impact confirmation */
 #hitConfirm{position:absolute;top:calc(50% + 37px);left:50%;transform:translate(-50%,-5px);z-index:6;color:#e2f7ee;text-shadow:0 1px 8px #0219;font:900 11px/1.4 system-ui,sans-serif;letter-spacing:.1em;opacity:0;pointer-events:none;white-space:nowrap;transition:opacity .1s,transform .13s}#hitConfirm.visible{opacity:1;transform:translate(-50%,0)}#hitConfirm.critical{color:#f6b477;font-size:13px}
+
+/* V11 — one-thumb guided room setup, optional one-tap obstruction mapping */
+#setup.setupWizard{max-width:490px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
+#setup .wizardTop{display:flex;flex-direction:column;gap:4px;text-align:center}
+#setupStep{font-size:10px;letter-spacing:.18em;color:#9bdad1;font-weight:900}
+#setupGuide{font-size:15px;line-height:1.3;color:#f4f4ea}
+#setup .config{justify-content:center;gap:14px;margin:3px 0 2px;font-size:9px}
+#setup #nestCount{color:#e5d8bd}
+#setup #surface{color:#97e5cc}
+#setup .smartPlace{width:100%;height:59px;border-radius:10px;font-size:15px;letter-spacing:.055em;box-shadow:0 6px 20px #0005}
+#setup .missionLaunch{margin-top:0;border-radius:10px;font-size:15px;min-height:59px}
+#setup .mapLaunch{margin:2px 0 0;border-radius:8px;min-height:42px;font-size:11px!important;line-height:1.3}
+#setup p#setupDetail{color:#c7d4d6;text-align:center;line-height:1.5;margin:0;font-size:11px}
+#setup .smartPlace:disabled{opacity:.7}
+.mapPanel{max-width:440px;left:50%;right:auto;transform:translateX(-50%);width:calc(100% - 20px);top:calc(126px + env(safe-area-inset-top));padding:12px 13px;border-radius:12px;max-height:calc(100dvh - 235px - env(safe-area-inset-top));overflow-y:auto}
+.mapHeader{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.mapHeader strong{font-size:12px;letter-spacing:.09em;color:#c2f3e4}
+.mapHeader span{font-size:10px;color:#d5bd81;font-weight:800}
+.mapPanel p#mapInstruction{font-size:12px;color:#d9ece7;line-height:1.42;margin:8px 0}
+.mapPanel .mapChoices button{font-size:11px;min-height:45px;border-radius:8px}
+.mapPanel #mapWall.active,.mapPanel #mapFurniture.active{background:#376455;border:2px solid #acf0db}
+#mapSize,#mapDistance{touch-action:pan-x;pointer-events:auto}
+.mapPanel .mapDepthLabel{margin-top:8px}
+.mapPanel .mapCapture{display:block;width:100%;min-height:59px;border-radius:10px;margin:8px 0;font-size:15px;letter-spacing:.04em}
+.mapPanel .mapPrecision{display:block;width:100%;min-height:38px;padding:8px;border-radius:7px;font-size:10px;color:#b6d8cf}
+.mapPanel #mapMethod{color:#94d5ca!important;font-size:10px!important;line-height:1.45}
+#sight{top:50%}
+#setup button,#mapPanel button{touch-action:manipulation}
+@media(max-height:680px){.mapPanel{top:calc(76px + env(safe-area-inset-top));max-height:calc(100dvh - 170px)}#setup.setupWizard{gap:5px}#setup .wizardTop strong{font-size:13px}#setup .smartPlace,#setup .missionLaunch{height:46px;min-height:46px}#setup p#setupDetail{font-size:9px}}
+@media(orientation:landscape){.mapPanel{right:8px;left:auto;transform:none;width:min(48vw,440px);max-height:calc(100dvh - 70px);top:calc(45px + env(safe-area-inset-top))}#setup{max-width:600px!important}#setup .wizardTop{flex-direction:row;align-items:center;justify-content:center}}
