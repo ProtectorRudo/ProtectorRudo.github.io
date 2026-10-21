@@ -297,7 +297,7 @@ function cleanup(){
  killFeedUntil=0;$('killFeed').classList.add('hidden');
  if(referenceAnchor){try{referenceAnchor.delete()}catch(_){}}referenceAnchor=null;
  if(referenceMarker){referenceMarker.parent?.remove(referenceMarker);referenceMarker.traverse(x=>{x.geometry?.dispose?.();if(x.material&&!Array.isArray(x.material))x.material.dispose?.()});referenceMarker=null}
- ctfTaggedUntil=0;rescueProtectedUntil=0;rescueCombatArmed=mode!=='ar';
+ ctfTaggedUntil=0;rescueProtectedUntil=0;rescueCombatArmed=true;
  spawnQueue.length=0;nextSpawnTime=0;
  if(testMarker){testMarker.parent?.remove(testMarker);testMarker=null}
  $('activateCombat').classList.add('hidden');$('hud').classList.remove('arActive');
@@ -457,8 +457,7 @@ function updateRenderStatus(t){
  if(t-lastRenderStatus<450)return;lastRenderStatus=t;
  const status=$('renderStatus'),test=$('test3D'),show=mode!=='idle'&&(active||mission?.hasHostage?.());
  $('hud').classList.toggle('arActive',mode==='ar'&&active);
- const confirm=mode==='ar'&&active&&!ended&&!mission?.isCapture?.()&&
-   !rescueCombatArmed&&enemies.some(e=>e.alive&&e.root.parent);
+ const confirm=false; // The old manual confirmation froze all enemy gunfire.
  $('activateCombat').classList.toggle('hidden',!confirm);
  status.classList.toggle('hidden',!show);test.classList.toggle('hidden',!show);
  if(!show)return;
@@ -568,7 +567,7 @@ function begin(){
  if(!gunReady)buildGun();combatFX.unlock();
  if(!active){
   active=true;round=0;
-  rescueCombatArmed=mode!=='ar'||mission?.isCapture?.();
+  rescueCombatArmed=true; // Automatic armed state; opening shield controls danger.
   if(!mission?.isCapture?.()){
    rescueProtectedUntil=performance.now()+RESCUE_OPENING_MS;
    if(!mission?.isGuest())wave(5,false);
@@ -576,8 +575,8 @@ function begin(){
  }
  placing=false;ui();mission?.ui();
  if(!mission?.isCapture?.()){
-   event('COMBATE PAUSADO · PRIMERO COMPROBÁ QUE VES LOS BOTS');
-   toast('SEGURO: EL COMBATE NO COMIENZA HASTA QUE LO CONFIRMES');
+   event('OPERACIÓN INICIADA · TENÉS 12 SEGUNDOS PARA PREPARARTE');
+   toast('PREPARATE · LOS HOSTILES ABRIRÁN FUEGO AL TERMINAR LA PROTECCIÓN');
  }
 }
 function more(){placing=true;ui();toast('Localizá otra superficie; la amenaza sigue activa.')}
@@ -897,7 +896,7 @@ function updateBattle(dt,t){
  if(!active||ended)return;
  if(mission?.isCapture?.()){hud();return}
  if(mission?.isGuest()){hud();return}
- if(rescueCombatArmed)seconds=Math.max(0,seconds-dt);
+ if(rescueCombatArmed&&rescueProtectionLeft(t)===0)seconds=Math.max(0,seconds-dt);
  if(!seconds){finish(false);return}
  const eye=new THREE.Vector3();getCam().getWorldPosition(eye);
  let near=false,shooting=0;
@@ -980,10 +979,10 @@ function updateBattle(dt,t){
    combatFX.shot(from,true,'rifle');
   }
  }
- const countdown=rescueProtectionLeft(t),waitingConfirm=mode==='ar'&&!rescueCombatArmed;
+ const countdown=rescueProtectionLeft(t),waitingConfirm=false;
  $('alert').classList.toggle('hidden',!near&&!countdown&&!waitingConfirm);
- $('alert').textContent=waitingConfirm?'COMBATE PAUSADO · CONFIRMÁ QUE VES LOS ENEMIGOS':
- countdown?'PROTECCIÓN INICIAL · '+countdown+' S':'⚠ MOVIMIENTO HOSTIL';
+ $('alert').textContent=countdown?'ZONA SEGURA · '+countdown+' S PARA PREPARARTE':
+   '⚠ MOVIMIENTO HOSTIL';
  for(let i=orbs.length-1;i>=0;i--){
   const shot=orbs[i];
   const before=shot.mesh.position.clone();
