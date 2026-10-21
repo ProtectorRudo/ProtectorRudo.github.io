@@ -1,10 +1,20 @@
-# BLACKZONE — Tactical AR (V32)
+# BLACKZONE — Tactical AR (V33)
 
 **Nombre actual del juego: BLACKZONE.** Anteriormente denominado *La Casa Alterada*, conservado en la ruta heredada del repositorio y en el enlace Vercel existente para evitar romper enlaces de versiones anteriores.
 
 Shooter táctico web de realidad aumentada con dos modos: **Rescate de Rehenes (cooperativo)** y **Captura la Bandera (cooperativo o versus con bots configurables)**.
 
 El historial técnico anterior se conserva debajo, con descripciones correspondientes a cada etapa del desarrollo.
+
+## V33 — PvP REAL: jugadores contra jugadores
+
+- **Modo:** `Captura la Bandera → VERSUS · AZULES VS ROJOS`. Cada teléfono entra a la misma sala PeerJS, marca los mismos dos puntos y selecciona su equipo. Se necesitan dos celulares con calibración AR física para verificar la sesión real.
+- **Cada humano tiene 100 HP**, gestionados por el anfitrión. Bala al torso: **25 HP**; cabeza: **45 HP**. Disparos se validan contra volúmenes de cabeza/torso en la pose compartida del celular, rango máximo de 12 m, obstáculos 3D y aliados. El cliente nunca puede decidir la identidad del jugador impactado ni descontar vida por su cuenta.
+- **Eliminación:** a 0 HP, suelta la bandera y no puede disparar ni recogerla. Reaparece **4,2 s** después en su propia posición AR actual, con **1,55 s** de invulnerabilidad. No se teletransporta al usuario por motivos de seguridad física.
+- **Bots contra humanos:** en Versus quitan vida real; en cooperativo se conserva la conducta anterior. La confirmación del anfitrión actualiza inmediatamente al jugador herido y cada captura periódica incluye el estado del equipo.
+- **Sin daño aliado** en el PvP. Los botiquines restauran hasta 22 HP de verdad y el blindaje protege frente a impactos PvP. No hay inventos de daños en la sesión de los invitados.
+- **HUD:** vida actual, bajas, muertes y segundos hasta reaparición. El sistema se restablece al comenzar una ronda y elimina jugadores desconectados.
+- **Limitaciones:** esta es una versión PvP host-authoritative por PeerJS, no un servidor dedicado anti-trampas. La comprobación de orientación y oclusión depende de la calibración espacial compartida y requiere prueba de dos teléfonos reales. Mantener el espacio libre y no correr.
 
 ## V32 — Soldados tácticos, combate automático y escolta en movimiento
 
