@@ -175,13 +175,16 @@ export function createMission(api){
     const out=[];
     const local=position();
     if(local)out.push({id:o.myId,team:o.myTeam,world:originToWorld(local)});
-    for(const [id,p] of o.localPositions)if(p)out.push({id,team:o.teams.get(id)||'blue',world:originToWorld(p)});
+    for(const [id,p] of o.localPositions){
+      if(!p||performance.now()-(o.lastMoveAt.get(id)||0)>2600)continue;
+      out.push({id,team:o.teams.get(id)||'blue',world:originToWorld(p)});
+    }
     return out;
   }
   function tagEnemyPlayer(id,attacker){
     if(!isCapture()||!o.running||!isHost()||!id||teamOf(id)===teamOf(attacker))return false;
     const victim=localPositionOf(id);
-    if(!victim)return false;
+    if(!victim||id!==o.myId&&performance.now()-(o.lastMoveAt.get(id)||0)>2600)return false;
     if(!ctf.tagPlayer(id,victim,performance.now()))return false;
     if(id===o.myId)api.ctfTag?.(1);else send(o.connections.get(id),{t:'ctfTag',power:1});
     return true;
