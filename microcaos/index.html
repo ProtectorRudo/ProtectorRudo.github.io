@@ -433,7 +433,7 @@ function shuffleModes(items){
 }
 function choosePlaylist(){
  // One guaranteed weight-tag round, two unique surprises; shuffled again so tag can start anywhere.
- return [shuffleModes(["tag","gems","survival","race"])[0],"ballistix",shuffleModes(["tag","gems","survival","race"])[0]];
+ const order=shuffleModes(["tag","gems","survival","race"]);return [order[0],"ballistix",order[1]];
 }
 
 // BALLISTIX - four player air-hockey survival semifinal.
