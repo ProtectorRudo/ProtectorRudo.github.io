@@ -306,6 +306,18 @@ html.xr-active #ui .ar-tools[style*="display:none"]{display:none}
 html.xr-active .modalshade:not(.hidden),html.xr-active .mp-lobby:not([hidden]){background:#06132de8}
 @media(max-width:650px){.ar-tools{top:max(86px,calc(env(safe-area-inset-top) + 77px));right:7px;padding:4px;gap:3px}
 .ar-tools button{width:30px;height:30px;font-size:18px}.ar-tools span{font-size:9px;min-width:33px}}
+
+/* Broadcast UI designed to keep the arena readable, never hide the game behind glass cards. */
+:root{--arena-accent:#55ffe6}
+body:not(.colorcrash-mode) .stagebanner{border-color:var(--arena-accent)!important;box-shadow:0 2px 17px #01091b69,0 0 14px color-mix(in srgb,var(--arena-accent) 27%,transparent)}
+body .rankLabel,body .scorelabel{letter-spacing:.09em}
+body:not(.colorcrash-mode) #miniObjective.on{border-left:3px solid var(--arena-accent)!important}
+#scene:after{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
+ background:radial-gradient(ellipse 73% 65% at 50% 50%,transparent 55%,#020b2380 100%);
+ opacity:.65}
+html.xr-active #scene:after{display:none!important}
+@media(max-width:600px){#scene:after{opacity:.38}}
+
 </style>
 </head>
 <body>
@@ -436,13 +448,13 @@ const clock=new THREE.Clock(),scene=new THREE.Scene();scene.fog=new THREE.FogExp
 scene.background=new THREE.Color(0x172b4a);
 const camera=new THREE.PerspectiveCamera(innerWidth/innerHeight<.68?58:42,innerWidth/innerHeight,.01,250);camera.position.set(14,17,26);camera.lookAt(0,0,0);
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:"high-performance"});
-renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.45));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.04;renderer.xr.enabled=true;
+renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.45));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.07;renderer.xr.enabled=true;
 try{const pmrem=new THREE.PMREMGenerator(renderer);const env=new RoomEnvironment();scene.environment=pmrem.fromScene(env,.04).texture;pmrem.dispose();if(env.dispose)env.dispose()}catch(e){console.warn("Studio light fallback",e)}
 $("scene").appendChild(renderer.domElement);
-const hemi=new THREE.HemisphereLight(0xdeffff,0x344574,1.8);scene.add(hemi);
-const key=new THREE.DirectionalLight(0xffffff,2.9);key.position.set(-9,19,12);key.castShadow=true;key.shadow.mapSize.set(innerWidth<700?1024:2048,innerWidth<700?1024:2048);key.shadow.camera.left=-24;key.shadow.camera.right=24;key.shadow.camera.top=24;key.shadow.camera.bottom=-24;key.shadow.camera.near=1;key.shadow.camera.far=70;key.shadow.bias=-.00025;scene.add(key);
-const rim=new THREE.DirectionalLight(0x6dc9ff,3);rim.position.set(12,6,-17);scene.add(rim);
-const fill=new THREE.PointLight(0xffab71,70,55);fill.position.set(-9,7,4);scene.add(fill);
+const hemi=new THREE.HemisphereLight(0xdeffff,0x344574,1.26);scene.add(hemi);
+const key=new THREE.DirectionalLight(0xffffff,2.45);key.position.set(-9,19,12);key.castShadow=true;key.shadow.mapSize.set(innerWidth<700?1024:2048,innerWidth<700?1024:2048);key.shadow.camera.left=-24;key.shadow.camera.right=24;key.shadow.camera.top=24;key.shadow.camera.bottom=-24;key.shadow.camera.near=1;key.shadow.camera.far=70;key.shadow.bias=-.00025;scene.add(key);
+const rim=new THREE.DirectionalLight(0x6dc9ff,1.50);rim.position.set(12,6,-17);scene.add(rim);
+const fill=new THREE.PointLight(0xffab71,37,47);fill.position.set(-9,7,4);scene.add(fill);
 const world=new THREE.Group();scene.add(world);const stage=new THREE.Group();world.add(stage);const atmosphere=new THREE.Group();stage.add(atmosphere);
 const mat=(hex,metal=0,rough=.42,extra={})=>new THREE.MeshPhysicalMaterial({color:hex,metalness:metal,roughness:rough,clearcoat:.38,clearcoatRoughness:.19,...extra});
 const navy=mat(0x132a62,.12,.37),ivory=mat(0xdbeeff,.03,.43),teal=mat(0x25f5e5,.05,.29,{emissive:0x07786d,emissiveIntensity:.22}),gold=mat(0xffd436,.20,.30,{emissive:0xa66e05,emissiveIntensity:.10}),rubber=mat(0x143e78,.08,.50),pink=mat(0xff3d9c,.07,.31),white=mat(0xffffff,.02,.33),glass=mat(0x111c42,.11,.25,{clearcoat:1}),chrome=mat(0x72a9d2,.25,.37,{clearcoat:.7}),carbon=mat(0x09152f,.13,.59),candy=mat(0xffcf35,.25,.28,{emissive:0x864809,emissiveIntensity:.18});
@@ -2208,6 +2220,132 @@ function ballTick(dt){
  }
  ballUIUpdate();
 }
+
+// MICROCAOS VISUAL SYSTEM V3.3 — Stadium design shared by all seven games.
+// Visual-only: adds no colliders and never changes network/AR game coordinates.
+const V33_PRESETS={
+ race:{color:0x55ffe6,x:5.8,z:16.30,tag:"CARRERA LOCA"},
+ tag:{color:0xff438d,x:5.92,z:8.43,tag:"LA MANCHA"},
+ gems:{color:0xffd543,x:5.92,z:8.43,tag:"FIEBRE DE GEMAS"},
+ survival:{color:0xac7dff,x:5.92,z:8.43,tag:"EL PISO SE HUNDE"},
+ territory:{color:0x2af5dc,x:TERRITORY_HALF_X+1.24,z:TERRITORY_HALF_Z+1.36,tag:"TERRITORIOS"},
+ colorcrash:{color:0xff68b7,x:CC_HALF_X+.86,z:CC_HALF_Z+.91,tag:"COLOR CRASH"},
+ ballistix:{color:0x33d9ff,x:7.12,z:7.12,tag:"BALLISTIX"}
+};
+const visual33={kits:{},frameCount:0,quality:"auto",bursts:0,debug:{}};
+const v33Metal=new THREE.MeshStandardMaterial({color:0x0a1838,metalness:.45,roughness:.30});
+const v33Ink=new THREE.MeshStandardMaterial({color:0x111f42,metalness:.21,roughness:.37});
+const v33Chrome=new THREE.MeshStandardMaterial({color:0x87a6c8,metalness:.67,roughness:.24});
+const v33RingGeo=new THREE.TorusGeometry(.23,.037,7,24);
+const v33PostGeo=new THREE.CylinderGeometry(.14,.17,.66,12);
+const v33OrbGeo=new THREE.IcosahedronGeometry(.14,1);
+const v33PlateGeo=new RoundedBoxGeometry(2.2,.13,.49,2,.09);
+function v33Mat(color){return new THREE.MeshBasicMaterial({color,toneMapped:false})}
+for(const [name,meta] of Object.entries(V33_PRESETS)){
+ const base=name==="race"?stage:name==="ballistix"?ballArena:miniStages[name];
+ if(!base)continue;
+ const parent=new THREE.Group();parent.name="ART DIRECTION · "+meta.tag;base.add(parent);
+ if(name==="race")raceDecor.push(parent);
+ visual33.kits[name]=parent;
+ const luminous=v33Mat(meta.color);
+ const sideA=v33Mat(0xffffff);
+ const accentLine=new THREE.MeshBasicMaterial({color:meta.color,transparent:true,opacity:.82,depthWrite:false,toneMapped:false});
+ // Edge inlays follow each arena, placed OUTSIDE the occupied playing surface.
+ const x=meta.x,z=meta.z;
+ for(const sx of [-1,1]){
+  const line=box(accentLine,parent,[sx*x,-.01,0],[.065,.048,z*1.87]);line.castShadow=false;
+ }
+ for(const sz of [-1,1]){
+  const line=box(accentLine,parent,[0,-.01,sz*z],[x*1.87,.048,.065]);line.castShadow=false;
+ }
+ // Four corner miniature floodlights with metallic feet and faceted lenses.
+ const holder=new THREE.InstancedMesh(v33PostGeo,v33Metal,4);
+ holder.castShadow=false;holder.receiveShadow=false;parent.add(holder);
+ const discs=new THREE.InstancedMesh(v33OrbGeo,luminous,4);
+ discs.castShadow=false;discs.receiveShadow=false;parent.add(discs);
+ const mat4=new THREE.Matrix4();
+ let ii=0;
+ for(const sx of [-1,1])for(const sz of [-1,1]){
+  mat4.makeTranslation(sx*x,.16,sz*z);holder.setMatrixAt(ii,mat4);
+  mat4.makeTranslation(sx*x,.59,sz*z);discs.setMatrixAt(ii,mat4);ii++;
+ }
+ holder.instanceMatrix.needsUpdate=true;discs.instanceMatrix.needsUpdate=true;
+ const accentPylons=new THREE.Group();parent.add(accentPylons);
+ for(const sx of [-1,1]){
+  const t=new THREE.Mesh(v33PlateGeo,v33Ink);t.position.set(sx*(x+.30),.02,0);t.rotation.y=Math.PI/2;
+  t.castShadow=false;accentPylons.add(t);
+ }
+ // Vinyl sports-event decals use one 2D canvas shared as a texture, no file downloads.
+ const cv=document.createElement("canvas");cv.width=512;cv.height=128;
+ const ctx=cv.getContext("2d");
+ ctx.clearRect(0,0,512,128);ctx.fillStyle="#071426";ctx.fillRect(0,0,512,128);
+ ctx.strokeStyle="#"+meta.color.toString(16).padStart(6,"0");
+ ctx.lineWidth=6;ctx.strokeRect(6,6,500,116);
+ ctx.fillStyle="#ffffff";ctx.font="900 48px Outfit,Arial";
+ ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(meta.tag,256,64,482);
+ const tex=new THREE.CanvasTexture(cv);tex.colorSpace=THREE.SRGBColorSpace;
+ const label=new THREE.Mesh(new THREE.PlaneGeometry(2.9,.72),new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}));
+ label.rotation.x=-Math.PI/2;label.position.set(0,.073,z+.48);parent.add(label);
+ // Three contrasting architectural bands, rather than procedural noise everywhere.
+ for(const sx of [-1,1])for(const sz of [-1,1]){
+  const cap=new THREE.Mesh(new THREE.CylinderGeometry(.24,.30,.08,16),v33Chrome);
+  cap.position.set(sx*x,.40,sz*z);cap.castShadow=false;parent.add(cap);
+ }
+}
+const v33BurstGeo=new THREE.PlaneGeometry(.18,.11);
+const v33BurstMat=new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide,transparent:true,depthWrite:false,toneMapped:false});
+const v33BurstMesh=new THREE.InstancedMesh(v33BurstGeo,v33BurstMat,92);
+v33BurstMesh.name="Reused arcade confetti · 1 draw call";
+v33BurstMesh.frustumCulled=false;v33BurstMesh.castShadow=false;
+v33BurstMesh.count=0;stage.add(v33BurstMesh);
+const v33ParticlePool=Array.from({length:92},()=>({life:0,max:1,x:0,y:0,z:0,vx:0,vy:0,vz:0,rot:0,spin:0,scale:1}));
+const v33ParticleTransform=new THREE.Object3D();let v33ParticleCursor=0;
+const v33Colors=[0x5cffe4,0xffd45d,0xff538f,0x7c78ff,0xfff9e8,0x34b6ff];
+function v33Burst(x,z,intensity=18,mainColor=0x55ffe6){
+ if(gameSettings.quality==="low")intensity=Math.min(10,intensity);
+ visual33.bursts++;
+ const count=Math.max(3,Math.min(60,intensity));
+ for(let j=0;j<count;j++){
+  const k=v33ParticleCursor++%v33ParticlePool.length,p=v33ParticlePool[k];
+  const a=Math.random()*Math.PI*2,velocity=.9+Math.random()*3.5;
+  p.life=p.max=.48+Math.random()*.6;p.x=x;p.z=z;p.y=.28+Math.random()*.3;
+  p.vx=Math.cos(a)*velocity;p.vy=2+Math.random()*4;p.vz=Math.sin(a)*velocity;
+  p.rot=Math.random()*Math.PI*2;p.spin=(Math.random()-.5)*12;p.scale=.6+Math.random()*1.2;
+  v33BurstMesh.setColorAt(k,new THREE.Color(j%4===0?mainColor:v33Colors[(j+k)%v33Colors.length]));
+ }
+ if(v33BurstMesh.instanceColor)v33BurstMesh.instanceColor.needsUpdate=true;
+}
+function v33UpdateFX(dt){
+ let visible=0;
+ for(const p of v33ParticlePool){
+  if(p.life<=0)continue;
+  p.life-=dt;if(p.life<=0)continue;
+  p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;p.vy-=11*dt;
+  p.rot+=p.spin*dt;
+  v33ParticleTransform.position.set(p.x,p.y,p.z);
+  v33ParticleTransform.rotation.set(p.rot*.5,p.rot*.35,p.rot);
+  v33ParticleTransform.scale.setScalar(Math.max(.01,p.scale*Math.min(1,p.life*5)));
+  v33ParticleTransform.updateMatrix();
+  v33BurstMesh.setMatrixAt(visible,v33ParticleTransform.matrix);
+  // Color follows particle identity and is stored in the fixed pool.
+  v33BurstMesh.setColorAt(visible,new THREE.Color(v33Colors[(visible+Math.floor(p.scale*10))%v33Colors.length]));
+  visible++;
+ }
+ v33BurstMesh.count=visible;
+ if(visible){v33BurstMesh.instanceMatrix.needsUpdate=true;if(v33BurstMesh.instanceColor)v33BurstMesh.instanceColor.needsUpdate=true}
+}
+function v33ModeArt(){
+ for(const [name,kit]of Object.entries(visual33.kits))kit.visible=gameSettings.quality!=="low";
+ const tint=V33_PRESETS[currentMode]?.color||0x55ffe6;
+ document.documentElement.style.setProperty("--arena-accent","#"+tint.toString(16).padStart(6,"0"));
+}
+window.__microcaosVisualQA=()=>{
+ const report={version:"3.3",mode:currentMode,renderer:renderer.info.render,activeFX:v33BurstMesh.count,
+  customArenas:Object.keys(visual33.kits),quality:gameSettings.quality,pixelRatio:renderer.getPixelRatio(),
+  xr:renderer.xr.isPresenting};
+ return report;
+};
+
 function renderModeLabel(){
  const tag=MINI_MODES[currentMode];
  $("stagebanner").textContent=(gameType==="individual"?"PARTIDA INDIVIDUAL":"RONDA "+(roundIndex+1)+"/3")+" · "+tag.emoji+" · "+(gameType==="individual"?"1º GANA":"PASAN "+ROUND_RULES[roundIndex].qualify);
@@ -2227,6 +2365,7 @@ function renderModeLabel(){
  $("gemLeaderboard").classList.toggle("on",currentMode==="gems");
  $("territoryLeaderboard").classList.toggle("on",currentMode==="territory");
  renderer.shadowMap.enabled=currentMode!=="ballistix";
+ v33ModeArt();
  applyGraphicsQuality();
  if(mode==="ar"&&placed)arUpdateScale();
  if(mode==="preview"){
@@ -2315,6 +2454,7 @@ function liveRacers(){return activeRacers().filter(r=>!r.finished)}
 function knockoutRunner(r,message){
  if(r.finished)return;
  r.finished=true;r.eliminatedAt=miniChallengeElapsed;
+ v33Burst(r.x,r.z,18,runnerColor(r.index));
  r.root.scale.y=.19;
  puff(r.x,r.z,0xff8eb0,16);
  if(r.index===0){tactile(100);skillMessage("¡ELIMINADO!",1100)}
@@ -2643,6 +2783,7 @@ function showRoundTheme(){moodLights.forEach(m=>m.material=moodMat[roundIndex]);
 function resetRound(){
  currentMode=modePlaylist[roundIndex]||"race";
  raceEndAfterPlayer=0;
+ v33BurstMesh.count=0;for(const p of v33ParticlePool)p.life=0;
  $("pauseOverlay").classList.remove("on");
  phase="countdown";elapsed=0;countdown=2.75;checkpoint=-1;
  physicsAccumulator=0;physicsTime=0;dragSteeringActive=false;dragPointerId=null;steer=0;steerZ=0;
@@ -2680,6 +2821,7 @@ function concludeRound(){
  $("ballScoreboard").classList.remove("on");
  showFinalGemLeaderboard();showFinalTerritoryLeaderboard();
  const ordered=currentMode==="race"?scoreOrder():miniOrder();
+ if(ordered.length){v33Burst(ordered[0].x,ordered[0].z,50,V33_PRESETS[currentMode]?.color||0x55ffe6)}
  const quota=roundRule().qualify,final=gameType==="tournament"&&roundIndex===2;
  // A timed-out race must rank all participants by progress, not discard runners
  // who haven't crossed the line yet (which formerly left Ballistix short-handed).
@@ -2987,7 +3129,7 @@ function physicsTick(frameDt){
   for(let n=0;n<count;n++){physicsTime+=FIXED_DT;move(FIXED_DT,physicsTime);physicsAccumulator-=FIXED_DT}
   if(count===6&&physicsAccumulator>FIXED_DT)physicsAccumulator=0;
 }
-function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;const sec=t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);animateFallingWeights(dt);animateTerritoryFX(dt);ccAnimate(dt);try{physicsTick(dt)}catch(error){
+function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;const sec=t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);v33UpdateFX(dt);animateFallingWeights(dt);animateTerritoryFX(dt);ccAnimate(dt);try{physicsTick(dt)}catch(error){
  console.error("MICROCAOS physics error",error);
  phase="paused";physicsAccumulator=0;window.__microcaosError=error?.message||String(error);
  $("notice").textContent="Error al simular la partida. Tocá REINICIAR para volver a jugar. "+window.__microcaosError;
