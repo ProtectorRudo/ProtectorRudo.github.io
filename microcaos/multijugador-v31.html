@@ -3661,7 +3661,7 @@ function arCameraSteer(x,z){
  return {dx:movement.x/mag,dz:-movement.z/mag};
 }
 function arAllModesAudit(){
- const checks=Object.keys(MINI_MODES).map(k=>({mode:k,hasScene:k==="race"?!!raceDecor:!!miniStages[k],
+ const checks=Object.keys(MINI_MODES).map(k=>({mode:k,hasScene:k==="race"?!!raceDecor:k==="ballistix"?!!ballArena:!!miniStages[k],
   scaledMeters:+(arScaleFor(k)*Math.max(...AR_SPANS[k])).toFixed(3),
   positive:Number.isFinite(arScaleFor(k))&&arScaleFor(k)>.003&&arScaleFor(k)<.2}));
  const result={supported:!!navigator.xr,renderXR:renderer.xr.enabled,overlay:!!$("ui"),
