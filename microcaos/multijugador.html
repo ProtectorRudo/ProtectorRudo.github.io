@@ -562,7 +562,8 @@ const sphereG=new THREE.SphereGeometry(1,32,24),cylinderG=new THREE.CylinderGeom
 const mesh=(g,m,parent,pos=[0,0,0],scale=[1,1,1],shadow=true)=>{let o=new THREE.Mesh(g,m);o.position.set(...pos);o.scale.set(...scale);o.castShadow=shadow;o.receiveShadow=true;parent.add(o);return o};
 const ball=(m,p,pos,s)=>mesh(sphereG,m,p,pos,s),box=(m,p,pos,s)=>mesh(boxG,m,p,pos,s),soft=(m,p,pos,s)=>mesh(softG,m,p,pos,s),cyl=(m,p,pos,top,bottom,height)=>{let o=mesh(new THREE.CylinderGeometry(top,bottom,height,24),m,p,pos);return o};
 function textSprite(txt,size=80,col="#ffffff"){const c=document.createElement("canvas");c.width=512;c.height=128;const x=c.getContext("2d");x.clearRect(0,0,512,128);x.font="900 "+size+"px Outfit, Arial";x.textAlign="center";x.textBaseline="middle";x.fillStyle=col;x.shadowColor="rgba(10,18,40,.55)";x.shadowBlur=12;x.fillText(txt,256,64);let t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;let o=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthWrite:false}));o.scale.set(3.5,.875,1);return o}
-function roundBase(){const foundation=box(navy,stage,[0,-.52,0],[11.4,.95,32]);foundation.receiveShadow=true;box(teal,stage,[0,-.055,0],[9.7,.08,30.3]);box(rubber,stage,[0,-.008,0],[8.35,.07,28.6]);for(let i=-12;i<=12;i+=2){const shade=(i%4===0)?mat(0x1d3653,.08,.76):mat(0x203f59,.08,.72);box(shade,stage,[0,.035,i],[7.92,.013,1.98],false)}for(let x of [-4.24,4.24]){box(gold,stage,[x,.15,0],[.19,.19,30]);for(let z=-14;z<=14;z+=1.7){ball(teal,stage,[x,.24,z],[.12,.075,.13])}}for(let x of [-2,0,2]){for(let z=-13;z<=12;z+=2.5)box(mat(0x79e8d9,.02,.65),stage,[x,.067,z],[.045,.009,.88],false)}for(let z of [12.65,-12.65]){for(let x=-3.8;x<4;x+=.8){box((Math.floor((x+4)/.8)%2)?white:rubber,stage,[x,.068,z],[.81,.025,.7],false)}}for(let z=-12;z<=12;z+=4){for(let x of [-5.2,5.2]){cyl(navy,stage,[x,.12,z],.16,.2,.35);const stud=ball(gold,stage,[x,.35,z],[.12,.12,.12]);stud.material=gold}}for(let z of [-13.5,13.5]){for(let x of [-5.1,5.1]){let pole=cyl(teal,stage,[x,.72,z],.13,.15,1.4);ball(gold,stage,[x,1.48,z],[.24,.24,.24]);}}const banner=textSprite("PARTY RUSH",58,"#baffef");banner.position.set(0,2.15,-13.9);stage.add(banner);for(let zz of [-14.8,14.8]){for(let x=-5.2;x<=5.2;x+=.8){box(navy,stage,[x,-.03,zz],[.71,.12,.2])}}}roundBase();
+const raceFloor=new THREE.Group();raceFloor.name="RACE FLOOR ONLY";stage.add(raceFloor);
+function roundBase(){const foundation=box(navy,raceFloor,[0,-.52,0],[11.4,.95,32]);foundation.receiveShadow=true;box(teal,raceFloor,[0,-.055,0],[9.7,.08,30.3]);box(rubber,raceFloor,[0,-.008,0],[8.35,.07,28.6]);for(let i=-12;i<=12;i+=2){const shade=(i%4===0)?mat(0x1d3653,.08,.76):mat(0x203f59,.08,.72);box(shade,raceFloor,[0,.035,i],[7.92,.013,1.98],false)}for(let x of [-4.24,4.24]){box(gold,raceFloor,[x,.15,0],[.19,.19,30]);for(let z=-14;z<=14;z+=1.7){ball(teal,raceFloor,[x,.24,z],[.12,.075,.13])}}for(let x of [-2,0,2]){for(let z=-13;z<=12;z+=2.5)box(mat(0x79e8d9,.02,.65),raceFloor,[x,.067,z],[.045,.009,.88],false)}for(let z of [12.65,-12.65]){for(let x=-3.8;x<4;x+=.8){box((Math.floor((x+4)/.8)%2)?white:rubber,raceFloor,[x,.068,z],[.81,.025,.7],false)}}for(let z=-12;z<=12;z+=4){for(let x of [-5.2,5.2]){cyl(navy,raceFloor,[x,.12,z],.16,.2,.35);const stud=ball(gold,raceFloor,[x,.35,z],[.12,.12,.12]);stud.material=gold}}for(let z of [-13.5,13.5]){for(let x of [-5.1,5.1]){let pole=cyl(teal,raceFloor,[x,.72,z],.13,.15,1.4);ball(gold,raceFloor,[x,1.48,z],[.24,.24,.24]);}}const banner=textSprite("PARTY RUSH",58,"#baffef");banner.position.set(0,2.15,-13.9);raceFloor.add(banner);for(let zz of [-14.8,14.8]){for(let x=-5.2;x<=5.2;x+=.8){box(navy,raceFloor,[x,-.03,zz],[.71,.12,.2])}}}roundBase();
 
 function makePreviewTable(){
   const canvas=document.createElement("canvas");canvas.width=512;canvas.height=512;const ctx=canvas.getContext("2d");
@@ -3272,7 +3273,7 @@ function v35ApplyArt(){
  for(const [name,kit]of Object.entries(v35.kits))kit.visible=name==="race"?currentMode==="race":true;
  v35.mode=currentMode;
 }
-window.__microcaosDirectorQA=()=>({version:"3.6",venues:Object.keys(v36Venues),sevenScenes:Object.keys(v36Venues).length===7,mode:currentMode,webxr:renderer.xr.isPresenting,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,unchangedARScale:true});
+window.__microcaosDirectorQA=()=>({raceFloorIsolated:currentMode==="race"||!raceFloor.visible,version:"3.6",venues:Object.keys(v36Venues),sevenScenes:Object.keys(v36Venues).length===7,mode:currentMode,webxr:renderer.xr.isPresenting,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,unchangedARScale:true});
 window.__microcaosCinematicQA=()=>({
  version:"3.6",mode:currentMode,studio:!!v35Backdrop.visible,
  arenas:Object.keys(v35.kits),onScreenArenaZoom:v35.zoom,
@@ -3290,7 +3291,8 @@ function renderModeLabel(){
  $("miniObjective").classList.toggle("on",currentMode!=="race");
  $("miniObjective").classList.remove("danger");
  $("modebar").textContent="MICROCAOS · "+tag.title+" · "+contestants.length+" JUGADORES";
- raceDecor.forEach(obj=>obj.visible=currentMode==="race");
+ raceFloor.visible=currentMode==="race";
+  raceDecor.forEach(obj=>obj.visible=currentMode==="race");
  moodLights.forEach(obj=>obj.visible=currentMode==="race");
  for(const k of Object.keys(miniStages))miniStages[k].visible=k===currentMode;
  document.body.classList.toggle("ballistix-mode",currentMode==="ballistix");
