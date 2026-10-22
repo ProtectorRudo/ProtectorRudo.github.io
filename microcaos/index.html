@@ -1031,14 +1031,8 @@ function territoryBreak(victim,attacker){
  victim.vx=0;victim.vz=0;
  victim.root.position.set(victim.x,0,victim.z);
  victim.territoryAiPlan=null;
- // Lose a fraction of claimed tiles, but keep your base for a fair comeback.
- let kept=0;
- for(let i=0;i<TERRITORY_SIZE;i++){
-  if(territoryOwners[i]!==victim.index)continue;
-  const pos=territoryPos(i);
-  if(Math.hypot(pos.x-victim.territoryHomeX,pos.z-victim.territoryHomeZ)<.85)continue;
-  if((i+Math.round(miniChallengeElapsed*10))%7===0){territorySetCell(i,-1);kept++}
- }
+ // Cutting an exposed trail cancels the current expansion, but keeps
+ // previously secured land. This prevents a comeback from becoming impossible.
  if(victim.index===0){tactile(70);cue(235,.24);skillMessage("💥 ¡TE CORTARON EL RASTRO!",1100)}
  else if(attacker?.index===0){tactile(24);cue(950,.14);skillMessage("✂️ ¡CORTASTE A "+profiles[victim.index].name+"!",950)}
  territoryUpdateBoard(true);
