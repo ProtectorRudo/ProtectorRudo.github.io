@@ -1052,6 +1052,42 @@ function mpTell(event,payload){
  if(!mp.active||!mp.connected||!mp.channel)return;
  mp.channel.send({type:"broadcast",event,payload}).catch(e=>console.warn("broadcast",e));
 }
+function mpBackToWaiting(message){
+ if(!mp.active)return;
+ mp.started=false;mp.resultShown=false;mp.lastResult=null;mp.currentRound="";
+ phase="intro";
+ $("intro").classList.add("hidden");$("finish").classList.remove("show");
+ $("pauseOverlay").classList.remove("on");$("mpLobby").hidden=false;
+ $("mpLive").classList.remove("on");
+ $("mpLaunch").disabled=true;
+ if(message)mpError(message);
+ mpLobbyDraw();
+}
+function mpDisconnect(reason){
+ mpForget();mp.active=false;mp.connected=false;
+ if(mp.poller)clearInterval(mp.poller);
+ if(mp.channel&&mp.client)mp.client.removeChannel(mp.channel);
+ mp.started=false;phase="intro";
+ $("mpLive").classList.remove("on");
+ $("mpSetup").hidden=false;$("mpWaiting").hidden=true;
+ $("mpLeave").style.display="none";$("mpLobby").hidden=false;
+ mpError(reason||"La sala terminó. Podés crear otra o unirte a una nueva.");
+}
+async function mpRestore(){
+ let saved=null;
+ try{saved=JSON.parse(sessionStorage.getItem(MP_SESSION_KEY)||"null")}catch(e){}
+ if(!saved||!saved.code||!saved.token||Date.now()-saved.ts>3*3600000){mpForget();return}
+ try{
+  const result=await mpAPI("status",{code:saved.code,token:saved.token});
+  if(result.status==="playing"&&result.slot===0){
+   const reset=await mpAPI("reset",{code:saved.code,token:saved.token});
+   result.status="waiting";result.players=reset.players;
+  }
+  await mpConnectRoom({...result,token:saved.token});
+  if(result.status==="playing")mpError("Te reconectaste. Recuperando la partida…");
+  else mpError("✓ Recuperamos tu sala "+result.code+".");
+ }catch(e){mpForget();mpError("La sala anterior ya no está disponible. Podés crear otra.")}
+}
 function mpLobbyDraw(){
  $("mpRoomCode").textContent=mp.code;
  $("mpRoster").innerHTML=Array.from({length:mp.maxPlayers},(_,i)=>{
@@ -1096,7 +1132,17 @@ async function mpConnectRoom(result){
      if(status==="SUBSCRIBED"){
        mpError("");mpLobbyDraw();
        if(!mp.host)mpTell("sync",{slot:mp.slot});
-     }else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")mpError("Reconectando comunicación en vivo…");
+     }else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"||status==="CLOSED"){
+       mpError("Reconectando comunicación en vivo…");
+       if(!mp.reconnectAt||performance.now()-mp.reconnectAt>8000){
+        mp.reconnectAt=performance.now();
+        setTimeout(()=>{
+         if(mp.active&&!mp.connected&&mp.channel){
+          try{mp.channel.subscribe()}catch(error){console.warn("Reconnection",error)}
+         }
+        },1500);
+       }
+     }
    });
   if(mp.poller)clearInterval(mp.poller);
   mp.poller=setInterval(async()=>{
@@ -1104,7 +1150,8 @@ async function mpConnectRoom(result){
     try{
       const status=await mpAPI("ping",{code:mp.code,token:mp.token});
       mp.players=status.players;mpLobbyDraw();
-      if(status.status==="closed"){mpError("El anfitrión cerró la sala.");mp.connected=false}
+      if(status.status==="closed"){mpDisconnect("El anfitrión cerró la sala.");return}
+      if(status.status==="waiting"&&mp.started)mpBackToWaiting("El anfitrión reinició la sala. ¡Todos pueden volver a jugar!");
       if(status.status==="playing"&&!mp.started&&!mp.host)mpTell("sync",{slot:mp.slot});
     }catch(e){mpError("Problema de conexión. "+e.message)}
   },3200);
@@ -1307,7 +1354,7 @@ function mpAnimateNetwork(time){
 }
 function mpGuestButton(button){
  if(!mp.active||mp.host)return false;
- mpTell("action",{slot:mp.slot,button});return true;
+ if(mp.started&&phase==="race"&&contestants.includes(mp.slot))mpTell("action",{slot:mp.slot,button});return true;
 }
 function mpAutoAR(){
  if(!mp.active)return;
@@ -1349,6 +1396,8 @@ $("mpGameType").onchange=()=>{$("mpMode").disabled=$("mpGameType").value==="tour
 const mpRequestedCode=new URLSearchParams(location.search).get("room");
 if(mpRequestedCode){$("mpJoinCode").value=mpRequestedCode.toUpperCase();mpError("Ingresá tu nombre y tocá UNIRME CON CÓDIGO.");}
 window.addEventListener("pagehide",()=>{if(mp.channel&&mp.client)mp.client.removeChannel(mp.channel)});
+try{const name=localStorage.getItem(MP_NAME_KEY);if(name)$("mpName").value=name}catch(e){}
+mpRestore();
 
 // COLOR CRASH V2.9 — 81 highly saturated, color-accurate panels, responsive larger arena.
 // Tile faces are above the floor, avoiding the V2.7 occlusion bug.
@@ -3485,7 +3534,12 @@ async function setupAR(){
     console.warn("MICROCAOS WebXR failed",e?.name,e?.message);
     if(started)try{await started.end()}catch(endError){}
     resetARView();
-    showARHelp("Esta carrera AR no pudo iniciarse",xrErrorMessage(e)+"\n\nPodés abrir la pista en el visor nativo de Android o jugar una carrera 3D sin cámara.");
+    if(mp.active&&!mp.started){
+      mp.useAR=false;mpSetReady(true);
+      $("arHelp").style.display="none";
+      $("intro").classList.add("hidden");$("mpLobby").hidden=false;
+      mpError("La realidad aumentada no está disponible en este dispositivo. Podés jugar igualmente en 3D.");
+    }else showARHelp("Esta carrera AR no pudo iniciarse",xrErrorMessage(e)+"\n\nPodés abrir la pista en el visor nativo de Android o jugar una carrera 3D sin cámara.");
   }finally{
     arStarting=false;$("ar").disabled=false;$("ar").textContent="PROBAR AR JUGABLE · BETA";
   }
