@@ -299,7 +299,7 @@ body.colorcrash-mode .hud,body.colorcrash-mode .raceprogress,body.colorcrash-mod
 <div id="scene"></div>
 <div id="ui">
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · COLOR CRASH V2.8</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · COLOR CRASH V2.9</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -940,17 +940,17 @@ for(const modeName of ["tag","gems","survival"]){
 }
 
 
-// COLOR CRASH V2.8 — 81 visibly colored panels, responsive larger arena.
+// COLOR CRASH V2.9 — 81 highly saturated, color-accurate panels, responsive larger arena.
 // Tile faces are above the floor, avoiding the V2.7 occlusion bug.
 const CC_COLS=9,CC_ROWS=9,CC_W=1.42,CC_D=1.53,CC_MAX=7;
 const CC_HALF_X=CC_COLS*CC_W/2,CC_HALF_Z=CC_ROWS*CC_D/2;
 const CC_PALETTE=[
- {name:"ROJO",hex:0xff526c,symbol:"◆"},
- {name:"AZUL",hex:0x438fff,symbol:"●"},
- {name:"VERDE",hex:0x65ef89,symbol:"✦"},
- {name:"AMARILLO",hex:0xffd24a,symbol:"★"},
- {name:"VIOLETA",hex:0xb174ff,symbol:"⬟"},
- {name:"CIAN",hex:0x34eadc,symbol:"▲"}
+ {name:"ROJO",hex:0xff3036,symbol:"◆"},
+ {name:"AZUL",hex:0x1262ff,symbol:"●"},
+ {name:"VERDE",hex:0x18cc45,symbol:"✦"},
+ {name:"AMARILLO",hex:0xffdf00,symbol:"★"},
+ {name:"VIOLETA",hex:0xa52cff,symbol:"⬟"},
+ {name:"NARANJA",hex:0xff8200,symbol:"▲"}
 ];
 const ccArena=new THREE.Group();ccArena.visible=false;stage.add(ccArena);miniStages.colorcrash=ccArena;
 const ccFrame=mat(0x121b38,.60,.22,{clearcoat:1});
@@ -971,9 +971,12 @@ for(const x of [-(CC_HALF_X+.50),CC_HALF_X+.50])for(const z of [-(CC_HALF_Z+.50)
  cyl(ccLED,ccArena,[x,1.23,z],.19,.24,.12).castShadow=false;
  ball(ccPink,ccArena,[x,1.38,z],[.23,.23,.23]).castShadow=false;
 }
+// Gameplay color accuracy: intense studio lights and ACES were washing
+// physical tile materials into pastels. Render color-critical faces with
+// exact sRGB pigments; the glossy surrounding stadium remains physically lit.
 const ccMats=CC_PALETTE.map(c=>({
- face:mat(c.hex,.045,.16,{clearcoat:1,clearcoatRoughness:.045,emissive:c.hex,emissiveIntensity:.78}),
- edge:mat(c.hex,.22,.20,{emissive:c.hex,emissiveIntensity:1.15})
+ face:new THREE.MeshBasicMaterial({color:c.hex,toneMapped:false}),
+ edge:new THREE.MeshBasicMaterial({color:c.hex,toneMapped:false})
 }));
 const ccGlyphs=CC_PALETTE.map(c=>{
  const cv=document.createElement("canvas");cv.width=cv.height=256;
@@ -981,7 +984,7 @@ const ccGlyphs=CC_PALETTE.map(c=>{
  ctx.font="bold 152px Arial,sans-serif";ctx.shadowColor="#ffffff";ctx.shadowBlur=15;
  ctx.fillStyle="#ffffff";ctx.fillText(c.symbol,128,128);
  const tx=new THREE.CanvasTexture(cv);tx.colorSpace=THREE.SRGBColorSpace;
- return new THREE.MeshBasicMaterial({map:tx,transparent:true,opacity:.82,depthWrite:false,side:THREE.DoubleSide});
+ return new THREE.MeshBasicMaterial({map:tx,transparent:true,opacity:.28,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});
 });
 const ccGeometry=new RoundedBoxGeometry(CC_W-.055,.24,CC_D-.055,4,.09);
 const ccTiles=[];
