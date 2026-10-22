@@ -1036,6 +1036,7 @@ function territoryBreak(victim,attacker){
  victim.territoryShieldUntil=miniChallengeElapsed+2.2;
  victim.x=victim.territoryHomeX;victim.z=victim.territoryHomeZ;
  victim.territoryLastCell=territoryIdx(victim.x,victim.z);
+ victim.territoryLastX=victim.x;victim.territoryLastZ=victim.z;
  victim.vx=0;victim.vz=0;
  victim.root.position.set(victim.x,0,victim.z);
  victim.territoryAiPlan=null;
@@ -1087,7 +1088,7 @@ function territoryStart(){
  for(let idx=0;idx<TERRITORY_SIZE;idx++)territoryTiles.setColorAt(idx,territoryDark);
  territoryTiles.instanceColor.needsUpdate=true;territoryChanged=false;
  for(const r of activeRacers()){
-  r.territoryTrail=[];r.territoryAiPlan=null;r.territoryAiStep=0;
+  r.territoryTrail=[];r.territoryAiPlan=null;r.territoryAiStep=0;r.territoryHuntAt=0;
   r.territoryShieldCd=0;r.territoryShieldUntil=miniChallengeElapsed+1.25;r.territoryStunnedUntil=0;
   r.territoryHomeX=r.x;r.territoryHomeZ=r.z;
   r.territoryLastX=r.x;r.territoryLastZ=r.z;
@@ -2133,6 +2134,9 @@ function moveMiniGame(dt,t){
  if(currentMode==="ballistix"){ballTick(dt);return}
  for(const r of activeRacers()){
   if(r.finished)continue;
+  if(currentMode==="territory"&&miniChallengeElapsed<r.territoryStunnedUntil){
+   r.vx=0;r.vz=0;continue;
+  }
   r.stun=Math.max(0,(r.stun||0)-dt);r.dashCd=Math.max(0,(r.dashCd||0)-dt);
   r.dash=Math.max(0,(r.dash||0)-dt);
   if(currentMode==="territory")r.territoryShieldCd=Math.max(0,(r.territoryShieldCd||0)-dt);
