@@ -45,8 +45,8 @@ html.xr-active,html.xr-active body,html.xr-active #scene{background:transparent!
 <div class="eyebrow"><i></i> UN MUNDO CHIQUITO · UN CAOS GIGANTE</div>
 <h1 class="hero">Tres pruebas.<br><strong>Máximo caos.</strong></h1>
 <p class="sub">Cada torneo es distinto: mancha con la pesa, cacería de gemas, supervivencia o carrera. ¡Nunca sabés qué toca primero!</p>
-<a id="nativeAR" class="primary mainprimary ar-native" href="ar.html">◈ VER ARENA EN MI MESA (AR) <span>↗</span></a>
-<div class="more"><button id="play" class="secondary">JUGAR EN 3D SIN CÁMARA</button><button id="ar" class="secondary">PROBAR AR JUGABLE · BETA</button><button id="cam" class="secondary" style="display:none" aria-hidden="true">◎ DEMO DE CÁMARA</button></div>
+<button id="play" class="primary mainprimary">🎲 JUGAR TORNEO SORPRESA <span>↗</span></button>
+<div class="more"><a id="nativeAR" class="secondary" href="ar.html">◈ VER ESTADIO AR</a><button id="ar" class="secondary">PROBAR AR JUGABLE · BETA</button><button id="cam" class="secondary" style="display:none" aria-hidden="true">◎ DEMO DE CÁMARA</button></div>
 <div id="arDevice" class="ar-device">Comprobando compatibilidad AR...</div>
 <div class="hint" id="gamehint">PRUEBAS SORPRESA · LA MANCHA · GEMAS · SUPERVIVENCIA · CARRERAS</div>
 </div></div>
@@ -526,7 +526,7 @@ function miniTag(dt){
  if(weightHolder>=0){
   const h=racers[weightHolder];
   tagWeight.visible=true;
-  tagWeight.position.set(h.x,h.y+2.22,h.z);
+  tagWeight.position.set(h.x,h.y+2.22+Math.sin(miniChallengeElapsed*7)*.12,h.z);
   tagWeight.rotation.y+=dt*1.4;
   if(miniChallengeElapsed-miniLastTouch>.85){
    for(const other of living){
@@ -632,7 +632,7 @@ function moveMiniGame(dt,t){
    dx=clamp((dragTargetX-r.x)*1.45,-1,1);dz=clamp((dragTargetZ-r.z)*1.28,-1,1);
   }else{dx=steer;dz=steerZ}
   const norm=Math.max(1,Math.hypot(dx,dz));dx/=norm;dz/=norm;
-  const sprint=r.dash>0?1.7:1,rate= r.index===0?20:12,vel=(r.index===0?5.7:4.65)*sprint;
+  const sprint=(r.dash>0?1.7:1)*(currentMode==="tag"&&r.index===weightHolder&&r.index!==0?1.26:1),rate=r.index===0?20:12,vel=(r.index===0?5.7:4.65)*sprint;
   r.vx+=(dx*vel-r.vx)*(1-Math.exp(-rate*dt));
   r.vz=(r.vz||0)+(-dz*vel-(r.vz||0))*(1-Math.exp(-rate*dt));
   r.x=clamp(r.x+r.vx*dt,-4.25,4.25);
@@ -970,7 +970,7 @@ function physicsTick(frameDt){
   if(count===6&&physicsAccumulator>FIXED_DT)physicsAccumulator=0;
 }
 function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;const sec=t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);animateFallingWeights(dt);physicsTick(dt);for(let r of racers)if(r.mixer)r.mixer.update(dt);$("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
-if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode!=="race"&&follow?(portrait?new THREE.Vector3(9.6,14.2,14.7):new THREE.Vector3(9.7,12.7,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
+if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.7,11.6,12.5):new THREE.Vector3(9.7,11.8,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
 if(mode==="ar"&&frame&&session){if(!hitRequested){hitRequested=true;session.requestReferenceSpace("viewer").then(viewer=>session.requestHitTestSource({space:viewer})).then(s=>hitSource=s).catch(()=>{})}if(hitSource&&!placed){const results=frame.getHitTestResults(hitSource);if(results.length){let pose=results[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;const m=new THREE.Matrix4().fromArray(pose.transform.matrix);reticle.position.setFromMatrixPosition(m);reticle.quaternion.setFromRotationMatrix(m);$("placeArena").style.display="inline-flex";$("notice").textContent="¡Ya veo la superficie! Tocá COLOCAR PISTA para anclar la arena."}}else{reticle.visible=false;$("placeArena").style.display="none"}}}
 if(performance.now()>lastToast)$("toast").classList.remove("show");if(performance.now()>skillToastUntil)$("skillToast").classList.remove("on");renderer.render(scene,camera)}
 const reticle=new THREE.Mesh(new THREE.RingGeometry(.20,.23,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x71ffdf,side:THREE.DoubleSide,depthWrite:false}));reticle.visible=false;scene.add(reticle);
