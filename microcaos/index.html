@@ -499,17 +499,33 @@ for(let k=0;k<4;k++){
   for(let p of [-4.12,4.12])ball(material,group,[sign*5.32,.53,p],[.26,.54,.24]);
  }
 }
+
+for(let k=0;k<4;k++){
+ const h=k<2,sign=k===0?1:k===1?-1:k===2?-1:1;
+ // Solid corner guards; only the central opening counts as a goal.
+ for(let d of [-4.20,4.20]){
+  soft(BM.trim,ballArena,h?[d,.12,sign*4.84]:[sign*4.84,.12,d],
+    h?[1.25,.13,.20]:[.20,.13,1.25],false);
+ }
+ for(let d=-2.5;d<=2.5;d+=1.25){
+  soft(ballGoalMats[k],ballArena,h?[d,.13,sign*4.78]:[sign*4.78,.13,d],
+    h?[.9,.04,.16]:[.16,.04,.9],false);
+ }
+}
 const ballShipPositions=Array(4).fill(null);
 const ballShipGroups=Array.from({length:4},(_,k)=>{
  const grp=new THREE.Group();ballArena.add(grp);
  const shell=ballGoalMats[k];
- soft(BM.rim,grp,[0,.26,0],[1.78,.44,.73]);
- soft(shell,grp,[0,.43,0],[1.56,.18,.78]);
- soft(BM.metal,grp,[0,.52,-.16],[1.47,.16,.26]);
- soft(BM.glow,grp,[0,.49,.36],[1.25,.15,.11]);
- for(let x of [-.57,.57]){
-  ball(BM.cyan,grp,[x,.17,.31],[.16,.14,.16]);
+ soft(BM.rim,grp,[0,.21,0],[2.42,.35,.78]);
+ soft(shell,grp,[0,.40,0],[2.25,.20,.84]);
+ soft(BM.metal,grp,[0,.50,-.19],[1.95,.14,.29]);
+ soft(BM.glow,grp,[0,.48,.39],[1.89,.12,.10]);
+ for(let x of [-.87,-.62,.62,.87])ball(shell,grp,[x,.36,-.09],[.12,.19,.26]);
+ for(let x of [-.85,.85]){
+  ball(BM.cyan,grp,[x,.17,.31],[.18,.17,.17]);
+  soft(shell,grp,[x,.54,.02],[.27,.045,.42]);
  }
+ soft(shell,grp,[0,.54,.36],[2.15,.18,.22]);
  return grp;
 });
 const ballScoreLabels=["VOS","BOT","BOT","BOT"];
@@ -534,13 +550,22 @@ function ballCreateBall(){
  const orb=mesh(new THREE.IcosahedronGeometry(.40,2),ballBallMats[kind],g,[0,.50,0]);
  const band=mesh(new THREE.TorusGeometry(.405,.045,8,24),BM.trim,g,[0,.50,0]);
  band.rotation.x=Math.PI/2;
- const light=ball(BM.glow,g,[0,.49,0],[.13,.13,.13]);light.castShadow=false;
+ const light=ball(BM.glow,g,[0,.52,0],[.16,.16,.16]);light.castShadow=false;
+ const shadow=mesh(new THREE.CircleGeometry(.49,20),new THREE.MeshBasicMaterial({color:0x030f22,transparent:true,opacity:.32,depthWrite:false}),g,[0,.14,0],[1,1,1],false);
+ shadow.rotation.x=-Math.PI/2;
+ const trails=[];
+ for(let j=0;j<5;j++){
+  const tail=mesh(new THREE.SphereGeometry(.18-j*.024,10,6),
+   new THREE.MeshBasicMaterial({color:ballBallMats[kind].color.getHex(),transparent:true,opacity:.24-j*.037,depthWrite:false}),
+   ballArena,[0,.47,0],[1,1,1],false);
+  tail.visible=false;trails.push(tail);
+ }
  const theta=Math.random()*Math.PI*2,speed=5.3+Math.min(2.0,ballElapsed*.07);
- const b={g,orb,x:(Math.random()-.5)*1.7,z:(Math.random()-.5)*1.7,vx:Math.cos(theta)*speed,vz:Math.sin(theta)*speed,tag:kind,immunity:0};
+ const b={g,orb,x:(Math.random()-.5)*1.7,z:(Math.random()-.5)*1.7,vx:Math.cos(theta)*speed,vz:Math.sin(theta)*speed,tag:kind,immunity:0,trails,history:[],glow:0};
  g.position.set(b.x,0,b.z);ballBalls.push(b);return b;
 }
 function startBallistix(){
- ballElapsed=0;ballSpawnDelay=7;ballTimeSinceScore=0;
+ ballElapsed=0;ballSpawnDelay=9;ballTimeSinceScore=0;
  ballSides=[0,...contestants.filter(i=>i!==0)];
  if(ballSides.length!==4)throw new Error("Ballistix requires exactly four contestants");
  ballHealth=Array(4).fill(8);ballStatus=Array(4).fill(true);
@@ -569,7 +594,7 @@ function ballShipUpdate(dt){
   ship.scale.y+=(1-ship.scale.y)*Math.min(1,dt*9);
   let target=0;
   if(k===0){
-   if(dragSteeringActive)target=(dragTargetX-ballShipPositions[k])*2.1;
+   if(dragSteeringActive)target=(dragTargetX-ballShipPositions[k])*2.0;
    else target=steer;
    target=clamp(target,-1,1);
   }else{
@@ -591,7 +616,7 @@ function ballShipUpdate(dt){
    target=clamp((seek-ballShipPositions[k])*2.5,-1,1);
    if(ballElapsed<4&&k===3)target*=.85;
   }
-  const baseSpeed=k===0?(racers[0].dash>0?8.9:6.1):5.0+roundIndex*.3;
+  const baseSpeed=k===0?(racers[0].dash>0?12.4:9.2):5.8+roundIndex*.25;
   ballShipPositions[k]=clamp(ballShipPositions[k]+target*baseSpeed*dt,-ballMaxMove,ballMaxMove);
   const pos=ballSidePosition(k,ballShipPositions[k]);
   const rotation=k===0?0:k===1?Math.PI:k===2?-Math.PI/2:Math.PI/2;
@@ -608,32 +633,32 @@ function ballShipUpdate(dt){
  ballPulseFx.position.set(player.x,.52,player.z);
  const pulseRemaining=Math.max(0,ballPulseUntil-ballElapsed);
  ballPulseFx.visible=pulseRemaining>0;
- if(pulseRemaining>0)ballPulseFx.scale.setScalar(1+(0.24-pulseRemaining)*6);
+ if(pulseRemaining>0)ballPulseFx.scale.setScalar(1+(0.5-pulseRemaining)*2.9);
 }
 function ballPulse(){
  if(currentMode!=="ballistix"||phase!=="race"||!ballStatus[0]||ballPulseCd>0)return;
- ballPulseUntil=ballElapsed+.23;ballPulseCd=1.15;
+ ballPulseUntil=ballElapsed+.50;ballPulseCd=1.30;
  cue(870,.12,"sine",.10);tactile(21);
 }
 function ballContact(b,k){
  const p=ballShipPositions[k],v=k<2?b.x:b.z,d=Math.abs(v-p);
  if(d>ballPaddleHalf+.24)return false;
- const s=Math.min(12.0,Math.max(5.0,Math.hypot(b.vx,b.vz)*1.035));
- const offset=clamp((v-p)/(ballPaddleHalf+.25),-1,1);
+ const s=Math.min(13.0,Math.max(5.3,Math.hypot(b.vx,b.vz)*1.05));
+ const offset=clamp((v-p)/(ballPaddleHalf+.12),-1,1);
  const hot=k===0&&ballPulseUntil>ballElapsed;
  if(k<2){
   b.vz=k===0?-1:1;
-  b.vx=offset*1.12+ballShipVel(k);
+  b.vx=offset*1.60+ballShipVel(k);
   b.z=k===0?ballPaddleAt-.43:-ballPaddleAt+.43;
  }else{
   b.vx=k===2?1:-1;
-  b.vz=offset*1.12+ballShipVel(k);
+  b.vz=offset*1.60+ballShipVel(k);
   b.x=k===2?-ballPaddleAt+.43:ballPaddleAt-.43;
  }
- ballNormalize(b,Math.min(14.5,s*(hot?1.55:1.04)));
+ ballNormalize(b,Math.min(14.5,s*(hot?1.55:1.06)));b.glow=hot?1:.5;
  b.immunity=.11;
  if(hot){
-  ballPulseUntil=0;ballPulseCd=.62;
+  ballPulseUntil=0;ballPulseCd=.76;
   puff(b.x,b.z,0xa2fff1,13);cue(1050,.17,"triangle",.10);
   skillMessage("¡GOLPE POTENTE!",600);
   tactile(26);
@@ -668,9 +693,9 @@ function ballGoal(b,k){
  }
  // Keep existing balls in play after a goal. Re-launch from central area.
  b.x=(Math.random()-.5)*1.6;b.z=(Math.random()-.5)*1.6;b.immunity=.4;
- const theta=Math.random()*6.2831853;const velocity=5.2+Math.min(4.5,ballElapsed*.065);
+ const theta=Math.random()*6.2831853;const velocity=5.2+Math.min(4.5,ballElapsed*.055);
  b.vx=Math.cos(theta)*velocity;b.vz=Math.sin(theta)*velocity;
- b.g.position.set(b.x,0,b.z);
+ b.g.position.set(b.x,0,b.z);b.history=[];b.trails.forEach(t=>t.visible=false);
 }
 function updateBallScoreboard(){
  const target=$("ballScoreboard");
@@ -689,13 +714,13 @@ function ballTick(dt){
  ballElapsed+=dt;
  const active=ballStatus.filter(Boolean).length;
  if(active<=3){completeBallistix();return}
- if(ballSpawnDelay<=0&&ballBalls.length<5){ballCreateBall();ballSpawnDelay=Math.max(4.0,7.5-ballElapsed*.028);cue(760,.10)}
+ if(ballSpawnDelay<=0&&ballBalls.length<4){ballCreateBall();ballSpawnDelay=Math.max(5.0,10-ballElapsed*.025);cue(760,.10)}
  ballSpawnDelay-=dt;ballPulseCd=Math.max(0,ballPulseCd-dt);
  if(racers[0].dash>0)racers[0].dash=Math.max(0,racers[0].dash-dt);
  if(racers[0].dashCd>0)racers[0].dashCd=Math.max(0,racers[0].dashCd-dt);
  ballShipUpdate(dt);
  const balls=ballBalls;
- const cap=8.6+Math.min(4.8,ballElapsed*.042);
+ const cap=7.6+Math.min(4.8,ballElapsed*.052);
  for(const b of balls){
   b.immunity=Math.max(0,b.immunity-dt);
   b.x+=b.vx*dt;b.z+=b.vz*dt;
@@ -712,8 +737,8 @@ function ballTick(dt){
   for(const edge of boundaries){
    if(!edge.guard)continue;
    const side=edge.k,parallel=side<2?Math.abs(b.x):Math.abs(b.z);
-   if(parallel>4.05){
-    if(edge.c>ballFieldHalf-.25){
+   if(parallel>ballGoalHalf){
+    if(edge.c>ballFieldHalf-.30){
      if(side<2)b.vz*=-1;else b.vx*=-1;
      b.x=clamp(b.x,-4.55,4.55);b.z=clamp(b.z,-4.55,4.55);
     }
@@ -726,12 +751,12 @@ function ballTick(dt){
  }
  for(let i=0;i<balls.length;i++)for(let j=i+1;j<balls.length;j++){
   const a=balls[i],b=balls[j],dx=b.x-a.x,dz=b.z-a.z,dist=Math.hypot(dx,dz);
-  if(dist<.57&&dist>.001){
+  if(dist<.80&&dist>.001){
    const nx=dx/dist,nz=dz/dist,rel=(a.vx-b.vx)*nx+(a.vz-b.vz)*nz;
    if(rel>0){
     a.vx-=rel*nx;b.vx+=rel*nx;a.vz-=rel*nz;b.vz+=rel*nz;
    }
-   const p=(.57-dist)*.5;a.x-=nx*p;a.z-=nz*p;b.x+=nx*p;b.z+=nz*p;
+   const p=(.80-dist)*.5;a.x-=nx*p;a.z-=nz*p;b.x+=nx*p;b.z+=nz*p;
   }
  }
  $("timer").textContent="∞";
