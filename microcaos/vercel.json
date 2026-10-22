@@ -1,0 +1,190 @@
+{
+  "version": 2,
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/experiencia-monsters-v33.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/multijugador-monsters-v33.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/experiencia-monsters-v34.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/multijugador-monsters-v34.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/experiencia-monsters-v35.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/multijugador-monsters-v35.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/experiencia-monsters-v36.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/multijugador-monsters-v36.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/experiencia-monsters-v37.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/multijugador-monsters-v37.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/experiencia-monsters-v38.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/multijugador-monsters-v38.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/experiencia-monsters-v39.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/multijugador-monsters-v39.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/experiencia-monsters-v40.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/multijugador-monsters-v40.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/experiencia-monsters-v41.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/multijugador-monsters-v41.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/experiencia-monsters-v42.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/multijugador-monsters-v42.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/experiencia-monsters-v43.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/multijugador-monsters-v43.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/experiencia-monsters-v44.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/multijugador-monsters-v44.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/experiencia-monsters-v45.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/multijugador-monsters-v45.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/experiencia-monsters-v46.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/multijugador-monsters-v46.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/experiencia-monsters-v47.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/multijugador-monsters-v47.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/experiencia-monsters-v48.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/multijugador-monsters-v48.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/experiencia-monsters-v49.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/multijugador-monsters-v49.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/experiencia-premium-v37.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/experiencia-premium-v38.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/experiencia-cinematica-v35.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/experiencia-director-v36.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/multijugador-premium-v37.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/multijugador-premium-v38.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/multijugador-cinematico-v35.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/multijugador-director-v36.html",
+      "destination": "/multijugador.html"
+    },
+    {
+      "source": "/ar",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/jugar-ar",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/jugar",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/diagnostico",
+      "destination": "/diagnostico.html"
+    }
+  ]
+}
