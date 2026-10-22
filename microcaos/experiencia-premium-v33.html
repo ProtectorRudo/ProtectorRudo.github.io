@@ -2378,6 +2378,103 @@ window.__microcaosVisualQA=()=>{
  return report;
 };
 
+
+// MICROCAOS SIGNATURE V3.4 · graphic stadium lighting, no expensive real-time lights.
+const v34LedGeo=new THREE.IcosahedronGeometry(.075,0);
+const v34LedMaterial=new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false});
+const v34Chasers={},v34Matrix=new THREE.Matrix4();
+for(const [name,config]of Object.entries(V33_PRESETS)){
+ const kit=visual33.kits[name];if(!kit)continue;
+ const strip=new THREE.InstancedMesh(v34LedGeo,v34LedMaterial,32);
+ strip.name="stadium chasing LED";strip.castShadow=false;strip.frustumCulled=false;kit.add(strip);
+ v34Chasers[name]=strip;
+ let k=0;
+ for(let i=0;i<8;i++){
+  const f=(i-3.5)/4;
+  for(const [x,z]of [[f*config.x,-config.z],[f*config.x,config.z],[-config.x,f*config.z],[config.x,f*config.z]]){
+   v34Matrix.makeTranslation(x,.31,z);strip.setMatrixAt(k++,v34Matrix);
+  }
+ }
+ strip.instanceMatrix.needsUpdate=true;
+}
+const v34ChampionRing=new THREE.Mesh(new THREE.RingGeometry(.63,.77,40),
+ new THREE.MeshBasicMaterial({color:0xffda63,transparent:true,opacity:.64,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));
+v34ChampionRing.rotation.x=-Math.PI/2;v34ChampionRing.castShadow=false;v34ChampionRing.visible=false;
+stage.add(v34ChampionRing);
+let v34LastLedTick=-1;
+function v34UpdateArena(t){
+ const now=Math.floor(t/120);
+ if(now!==v34LastLedTick){
+  v34LastLedTick=now;
+  const strip=v34Chasers[currentMode];
+  if(strip&&gameSettings.quality!=="low"){
+   const baseColor=new THREE.Color(V33_PRESETS[currentMode].color);
+   for(let k=0;k<32;k++){
+    const d=(k+32-now%32)%32,brightness=d<4?1.0:d<10?.36:.10;
+    strip.setColorAt(k,baseColor.clone().multiplyScalar(brightness));
+   }
+   if(strip.instanceColor)strip.instanceColor.needsUpdate=true;
+  }
+ }
+ const winner=phase==="finished"&&nextQualifiers.length?racers[nextQualifiers[0]]:null;
+ v34ChampionRing.visible=!!winner&&gameSettings.quality!=="low"&&currentMode!=="race";
+ if(v34ChampionRing.visible){
+  v34ChampionRing.position.set(winner.root.position.x,.26,winner.root.position.z);
+  v34ChampionRing.scale.setScalar(1+Math.sin(t*.003)*.10);
+  v34ChampionRing.material.opacity=.46+Math.sin(t*.005)*.20;
+  v34ChampionRing.rotation.z=t*.00043;
+ }
+}
+function v34AnimateFaces(t,dt){
+ const k=1-Math.exp(-12*dt),time=t*.001;
+ for(const r of racers){
+  if(!r.rig?.visible||!r.v34Face)continue;
+  const face=r.v34Face;
+  const speed=Math.min(1,Math.hypot(r.vx||0,r.vz||0)/7);
+  const victory=phase==="finished"&&nextQualifiers[0]===r.index;
+  const defeated=phase==="race"&&r.finished&&currentMode!=="race";
+  const underPressure=phase==="race"&&currentMode==="tag"&&weightHolder===r.index;
+  const period=(time+r.index*.77)%(2.85+r.index*.23);
+  const blink=period<.17?Math.sin(period/.17*Math.PI):0;
+  face.lids.forEach(lid=>{
+   lid.scale.y=.008+blink*.98;
+   lid.position.y=1.385+blink*.03;
+  });
+  face.pupils.forEach((eye,i)=>{
+   const origin=face.pupilBase[i];
+   eye.position.x=origin.x+Math.sin(time*.86+r.index*1.7)*.020;
+   eye.position.y=origin.y+(victory?.026:defeated?-.026:underPressure?.021:Math.sin(time*.65+r.index)*.009);
+  });
+  face.brows.forEach((b,i)=>{
+   const target=1.615+(victory?.07:underPressure?.064:defeated?-.052:0);
+   b.position.y+=(target-b.position.y)*k;
+   const angle=victory?(i===0?-.18:.18):underPressure?(i===0?.16:-.16):0;
+   b.rotation.z+=(angle-b.rotation.z)*k;
+  });
+  face.ears.forEach((ear,i)=>{
+   const target=(i===0?-1:1)*Math.sin(time*(victory?8.5:3.9)+r.index)*(.035+speed*.095+(victory?.13:0));
+   ear.rotation.z+=(target-ear.rotation.z)*k;
+  });
+  if(face.tail){
+   const target=Math.sin(time*(victory?12:4.5)+r.index)*(.15+speed*.20+(victory?.22:0));
+   face.tail.rotation.y+=(target-face.tail.rotation.y)*k;
+  }
+  if(face.crest)face.crest.rotation.z=Math.sin(time*2.6+r.index)*.030;
+  if(victory){
+   r.arms.forEach((a,i)=>{
+    a.rotation.x+=(-2.1+Math.sin(time*9+i*Math.PI)*.16-a.rotation.x)*k;
+    const armAngle=i===0?.35:-.35;
+    a.rotation.z+=(armAngle-a.rotation.z)*k;
+   });
+   r.rig.position.y=Math.max(r.rig.position.y,Math.abs(Math.sin(time*5.3+r.phase))*.065);
+  }else if(defeated){
+   r.arms.forEach((a,i)=>{const angle=i===0?-.22:.22;a.rotation.z+=(angle-a.rotation.z)*k});
+  }else{
+   r.arms.forEach(a=>a.rotation.z+=(0-a.rotation.z)*k);
+  }
+ }
+}
+
 function renderModeLabel(){
  const tag=MINI_MODES[currentMode];
  $("stagebanner").textContent=(gameType==="individual"?"PARTIDA INDIVIDUAL":"RONDA "+(roundIndex+1)+"/3")+" · "+tag.emoji+" · "+(gameType==="individual"?"1º GANA":"PASAN "+ROUND_RULES[roundIndex].qualify);
@@ -3162,7 +3259,7 @@ function physicsTick(frameDt){
   for(let n=0;n<count;n++){physicsTime+=FIXED_DT;move(FIXED_DT,physicsTime);physicsAccumulator-=FIXED_DT}
   if(count===6&&physicsAccumulator>FIXED_DT)physicsAccumulator=0;
 }
-function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;const sec=t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);v33UpdateFX(dt);animateFallingWeights(dt);animateTerritoryFX(dt);ccAnimate(dt);try{physicsTick(dt)}catch(error){
+function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;const sec=t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);v33UpdateFX(dt);v34UpdateArena(t);animateFallingWeights(dt);animateTerritoryFX(dt);ccAnimate(dt);try{physicsTick(dt)}catch(error){
  console.error("MICROCAOS physics error",error);
  phase="paused";physicsAccumulator=0;window.__microcaosError=error?.message||String(error);
  $("notice").textContent="Error al simular la partida. Tocá REINICIAR para volver a jugar. "+window.__microcaosError;
@@ -3191,7 +3288,8 @@ function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;
   r.rig.scale.z+=(bounce-r.rig.scale.z)*blend;
   // Small torso tilt communicates direction but never distorts world physics.
   r.rig.rotation.x+=(Math.max(-.09,Math.min(.09,(r.vz||0)*.012))*active-r.rig.rotation.x)*blend;
- }$("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
+ }
+ v34AnimateFaces(t,dt);$("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
 if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=currentMode==="territory"&&follow?new THREE.Vector3(clamp(p.x*.72,-TERRITORY_HALF_X*.72,TERRITORY_HALF_X*.72),0,clamp(p.z*.70,-TERRITORY_HALF_Z*.70,TERRITORY_HALF_Z*.70)):new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,22.3,9.5):new THREE.Vector3(0,18.0,9.7)):currentMode==="territory"&&follow?(portrait?new THREE.Vector3(previewTarget.x,32,previewTarget.z+22):new THREE.Vector3(previewTarget.x+11.8,21,previewTarget.z+22)):currentMode==="colorcrash"&&follow?(portrait?new THREE.Vector3(0,23,16):new THREE.Vector3(8.5,20.3,19.4)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.7,11.6,12.5):new THREE.Vector3(9.7,11.8,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
 if(mode==="ar"&&frame&&session){if(!hitRequested&&performance.now()-arLastHitAttempt>2100){hitRequested=true;arLastHitAttempt=performance.now();const origin=session;session.requestReferenceSpace("viewer").then(viewer=>origin.requestHitTestSource({space:viewer})).then(source=>{if(session===origin)hitSource=source;else source?.cancel?.()}).catch(error=>{hitRequested=false;console.warn("XR hit-test",error);$("notice").textContent="No pude detectar superficies todavía. Reintentando…"})}if(hitSource&&!placed){const results=frame.getHitTestResults(hitSource);if(results.length){let pose=results[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;const m=new THREE.Matrix4().fromArray(pose.transform.matrix);reticle.position.setFromMatrixPosition(m);reticle.quaternion.setFromRotationMatrix(m);
  const normal=new THREE.Vector3(0,1,0).applyQuaternion(reticle.quaternion);
