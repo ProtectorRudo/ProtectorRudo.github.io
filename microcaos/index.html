@@ -1426,25 +1426,74 @@ function miniSurvival(dt){
 function miniBotDirection(r,t){
  let tx=0,tz=0;
  if(currentMode==="tag"){
-  const holder=racers[weightHolder],d=Math.hypot(holder.x-r.x,holder.z-r.z);
-  if(weightHolder===r.index){
-   const target=liveRacers().filter(q=>q.index!==r.index).sort((a,b)=>Math.hypot(a.x-r.x,a.z-r.z)-Math.hypot(b.x-r.x,b.z-r.z))[0];
-   if(target){tx=target.x;tz=target.z}
-  }else if(holder&&d<5.5){
-   tx=clamp(r.x+(r.x-holder.x)/(d||1)*4.4,-4,4);
-   tz=clamp(r.z+(r.z-holder.z)/(d||1)*4.4,-5.4,5.4);
-  }else{tx=Math.sin(t*1.2+r.phase)*2.4;tz=Math.cos(t*.8+r.phase)*3.0}
+  const holder=racers[weightHolder],others=liveRacers().filter(q=>q.index!==r.index);
+  if(r.index===weightHolder){
+   // Hunting intelligence: choose a reachable opponent, intercept their
+   // current velocity, and commit briefly so the pursuer doesn't oscillate.
+   if(!r.aiFocus || !others.some(q=>q.index===r.aiFocus) || t>r.aiFocusUntil){
+    let best=null,bestScore=Infinity;
+    for(const q of others){
+     const d=Math.hypot(q.x-r.x,q.z-r.z);
+     const approach=(q.vx||0)*(q.x-r.x)+(q.vz||0)*(q.z-r.z);
+     const exposed=clamp((Math.abs(q.x)>3.5?-.3:0)+(Math.abs(q.z)>4.7?-.3:0),-.6,0);
+     const score=d+clamp(approach/(d||1),-2,2)*.25+exposed;
+     if(score<bestScore){bestScore=score;best=q}
+    }
+    r.aiFocus=best?.index??null;r.aiFocusUntil=t+.46+(1-r.skill)*.44;
+   }
+   const chosen=others.find(q=>q.index===r.aiFocus)||others[0];
+   if(chosen){
+    const d=Math.hypot(chosen.x-r.x,chosen.z-r.z);
+    const predict=clamp(d/(6.6*difficultyScale()),.04,.44)*(.72+r.skill*.50);
+    tx=clamp(chosen.x+(chosen.vx||0)*predict,-3.95,3.95);
+    tz=clamp(chosen.z+(chosen.vz||0)*predict,-5.25,5.25);
+    if(d<3.8&&r.dashCd<=0){
+     r.dash=.49;r.dashCd=4.2+(1-r.skill)*1.6;
+    }
+   }
+  }else if(holder){
+   const hx=holder.x-r.x,hz=holder.z-r.z,d=Math.hypot(hx,hz)||.01;
+   const vx=hx/d,vz=hz/d;
+   const dangerRange=6.2+(r.skill||.7);
+   if(d<dangerRange){
+    // Flee from the pursuer but slide sideways at the arena edge, instead
+    // of getting stuck pushing against a wall.
+    const tangent=(r.index%2?1:-1);
+    const awayX=-vx*3.8+(-vz)*tangent*1.35;
+    const awayZ=-vz*3.8+vx*tangent*1.35;
+    tx=clamp(r.x+awayX,-3.75,3.75);
+    tz=clamp(r.z+awayZ,-5.20,5.20);
+    if(d<3.25&&r.dashCd<=0){
+     r.dash=.30;r.dashCd=5.2+r.index*.32;
+    }
+   }else{
+    // Wander towards an opening so the map stays populated.
+    tx=Math.sin(t*.62+r.phase)*2.7;
+    tz=Math.cos(t*.59+r.phase*1.4)*3.5;
+   }
+  }
  }else if(currentMode==="gems"){
-  const item=[...gemItems].sort((a,b)=>Math.hypot(a.x-r.x,a.z-r.z)-Math.hypot(b.x-r.x,b.z-r.z))[0];
-  if(item){tx=item.x;tz=item.z}
+  // Target a free gem rather than blindly chasing the same one as every bot.
+  let min=Infinity,target=null;
+  for(const item of gemItems){
+   let score=Math.hypot(item.x-r.x,item.z-r.z);
+   for(const other of liveRacers()){
+    if(other.index===r.index)continue;
+    const theirs=Math.hypot(item.x-other.x,item.z-other.z);
+    if(theirs<score*.78)score+=1.35;
+   }
+   if(score<min){min=score;target=item}
+  }
+  if(target){tx=target.x;tz=target.z}
  }else{
-  tx=miniSafe.x+Math.sin(r.phase+roundIndex)*.68;
-  tz=miniSafe.z+Math.cos(r.phase+roundIndex)*.68;
-  // Imperfect NPC navigation makes surprises possible.
-  if(r.skill<.7&&miniClock<1.7){tx+=Math.sin(r.phase)*1.25;tz+=Math.cos(r.phase)*1.25}
+  tx=miniSafe.x+Math.sin(r.phase+roundIndex)*.38;
+  tz=miniSafe.z+Math.cos(r.phase+roundIndex)*.38;
+  if(r.skill<.55&&miniClock<1.1){tx+=Math.sin(r.phase)*.85;tz+=Math.cos(r.phase)*.85}
  }
- const dx=tx-r.x,dz=tz-r.z,l=Math.hypot(dx,dz)||1;
- return [dx/l,dz/l];
+ const dx=tx-r.x,dz=tz-r.z,mag=Math.hypot(dx,dz)||1;
+ // moveMiniGame() translates positive stick-Z into negative world-Z.
+ // Flip the BOT steering Z here so its destination is actually approached.
+ return [dx/mag,-dz/mag];
 }
 function moveMiniGame(dt,t){
  miniChallengeElapsed+=dt;
@@ -1459,7 +1508,8 @@ function moveMiniGame(dt,t){
    dx=clamp((dragTargetX-r.x)*1.45,-1,1);dz=clamp((dragTargetZ-r.z)*1.28,-1,1);
   }else{dx=steer;dz=steerZ}
   const norm=Math.max(1,Math.hypot(dx,dz));dx/=norm;dz/=norm;
-  const sprint=(r.dash>0?1.7:1)*(currentMode==="tag"&&r.index===weightHolder&&r.index!==0?1.26:1),rate=r.index===0?20:12,vel=(r.index===0?5.7:4.65*difficultyScale())*sprint;
+  const sprint=(r.dash>0?1.68:1)*(currentMode==="tag"&&r.index===weightHolder?1.16:1);
+  const rate=r.index===0?20:14,vel=(r.index===0?5.75:5.03*difficultyScale())*sprint;
   r.vx+=(dx*vel-r.vx)*(1-Math.exp(-rate*dt));
   r.vz=(r.vz||0)+(-dz*vel-(r.vz||0))*(1-Math.exp(-rate*dt));
   r.x=clamp(r.x+r.vx*dt,-4.25,4.25);
