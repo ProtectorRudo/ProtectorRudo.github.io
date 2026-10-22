@@ -379,42 +379,141 @@ const raceDecor=[...stage.children];
 const colors=[0x29f5df,0xff604d,0x8b59ff,0xa4ff3f,0xffac26,0x338bff];
 const profiles=[{name:"VOS",speed:1.79,skill:.87},{name:"POP",speed:1.60,skill:.76},{name:"NIX",speed:1.83,skill:.87},{name:"BOOM",speed:1.56,skill:.56},{name:"KIWI",speed:1.70,skill:.74},{name:"ZAP",speed:1.89,skill:.92}];
 const racers=[];
-function createCharacter(col,index){const root=new THREE.Group();stage.add(root);const shade=new THREE.Mesh(new THREE.CircleGeometry(.58,32),new THREE.MeshBasicMaterial({color:0x001224,transparent:true,opacity:.28,depthWrite:false}));shade.rotation.x=-Math.PI/2;shade.position.y=.072;root.add(shade);
-const rig=new THREE.Group();root.add(rig);const bodyMat=mat(col,.07,.29,{clearcoat:.76}),dark=mat(0x152449,.12,.40);
-ball(bodyMat,rig,[0,.76,0],[.49,.66,.43]);ball(bodyMat,rig,[0,1.13,-.02],[.44,.48,.42]);ball(white,rig,[-.175,1.16,-.396],[.16,.21,.105]);ball(white,rig,[.175,1.16,-.396],[.16,.21,.105]);ball(glass,rig,[-.145,1.14,-.497],[.093,.14,.043]);ball(glass,rig,[.145,1.14,-.497],[.093,.14,.043]);ball(white,rig,[-.169,1.205,-.538],[.029,.043,.013]);ball(white,rig,[.124,1.205,-.538],[.029,.043,.013]);for(let x of [-.33,.33])ball(pink,rig,[x,.92,-.357],[.095,.055,.034]);let smile=mesh(new THREE.TorusGeometry(.13,.023,8,24,Math.PI),dark,rig,[0,.893,-.414],[1,1,1]);smile.rotation.z=Math.PI;const shine=ball(white,rig,[-.25,1.42,-.24],[.11,.09,.035]);shine.material=mat(0xffffff,0,.25,{transparent:true,opacity:.21});
-const arms=[];for(let side of [-1,1]){let a=new THREE.Group();a.position.set(side*.47,.86,0);rig.add(a);ball(bodyMat,a,[side*.11,-.19,0],[.18,.31,.2]);ball(white,a,[side*.13,-.4,-.02],[.19,.18,.18]);arms.push(a)}
-const feet=[];for(let side of [-1,1]){let f=new THREE.Group();f.position.set(side*.25,.2,0);rig.add(f);ball(dark,f,[0,.015,-.09],[.23,.22,.35]);box(white,f,[0,-.125,-.15],[.43,.075,.47]);feet.push(f)}
-const ears=[];if(index%3===0){for(let x of [-.26,.26]){let ear=ball(bodyMat,rig,[x,1.63,0],[.15,.28,.14]);ear.rotation.z=x<0?.22:-.22;ears.push(ear)}}else if(index%3===1){cyl(gold,rig,[0,1.61,0],.045,.07,.31);ball(teal,rig,[0,1.8,0],[.14,.14,.14])}else{const hat=mesh(new THREE.SphereGeometry(.49,24,14,0,TAU,0,Math.PI*.43),dark,rig,[0,1.28,0]);box(gold,rig,[0,1.28,-.4],[.5,.06,.33])}
-if(index===0){const badge=ball(gold,rig,[0,.77,-.44],[.18,.18,.045]);badge.material=gold}
-if(index===4){for(let x of [-.25,.25]){let horn=mesh(new THREE.ConeGeometry(.12,.34,12),white,rig,[x,1.72,0]);horn.rotation.z=x<0?.38:-.38}}
-let label=textSprite(profiles[index].name,45,index===0?"#b8fff1":"#ffffff");label.position.set(0,2.05,0);label.scale.set(1.85,.48,1);root.add(label);
-return{root,rig,arms,feet,shade,label,index,name:profiles[index].name,x:0,z:0,y:0,vy:0,stun:0,dash:0,dashCd:0,finished:false,finishTime:0,speed:profiles[index].speed,skill:profiles[index].skill,phase:rand(0,TAU),cool:0,stumbles:0}} 
-for(let i=0;i<6;i++)racers.push(createCharacter(colors[i],i));
 
-function detailCharacter(r,col,index){
-  const {rig,root}=r,trim=mat(0xffe26a,.17,.31),suit=mat(0x13295a,.14,.35),metallic=mat(col,.08,.30,{clearcoat:.72});
-  soft(suit,rig,[0,.59,-.367],[.51,.31,.19]);soft(trim,rig,[0,.64,-.476],[.33,.09,.039]);soft(metallic,rig,[0,.5,-.478],[.25,.07,.038]);
-  for(let side of [-1,1]){soft(metallic,rig,[side*.3,.35,-.05],[.21,.23,.29]);ball(trim,rig,[side*.39,.95,.04],[.09,.085,.11])}
-  for(let x of [-.26,.26])ball(white,rig,[x,1.33,-.345],[.07,.048,.037]);
-  const backpack=soft(suit,rig,[0,.78,.41],[.54,.6,.23]);backpack.rotation.x=-.08;
-  for(let x of [-.14,.14])soft(trim,rig,[x,.8,.55],[.067,.43,.038]);
-  if(index===0){
-    const crown=new THREE.Group();crown.position.set(0,1.65,0);rig.add(crown);
-    for(let x of [-.24,0,.24]){const tooth=mesh(new THREE.ConeGeometry(.115,x===0?.37:.24,8),gold,crown,[x,.05,0]);tooth.rotation.z=x*.45}
-    soft(gold,crown,[0,-.12,0],[.76,.15,.27]);r.crown=crown;
-  }else if(index===1){
-    const prop=new THREE.Group();prop.position.set(.39,1.55,.05);rig.add(prop);
-    ball(white,prop,[0,0,0],[.27,.28,.22]);ball(pink,prop,[0,-.04,-.18],[.22,.12,.06]);r.prop=prop;
-  }else if(index===3){
-    for(let side of [-1,1]){const e=mesh(new THREE.ConeGeometry(.18,.42,12),trim,rig,[side*.3,1.66,.05]);e.rotation.z=side*.25}
-  }else if(index===5){
-    const lightning=mesh(new THREE.IcosahedronGeometry(.16,0),gold,rig,[0,1.75,0]);r.prop=lightning;
-  }
-  const spark=ball(mat(col,0,.55,{transparent:true,opacity:.12,depthWrite:false,emissive:col,emissiveIntensity:1}),root,[0,.76,0],[.77,.9,.77]);spark.castShadow=false;r.sheen=spark;
+// Six original premium toy mascots. One clean silhouette per species.
+// No duplicated armor, helmets or stacked costume geometry.
+const toyMatCache=new Map();
+function toyMat(hex,rough=.33){
+ const key=hex+":"+rough;
+ if(!toyMatCache.has(key))toyMatCache.set(key,mat(hex,.04,rough,{clearcoat:.52,clearcoatRoughness:.19}));
+ return toyMatCache.get(key);
 }
-
-for(let i=0;i<racers.length;i++)detailCharacter(racers[i],colors[i],i);
-
+const toyIvory=toyMat(0xfff8ed),toyInk=toyMat(0x112044,.25),
+ toyBlack=toyMat(0x090e29,.20),toySparkle=new THREE.MeshBasicMaterial({color:0xffffff}),
+ toyPink=toyMat(0xff629d),toyPeach=toyMat(0xffd1aa),
+ toyAzure=toyMat(0x42dfff),toyGold=toyMat(0xffd64c),toyChocolate=toyMat(0x3b2c51);
+function createCharacter(col,index){
+ const root=new THREE.Group();stage.add(root);
+ const shade=new THREE.Mesh(new THREE.CircleGeometry(.56,24),
+   new THREE.MeshBasicMaterial({color:0x030f28,transparent:true,opacity:.28,depthWrite:false}));
+ shade.rotation.x=-Math.PI/2;shade.position.y=.04;root.add(shade);
+ const rig=new THREE.Group();root.add(rig);
+ const fur=toyMat([0x23dfd6,0xff665f,0x9b64fa,0x8dea48,0xffae40,0x85c4ff][index]);
+ const light=toyMat([0xc4fff1,0xffdccb,0xdfb8ff,0xdaffb0,0xffe9c5,0xf5f8ff][index]);
+ const accent=toyMat([0xffd64c,0xff59a6,0xfe89d8,0x40cbb1,0x7d4c33,0x304d83][index]);
+ const dark=toyInk;
+ // Oversized expressive head, simple plush body, rounded non-armored paws.
+ ball(fur,rig,[0,.65,0],[.43,.55,.35]);
+ ball(light,rig,[0,.63,-.32],[.31,.39,.085]);
+ const head=ball(fur,rig,[0,1.33,-.02],[.57,.51,.47]);
+ ball(light,rig,[0,1.08,-.390],[.34,.20,.155]); // smile muzzle
+ const arms=[];
+ for(const side of [-1,1]){
+  const arm=new THREE.Group();arm.position.set(side*.46,.80,-.04);rig.add(arm);
+  const limb=ball(fur,arm,[side*.085,-.06,0],[.19,.31,.21]);
+  limb.rotation.z=side*.22;
+  ball(light,arm,[side*.12,-.31,-.05],[.205,.17,.19]);
+  arms.push(arm);
+ }
+ const feet=[];
+ for(const side of [-1,1]){
+  const foot=new THREE.Group();foot.position.set(side*.245,.20,-.035);rig.add(foot);
+  ball(accent,foot,[0,-.02,-.07],[.235,.155,.29]);
+  ball(light,foot,[0,-.035,-.235],[.15,.065,.095]);
+  feet.push(foot);
+ }
+ const eyes=[];
+ for(const side of [-1,1]){
+  // Big sclera, black gleaming pupils, double eye shine.
+  ball(toyIvory,rig,[side*.228,1.383,-.435],[.184,.211,.100]);
+  const pupil=ball(toyBlack,rig,[side*.220,1.366,-.532],[.106,.148,.047]);
+  ball(toySparkle,rig,[side*.220-.037,1.428,-.573],[.040,.050,.018]).castShadow=false;
+  ball(toySparkle,rig,[side*.220+.04,1.327,-.575],[.018,.021,.012]).castShadow=false;
+  ball(toyPink,rig,[side*.415,1.172,-.374],[.105,.055,.027]);
+  eyes.push(pupil);
+ }
+ // Mouth and nose are part of the same facial volume, not separate helmets.
+ ball(index===4||index===5?toyChocolate:toyInk,rig,[0,1.102,-.556],[.075,.057,.039]);
+ const smile=mesh(new THREE.TorusGeometry(.115,.018,6,18,Math.PI),toyChocolate,rig,[0,1.025,-.527],[1,1,.8],false);
+ smile.rotation.z=Math.PI;
+ let crown=null,prop=null;
+ if(index===0){
+  // Teal teddy bear with golden ears and little crown.
+  for(const x of [-.427,.427]){
+   ball(fur,rig,[x,1.714,.01],[.216,.218,.18]);
+   ball(accent,rig,[x,1.722,-.132],[.118,.125,.052]);
+  }
+  crown=new THREE.Group();crown.position.set(0,1.847,0);rig.add(crown);
+  const base=soft(toyGold,crown,[0,0,0],[.54,.13,.29]);base.castShadow=false;
+  for(const x of [-.18,0,.18])mesh(new THREE.ConeGeometry(.10,x===0?.31:.23,10),toyGold,crown,[x,.17,0],[1,1,1],false);
+  ball(toyAzure,crown,[0,.085,-.153],[.084,.07,.035]);
+ }else if(index===1){
+  // Rabbit, tall folded ears with a pink inner layer.
+  for(const x of [-.255,.255]){
+   const ear=ball(fur,rig,[x,1.947,.012],[.166,.435,.128]);
+   ear.rotation.z=x<0?.19:-.16;
+   const inset=ball(toyPink,rig,[x,1.957,-.111],[.085,.32,.029]);
+   inset.rotation.z=x<0?.19:-.16;
+  }
+  for(const x of [-.08,.08])ball(toyIvory,rig,[x,.95,-.443],[.115,.08,.09]);
+  ball(toyIvory,rig,[0,.48,.39],[.18,.18,.18]); // tail
+ }else if(index===2){
+  // Purple cat: angular upright ears and subtle whiskers.
+  for(const x of [-.40,.40]){
+   const ear=mesh(new THREE.ConeGeometry(.225,.48,3),fur,rig,[x,1.767,0],[1,1,1],false);
+   ear.rotation.y=Math.PI/3;ear.rotation.z=x<0?.18:-.18;
+   ball(toyPink,rig,[x,1.682,-.116],[.095,.114,.038]);
+  }
+  for(const side of [-1,1])for(let j=0;j<2;j++){
+   const whisk=soft(toyIvory,rig,[side*(.38+j*.07),1.068+j*.065,-.453],[.22,.019,.022],false);
+   whisk.rotation.z=side*(j===0?.07:-.13);
+  }
+  for(const side of [-1,1]){
+   const brow=soft(toyChocolate,rig,[side*.23,1.584,-.415],[.16,.027,.02],false);
+   brow.rotation.z=side*.17;
+  }
+ }else if(index===3){
+  // Lime dinosaur: dorsal spikes, soft snout, compact tail.
+  ball(light,rig,[0,1.125,-.43],[.355,.17,.20]);
+  for(const x of [-.135,.135])ball(toyChocolate,rig,[x,1.108,-.615],[.030,.036,.023]);
+  for(let k=0;k<4;k++)mesh(new THREE.ConeGeometry(.14,.27,7),toyGold,rig,[0,1.790-k*.30,.27+k*.085],[1,1,1],false);
+  const tail=ball(fur,rig,[0,.50,.39],[.22,.20,.45]);tail.rotation.x=.34;
+ }else if(index===4){
+  // Orange floppy-eared pup.
+  for(const x of [-.50,.50]){
+   const ear=ball(toyChocolate,rig,[x,1.49,.12],[.245,.40,.18]);
+   ear.rotation.z=x<0?-.29:.29;
+  }
+  ball(toyPeach,rig,[0,1.062,-.485],[.335,.21,.160]);
+  ball(toyChocolate,rig,[0,1.100,-.631],[.100,.072,.043]);
+  const tail=ball(fur,rig,[.34,.61,.35],[.16,.18,.30]);tail.rotation.z=-.45;
+ }else if(index===5){
+  // Blue panda: round ears, dark patches framing the pupils.
+  for(const x of [-.425,.425])ball(toyChocolate,rig,[x,1.716,.0],[.22,.245,.17]);
+  for(const side of [-1,1]){
+   const patch=ball(toyChocolate,rig,[side*.23,1.384,-.420],[.217,.257,.085]);
+   patch.castShadow=false;
+   // Re-add the bright eye in front of the patch.
+   ball(toyIvory,rig,[side*.228,1.393,-.494],[.146,.164,.045]);
+   ball(toyBlack,rig,[side*.220,1.377,-.535],[.086,.120,.035]);
+   ball(toySparkle,rig,[side*.186,1.433,-.571],[.033,.037,.013]).castShadow=false;
+  }
+  ball(toyIvory,rig,[0,1.067,-.443],[.30,.16,.14]);
+  ball(toyChocolate,rig,[0,1.12,-.567],[.075,.051,.035]);
+ }
+ const label=textSprite(profiles[index].name,42,index===0?"#75ffe4":"#ffffff");
+ label.position.set(0,2.20,0);label.scale.set(1.70,.44,1);root.add(label);
+ // A small ground-level speed ring instead of a giant transparent halo.
+ const sheen=mesh(new THREE.TorusGeometry(.55,.023,6,28),
+  mat(col,0,.52,{transparent:true,opacity:.07,depthWrite:false,emissive:col,emissiveIntensity:.48}),
+  root,[0,.055,0],[1,1,1],false);
+ sheen.rotation.x=Math.PI/2;
+ return{root,rig,arms,feet,shade,label,sheen,crown,prop,index,
+ name:profiles[index].name,x:0,z:0,y:0,vy:0,stun:0,dash:0,dashCd:0,
+ finished:false,finishTime:0,speed:profiles[index].speed,
+ skill:profiles[index].skill,phase:rand(0,TAU),cool:0,stumbles:0};
+}
+for(let i=0;i<6;i++)racers.push(createCharacter(colors[i],i));
 const originalMascotParts=racers.map(r=>({
  rig:r.rig,arms:r.arms,feet:r.feet,crown:r.crown,prop:r.prop,sheen:r.sheen
 }));
@@ -455,20 +554,7 @@ function selectMascot(index){
 }
 
 
-function addCollectorIdentity(r,i){
- const p=r.rig,matte=h=>mat(h,.065,.30,{clearcoat:.66}),cl=[0x27dccf,0xff795f,0x9b72ff,0xb0f65a,0xffa72e,0x458eff][i];
- const c=matte(cl),accent=matte([0xffdf52,0xffd94f,0xf542b7,0x2bece0,0x3588ff,0x76efff][i]);
- for(let d of [-1,1]){ball(c,p,[d*.48,.8,.055],[.20,.28,.19]);ball(accent,p,[d*.26,.20,-.14],[.23,.14,.28]);}
- soft(accent,p,[0,.70,-.42],[.43,.29,.11]);soft(white,p,[0,.76,-.485],[.33,.07,.035]);
- if(i===0){for(let x of [-.34,.34]){ball(c,p,[x,1.56,0],[.19,.19,.18]);ball(accent,p,[x,1.58,-.09],[.095,.09,.045]);}}
- else if(i===1){for(let x of [-.24,.24]){let ear=ball(c,p,[x,1.79,.015],[.14,.40,.13]);ear.rotation.z=x<0?.15:-.15;ball(accent,p,[x,1.79,-.10],[.07,.28,.027]);}}
- else if(i===2){for(let x of [-.32,.32]){const ear=mesh(new THREE.ConeGeometry(.22,.38,14),accent,p,[x,1.65,.02]);ear.rotation.z=x<0?.17:-.17;}}
- else if(i===3){for(let k=0;k<4;k++)mesh(new THREE.ConeGeometry(.12,.25,12),accent,p,[0,1.72-k*.27,.08+k*.15]);}
- else if(i===4){for(let x of [-.46,.46])ball(c,p,[x,1.41,.09],[.19,.31,.15]);soft(accent,p,[0,1.42,-.39],[.49,.08,.31]);}
- else if(i===5){for(let x of [-.34,.34])ball(glass,p,[x,1.55,.05],[.20,.21,.19]);for(let x of [-.17,.17])ball(glass,p,[x,1.20,-.42],[.14,.18,.06]);}
-}
-for(let i=0;i<racers.length;i++)addCollectorIdentity(racers[i],i);
-
+// Mascots are fully modeled in createCharacter; no redundant accessory layers.
 
 const ROBOT_ASSET="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r180/examples/models/gltf/RobotExpressive/RobotExpressive.glb";
 let modelLoaded=false;
