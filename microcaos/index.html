@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#070f28">
-<title>MICROCAOS — Cinematic Edition V3.5 · 7 juegos AR</title>
+<title>MICROCAOS — Director Edition V3.6 · 7 juegos AR</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -388,7 +388,7 @@ body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172a
    <div class="feature-stages"><span>6 PARTICIPANTES</span><b>→</b><span>4</span><b>→</b><span>3</span><b>→</b><span>🏆</span></div>
    <button id="play" class="primary mainprimary">COMENZAR TORNEO <span>↗</span></button>
   </div>
-  <a class="menu-secondary-link" href="multijugador-cinematico-v35.html" style="display:flex;text-decoration:none;color:#d6fff9;border:1px solid #48e9dba1;background:linear-gradient(110deg,#16485aa9,#102e54b8);font-weight:900">🌐 MULTIJUGADOR ONLINE · 2, 3 O 4 AMIGOS <span>↗</span></a>
+  <a class="menu-secondary-link" href="multijugador-director-v36.html" style="display:flex;text-decoration:none;color:#d6fff9;border:1px solid #48e9dba1;background:linear-gradient(110deg,#16485aa9,#102e54b8);font-weight:900">🌐 MULTIJUGADOR ONLINE · 2, 3 O 4 AMIGOS <span>↗</span></a>
   <button class="menu-secondary-link" data-open-page="modes">🎮 ELEGÍ UNA DE LAS 7 PRUEBAS <span>→</span></button>
   <p class="menu-muted" style="font-size:11px;margin-top:10px">◈ PARA JUGAR EN AR: elegí la prueba en MODOS, tocá «INICIAR AR JUGABLE» y colocá la arena sobre una mesa o en el piso. Compatible con celulares Android que admitan WebXR.</p>
   <button class="menu-secondary-link" data-open-page="characters">✨ Elegir personaje <span id="activeMascotName">VOS</span></button>
@@ -470,10 +470,10 @@ const clock=new THREE.Clock(),scene=new THREE.Scene();scene.fog=new THREE.FogExp
 scene.background=new THREE.Color(0x172b4a);
 const camera=new THREE.PerspectiveCamera(innerWidth/innerHeight<.68?58:42,innerWidth/innerHeight,.01,250);camera.position.set(14,17,26);camera.lookAt(0,0,0);
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:"high-performance"});
-renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.45));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.07;renderer.xr.enabled=true;
+renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.45));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.01;renderer.xr.enabled=true;
 try{const pmrem=new THREE.PMREMGenerator(renderer);const env=new RoomEnvironment();scene.environment=pmrem.fromScene(env,.04).texture;pmrem.dispose();if(env.dispose)env.dispose()}catch(e){console.warn("Studio light fallback",e)}
 $("scene").appendChild(renderer.domElement);
-const hemi=new THREE.HemisphereLight(0xdeffff,0x344574,1.26);scene.add(hemi);
+const hemi=new THREE.HemisphereLight(0xdeffff,0x344574,1.13);scene.add(hemi);
 const key=new THREE.DirectionalLight(0xffffff,2.45);key.position.set(-9,19,12);key.castShadow=true;key.shadow.mapSize.set(innerWidth<700?1024:2048,innerWidth<700?1024:2048);key.shadow.camera.left=-24;key.shadow.camera.right=24;key.shadow.camera.top=24;key.shadow.camera.bottom=-24;key.shadow.camera.near=1;key.shadow.camera.far=70;key.shadow.bias=-.00025;scene.add(key);
 const rim=new THREE.DirectionalLight(0x6dc9ff,1.50);rim.position.set(12,6,-17);scene.add(rim);
 const fill=new THREE.PointLight(0xffab71,37,47);fill.position.set(-9,7,4);scene.add(fill);
@@ -2528,7 +2528,7 @@ function v34AnimateFaces(t,dt){
 // MICROCAOS CINEMATIC ARENA V3.5 — large, unmistakable stage architecture.
 // Compact geometry + one instanced crowd and one instanced LED row per mode.
 // All details sit OUTSIDE playable cells; rules, hitboxes and AR anchoring unchanged.
-const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"3.5"};
+const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"3.6"};
 const v35Ink=new THREE.MeshStandardMaterial({color:0x09132d,metalness:.42,roughness:.36,clearcoat:1});
 const v35Alloy=new THREE.MeshStandardMaterial({color:0x294665,metalness:.72,roughness:.24,clearcoat:.72});
 const v35SeatMaterial=new THREE.MeshStandardMaterial({color:0xffffff,metalness:.12,roughness:.35,clearcoat:.6});
@@ -2596,7 +2596,62 @@ for(const [name,meta] of Object.entries(V33_PRESETS)){
    const cap=ball(v35LightMat,pylon,[0,2.04,0],[.19,.19,.19]);cap.castShadow=false;
  }
 }
-// Subtle oversized concentric stage halos visible only in the normal 3D viewer.
+
+// V3.6 DIRECTOR ARENA: substantial modular 3D venue, entirely decorative.
+const v36Iron=new THREE.MeshStandardMaterial({color:0x13223d,metalness:.58,roughness:.37});
+const v36Metal=new THREE.MeshStandardMaterial({color:0x7087a5,metalness:.75,roughness:.30});
+const v36Black=new THREE.MeshStandardMaterial({color:0x080e22,metalness:.28,roughness:.48});
+const v36SpectatorMat=new THREE.MeshStandardMaterial({color:0xffffff,metalness:.04,roughness:.57});
+const v36SpectatorGeo=new THREE.CapsuleGeometry(.16,.29,3,7);
+const v36Venues={};
+for(const [name,meta] of Object.entries(V33_PRESETS)){
+ const parent=v35.kits[name];if(!parent)continue;
+ const venue=new THREE.Group();venue.name="V3.6 BROADCAST VENUE "+name;parent.add(venue);v36Venues[name]=venue;
+ const accent=new THREE.MeshBasicMaterial({color:meta.color,toneMapped:false});
+ const wide=meta.x*2+1.43,long=meta.z*2+1.54;
+ // Physical depth: weighty three-layer floor deck instead of a flat floating sheet.
+ soft(v36Black,venue,[0,-1.02,0],[wide,.34,long]);
+ soft(v36Iron,venue,[0,-.82,0],[wide-.18,.16,long-.18]);
+ soft(v36Metal,venue,[0,-.725,0],[wide-.38,.039,long-.38],false);
+ soft(v36Iron,venue,[0,-.69,0],[wide-.50,.05,long-.50],false);
+ for(const side of [-1,1]){
+   // Encased LED signage: short strips recessed in a solid wall, never transparent rails.
+   soft(v36Iron,venue,[side*(meta.x+.42),-.15,0],[.37,.82,meta.z*1.88]);
+   soft(v36Metal,venue,[side*(meta.x+.44),-.56,0],[.22,.07,meta.z*1.80],false);
+   const sections=name==="race"?9:5;
+   for(let n=0;n<sections;n++){
+      const z=(-.5+(n+.5)/sections)*meta.z*1.72;
+      soft(v36Black,venue,[side*(meta.x+.625),.03,z],[.08,.31,Math.max(.25,meta.z*1.64/sections-.18)],false);
+      soft(accent,venue,[side*(meta.x+.672),-.13,z],[.045,.058,Math.max(.16,meta.z*1.43/sections-.22)],false);
+   }
+   // Spectator terraces give a readable human scale; one instanced mesh per side.
+   soft(v36Iron,venue,[side*(meta.x+.88),.22,0],[.83,.25,meta.z*1.55]);
+   soft(v36Metal,venue,[side*(meta.x+.94),.39,0],[.80,.07,meta.z*1.52],false);
+   const number=name==="race"?24:12,group=new THREE.InstancedMesh(v36SpectatorGeo,v36SpectatorMat,number);
+   group.castShadow=false;group.receiveShadow=false;venue.add(group);
+   const walker=new THREE.Object3D(),palette=[0xffd36b,0x4cf5e1,0xff639f,0xab93ff,0xd7fcff];
+   for(let n=0;n<number;n++){
+      walker.position.set(side*(meta.x+.94),.77,-meta.z*.72+(n+.5)*meta.z*1.44/number);
+      walker.rotation.set(0,side*Math.PI/2,(n%3-1)*.08);
+      walker.scale.setScalar(.80+(n%4)*.05);walker.updateMatrix();
+      group.setMatrixAt(n,walker.matrix);
+      group.setColorAt(n,new THREE.Color(palette[(n+(side+1)*2)%palette.length]));
+   }
+   group.instanceMatrix.needsUpdate=true;group.instanceColor.needsUpdate=true;
+   // Studio pillars connect physically to the back wall (no floating neon beams).
+   const z=-meta.z-.91;
+   soft(v36Iron,venue,[side*(meta.x+.60),.74,z],[.57,1.54,.66]);
+   soft(accent,venue,[side*(meta.x+.60),1.53,z],[.62,.092,.72],false);
+   ball(v35LightMat,venue,[side*(meta.x+.60),1.76,z],[.16,.16,.16]).castShadow=false;
+ }
+ for(let tier=0;tier<3;tier++){
+   const z=-meta.z-1.55-tier*.50;
+   soft(v36Iron,venue,[0,.34+tier*.27,z],[meta.x*1.80,.26,.56]);
+   soft(v36Metal,venue,[0,.49+tier*.27,z+.06],[meta.x*1.78,.052,.41],false);
+ }
+}
+
+// Former exterior halos retired (not rendered).
 
 // Cinematic studio cyclorama: atmospheric focus without heavy postprocessing.
 const v35BackdropCanvas=document.createElement("canvas");
@@ -2633,7 +2688,7 @@ for(const radius of [10.5,15.5,22]){
  ring.rotation.x=-Math.PI/2;ring.position.y=-2.0;v35Backdrop.add(ring);
 }
 function v35UpdateStage(t){
- v35Backdrop.visible=mode==="preview"&&phase!=="intro";
+ v35Backdrop.visible=false; // The V3.5 rings crossed outside the stage.
  v35Backdrop.position.set(0,0,0);
  const next=Math.floor(t/190);
  if(v35.ledTick!==next){
@@ -2656,8 +2711,9 @@ function v35ApplyArt(){
  for(const [name,kit]of Object.entries(v35.kits))kit.visible=name==="race"?currentMode==="race":true;
  v35.mode=currentMode;
 }
+window.__microcaosDirectorQA=()=>({version:"3.6",venues:Object.keys(v36Venues),sevenScenes:Object.keys(v36Venues).length===7,mode:currentMode,webxr:renderer.xr.isPresenting,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,unchangedARScale:true});
 window.__microcaosCinematicQA=()=>({
- version:"3.5",mode:currentMode,studio:!!v35Backdrop.visible,
+ version:"3.6",mode:currentMode,studio:!!v35Backdrop.visible,
  arenas:Object.keys(v35.kits),onScreenArenaZoom:v35.zoom,
  audienceModels:30,signatureMascots:6,webxr:renderer.xr.isPresenting,
  sceneDrawCalls:renderer.info.render.calls,sceneTriangles:renderer.info.render.triangles
@@ -3438,6 +3494,46 @@ let physicsAccumulator=0,physicsTime=0;
 let dragPointerId=null,dragSteeringActive=false,dragLastX=0,dragLastY=0,dragTargetX=0,dragTargetZ=0,steerZ=0;
 const FIXED_DT=1/60;
 function smoothFactor(rate,seconds){return 1-Math.exp(-rate*seconds)}
+
+function v36UpdateCamera(dt){
+ const player=racers[0];
+ const active=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";
+ const portrait=innerHeight>innerWidth;
+ const aim=new THREE.Vector3();
+ if(active&&currentMode==="race"){
+   aim.x=clamp(player.x*.17,-.7,.7);
+   aim.z=clamp(player.z-2.35,-11,9.4);
+ }else if(active&&currentMode==="territory"){
+   aim.x=clamp(player.x*.77,-TERRITORY_HALF_X*.78,TERRITORY_HALF_X*.78);
+   aim.z=clamp(player.z*.75,-TERRITORY_HALF_Z*.78,TERRITORY_HALF_Z*.78);
+ }else if(active&&["tag","gems","survival"].includes(currentMode)){
+   aim.x=clamp(player.x*.36,-2.1,2.1);
+   aim.z=clamp(player.z*.38,-2.5,2.5);
+ }
+ previewTarget.lerp(aim,smoothFactor(7.6,dt));
+ const table={
+   race:portrait?[8.5,10.6,15.3]:[9.1,9.8,15.6],
+   tag:portrait?[6.5,9.6,11.7]:[6.2,8.5,10.7],
+   gems:portrait?[6.5,9.6,11.7]:[6.2,8.5,10.7],
+   survival:portrait?[6.5,9.6,11.7]:[6.2,8.5,10.7],
+   territory:portrait?[0,25.4,17.0]:[8.7,17.7,17.2],
+   colorcrash:portrait?[1.1,20.0,14.2]:[5.5,15.6,14.7],
+   ballistix:portrait?[0,20.0,10.5]:[0,15.6,9.6]
+ };
+ const o=table[currentMode]||table.race;
+ const spread=active?1:1.115;
+ const end=new THREE.Vector3(previewTarget.x+o[0]*spread,o[1]*spread,previewTarget.z+o[2]*spread);
+ camera.position.lerp(end,smoothFactor(7.7,dt));
+ if(cameraShake>.002){
+   cameraShake*=Math.max(0,1-dt*8);
+   camera.position.x+=(Math.random()-.5)*cameraShake;
+   camera.position.y+=(Math.random()-.5)*cameraShake;
+ }
+ camera.lookAt(previewTarget.x,currentMode==="race"&&active?Math.min(.24,player.y*.14):.12,
+    previewTarget.z-(currentMode==="race"&&active?1.45:currentMode==="colorcrash"?.3:0));
+ v35.zoom=Number((1/spread).toFixed(3));
+}
+
 function physicsTick(frameDt){
   // Run deterministic fixed-size physics steps. Handles 30/60/90 fps consistently.
   // Avoid simulating a long frozen background tab with a single giant jump.
@@ -3479,13 +3575,13 @@ function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;
  }
  v34AnimateFaces(t,dt);
  // Art-only multiplier: larger readable characters; physics remain untouched.
- const v35MascotScale=mode==="ar"?1.07:1.23;
+ const v35MascotScale=mode==="ar"?1.09:1.37;
  for(const r of racers){
   const visual=r.rig?.userData?.v35Body;
-  if(visual)visual.scale.setScalar(v35MascotScale);
+  if(visual)visual.scale.setScalar(mode==="ar"?v35MascotScale:r.index===0?1.46:v35MascotScale);
  }
  $("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
-if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=currentMode==="territory"&&follow?new THREE.Vector3(clamp(p.x*.72,-TERRITORY_HALF_X*.72,TERRITORY_HALF_X*.72),0,clamp(p.z*.70,-TERRITORY_HALF_Z*.70,TERRITORY_HALF_Z*.70)):new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,20.5,9.4):new THREE.Vector3(0,16.1,9.2)):currentMode==="territory"&&follow?(portrait?new THREE.Vector3(previewTarget.x,30,previewTarget.z+22):new THREE.Vector3(previewTarget.x+10.7,20.3,previewTarget.z+20.5)):currentMode==="colorcrash"&&follow?(portrait?new THREE.Vector3(0,21.5,15):new THREE.Vector3(7.1,16.7,16.6)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.5,11.6,12.4):new THREE.Vector3(8.2,10.7,11.9)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:currentMode==="colorcrash"?1.20:0))}
+if(mode==="preview"||mode==="camera")v36UpdateCamera(dt);
 if(mode==="ar"&&frame&&session){if(!hitRequested&&performance.now()-arLastHitAttempt>2100){hitRequested=true;arLastHitAttempt=performance.now();const origin=session;session.requestReferenceSpace("viewer").then(viewer=>origin.requestHitTestSource({space:viewer})).then(source=>{if(session===origin)hitSource=source;else source?.cancel?.()}).catch(error=>{hitRequested=false;console.warn("XR hit-test",error);$("notice").textContent="No pude detectar superficies todavía. Reintentando…"})}if(hitSource&&!placed){const results=frame.getHitTestResults(hitSource);if(results.length){let pose=results[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;const m=new THREE.Matrix4().fromArray(pose.transform.matrix);reticle.position.setFromMatrixPosition(m);reticle.quaternion.setFromRotationMatrix(m);
  const normal=new THREE.Vector3(0,1,0).applyQuaternion(reticle.quaternion);
  reticle.visible=normal.y>.77;
