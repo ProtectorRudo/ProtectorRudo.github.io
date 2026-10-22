@@ -234,3 +234,6 @@ export default {
   // Contact opt-out hashes are intentionally retained so we don't contact opted-out people.
  }
 };
+
+// Named export only for isolated unit tests. Production HTTP surface remains default.fetch.
+export const __test={receiveMessage,applyMessageState};
