@@ -810,8 +810,8 @@ function v40GetClip(r,state){
  if(!keys.length)return null;
  const norm=n=>n.toLowerCase().replace(/[^a-z0-9]+/g,"_");
  for(const wanted of names){const match=keys.find(k=>norm(k)===wanted||norm(k).endsWith("_"+wanted));if(match)return match}
- for(const wanted of names){const match=keys.find(k=>norm(k).includes(wanted));if(match)return match}
- return state==="Idle"?keys[0]:v40GetClip(r,"Idle");
+ for(const wanted of names){if(wanted.length<4)continue;const match=keys.find(k=>norm(k).includes(wanted));if(match)return match}
+ return state==="Idle"?keys[0]:state==="Jump"?v40GetClip(r,"Run"):v40GetClip(r,"Idle");
 }
 function useAnimation(r,state){
  if(!r?.mixer||!r?.actions)return;
@@ -839,6 +839,15 @@ function v40UpdateAnimations(t,dt){
   const noTravel=!info.clips.some(c=>/run|walk|fly/i.test(c));
   info.model.position.y=info.model.userData.restY+(moving&&noTravel?Math.abs(Math.sin(t*.0105+r.phase))*.12:0);
   info.model.rotation.z=moving&&noTravel?Math.sin(t*.008+r.phase)*.042:0;
+  // For creatures that shipped without a running clip, articulate the actual
+  // skinned legs and wings after AnimationMixer updates their idle pose.
+  if(moving&&noTravel){
+   const b=info.bones||{},stride=Math.sin(t*.013+r.phase);
+   if(b.legLeft?.isBone)b.legLeft.rotation.x+=stride*.30;
+   if(b.legRight?.isBone)b.legRight.rotation.x-=stride*.30;
+   if(b.wingLeft?.isBone)b.wingLeft.rotation.z+=Math.sin(t*.017+r.phase)*.24;
+   if(b.wingRight?.isBone)b.wingRight.rotation.z-=Math.sin(t*.017+r.phase)*.24;
+  }
  }
 }
 
@@ -939,7 +948,13 @@ function v37InstallCharacter(index,gltf){
  rig.add(model);
  const hidden=rig.userData.v35Body;
  if(hidden)hidden.visible=false;
- rig.userData.premiumCharacter={model,mixer,actions,clips:clips.map(c=>c.name),index};
+ rig.userData.premiumCharacter={model,mixer,actions,clips:clips.map(c=>c.name),index,
+   bones:{
+    legLeft:model.getObjectByName("UpperLeg.L"),
+    legRight:model.getObjectByName("UpperLeg.R"),
+    wingLeft:model.getObjectByName("Wing1.L"),
+    wingRight:model.getObjectByName("Wing1.R")
+   }};
  v37CharacterState.loaded++;
  return true;
 }
