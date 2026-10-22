@@ -351,7 +351,7 @@ body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172a
  <button id="arRotate" type="button" aria-label="Girar arena">↻</button>
  </div>
  <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V4.0</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V4.1</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -388,7 +388,7 @@ body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172a
    <div class="feature-stages"><span>6 PARTICIPANTES</span><b>→</b><span>4</span><b>→</b><span>3</span><b>→</b><span>🏆</span></div>
    <button id="play" class="primary mainprimary">COMENZAR TORNEO <span>↗</span></button>
   </div>
-  <a class="menu-secondary-link" href="multijugador-monsters-v40.html" style="display:flex;text-decoration:none;color:#d6fff9;border:1px solid #48e9dba1;background:linear-gradient(110deg,#16485aa9,#102e54b8);font-weight:900">🌐 MULTIJUGADOR ONLINE · 2, 3 O 4 AMIGOS <span>↗</span></a>
+  <a class="menu-secondary-link" href="multijugador-monsters-v41.html" style="display:flex;text-decoration:none;color:#d6fff9;border:1px solid #48e9dba1;background:linear-gradient(110deg,#16485aa9,#102e54b8);font-weight:900">🌐 MULTIJUGADOR ONLINE · 2, 3 O 4 AMIGOS <span>↗</span></a>
   <button class="menu-secondary-link" data-open-page="modes">🎮 ELEGÍ UNA DE LAS 7 PRUEBAS <span>→</span></button>
   <p class="menu-muted" style="font-size:11px;margin-top:10px">◈ PARA JUGAR EN AR: elegí la prueba en MODOS, tocá «INICIAR AR JUGABLE» y colocá la arena sobre una mesa o en el piso. Compatible con celulares Android que admitan WebXR.</p>
   <button class="menu-secondary-link" data-open-page="characters">✨ Elegir personaje <span id="activeMascotName">VOS</span></button>
@@ -412,7 +412,7 @@ body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172a
   <div class="menu-section-title">TU PERSONAJE</div>
   <p class="menu-muted">Elegí quién te representa durante todas las pruebas del torneo.</p>
   <div class="mascot-picker" id="mascotPicker">
-   <button class="mascot-option selected" data-mascot="0"><span style="--c:#29f5df">👻</span><b>MOMO</b><small>Fantasma</small></button>
+   <button class="mascot-option selected" data-mascot="0"><span style="--c:#29f5df">🐰</span><b>MOMO</b><small>Conejo</small></button>
    <button class="mascot-option" data-mascot="1"><span style="--c:#ff604d">🐲</span><b>POP</b><small>Dragón</small></button>
    <button class="mascot-option" data-mascot="2"><span style="--c:#8b59ff">🟢</span><b>NIX</b><small>Slime</small></button>
    <button class="mascot-option" data-mascot="3"><span style="--c:#a4ff3f">😈</span><b>BOOM</b><small>Demonio</small></button>
@@ -464,6 +464,7 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.m
 import { RoundedBoxGeometry } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { RoomEnvironment } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/environments/RoomEnvironment.js";
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/libs/meshopt_decoder.module.js";
 import { clone as cloneRig } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/utils/SkeletonUtils.js";
 const $=id=>document.getElementById(id),TAU=Math.PI*2,rand=(a,b)=>a+Math.random()*(b-a),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const clock=new THREE.Clock(),scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x142542,.009);
@@ -906,7 +907,7 @@ function initCharacterModels(){
 // Optimized CC0 KayKit adventurers (re-exported by tactical-slash).
 // Keep the procedural originals hidden as a resilient offline fallback.
 const V37_HERO_ASSETS=[
- "assets/monsters/ghost.glb",
+ "assets/monsters/bunny.glb",
  "assets/monsters/dragon.glb",
  "assets/monsters/slime.glb",
  "assets/monsters/demon.glb",
@@ -918,7 +919,7 @@ function v37BindCharacterAnims(){
  for(const r of racers){
    const entry=r.rig.userData.premiumCharacter;
    if(!entry)continue;
-   r.mixer=entry.mixer;r.actions=entry.actions;
+   r.mixer=entry.mixer;r.actions=entry.actions;r.bodyRadius=entry.bodyRadius;
    r.animationName="";
    useAnimation(r,"Idle");
  }
@@ -930,7 +931,12 @@ function v37InstallCharacter(index,gltf){
  const bounds=new THREE.Box3().setFromObject(model);
  const dimensions=bounds.getSize(new THREE.Vector3());
  if(!Number.isFinite(dimensions.y)||dimensions.y<.1)return false;
- const fit=2.12/dimensions.y;
+ // Physically normalize by height, width AND depth.
+ const fit=Math.min(1.70/Math.max(dimensions.y,.001),
+                    1.03/Math.max(dimensions.x,.001),
+                    1.03/Math.max(dimensions.z,.001));
+ const visualWidth=dimensions.x*fit,visualDepth=dimensions.z*fit;
+ const bodyRadius=Math.min(.64,Math.max(.45,Math.max(visualWidth,visualDepth)*.5+.12));
  model.scale.setScalar(fit);
  model.position.set(-(bounds.min.x+bounds.max.x)*.5*fit,-bounds.min.y*fit,-(bounds.min.z+bounds.max.z)*.5*fit);
  // Preserve original Quaternius texture colors and authored rigs.
@@ -948,7 +954,7 @@ function v37InstallCharacter(index,gltf){
  rig.add(model);
  const hidden=rig.userData.v35Body;
  if(hidden)hidden.visible=false;
- rig.userData.premiumCharacter={model,mixer,actions,clips:clips.map(c=>c.name),index,
+ rig.userData.premiumCharacter={model,mixer,actions,clips:clips.map(c=>c.name),index,bodyRadius,visualWidth,visualDepth,
    bones:{
     legLeft:model.getObjectByName("UpperLeg.L"),
     legRight:model.getObjectByName("UpperLeg.R"),
@@ -959,7 +965,7 @@ function v37InstallCharacter(index,gltf){
  return true;
 }
 async function v37LoadCharacters(){
- const loader=new GLTFLoader(),state=v37CharacterState;
+ const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder),state=v37CharacterState;
  state.loaded=0;state.failed=0;state.ready=false;state.errors=[];
  $("modelstatus").textContent="CARGANDO MONSTRUOS 3D · 0/6";
  const loaded=await Promise.allSettled(V37_HERO_ASSETS.map(url=>loader.loadAsync(url)));
@@ -977,7 +983,7 @@ async function v37LoadCharacters(){
   $("notice").textContent="⚠ No cargaron todos los monstruos. Actualizá la página para reintentar.";
   $("notice").classList.add("show");
  }
- window.__microcaosHeroQA=()=>({version:"4.0",ready:state.ready,loaded:state.loaded,failed:state.failed,errors:state.errors,source:state.source,assets:V37_HERO_ASSETS,clips:racers.map(r=>r.rig.userData.premiumCharacter?.clips||[])});
+ window.__microcaosHeroQA=()=>({version:"4.1",ready:state.ready,loaded:state.loaded,failed:state.failed,errors:state.errors,source:state.source,assets:V37_HERO_ASSETS,characters:racers.map(r=>{const q=r.rig?.userData?.premiumCharacter;return q?{index:q.index,radius:q.bodyRadius,width:q.visualWidth,depth:q.visualDepth,clips:q.clips}:null})});
 }
  v37LoadCharacters().catch(error=>{console.warn("Premium characters unavailable",error)});
 
@@ -2715,7 +2721,7 @@ function v34AnimateFaces(t,dt){
 // MICROCAOS CINEMATIC ARENA V3.5 — large, unmistakable stage architecture.
 // Compact geometry + one instanced crowd and one instanced LED row per mode.
 // All details sit OUTSIDE playable cells; rules, hitboxes and AR anchoring unchanged.
-const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"4.0"};
+const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"4.1"};
 const v35Ink=new THREE.MeshStandardMaterial({color:0x09132d,metalness:.42,roughness:.36,clearcoat:1});
 const v35Alloy=new THREE.MeshStandardMaterial({color:0x294665,metalness:.72,roughness:.24,clearcoat:.72});
 const v35SeatMaterial=new THREE.MeshStandardMaterial({color:0xffffff,metalness:.12,roughness:.35,clearcoat:.6});
@@ -2898,8 +2904,8 @@ function v35ApplyArt(){
  for(const [name,kit]of Object.entries(v35.kits))kit.visible=name==="race"?currentMode==="race":name==="ballistix"?false:true; // V3.7 custom venue owns Ballistix
  v35.mode=currentMode;
 }
-window.__microcaosV38QA=()=>({version:"4.0",uniqueModels:new Set(V37_HERO_ASSETS).size,modelCount:V37_HERO_ASSETS.length,loaded:v37CharacterState.loaded,beaconReady:!!v38Beacon,localSlot:typeof mp!=="undefined"&&mp.active?mp.slot:0,mode:currentMode,ar:renderer.xr.enabled});
-window.__microcaosStartQA=()=>({version:"4.0",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
+window.__microcaosV38QA=()=>({version:"4.1",uniqueModels:new Set(V37_HERO_ASSETS).size,modelCount:V37_HERO_ASSETS.length,loaded:v37CharacterState.loaded,beaconReady:!!v38Beacon,localSlot:typeof mp!=="undefined"&&mp.active?mp.slot:0,mode:currentMode,ar:renderer.xr.enabled});
+window.__microcaosStartQA=()=>({version:"4.1",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
 window.__microcaosV37QA=()=>({version:"3.7",characterSource:v37CharacterState.source,loadedHeroes:v37CharacterState.loaded,arena:!!ballArena,impulseCooldown:1.95,impulseCharges:"infinite",sevenModes:Object.keys(MINI_MODES).length,arKept:!!renderer.xr.enabled});
 window.__microcaosDirectorQA=()=>({raceFloorIsolated:currentMode==="race"||!raceFloor.visible,version:"3.7",venues:Object.keys(v36Venues),sevenScenes:Object.keys(v36Venues).length===7,mode:currentMode,webxr:renderer.xr.isPresenting,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,unchangedARScale:true});
 window.__microcaosCinematicQA=()=>({
@@ -3683,13 +3689,17 @@ function separateRacers(dt){
  // Pairwise disc collisions, solved in simulation rather than rendering.
  // Guests receive corrected host positions via multiplayer snapshots.
  if(currentMode==="ballistix")return;
- const minDist=currentMode==="race"?.89:currentMode==="territory"?.83:1.02;
+ const modeRadiusFactor=currentMode==="race"?.93:currentMode==="territory"?.92:1;
  const active=activeRacers().filter(r=>!r.finished&&r.root.visible&&r.y<.62);
  const maxX=currentMode==="territory"?TERRITORY_HALF_X:currentMode==="colorcrash"?CC_HALF_X-.38:currentMode==="race"?3.38:4.25;
  const maxZ=currentMode==="territory"?TERRITORY_HALF_Z:currentMode==="colorcrash"?CC_HALF_Z-.40:currentMode==="race"?13.08:5.85;
- for(let pass=0;pass<3;pass++){
+ for(let pass=0;pass<5;pass++){
   for(let i=0;i<active.length;i++)for(let j=i+1;j<active.length;j++){
-   const a=active[i],b=active[j];let dx=b.x-a.x,dz=b.z-a.z;
+   const a=active[i],b=active[j];
+   const ra=a.rig?.userData?.premiumCharacter?.bodyRadius??.53;
+   const rb=b.rig?.userData?.premiumCharacter?.bodyRadius??.53;
+   const minDist=(ra+rb)*modeRadiusFactor;
+   let dx=b.x-a.x,dz=b.z-a.z;
    let dist=Math.hypot(dx,dz);if(dist>=minDist)continue;
    if(dist<.0001){const angle=(a.index*7+b.index*11)*2.39996;dx=Math.cos(angle)*.001;dz=Math.sin(angle)*.001;dist=.001}
    const nx=dx/dist,nz=dz/dist,push=(minDist-dist)*.505;
