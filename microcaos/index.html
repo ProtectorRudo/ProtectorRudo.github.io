@@ -119,6 +119,42 @@ body.ballistix-mode .dash.cooldown{filter:saturate(.5)!important}
 body.ballistix-mode .ball-score.out{filter:saturate(.25)!important;opacity:.38!important}
 @media(prefers-reduced-motion:reduce){body.ballistix-mode .jump.ballistix-pulse-ready{animation:none!important}}
 
+
+/* V2.0 GAME SHELL: responsive app-like menu, not a splash screen */
+.menu-home-button{border:1px solid #5afee489!important;background:#132656dd!important;color:#acfff8!important;font-size:23px!important}
+.premium-menu{max-height:min(92dvh,860px)!important;overflow-y:auto!important;overscroll-behavior:contain!important;scrollbar-width:thin;scrollbar-color:#38e7ed58 transparent;background:linear-gradient(156deg,#11264aef,#0a1333f7 65%,#150f39f6)!important;border:1px solid #7a8fff54!important;box-shadow:0 25px 90px #03071ad6,0 0 70px #472fa535!important;padding:25px 22px 19px!important}
+.menu-eyebrow{font:900 11px Outfit,sans-serif;letter-spacing:.21em;color:#56f5e5;margin-bottom:12px}
+.menu-title{font:900 clamp(32px,7vw,48px)/.99 Outfit,sans-serif;letter-spacing:-.055em;color:#fff;margin:0 0 10px}.menu-title span{color:#40ffe0;text-shadow:0 0 19px #16dab76b}
+.menu-description{color:#c4d8ef;font-size:13px;line-height:1.48;margin:4px 0 19px}
+.menu-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;border-radius:15px;background:#09162dbd;padding:5px;margin-bottom:16px}
+.menu-tab{border:0;border-radius:10px;padding:11px 2px;background:transparent;color:#a1bdd6;font:900 clamp(9px,2.45vw,11px) Outfit,sans-serif;cursor:pointer}
+.menu-tab.active{background:linear-gradient(120deg,#1a5c83,#283e9a);box-shadow:0 2px 12px #04d0e526;color:white}
+.menu-page{display:none;animation:page-slide .24s ease}.menu-page.active{display:block}.menu-page[hidden]{display:none!important}
+@keyframes page-slide{from{opacity:.65;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.menu-feature{padding:18px;border:1px solid #42dff47e;border-radius:21px;background:radial-gradient(circle at 82% 0%,#267cbd48,transparent 43%),linear-gradient(145deg,#122d56,#0b1740);box-shadow:inset 0 1px #b4ffff20,0 12px 30px #0209204c}
+.feature-overline{color:#70ffeb;font:900 10px Outfit;letter-spacing:.1em;margin-bottom:9px}
+.feature-title{font:900 clamp(21px,5vw,28px) Outfit;letter-spacing:-.04em;color:#f6ffff}
+.menu-feature p{font-size:13px;line-height:1.45;color:#b6cfe7;margin:9px 0}
+.feature-stages{display:flex;justify-content:space-between;align-items:center;gap:3px;font:900 10px Outfit;color:#dbf6ff;margin:15px 0}.feature-stages span{padding:7px 6px;background:#254a7cba;border:1px solid #63d4e95e;border-radius:8px}.feature-stages b{color:#61ffe7}
+.menu-feature .primary,.menu-page>.primary{width:100%;font-size:13px!important;min-height:52px!important}
+.menu-secondary-link{width:100%;display:flex;justify-content:space-between;align-items:center;margin-top:10px;background:#132b52ba;border:1px solid #647db065;border-radius:13px;padding:13px 14px;color:#edfbff;font:800 12px Outfit;cursor:pointer}.menu-secondary-link span{color:#56ffe2}
+.menu-section-title{font:900 19px Outfit;color:#fff;margin:5px 0}.menu-muted{font-size:12px;line-height:1.45;color:#b4c9e3;margin:6px 0 14px}
+.mode-picker{display:grid;grid-template-columns:1fr;gap:7px;margin-bottom:13px}
+.mode-option{border:1px solid #4c6e9677;background:#12294be1;text-align:left;padding:11px 13px;border-radius:13px;color:white;display:flex;flex-direction:column;gap:4px;cursor:pointer}
+.mode-option b{font:900 13px Outfit}.mode-option small{color:#a9c4dc;font:600 11px DM Sans}.mode-option.selected{border-color:#4fffe5;background:linear-gradient(125deg,#145b70,#152f63);box-shadow:0 0 15px #26ffd326}
+.mascot-picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:13px}
+.mascot-option{border:1px solid #526b996b;border-radius:14px;background:linear-gradient(165deg,#1d3056,#111b36);padding:11px 5px;display:flex;flex-direction:column;align-items:center;gap:4px;color:#fff;cursor:pointer}
+.mascot-option span{display:grid;place-items:center;width:48px;height:48px;border-radius:16px;font-size:26px;background:linear-gradient(145deg,var(--c),#112042);box-shadow:0 0 15px color-mix(in srgb,var(--c) 45%,transparent)}
+.mascot-option b{font:900 12px Outfit}.mascot-option small{color:#b8cde7;font-size:10px}.mascot-option.selected{border:2px solid #66ffe4;background:linear-gradient(145deg,#125c6c,#212456);box-shadow:0 0 16px #23e6e53c}
+.selected-character-note{color:#7affea;font:800 12px Outfit;margin-bottom:15px}
+.setting-line{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid #566e9b5c;border-radius:13px;background:#102546d7;padding:13px;margin:9px 0}
+.setting-line>div{display:flex;flex-direction:column;gap:4px}.setting-line b{font:800 13px Outfit}.setting-line small{font:600 11px DM Sans;color:#a7bdd8;line-height:1.3}.setting-line select{max-width:120px;background:#152f60;color:white;border:1px solid #6dd9fa88;border-radius:8px;padding:8px 5px;font-size:11px}.setting-line input[type="checkbox"]{appearance:auto;accent-color:#2af2d3;width:24px;height:24px;flex:none}
+.menu-footer{display:flex;justify-content:center;gap:18px;margin-top:18px;border-top:1px solid #48638955;padding-top:13px}.menu-footer a,.menu-footer button{color:#a5d8f6;background:none;border:0;font:700 10px Outfit;text-decoration:none;cursor:pointer}
+.premium-menu .ar-device{margin-top:8px!important;text-align:center;font-size:10px!important}.premium-menu .hint{font-size:10px!important}
+.result-menu-btn{display:block;width:100%;margin-top:10px;border:1px solid #78e4ed6e;background:#112747df;color:#cdfcf7;font:900 12px Outfit;border-radius:13px;padding:12px;cursor:pointer}
+.auto-round{min-height:19px;color:#92ffec;font:800 11px Outfit;text-align:center;margin-top:9px}
+@media(max-height:780px){.premium-menu{padding:17px!important}.menu-description{margin-bottom:10px}.menu-tabs{margin-bottom:9px}.menu-feature{padding:13px}.menu-title{font-size:35px}}
+
 </style>
 </head>
 <body>
@@ -126,22 +162,73 @@ body.ballistix-mode .ball-score.out{filter:saturate(.25)!important;opacity:.38!i
 <div id="scene"></div>
 <div id="ui">
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · NEÓN V1.6</div></div></div>
-<div class="topright"><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · PREMIUM V2.0</div></div></div>
+<div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
 <div class="speedtrails" id="speedtrails"></div><div class="stagebanner" id="stagebanner">RONDA SORPRESA</div><div id="miniObjective" class="mini-objective">¡PREPARADOS!</div><div id="ballScoreboard" class="ball-scoreboard" aria-live="off"></div><button id="ballRestart" type="button" class="ball-restart" aria-label="Reiniciar Ballistix" title="Reiniciar Ballistix">↻</button><div class="raceprogress" id="progress"><div class="bar" id="progressBar"></div></div>
 <div class="toast" id="toast">¡PREPARADOS!</div><div id="skillToast" class="skilltoast"></div><div id="obstacleHint" class="obstacle-hint">↥ ¡SALTÁ AHORA!</div><div class="rushHud" id="rushHud">⚡ RITMO ×<span id="rushValue">1</span></div><div class="pickupCounter" id="pickupCounter">✦ <span id="pickupValue">0</span></div>
 <div id="notice"></div><button id="placeArena" class="primary ar-place" style="display:none">✓ COLOCAR PISTA AQUÍ</button><div id="arHelp" class="ar-help" style="display:none"><div class="ar-help-box"><div class="ar-help-icon">◈</div><h2 id="arHelpTitle">Realidad aumentada</h2><p id="arHelpText"></p><a class="primary ar-fallback" id="arHelpNative" href="ar.html">◈ ABRIR VISOR AR ANDROID ↗</a><button class="secondary ar-fallback2" id="arHelp3D">JUGAR EN 3D SIN CÁMARA</button><button class="ar-dismiss" id="arHelpClose">CERRAR</button></div></div>
 <div class="modalshade" id="intro">
-<div class="sheet">
-<div class="eyebrow"><i></i> UN MUNDO CHIQUITO · UN CAOS GIGANTE</div>
-<h1 class="hero">Tres pruebas.<br><strong>Máximo caos.</strong></h1>
-<p class="sub">Cada torneo es distinto: mancha con la pesa, gemas y supervivencia. ¡Con 4 clasificados llega BALLISTIX, la batalla de pelotas y arcos!</p>
-<button id="play" class="primary mainprimary">🎲 JUGAR TORNEO SORPRESA <span>↗</span></button><button id="tryBallistix" class="ball-practice">⚽ PROBAR BALLISTIX · 4 JUGADORES <span>↗</span></button>
-<div class="more"><a id="nativeAR" class="secondary" href="ar.html">◈ VER ESTADIO AR</a><button id="ar" class="secondary">PROBAR AR JUGABLE · BETA</button><button id="cam" class="secondary" style="display:none" aria-hidden="<span class="hp-track"><span style="width:'+(ballHealth[k]/(k===0?10:7)*100)+'%"></span></span></div>').join("");">◎ DEMO DE CÁMARA</button></div>
-<div id="arDevice" class="ar-device">Comprobando compatibilidad AR...</div>
-<div class="hint" id="gamehint">TORNEO SORPRESA · SEMIFINAL BALLISTIX DE 4 · GRAN FINAL</div>
+<div class="sheet premium-menu">
+ <div class="menu-eyebrow">✦ MICROCAOS PARTY GAMES</div>
+ <h1 class="menu-title">Pequeños héroes.<br><span>Caos gigante.</span></h1>
+ <p class="menu-description">Competí, sobreviví y ganá. Cada prueba tiene un objetivo diferente.</p>
+ <nav class="menu-tabs" aria-label="Secciones del juego">
+  <button class="menu-tab active" data-menu-tab="home">JUGAR</button>
+  <button class="menu-tab" data-menu-tab="modes">MODOS</button>
+  <button class="menu-tab" data-menu-tab="characters">PERSONAJES</button>
+  <button class="menu-tab" data-menu-tab="settings">AJUSTES</button>
+ </nav>
+ <section class="menu-page active" data-menu-page="home">
+  <div class="menu-feature">
+   <div class="feature-overline">🏆 MODO PRINCIPAL · 3 RONDAS</div>
+   <div class="feature-title">TORNEO SORPRESA</div>
+   <p>6 participantes, después 4, después 3. Los clasificados pasan automáticamente. Ballistix es la semifinal.</p>
+   <div class="feature-stages"><span>6 PARTICIPANTES</span><b>→</b><span>4</span><b>→</b><span>3</span><b>→</b><span>🏆</span></div>
+   <button id="play" class="primary mainprimary">COMENZAR TORNEO <span>↗</span></button>
+  </div>
+  <button class="menu-secondary-link" data-open-page="modes">🎮 Partida individual · elegir prueba <span>→</span></button>
+  <button class="menu-secondary-link" data-open-page="characters">✨ Elegir personaje <span id="activeMascotName">VOS</span></button>
+ </section>
+ <section class="menu-page" data-menu-page="modes" hidden>
+  <div class="menu-section-title">ELEGÍ TU PRUEBA</div>
+  <p class="menu-muted">Una sola partida. Podés volver a jugar el mismo modo o elegir otro.</p>
+  <div class="mode-picker" id="modePicker">
+   <button class="mode-option selected" data-mode="race"><b>🏁 CARRERA LOCA</b><small>Saltos, obstáculos y velocidad · 6 jugadores</small></button>
+   <button class="mode-option" data-mode="tag"><b>⚖ LA MANCHA</b><small>Pasá la pesa antes de que se termine el tiempo · 6 jugadores</small></button>
+   <button class="mode-option" data-mode="gems"><b>💎 FIEBRE DE GEMAS</b><small>Recolectá más gemas que los rivales · 6 jugadores</small></button>
+   <button class="mode-option" data-mode="survival"><b>🌀 EL PISO SE HUNDE</b><small>Quedate en la zona segura · 6 jugadores</small></button>
+   <button class="mode-option" data-mode="ballistix"><b>⚽ BALLISTIX</b><small>Cuatro arcos, pelotas y PULSO · 4 jugadores</small></button>
+  </div>
+  <button id="singleStart" class="primary mainprimary">JUGAR ESTA PRUEBA ↗</button>
+  <button id="tryBallistix" class="ball-practice">⚡ IR DIRECTO A BALLISTIX</button>
+ </section>
+ <section class="menu-page" data-menu-page="characters" hidden>
+  <div class="menu-section-title">TU PERSONAJE</div>
+  <p class="menu-muted">Elegí quién te representa durante todas las pruebas del torneo.</p>
+  <div class="mascot-picker" id="mascotPicker">
+   <button class="mascot-option selected" data-mascot="0"><span style="--c:#29f5df">👑</span><b>MOMO</b><small>Capitán</small></button>
+   <button class="mascot-option" data-mascot="1"><span style="--c:#ff604d">🐰</span><b>POP</b><small>Saltadora</small></button>
+   <button class="mascot-option" data-mascot="2"><span style="--c:#8b59ff">🐱</span><b>NIX</b><small>Astuta</small></button>
+   <button class="mascot-option" data-mascot="3"><span style="--c:#a4ff3f">🦖</span><b>BOOM</b><small>Indomable</small></button>
+   <button class="mascot-option" data-mascot="4"><span style="--c:#ffac26">🐶</span><b>KIWI</b><small>Veloz</small></button>
+   <button class="mascot-option" data-mascot="5"><span style="--c:#338bff">🐼</span><b>ZAP</b><small>Eléctrico</small></button>
+  </div>
+  <p class="selected-character-note" id="mascotDescription">Elegiste a MOMO.</p>
+  <button class="primary mainprimary" data-open-page="home">PERSONAJE LISTO ✓</button>
+ </section>
+ <section class="menu-page" data-menu-page="settings" hidden>
+  <div class="menu-section-title">AJUSTES DEL JUEGO</div>
+  <div class="setting-line"><div><b>Sonido</b><small>Efectos de goles, saltos y pruebas</small></div><input id="settingSound" type="checkbox" checked></div>
+  <div class="setting-line"><div><b>Vibración</b><small>Respuesta táctil del teléfono</small></div><input id="settingHaptics" type="checkbox" checked></div>
+  <div class="setting-line"><div><b>Calidad 3D</b><small>Menos calidad mejora el rendimiento en celular</small></div><select id="settingQuality"><option value="auto">Automática</option><option value="low">Rendimiento</option><option value="high">Alta calidad</option></select></div>
+  <div class="setting-line"><div><b>Dificultad</b><small>Modifica la velocidad y reacción de los rivales</small></div><select id="settingDifficulty"><option value="easy">Tranquila</option><option value="normal">Normal</option><option value="hard">Difícil</option></select></div>
+  <button class="primary mainprimary" data-open-page="home">GUARDAR Y VOLVER ✓</button>
+ </section>
+ <div class="menu-footer"><a id="nativeAR" href="ar.html">◈ VISOR AR</a><button id="ar">AR JUGABLE · BETA</button><button id="cam" style="display:none" aria-hidden="true">DEMO CÁMARA</button></div>
+ <div id="arDevice" class="ar-device">Comprobando compatibilidad AR...</div>
+ <div class="hint" id="gamehint">UN TORNEO DIFERENTE EN CADA PARTIDA · 6 MASCOTAS · 5 MODOS</div>
 </div></div>
 <div class="controls" id="controls">
 <div class="joyarea" id="joy" aria-label="Control de dirección"><div class="joyrim"></div><div class="joycenter" id="stick">↔</div></div>
@@ -151,7 +238,7 @@ body.ballistix-mode .ball-score.out{filter:saturate(.25)!important;opacity:.38!i
 <div class="eyebrow"><i></i> <span id="stageEyebrow">RONDA TERMINADA</span></div>
 <div class="medal" id="medal">🏆</div><div class="finaltitle" id="finaltitle">¡QUÉ CARRERA!</div><div class="finaltext" id="finaltext"></div><div id="qualifiedGrid" class="qualified-grid"></div>
 <div class="stats"><div><div class="statnum" id="finalpos">1º</div><div class="statlabel">POSICIÓN</div></div><div><div class="statnum" id="finaltime">00:30</div><div class="statlabel">TIEMPO</div></div><div><div class="statnum" id="finalstars">0</div><div class="statlabel">ESTRELLAS</div></div></div>
-<button class="primary mainprimary" id="retry">→ SIGUIENTE RONDA</button>
+<button class="primary mainprimary" id="retry">→ CONTINUAR</button><button class="result-menu-btn" id="resultMenu">☰ VOLVER AL MENÚ</button><div class="auto-round" id="autoRound" aria-live="polite"></div>
 <div class="more"><button class="secondary" id="share">↗ COMPARTIR RESULTADO</button></div>
 </div></div>
 <div class="modebar" id="modebar">PREVIEW 3D · PC Y CELULAR</div>
