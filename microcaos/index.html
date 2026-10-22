@@ -590,7 +590,7 @@ function ballCreateBall(){
  g.position.set(b.x,0,b.z);ballBalls.push(b);ballPool.push(b);return b;
 }
 function startBallistix(){
- ballElapsed=0;ballSpawnDelay=10;ballTimeSinceScore=0;
+ ballElapsed=0;ballSpawnDelay=10;ballTimeSinceScore=0;ballLastHudAt=-1;
  ballSides=[0,...contestants.filter(i=>i!==0)];
  if(ballSides.length!==4)throw new Error("Ballistix requires exactly four contestants");
  ballHealth=Array(4).fill(8);ballStatus=Array(4).fill(true);
@@ -1449,7 +1449,12 @@ function physicsTick(frameDt){
   for(let n=0;n<count;n++){physicsTime+=FIXED_DT;move(FIXED_DT,physicsTime);physicsAccumulator-=FIXED_DT}
   if(count===6&&physicsAccumulator>FIXED_DT)physicsAccumulator=0;
 }
-function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;const sec=t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);animateFallingWeights(dt);physicsTick(dt);for(let r of racers)if(r.mixer)r.mixer.update(dt);$("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
+function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;const sec=t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);animateFallingWeights(dt);try{physicsTick(dt)}catch(error){
+ console.error("MICROCAOS physics error",error);
+ phase="paused";physicsAccumulator=0;window.__microcaosError=error?.message||String(error);
+ $("notice").textContent="Error al simular la partida. Tocá REINICIAR para volver a jugar. "+window.__microcaosError;
+ $("notice").classList.add("show");
+}for(let r of racers)if(r.mixer)r.mixer.update(dt);$("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
 if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,22.3,9.5):new THREE.Vector3(0,18.0,9.7)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.7,11.6,12.5):new THREE.Vector3(9.7,11.8,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
 if(mode==="ar"&&frame&&session){if(!hitRequested){hitRequested=true;session.requestReferenceSpace("viewer").then(viewer=>session.requestHitTestSource({space:viewer})).then(s=>hitSource=s).catch(()=>{})}if(hitSource&&!placed){const results=frame.getHitTestResults(hitSource);if(results.length){let pose=results[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;const m=new THREE.Matrix4().fromArray(pose.transform.matrix);reticle.position.setFromMatrixPosition(m);reticle.quaternion.setFromRotationMatrix(m);$("placeArena").style.display="inline-flex";$("notice").textContent="¡Ya veo la superficie! Tocá COLOCAR PISTA para anclar la arena."}}else{reticle.visible=false;$("placeArena").style.display="none"}}}
 if(performance.now()>lastToast)$("toast").classList.remove("show");if(performance.now()>skillToastUntil)$("skillToast").classList.remove("on");renderer.render(scene,camera)}
@@ -1621,9 +1626,25 @@ const joy=$("joy"),stick=$("stick");function updateJoy(e){const b=joy.getBoundin
 const keys=new Set();addEventListener("keydown",e=>{keys.add(e.code);if(["Space","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","ShiftLeft","KeyA","KeyD","KeyW","KeyS"].includes(e.code))e.preventDefault();if(e.code==="Space"&&!e.repeat)jump();if(e.code==="ShiftLeft"&&!e.repeat)turbo();if(e.code==="Enter"&&phase==="intro")begin();if(e.code==="Enter"&&phase==="finished")roundAdvance()});addEventListener("keyup",e=>keys.delete(e.code));setInterval(()=>{if(!moveTouch){steer=((keys.has("KeyD")||keys.has("ArrowRight"))?1:0)-((keys.has("KeyA")||keys.has("ArrowLeft"))?1:0);
  steerZ=currentMode==="race"?0:(((keys.has("KeyW")||keys.has("ArrowUp"))?1:0)-((keys.has("KeyS")||keys.has("ArrowDown"))?1:0));
  stick.style.transform="translate("+(steer*32)+"px,"+(-steerZ*32)+"px)"}},30);
-document.addEventListener("visibilitychange",()=>{if(document.hidden&&phase==="race"){physicsAccumulator=0;phase="paused";$("notice").textContent="Partida en pausa. Tocá para continuar.";$("notice").classList.add("show")}});
+let pauseTriggeredByTab=false;
+document.addEventListener("visibilitychange",()=>{
+ if(document.hidden&&phase==="race"){
+  physicsAccumulator=0;pauseTriggeredByTab=true;phase="paused";
+ }else if(!document.hidden&&pauseTriggeredByTab&&phase==="paused"){
+  pauseTriggeredByTab=false;physicsAccumulator=0;last=performance.now();
+  phase="race";$("notice").classList.remove("show");
+ }
+});
 $("notice").addEventListener("click",()=>{if(phase==="paused"){phase="race";$("notice").classList.remove("show")}});
-renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();$("notice").textContent="Se perdió el contexto gráfico. Actualizá la página para recuperar el juego.";$("notice").classList.add("show")});
+renderer.domElement.addEventListener("webglcontextlost",e=>{
+ e.preventDefault();phase="paused";physicsAccumulator=0;
+ $("notice").textContent="El teléfono interrumpió los gráficos 3D. Si no se recuperan, actualizá esta pestaña.";
+ $("notice").classList.add("show");
+});
+renderer.domElement.addEventListener("webglcontextrestored",()=>{
+ physicsAccumulator=0;last=performance.now();
+ if(phase==="paused"){phase="race";$("notice").classList.remove("show")}
+});
 for(let i=0;i<racers.length;i++){const r=racers[i];r.x=(i-2.5)*1.29;r.z=12.2+(i%2);r.root.position.set(r.x,0,r.z);r.vx=0;r.lean=0;r.animDistance=0;r.jumpCount=0;r.jumpBuffer=0;r.padCooldown=null;r.nearMisses=new Set()}
 </script>
 </body>
