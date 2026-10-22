@@ -2993,11 +2993,11 @@ function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;
  $("notice").classList.add("show");
 }for(let r of racers)if(r.mixer)r.mixer.update(dt);$("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
 if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=currentMode==="territory"&&follow?new THREE.Vector3(clamp(p.x*.72,-TERRITORY_HALF_X*.72,TERRITORY_HALF_X*.72),0,clamp(p.z*.70,-TERRITORY_HALF_Z*.70,TERRITORY_HALF_Z*.70)):new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,22.3,9.5):new THREE.Vector3(0,18.0,9.7)):currentMode==="territory"&&follow?(portrait?new THREE.Vector3(previewTarget.x,32,previewTarget.z+22):new THREE.Vector3(previewTarget.x+11.8,21,previewTarget.z+22)):currentMode==="colorcrash"&&follow?(portrait?new THREE.Vector3(0,23,16):new THREE.Vector3(8.5,20.3,19.4)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.7,11.6,12.5):new THREE.Vector3(9.7,11.8,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
-if(mode==="ar"&&frame&&session){if(!hitRequested){hitRequested=true;session.requestReferenceSpace("viewer").then(viewer=>session.requestHitTestSource({space:viewer})).then(s=>hitSource=s).catch(()=>{})}if(hitSource&&!placed){const results=frame.getHitTestResults(hitSource);if(results.length){let pose=results[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;const m=new THREE.Matrix4().fromArray(pose.transform.matrix);reticle.position.setFromMatrixPosition(m);reticle.quaternion.setFromRotationMatrix(m);
+if(mode==="ar"&&frame&&session){if(!hitRequested&&performance.now()-arLastHitAttempt>2100){hitRequested=true;arLastHitAttempt=performance.now();const origin=session;session.requestReferenceSpace("viewer").then(viewer=>origin.requestHitTestSource({space:viewer})).then(source=>{if(session===origin)hitSource=source;else source?.cancel?.()}).catch(error=>{hitRequested=false;console.warn("XR hit-test",error);$("notice").textContent="No pude detectar superficies todavía. Reintentando…"})}if(hitSource&&!placed){const results=frame.getHitTestResults(hitSource);if(results.length){let pose=results[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;const m=new THREE.Matrix4().fromArray(pose.transform.matrix);reticle.position.setFromMatrixPosition(m);reticle.quaternion.setFromRotationMatrix(m);
  const normal=new THREE.Vector3(0,1,0).applyQuaternion(reticle.quaternion);
  reticle.visible=normal.y>.77;
  $("placeArena").style.display=reticle.visible?"inline-flex":"none";
- if(!reticle.visible)$("notice").textContent="Buscá una superficie horizontal, como una mesa o el piso.";$("notice").textContent="¡Ya veo la superficie! Tocá COLOCAR PISTA para anclar la arena."}}else{reticle.visible=false;$("placeArena").style.display="none"}}}
+ $("notice").textContent=reticle.visible?"¡Superficie detectada! Tocá COLOCAR PISTA.":"Buscá una superficie horizontal, como una mesa o el piso."}}else{reticle.visible=false;$("placeArena").style.display="none"}}}
 if(performance.now()>lastToast)$("toast").classList.remove("show");if(performance.now()>skillToastUntil)$("skillToast").classList.remove("on");renderer.render(scene,camera)}
 const reticle=new THREE.Mesh(new THREE.RingGeometry(.20,.23,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x71ffdf,side:THREE.DoubleSide,depthWrite:false}));reticle.visible=false;scene.add(reticle);
 renderer.setAnimationLoop(render);
@@ -3009,7 +3009,7 @@ $("cam").onclick=async()=>{if(mode==="camera"){leaveCamera();return}if(!navigato
 const androidPlatform=/Android/i.test(navigator.userAgent);
 const iosPlatform=/iPhone|iPad|iPod/i.test(navigator.userAgent);
 const nativeLink=$("nativeAR");
-let arStarting=false,arPermissionStatus="unknown";
+let arStarting=false,arPermissionStatus="unknown",arLastHitAttempt=0;
 function showARHelp(title,body){
   $("arHelpTitle").textContent=title;$("arHelpText").textContent=body;
   $("arHelpNative").style.display=androidPlatform?"flex":"none";
@@ -3038,7 +3038,7 @@ function resetARView(){
   scene.background=new THREE.Color(0x172b4a);previewTable.visible=currentMode==="race";stage.visible=true;
   stage.position.set(0,0,0);stage.quaternion.identity();stage.scale.setScalar(1);
   $("notice").classList.remove("show");$("placeArena").style.display="none";
-  reticle.visible=false;hitRequested=false;hitSource=null;placed=false;session=null;
+  reticle.visible=false;hitRequested=false;hitSource=null;placed=false;session=null;arLastHitAttempt=0;
   $("arTools").style.display="none";
   mode="preview";$("modebar").textContent="PREVIEW 3D · PC Y CELULAR";
   // Exiting XR must never erase a live match or an online room.
@@ -3087,7 +3087,7 @@ async function setupAR(){
     session=started;mode="ar";
     document.documentElement.classList.add("xr-active");$("ui").classList.add("xr-active");
     renderer.setClearColor(0x000000,0);scene.background=null;previewTable.visible=false;stage.visible=false;$("arTools").style.display="none";
-    placed=false;hitRequested=false;hitSource=null;
+    placed=false;hitRequested=false;hitSource=null;arLastHitAttempt=0;
     $("modebar").textContent="AR ESPACIAL · BUSCANDO SUPERFICIE";
     $("intro").classList.add("hidden");$("arHelp").style.display="none";
     $("notice").classList.add("show");
