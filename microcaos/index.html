@@ -193,6 +193,83 @@ body.ballistix-mode .ball-score.out{filter:saturate(.25)!important;opacity:.38!i
 @media(max-width:520px){.gem-leaderboard{right:8px;top:230px;width:145px;padding:7px 6px;border-radius:13px}.gem-lb-heading strong{font-size:10px}.gem-lb-heading small{font-size:8px}.gem-lb-row{grid-template-columns:16px 7px minmax(0,1fr) 22px;height:25px;gap:3px;padding:0 3px}.gem-lb-row.cutoff:after{font-size:6px}.gem-lb-pos{font-size:11px}.gem-lb-name{font-size:10px}.gem-lb-chip{width:7px;height:7px}.gem-lb-count{font-size:13px}.gem-lb-footer{font-size:8px}}
 @media(max-height:750px){.gem-leaderboard{top:210px}}
 
+
+/* v2.3 COMPACT, NON-OBSTRUCTIVE IN-GAME HUD
+   Keep all important status in the top strip, out of the center of play. */
+#ui .stagebanner{
+ top:76px!important;left:50%!important;transform:translateX(-50%)!important;
+ max-width:min(230px,45vw)!important;width:max-content!important;
+ padding:5px 10px!important;font:900 10px/1.25 Outfit,sans-serif!important;
+ letter-spacing:.025em!important;text-align:center!important;
+ white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+ border-radius:10px!important;background:#0b1c40e6!important;
+ border:1px solid #43dce27a!important;box-shadow:0 5px 14px #02051838!important;
+ pointer-events:none!important;z-index:9!important;
+}
+#ui .mini-objective{
+ top:109px!important;left:50%!important;transform:translateX(-50%)!important;
+ width:auto!important;min-width:0!important;max-width:min(300px,49vw)!important;
+ padding:5px 10px!important;font:800 10px/1.2 Outfit,sans-serif!important;
+ letter-spacing:0!important;white-space:nowrap!important;
+ overflow:hidden!important;text-overflow:ellipsis!important;
+ border-radius:10px!important;color:#f4fff9!important;
+ background:#132455cb!important;border:1px solid #a2d9f45e!important;
+ box-shadow:0 3px 12px #030c1f32!important;z-index:9!important;
+ pointer-events:none!important;
+}
+#ui .toast{
+ top:146px!important;left:50%!important;max-width:70vw!important;
+ padding:7px 12px!important;border-radius:13px!important;
+ font:900 clamp(12px,2.5vw,18px)/1.15 Outfit,sans-serif!important;
+ line-height:1.15!important;text-align:center!important;
+ white-space:normal!important;word-break:normal!important;
+ background:linear-gradient(110deg,#102a54ee,#211d5eec)!important;
+ border:1px solid #78f5e98c!important;text-shadow:0 2px 7px #0008!important;
+ box-shadow:0 5px 18px #0007!important;filter:none!important;
+ pointer-events:none!important;z-index:10!important;
+}
+#ui .skilltoast{
+ top:173px!important;max-width:68vw!important;
+ padding:5px 10px!important;border-radius:10px!important;
+ white-space:normal!important;text-align:center!important;
+ font:900 clamp(12px,2.6vw,18px)/1.18 Outfit,sans-serif!important;
+ background:#092a4cdd!important;border:1px solid #65e4f499!important;
+ box-shadow:0 5px 17px #0006!important;text-shadow:none!important;
+ pointer-events:none!important;z-index:11!important;
+}
+#ui .obstacle-hint{top:185px!important;font-size:10px!important;padding:5px 9px!important}
+#ui .modebar{font-size:9px!important;padding:5px 10px!important;opacity:.65!important;pointer-events:none!important}
+#ui .raceprogress{top:136px!important;height:4px!important;max-width:175px!important}
+body.ballistix-mode #ui .stagebanner{top:74px!important}
+body.ballistix-mode #ui .ball-scoreboard{top:105px!important;width:min(92%,435px)!important;gap:5px!important}
+body.ballistix-mode #ui .mini-objective{top:167px!important;max-width:43vw!important;padding:5px 8px!important}
+body.ballistix-mode #ui .ball-restart{top:166px!important;right:14px!important;width:31px!important;height:31px!important}
+body.ballistix-mode #ui .toast{top:210px!important;font-size:clamp(12px,2.6vw,18px)!important}
+body.ballistix-mode #ui .skilltoast{top:236px!important}
+body.ballistix-mode #ui .jump.ballistix-pulse-cool{opacity:.73!important}
+body.ballistix-mode #ui .jump.ballistix-pulse-ready{animation:ballPulseReady 1.15s alternate infinite}
+@media(max-width:600px){
+ #ui .stagebanner{top:71px!important;font-size:9px!important;max-width:48vw!important}
+ #ui .mini-objective{top:121px!important;font-size:9px!important;max-width:65vw!important}
+ #ui .toast{top:155px!important;max-width:70vw!important;font-size:13px!important}
+ #ui .skilltoast{top:187px!important;font-size:12px!important}
+ body.ballistix-mode #ui .ball-scoreboard{top:102px!important}
+ body.ballistix-mode #ui .mini-objective{top:164px!important;max-width:55vw!important}
+ body.ballistix-mode #ui .ball-restart{top:163px!important}
+ body.ballistix-mode #ui .toast{top:201px!important}
+}
+@media(max-height:690px){
+ #ui .stagebanner{top:62px!important}
+ #ui .mini-objective{top:105px!important}
+ #ui .toast{top:137px!important}
+ #ui .skilltoast{top:165px!important}
+ body.ballistix-mode #ui .stagebanner{top:61px!important}
+ body.ballistix-mode #ui .ball-scoreboard{top:91px!important}
+ body.ballistix-mode #ui .mini-objective{top:145px!important}
+ body.ballistix-mode #ui .ball-restart{top:145px!important}
+ body.ballistix-mode #ui .toast{top:185px!important}
+}
+
 </style>
 </head>
 <body>
@@ -200,7 +277,7 @@ body.ballistix-mode .ball-score.out{filter:saturate(.25)!important;opacity:.38!i
 <div id="scene"></div>
 <div id="ui">
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · GEMAS V2.2</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · HUD + PULSO V2.3</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -826,8 +903,7 @@ for(const modeName of ["tag","gems","survival"]){
    tile.material=mat(0x405a97,.12,.49,{emissive:0x273e87,emissiveIntensity:.13});
   }
  }
- const label=textSprite(MINI_MODES[modeName].title,42,modeName==="tag"?"#ffc9d8":modeName==="gems"?"#ffe7ae":"#c4d6ff");
- label.position.set(0,3.1,-7.0);label.scale.set(5.4,.78,1);area.add(label);
+ // 3D title removed: the compact HUD already identifies the game.
 }
 const tagWeight=new THREE.Group();
 const tagMetal=mat(0x64798b,.62,.26),tagWarn=mat(0xffb1c7,.12,.25,{emissive:0xd03b56,emissiveIntensity:.28});
@@ -1002,6 +1078,7 @@ const ballBallMats=[
  mat(0xff3b99,.15,.22,{emissive:0xb0126d,emissiveIntensity:.42}),
  mat(0x9a62ff,.18,.20,{emissive:0x4f1cb7,emissiveIntensity:.45})
 ];
+let ballPulseFlashUntil=0;
 const ballPulseFx=mesh(new THREE.TorusGeometry(.72,.095,9,42),BM.cyan,ballArena,[0,.66,0]);
 ballPulseFx.rotation.x=Math.PI/2;ballPulseFx.visible=false;ballPulseFx.castShadow=false;
 const ballGoalGuide=mesh(new THREE.TorusGeometry(.49,.065,8,40),BM.red,ballArena,[0,.18,4.70],[1,1,1],false);
@@ -1057,7 +1134,7 @@ for(let k=0;k<4;k++){
  ballGoalMats[k].emissiveIntensity=.43;
  ballTeamLEDs[k].color.setHex(color);
 }
- ballPulseUntil=0;ballPulseCd=0;
+ ballPulseUntil=0;ballPulseCd=0;ballPulseFlashUntil=0;
  ballBalls.forEach(b=>{b.g.visible=false;b.trails.forEach(t=>t.visible=false)});
  ballBalls.length=0;ballStats.restarts++;
  for(let k=0;k<4;k++){
@@ -1082,7 +1159,7 @@ function ballShipUpdate(dt){
   const idx=ballSides[k],r=racers[idx],ship=ballShipGroups[k];
   if(!ballStatus[k]){ship.visible=false;r.root.visible=false;continue}
   ship.visible=true;r.root.visible=true;
-  ballPulseShields[k].visible=k===0&&ballPulseUntil>ballElapsed;
+  ballPulseShields[k].visible=k===0&&(ballPulseUntil>ballElapsed||ballPulseFlashUntil>ballElapsed);
   ship.scale.y+=(1-ship.scale.y)*Math.min(1,dt*9);
   let target=0;
   if(k===0){
@@ -1140,13 +1217,57 @@ if(incoming){
  ballGoalGuide.scale.setScalar(1+Math.sin(ballElapsed*14)*.13);
 }else ballGoalGuide.visible=false;
 const pulseRemaining=Math.max(0,ballPulseUntil-ballElapsed);
- ballPulseFx.visible=pulseRemaining>0;
- if(pulseRemaining>0)ballPulseFx.scale.setScalar(1+(0.7-pulseRemaining)*2.2);
+ const pulseFlashing=ballPulseFlashUntil>ballElapsed;
+ ballPulseFx.visible=pulseRemaining>0||pulseFlashing;
+ if(pulseFlashing)ballPulseFx.scale.setScalar(1+(ballPulseFlashUntil-ballElapsed)*2.2);
+ else if(pulseRemaining>0)ballPulseFx.scale.setScalar(1+(1.20-pulseRemaining)*1.5);
+}
+// A pulse is an actual counterattack, not just a barely-visible timed modifier.
+function pulseKickBall(b,px){
+ // Push every in-range ball away from the player's southern goal, towards rivals.
+ const offset=clamp(b.x-px,-2.6,2.6);
+ b.vx=clamp(offset*2.35,-5.5,5.5);
+ b.vz=-Math.sqrt(Math.max(24,11.6*11.6-b.vx*b.vx));
+ b.x=clamp(b.x,-ballGoalHalf+.15,ballGoalHalf-.15);
+ b.z=Math.min(b.z,BALL_CONTACT_PLANE-.08);
+ b.g.position.set(b.x,0,b.z);
+ b.glow=1.5;b.immunity=.22;
+ b.historyCount=0;b.trailHead=0;
+ b.trails.forEach(trail=>trail.visible=false);
+ ballStats.hits++;ballSaves[0]++;
+ ballGoalFlash[0]=1.5;
+ return true;
 }
 function ballPulse(){
- if(currentMode!=="ballistix"||phase!=="race"||!ballStatus[0]||ballPulseCd>0)return;
- ballPulseUntil=ballElapsed+.70;ballPulseCd=1.10;
- cue(870,.12,"sine",.10);tactile(21);
+ if(currentMode!=="ballistix"||phase!=="race"||!ballStatus[0])return false;
+ if(ballPulseCd>.001){
+  if(ballPulseCd<.18)ballPulseCd=0;
+  else return false;
+ }
+ const px=ballShipPositions[0],pz=ballPaddleAt;
+ let closest=null,dist=2.85;
+ for(const b of ballBalls){
+  if(b.z>ballFieldHalf-.12||b.z<-.8)continue;
+  const d=Math.hypot(b.x-px,b.z-pz);
+  if(d<dist){dist=d;closest=b}
+ }
+ // Always show the pulse: instant counterattack when close, guard when far.
+ ballPulseCd=1.65;
+ if(closest){
+  pulseKickBall(closest,px);
+  ballPulseUntil=0;
+  ballPulseFlashUntil=ballElapsed+.40;
+  puff(closest.x,closest.z,0x56ffe6,18);
+  skillMessage("¡PULSO PERFECTO! ⚡",650);
+  cue(1050,.19,"sawtooth",.12);tactile(35);
+ }else{
+  ballPulseUntil=ballElapsed+1.20;
+  ballPulseFlashUntil=ballElapsed+.24;
+  skillMessage("🛡 PULSO ARMADO",540);
+  cue(770,.15,"triangle",.085);tactile(22);
+ }
+ ballLastHudAt=-1;ballUIUpdate();
+ return true;
 }
 function ballContact(b,k,projectedPosition=ballShipPositions[k]){
  const p=projectedPosition,v=k<2?b.x:b.z,d=Math.abs(v-p);
@@ -1168,7 +1289,7 @@ function ballContact(b,k,projectedPosition=ballShipPositions[k]){
  puff(b.x,b.z,ballGoalMats[k].color.getHex(),hot?11:5);
  b.immunity=.11;
  if(hot){
-  ballPulseUntil=0;ballPulseCd=.62;
+  ballPulseUntil=0;ballPulseFlashUntil=ballElapsed+.35;ballPulseCd=Math.max(ballPulseCd,.68);
   puff(b.x,b.z,0xa2fff1,13);cue(1050,.17,"triangle",.10);
   skillMessage("¡GOLPE POTENTE!",600);
   tactile(26);
@@ -1303,15 +1424,11 @@ function ballUIUpdate(){
  if(ballElapsed-ballLastHudAt<.12)return;
  ballLastHudAt=ballElapsed;
  const p=racers[0];
- $("miniObjective").textContent=ballStatus[0]?
-  ballElapsed<8?"DESLIZÁ PARA DEFENDER  •  PULSO PARA SALVAR":
-  ballElapsed>=BALL_SUDDEN_DEATH?"⚡ ÚLTIMOS SEGUNDOS":
-  "⚽ "+ballBalls.length+" PELOTA"+(ballBalls.length===1?"":"S")+"   ·   "+Math.ceil(BALL_MAX_SECONDS-ballElapsed)+" s":
-  "ELIMINADO";
+ $("miniObjective").textContent=ballStatus[0]?ballPulseUntil>ballElapsed?"🛡 PULSO ARMADO":ballElapsed<6?"DEFENDÉ TU ARCO":ballElapsed>=BALL_SUDDEN_DEATH?"⚡ ÚLTIMOS SEGUNDOS":"⚽ "+ballBalls.length+" PELOTA"+(ballBalls.length===1?"":"S"):"ELIMINADO";
  $("miniObjective").classList.toggle("danger",ballHealth[0]<=2||ballElapsed>=BALL_SUDDEN_DEATH);
  $("timer").textContent=""+Math.max(0,Math.ceil(BALL_MAX_SECONDS-ballElapsed));
  $("place").innerHTML=ballHealth[0]+"<em> / 10</em>";
- $("jumpCount").textContent=ballPulseCd>0?ballPulseCd.toFixed(1)+"s":"LISTO";
+ $("jumpCount").textContent=ballPulseUntil>ballElapsed?"ARMADO":ballPulseCd>0?ballPulseCd.toFixed(1)+"s":"LISTO";
  $("jump").classList.toggle("ballistix-pulse-ready",ballPulseCd===0);
  $("jump").classList.toggle("ballistix-pulse-cool",ballPulseCd>0);
  $("dash").textContent=p.dashCd>0?Math.ceil(p.dashCd)+"s":"RÁPIDO";
@@ -1374,7 +1491,7 @@ function ballTick(dt){
 }
 function renderModeLabel(){
  const tag=MINI_MODES[currentMode];
- $("stagebanner").textContent="RONDA "+(roundIndex+1)+"/3 · "+tag.emoji+" "+tag.title+" · PASAN "+ROUND_RULES[roundIndex].qualify;
+ $("stagebanner").textContent=(gameType==="individual"?"PARTIDA INDIVIDUAL":"RONDA "+(roundIndex+1)+"/3")+" · "+tag.emoji+" · "+(gameType==="individual"?"1º GANA":"PASAN "+ROUND_RULES[roundIndex].qualify);
  $("rankLabel").textContent=currentMode==="race"?"POSICIÓN · "+ROUND_RULES[roundIndex].qualify+" PASAN":
   currentMode==="tag"?"PESA · ÚLTIMO PIERDE":
   currentMode==="gems"?"GEMAS · MÁS JUNTADAS":currentMode==="ballistix"?"VIDAS · NO RECIBAS GOLES":"SUPERVIVIENTES";
