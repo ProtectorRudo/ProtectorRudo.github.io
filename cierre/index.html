@@ -56,7 +56,7 @@ document.addEventListener("click",event=>{
  const action=btn.dataset.act,value=btn.dataset.value;
  if(action==="page"){event.preventDefault();S.page=value;S.notice="";render();}
  if(action==="mode"){S.mode=value;S.notice="";render();}
- if(action==="hours"){S.hours=Number(value);render();}
+ if(action==="hours"){const draft=document.querySelector('textarea[name="message"]');if(draft)S.message=draft.value;S.hours=Number(value);render();}
  if(action==="logout"){const old=S.session;S.session=null;S.user=null;S.business=null;S.quotes=[];save();S.mode="login";S.notice="";render();if(old?.access_token)call("/auth/v1/logout","POST",{},old.access_token).catch(()=>{});}
  if(action==="refresh")transaction(async()=>{await load();S.notice="Información actualizada."});
  if(action==="close"){
@@ -71,7 +71,7 @@ document.addEventListener("click",event=>{
  }
 });
 document.addEventListener("change",event=>{
- if(event.target.matches('input[name="scope"]')){S.scope=event.target.value;render();}
+ if(event.target.matches('input[name="scope"]')){const draft=document.querySelector('textarea[name="message"]');if(draft)S.message=draft.value;S.scope=event.target.value;render();}
 });
 document.addEventListener("submit",event=>{
  const id=event.target.id;if(!["authform","newbusiness","settingsform"].includes(id))return;
