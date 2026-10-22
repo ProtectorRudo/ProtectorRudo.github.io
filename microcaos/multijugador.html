@@ -1023,7 +1023,7 @@ const MP_ENDPOINT=MP_SUPA_URL+"/functions/v1/microcaos-rooms";
 const MP_SESSION_KEY="microcaos_multiplayer_session_v31";
 const MP_NAME_KEY="microcaos_multiplayer_name";
 const mp={active:false,host:false,slot:0,code:"",token:"",topic:"",maxPlayers:4,players:[],
- channel:null,client:null,connected:false,ready:true,inputs:{},seq:0,lastSeq:-1,roundId:0,lastResult:null,resultShown:false,
+ channel:null,client:null,connected:false,ready:true,useAR:false,inputs:{},seq:0,lastSeq:-1,roundId:0,lastResult:null,resultShown:false,
  currentRound:"",reconnectAt:0,lastStateAt:0,lastInputAt:0,lastSnapshotAt:0,lastRosterAt:0,
  poller:null,started:false,closing:false,gameType:"individual",chosenMode:"colorcrash"};
 function mpError(txt){$("mpError").textContent=txt}
@@ -1145,7 +1145,7 @@ function mpOnAction(p){
  }
 }
 function mpPack(){
- const state={seq:++mp.seq,phase,mode:currentMode,gameType,roundIndex,elapsed,miniClock,
+ const state={seq:++mp.seq,phase,mode:currentMode,gameType,roundId:mp.roundId,contestants:[...contestants],playlist:[...modePlaylist],result:mp.lastResult,roundIndex,elapsed,miniClock,
   racers:racers.map(r=>({x:r.x,y:r.y,z:r.z,vx:r.vx,vz:r.vz,rot:r.root.rotation.y,finished:r.finished,eliminatedAt:r.eliminatedAt,ccFall:r.ccFall,ccScore:r.ccScore||0})),
   scores:miniScores,weightHolder,miniSafe:{...miniSafe},territoryCount:Array.from(territoryCount),
   cc:{status:cc.status,round:cc.round,target:cc.target,left:cc.left,total:cc.total,gap:cc.gap,colors:ccTiles.map(t=>t.color),fall:ccTiles.map(t=>t.fall?1:0)},
@@ -1164,14 +1164,14 @@ function mpSendSnapshot(){
 }
 function mpRoundSend(){
  if(!mp.active||!mp.host||!mp.started)return;
- mpTell("round",{roundIndex,gameType,playlist:[...modePlaylist],contestants:[...contestants],mode:currentMode});
+ mpTell("round",{roundId:mp.roundId,roundIndex,gameType,playlist:[...modePlaylist],contestants:[...contestants],mode:currentMode});
  mpSendSnapshot();
 }
 function mpRound(p){
  if(!mp.active||mp.host||!p||!Array.isArray(p.contestants))return;
- const key=p.roundIndex+":"+p.mode+":"+p.contestants.join(",");
+ const key=(p.roundId||0)+":"+p.roundIndex+":"+p.mode+":"+p.contestants.join(",");
  if(mp.currentRound===key)return;
- mp.currentRound=key;mp.started=true;
+ mp.currentRound=key;mp.started=true;mp.roundId=p.roundId||0;mp.lastSeq=-1;mp.resultShown=false;mp.lastResult=null;
  gameType=p.gameType;roundIndex=p.roundIndex;
  contestants=p.contestants.filter(n=>Number.isInteger(n)&&n>=0&&n<6);
  modePlaylist=Array.isArray(p.playlist)?p.playlist:[p.mode,p.mode,p.mode];
@@ -1183,8 +1183,8 @@ function mpRound(p){
 function mpState(p){
  if(!mp.active||mp.host||!p||p.seq<=mp.lastSeq)return;
  mp.lastSeq=p.seq;mp.lastStateAt=performance.now();
- if(!mp.started||p.roundIndex!==roundIndex||currentMode!==p.mode){
-  mpRound({roundIndex:p.roundIndex,mode:p.mode,gameType:p.gameType,contestants:mp.started?contestants:[0,1,2,3,4,5],playlist:modePlaylist});
+ if(!mp.started||p.roundId!==mp.roundId||p.roundIndex!==roundIndex||currentMode!==p.mode){
+  mpRound({roundId:p.roundId,roundIndex:p.roundIndex,mode:p.mode,gameType:p.gameType,contestants:p.contestants||[0,1,2,3,4,5],playlist:p.playlist||modePlaylist});
  }
  if(!mp.started)return;
  phase=p.phase;elapsed=p.elapsed;miniClock=p.miniClock;
@@ -1192,9 +1192,10 @@ function mpState(p){
   const v=p.racers[i],r=racers[i];if(!r||!v)continue;
   r.x=v.x;r.y=v.y;r.z=v.z;r.vx=v.vx;r.vz=v.vz;
   r.finished=v.finished;r.eliminatedAt=v.eliminatedAt;r.ccFall=v.ccFall;r.ccScore=v.ccScore;
-  r.root.position.set(v.x,v.y,v.z);r.root.rotation.y=v.rot;
-  r.root.visible=contestants.includes(i);
-  if(r.finished&&r.ccFall<0)r.root.scale.y=.2;else r.root.scale.y=1;
+  if(!r.netTarget)r.root.position.set(v.x,v.y,v.z);
+  r.netTarget={x:v.x,y:v.y,z:v.z,rot:v.rot};
+  r.root.visible=contestants.includes(i)&&(!r.finished||currentMode==="race");
+  r.root.scale.y=1;
  }
  miniScores=p.scores||miniScores;weightHolder=p.weightHolder;miniSafe=p.miniSafe||miniSafe;
  if(currentMode==="colorcrash"&&p.cc){
@@ -1233,10 +1234,11 @@ function mpState(p){
  $("timer").textContent=formatTime(Math.max(0,miniClock));
  const rank=miniOrder().findIndex(r=>r.index===mp.slot)+1;
  $("place").innerHTML=rank+"<em> / "+contestants.length+"</em>";
- if(p.phase==="finished")$("mpLive").textContent="● SALA "+mp.code+" · RONDA TERMINADA";
+ if(p.phase==="finished"){$("mpLive").textContent="● SALA "+mp.code+" · RONDA TERMINADA";if(p.result&&!mp.resultShown)mpResult(p.result)}
 }
 function mpResult(p){
- if(!mp.active||mp.host||!p)return;
+ if(!mp.active||mp.host||!p||mp.resultShown||p.roundId!==mp.roundId)return;
+ mp.resultShown=true;
  const exists=p.order.includes(mp.slot);
  const place=exists?p.order.indexOf(mp.slot)+1:null;
  const advancing=p.qualifiers.includes(mp.slot);
@@ -1254,10 +1256,11 @@ function mpFinished(){
  if(!mp.active||!mp.host)return;
  const order=(currentMode==="race"?scoreOrder():miniOrder()).map(r=>r.index);
  const quota=roundRule().qualify;
- mpTell("result",{order,qualifiers:order.slice(0,quota),elapsed,final:gameType==="individual"||roundIndex===2});
+ mp.lastResult={roundId:mp.roundId,order,qualifiers:order.slice(0,quota),elapsed,final:gameType==="individual"||roundIndex===2};
+ mpTell("result",mp.lastResult);
 }
 function mpGameStart(){
- mp.started=true;mp.currentRound="";
+ mp.started=true;mp.currentRound="";mp.lastSeq=-1;mp.seq=0;mp.lastResult=null;mp.resultShown=false;
  if(mp.gameType==="tournament"){
   startTournament();
  }else startSolo(mp.chosenMode);
@@ -1271,6 +1274,16 @@ async function mpLaunch(){
   const start=await mpAPI("start",{code:mp.code,token:mp.token});
   mp.players=start.players;mpGameStart();mpRoundSend();
  }catch(e){mpError(e.message);$("mpLaunch").disabled=false}
+}
+function mpSmoothPlayers(dt){
+ if(!mp.active||mp.host||!mp.started)return;
+ for(const r of racers){
+  const t=r.netTarget;if(!t)continue;
+  const a=Math.min(1,1-Math.exp(-18*dt));
+  r.root.position.lerp(new THREE.Vector3(t.x,t.y,t.z),a);
+  const diff=Math.atan2(Math.sin(t.rot-r.root.rotation.y),Math.cos(t.rot-r.root.rotation.y));
+  r.root.rotation.y+=diff*a;
+ }
 }
 function mpAnimateNetwork(time){
  if(!mp.active||!mp.started)return;
@@ -2258,7 +2271,7 @@ function ballShipUpdate(dt){
   ballPulseShields[k].visible=k===0&&(ballPulseUntil>ballElapsed||ballPulseFlashUntil>ballElapsed);
   ship.scale.y+=(1-ship.scale.y)*Math.min(1,dt*9);
   let target=0;
-  const onlineInput=mp.active&&mp.host&&k>0?mpPlayerSteer(idx):null;
+  const onlineInput=mpIsHuman(idx)&&k>0?(mpPlayerSteer(idx)||{dx:0,dz:0}):null;
   if(onlineInput){target=k<2?onlineInput.dx:onlineInput.dz}
   else if(k===0){
    if(dragSteeringActive)target=(dragTargetX-ballShipPositions[k])*2.0;
@@ -2956,7 +2969,7 @@ function moveMiniGame(dt,t){
   r.dash=Math.max(0,(r.dash||0)-dt);
   if(currentMode==="territory")r.territoryShieldCd=Math.max(0,(r.territoryShieldCd||0)-dt);
   let dx=0,dz=0;
-  if(mp.active&&mp.host&&r.index>0&&mpPlayerSteer(r.index)){const input=mpPlayerSteer(r.index);dx=input.dx;dz=input.dz}
+  if(mpIsHuman(r.index)&&r.index!==0){const input=mpPlayerSteer(r.index);dx=input?.dx||0;dz=input?.dz||0}
   else if(r.index!==0){[dx,dz]=currentMode==="territory"?territoryBotDirection(r,t):miniBotDirection(r,t)}
   else if(dragSteeringActive){
    dx=clamp((dragTargetX-r.x)*1.45,-1,1);dz=((currentMode==="territory"||currentMode==="colorcrash")?-1:1)*clamp((dragTargetZ-r.z)*1.28,-1,1);
@@ -3038,7 +3051,7 @@ function resetRound(){
  racers.forEach((r,i)=>{
   const lane=contestants.indexOf(i);r.root.visible=lane>=0;r.root.scale.set(1,1,1);
   r.finished=false;r.finishTime=0;r.eliminatedAt=0;r.cool=0;r.stumbles=0;r.stars=0;r.invuln=0;
-  r.animationName="";r.jumpCount=0;r.jumpBuffer=0;r.padCooldown=null;r.vx=0;r.vz=0;r.lean=0;r.animDistance=0;
+  r.animationName="";r.jumpCount=0;r.jumpBuffer=0;r.padCooldown=null;r.vx=0;r.vz=0;r.netTarget=null;r.lean=0;r.animDistance=0;
   r.coyote=0;r.airTime=0;r.jumpFlash=0;r.landing=0;r.combo=0;r.speedBonus=0;
   r.stun=0;r.dash=0;r.dashCd=0;r.tagGraceUntil=0;r.aiFocus=null;r.aiFocusUntil=0;r.y=0;r.vy=0;r.nearMisses=new Set();
   if(lane>=0){
@@ -3049,7 +3062,7 @@ function resetRound(){
   if(r.mixer)r.mixer.stopAllAction();useAnimation(r,"Idle");
  });
  startMiniChallenge();showRoundTheme();resize();cue(510,.12);announce("¡"+MINI_MODES[currentMode].title+"!",1400);
- if(mp.active&&mp.host&&mp.started)mpRoundSend();
+ if(mp.active&&mp.host&&mp.started){mp.roundId++;mp.lastResult=null;mp.resultShown=false;mpRoundSend()}
 }
 function startTournament(){if(mp.active&&!mp.host)return;cancelAutoAdvance();gameType="tournament";raceEndAfterPlayer=0;roundIndex=0;contestants=[0,1,2,3,4,5];nextQualifiers=[];playerQualified=false;tournamentStars=0;modePlaylist=choosePlaylist();resetRound()}
 function concludeRound(){
@@ -3153,13 +3166,13 @@ function move(dt,t){
  if(currentMode!=="race"){moveMiniGame(dt,t);return}
  if(elapsed>53||(raceEndAfterPlayer>0&&elapsed>=raceEndAfterPlayer)){concludeRound();return}
  for(let i=0;i<racers.length;i++){
-  const r=racers[i];if(r.finished||!contestants.includes(i))continue;const bot=i!==0&&!mpPlayerSteer(i);
+  const r=racers[i];if(r.finished||!contestants.includes(i))continue;const bot=i!==0&&!mpIsHuman(i);
   r.stun=Math.max(0,r.stun-dt);r.invuln=Math.max(0,r.invuln-dt);
   r.dashCd=Math.max(0,r.dashCd-dt);r.dash=Math.max(0,r.dash-dt);
   r.speedBonus=Math.max(0,r.speedBonus-dt);r.jumpFlash=Math.max(0,r.jumpFlash-dt);
   r.landing=Math.max(0,r.landing-dt);r.jumpBuffer=Math.max(0,r.jumpBuffer-dt);
   let lateral=0;
-  if(i!==0&&!bot){lateral=mpPlayerSteer(i).dx}
+  if(i!==0&&!bot){lateral=mpPlayerSteer(i)?.dx||0}
   else if(bot){
    const mood=i%5;
    let target=Math.sin(elapsed*(.4+mood*.13)+r.phase)*(0.8+.20*mood);
