@@ -400,6 +400,43 @@ body.colorcrash-mode .color-crash-hud.critical{animation:v35Pulse .29s linear in
 body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172aef,#153555e8,#09172aef)}
 #scene{background:radial-gradient(ellipse 62% 72% at 50% 45%,#17325a 0%,#06142c 64%,#040918 100%)!important}
 
+
+/* MICROCAOS 5.1 — AR layout keeps the arena visible behind the controls. */
+html.xr-active #ui .top{top:max(5px,env(safe-area-inset-top));left:7px;right:7px}
+html.xr-active #ui .brand-mark{width:28px;height:28px;border-radius:9px;font-size:19px}
+html.xr-active #ui .brandname{font-size:15px}
+html.xr-active #ui .brandbelow,
+html.xr-active #ui .topright .tinylabel,
+html.xr-active #ui .modebar{display:none!important}
+html.xr-active #ui #notice.show{top:max(41px,calc(env(safe-area-inset-top) + 39px));
+ left:8%;right:8%;font-size:11px;line-height:1.35;padding:7px 10px;
+ max-height:53px;overflow:hidden;background:#061b2bcb;z-index:15}
+html.xr-active #ui .ar-tools{top:max(106px,calc(env(safe-area-inset-top) + 104px))!important;
+ left:50%!important;right:auto!important;transform:translateX(-50%);z-index:25}
+html.xr-active #ui .stagebanner{top:max(159px,calc(env(safe-area-inset-top) + 157px))!important;font-size:9px;padding:5px 9px}
+html.xr-active #ui .mini-objective{top:max(187px,calc(env(safe-area-inset-top) + 185px))!important;
+ min-width:0;max-width:80vw;white-space:normal;font-size:11px;padding:7px 9px}
+html.xr-active #ui .territory-board,html.xr-active #ui #gemLeaderboard{
+ top:auto!important;right:5px!important;bottom:125px!important;transform:scale(.69);
+ transform-origin:right bottom;max-height:58vh;overflow:hidden}
+html.xr-active:not(.ar-placed) #ui .territory-board,
+html.xr-active:not(.ar-placed) #ui #gemLeaderboard,
+html.xr-active:not(.ar-placed) #ui .hud,
+html.xr-active:not(.ar-placed) #ui .stagebanner,
+html.xr-active:not(.ar-placed) #ui .mini-objective,
+html.xr-active:not(.ar-placed) #ui .raceprogress{display:none!important}
+html.xr-active #ui #placeArena{bottom:calc(env(safe-area-inset-bottom) + 110px)!important;
+ min-height:50px;font-size:12px;z-index:40}
+@media(max-width:550px){
+ html.xr-active #ui .controls{bottom:max(4px,env(safe-area-inset-bottom));padding:0 9px}
+ html.xr-active #ui .joyarea{width:97px;height:97px}
+ html.xr-active #ui .joyrim{width:89px;height:89px}
+ html.xr-active #ui .joycenter{width:48px;height:48px}
+ html.xr-active #ui .actionbar{gap:6px}
+ html.xr-active #ui .jump{width:70px;height:70px;font-size:11px}
+ html.xr-active #ui .dash{width:58px;height:58px}
+}
+
 </style>
 </head>
 <body>
