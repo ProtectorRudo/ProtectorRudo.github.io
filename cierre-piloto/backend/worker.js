@@ -129,7 +129,7 @@ async function admin(request,env,url,cors){
    "SELECT quote_id,phone_id,substr(contact_key,1,10) AS contact_ref,quote_at,last_activity_at,status,reason,pdf_detected,manual_control,updated_at FROM opportunities ORDER BY updated_at DESC LIMIT 100"
   ).all();
   return json({mode:"shadow",can_send:false,items:(rows?.results??[]).map(r=>({
-   ...r,shadow_due:r.status==="candidate"&&now()-r.last_activity_at>=36*3600000,
+   ...r,shadow_due:r.status==="candidate"&&now()-r.last_activity_at>=Math.max(24,Math.min(168,Number(env.FOLLOWUP_HOURS)||36))*3600000,
    warning:"No se verificó consentimiento, ventas presenciales ni cobertura completa del chat"
   }))},200,cors);
  }
@@ -186,5 +186,13 @@ export default {
    catch{return json({error:"internal_error"},500,cors);}
   }
   return json({error:"not_found"},404);
+ },
+ async scheduled(_event,env){
+  if(!env?.DB)return;
+  const day=24*60*60*1000;
+  // Keep only the minimum operational history needed for the shadow pilot.
+  await env.DB.prepare("DELETE FROM inbound_events WHERE received_at<?").bind(now()-30*day).run();
+  await env.DB.prepare("DELETE FROM opportunities WHERE updated_at<?").bind(now()-90*day).run();
+  // Contact opt-out hashes are intentionally retained so we don't contact opted-out people.
  }
 };
