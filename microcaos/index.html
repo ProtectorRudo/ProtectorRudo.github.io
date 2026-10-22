@@ -275,6 +275,23 @@ body.ballistix-mode #ui .jump.ballistix-pulse-ready{animation:ballPulseReady 1.1
 .territory-board .gem-lb-count{font-size:11px;color:#a0ffca}
 @media(min-width:950px){.territory-board{right:13px;top:240px}}
 @media(max-width:600px){.territory-board{right:8px;top:215px;width:143px}}
+
+/* COLOR CRASH — restrained premium HUD, leaves the action unobstructed. */
+.color-crash-hud{--cc:#ff526c;display:none;position:absolute;top:123px;left:50%;transform:translateX(-50%);z-index:11;width:min(356px,81vw);padding:11px 13px 12px;border-radius:19px;border:1px solid #ffffff45;background:linear-gradient(145deg,#08152bf2,#10213df2);box-shadow:0 12px 34px #000b,inset 0 1px 0 #ffffff24;backdrop-filter:blur(15px);color:#f8fbff;font-family:Outfit,sans-serif;pointer-events:none}
+.color-crash-hud.on{display:block}
+.cc-top{display:flex;justify-content:space-between;align-items:center;color:#bacde4;font-size:9px;letter-spacing:.12em;font-weight:850;margin-bottom:7px}
+.cc-center{display:flex;align-items:center;gap:11px}
+.cc-symbol{display:grid;place-items:center;width:44px;height:44px;flex:none;background:var(--cc);color:#07182b;border-radius:12px;font-size:27px;box-shadow:0 0 21px var(--cc),inset 0 1px 1px #fff9}
+.cc-call{display:flex;flex:1;min-width:0;flex-direction:column;gap:2px}
+.cc-call small{color:#bfcee0;font-size:9px;font-weight:900;letter-spacing:.025em}
+.cc-call strong{font-size:clamp(20px,5vw,28px);font-weight:900;line-height:1;letter-spacing:.025em}
+#ccSeconds{text-align:right;font-size:27px;min-width:43px;font-weight:900;font-variant-numeric:tabular-nums}
+.cc-track{height:4px;margin-top:9px;border-radius:10px;background:#ffffff30;overflow:hidden}
+#ccFill{display:block;width:100%;height:100%;background:var(--cc);box-shadow:0 0 9px var(--cc)}
+body.colorcrash-mode .stagebanner{top:78px!important;font-size:10px;max-width:93%}
+body.colorcrash-mode .hud,body.colorcrash-mode .raceprogress,body.colorcrash-mode .pickupCounter,body.colorcrash-mode .mini-objective{display:none!important}
+@media(max-width:600px){body.colorcrash-mode .stagebanner{top:69px!important;font-size:9px}body.colorcrash-mode .color-crash-hud{top:101px;width:min(315px,80vw);padding:8px 10px}.cc-symbol{width:35px;height:35px;font-size:22px}.cc-center{gap:8px}.cc-call strong{font-size:20px}#ccSeconds{font-size:23px}.cc-top{font-size:8px}}
+@media(max-height:690px){body.colorcrash-mode .stagebanner{top:59px!important}body.colorcrash-mode .color-crash-hud{top:88px!important;padding:6px 9px}.cc-track{margin-top:6px}}
 </style>
 </head>
 <body>
@@ -282,11 +299,12 @@ body.ballistix-mode #ui .jump.ballistix-pulse-ready{animation:ballPulseReady 1.1
 <div id="scene"></div>
 <div id="ui">
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · TERRITORIOS V2.6</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · COLOR CRASH V2.7</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
 <div class="speedtrails" id="speedtrails"></div><div class="stagebanner" id="stagebanner">RONDA SORPRESA</div><div id="miniObjective" class="mini-objective">¡PREPARADOS!</div>
+<section id="colorCrashHUD" class="color-crash-hud" aria-live="off"><div class="cc-top"><span id="ccRound">RONDA 1 / 7</span><span id="ccAlive">6 EN PIE</span></div><div class="cc-center"><span id="ccSymbol" class="cc-symbol">◆</span><div class="cc-call"><small>¡CORRÉ A ESTE COLOR!</small><strong id="ccName">ROJO</strong></div><b id="ccSeconds">3.0</b></div><div class="cc-track"><span id="ccFill"></span></div></section>
 <section id="territoryLeaderboard" class="gem-leaderboard territory-board" aria-label="Ranking de territorios">
 <div class="gem-lb-heading"><div><span>🟩</span><strong>CONTROL</strong></div><small id="territoryQualification">PASAN 4</small></div>
 <div id="territoryLeaderboardRows" class="gem-lb-rows"></div>
@@ -331,6 +349,7 @@ body.ballistix-mode #ui .jump.ballistix-pulse-ready{animation:ballPulseReady 1.1
    <button class="mode-option" data-mode="survival"><b>🌀 EL PISO SE HUNDE</b><small>Quedate en la zona segura · 6 jugadores</small></button>
 <button class="mode-option" data-mode="territory"><b>🟩 CONQUISTA DE TERRITORIO</b><small>Cerrá tu rastro para conquistar · 6 jugadores</small></button>
    <button class="mode-option" data-mode="ballistix"><b>⚽ BALLISTIX</b><small>Cuatro arcos, pelotas y PULSO · 4 jugadores</small></button>
+   <button class="mode-option" data-mode="colorcrash"><b>🎨 COLOR CRASH · NUEVO</b><small>¡Corré al color! Los demás paneles se hunden · 6 jugadores</small></button>
   </div>
   <button id="singleStart" class="primary mainprimary">JUGAR ESTA PRUEBA ↗</button>
   <button id="tryBallistix" class="ball-practice">⚡ IR DIRECTO A BALLISTIX</button>
@@ -818,7 +837,8 @@ function returnToMenu(){
  for(const id of ["hud","progress","controls","stagebanner","ballScoreboard","miniObjective","pickupCounter","gemLeaderboard","territoryLeaderboard"])$(id).classList.remove("on");
  $("finish").classList.remove("show");$("intro").classList.remove("hidden");
  $("speedtrails").classList.remove("active");
- document.body.classList.remove("ballistix-mode");
+ document.body.classList.remove("ballistix-mode","colorcrash-mode");
+ $("colorCrashHUD").classList.remove("on");
  $("notice").classList.remove("show");
  showMenuPage("home");
 }
@@ -863,6 +883,7 @@ const MINI_MODES={
  gems:{title:"FIEBRE DE GEMAS",emoji:"💎",objective:"¡JUNTÁ GEMAS!",time:25,color:0xffd13e},
  survival:{title:"EL PISO SE HUNDE",emoji:"🌀",objective:"¡ENTRÁ EN EL CÍRCULO!",time:26,color:0x835eff},
  territory:{title:"CONQUISTA DE TERRITORIO",emoji:"🟩",objective:"CERRÁ TU RASTRO PARA CONQUISTAR",time:90,color:0x4affb7},
+ colorcrash:{title:"COLOR CRASH",emoji:"🎨",objective:"¡CORRÉ AL COLOR INDICADO!",time:39,color:0xff55b5},
  ballistix:{title:"BATALLA BALLISTIX",emoji:"⚽",objective:"¡DEFENDÉ TU ARCO!",time:0,color:0x87efff},
  race:{title:"CARRERA LOCA",emoji:"🏁",objective:"¡LLEGÁ A LA META!",time:53,color:0x80ffe5}
 };
@@ -916,6 +937,210 @@ for(const modeName of ["tag","gems","survival"]){
   }
  }
  // 3D title removed: the compact HUD already identifies the game.
+}
+
+
+// COLOR CRASH V1 — 42 interactive 3D glass-metal panels, six readable glyph colors,
+// per-bot reactive routing, escalating speed and pooled arcade impact effects.
+const CC_COLS=6,CC_ROWS=7,CC_W=1.29,CC_D=1.43,CC_MAX=7;
+const CC_PALETTE=[
+ {name:"ROJO",hex:0xff526c,symbol:"◆"},
+ {name:"AZUL",hex:0x438fff,symbol:"●"},
+ {name:"VERDE",hex:0x65ef89,symbol:"✦"},
+ {name:"AMARILLO",hex:0xffd24a,symbol:"★"},
+ {name:"VIOLETA",hex:0xb174ff,symbol:"⬟"},
+ {name:"CIAN",hex:0x34eadc,symbol:"▲"}
+];
+const ccArena=new THREE.Group();ccArena.visible=false;stage.add(ccArena);miniStages.colorcrash=ccArena;
+const ccFrame=mat(0x121b38,.60,.22,{clearcoat:1});
+const ccInset=mat(0x1c315a,.33,.24,{emissive:0x06162b,emissiveIntensity:.30});
+const ccLED=mat(0x51faff,.18,.20,{emissive:0x1ddbf1,emissiveIntensity:1.15});
+const ccPink=mat(0xff43ab,.13,.22,{emissive:0xef2784,emissiveIntensity:.63});
+soft(ccFrame,ccArena,[0,-.61,0],[9.15,.94,11.52]);
+soft(ccInset,ccArena,[0,-.14,0],[8.50,.19,10.75]);
+soft(mat(0x040d23,.06,.52),ccArena,[0,-.025,0],[7.94,.035,10.25]);
+for(const x of [-4.28,4.28]){
+ soft(ccLED,ccArena,[x,-.01,0],[.10,.15,10.9],false);
+ for(const z of [-4.4,-2.2,0,2.2,4.4])ball(ccPink,ccArena,[x,.22,z],[.10,.12,.10]).castShadow=false;
+}
+for(const z of [-5.39,5.39])soft(ccLED,ccArena,[0,-.01,z],[8.65,.15,.10],false);
+for(const x of [-4.28,4.28])for(const z of [-5.38,5.38]){
+ cyl(ccFrame,ccArena,[x,.57,z],.25,.29,1.30);
+ cyl(ccLED,ccArena,[x,1.24,z],.19,.23,.11).castShadow=false;
+ ball(ccPink,ccArena,[x,1.40,z],[.21,.21,.21]).castShadow=false;
+}
+const ccMats=CC_PALETTE.map(c=>({
+ face:mat(c.hex,.35,.16,{clearcoat:1,clearcoatRoughness:.07,emissive:c.hex,emissiveIntensity:.18}),
+ edge:mat(c.hex,.36,.22,{emissive:c.hex,emissiveIntensity:.80})
+}));
+const ccGlyphs=CC_PALETTE.map(c=>{
+ const cv=document.createElement("canvas");cv.width=cv.height=256;
+ const ctx=cv.getContext("2d");ctx.textAlign="center";ctx.textBaseline="middle";
+ ctx.font="bold 152px Arial,sans-serif";ctx.shadowColor="#ffffff";ctx.shadowBlur=15;
+ ctx.fillStyle="#ffffff";ctx.fillText(c.symbol,128,128);
+ const tx=new THREE.CanvasTexture(cv);tx.colorSpace=THREE.SRGBColorSpace;
+ return new THREE.MeshBasicMaterial({map:tx,transparent:true,opacity:.82,depthWrite:false,side:THREE.DoubleSide});
+});
+const ccGeometry=new RoundedBoxGeometry(CC_W-.09,.25,CC_D-.09,4,.09);
+const ccTiles=[];
+for(let row=0;row<CC_ROWS;row++)for(let col=0;col<CC_COLS;col++){
+ const g=new THREE.Group();
+ g.position.set((col-(CC_COLS-1)/2)*CC_W,0,(row-(CC_ROWS-1)/2)*CC_D);
+ ccArena.add(g);
+ const edge=soft(ccMats[0].edge,g,[0,-.275,0],[CC_W-.03,.085,CC_D-.03]);edge.castShadow=false;
+ const face=mesh(ccGeometry,ccMats[0].face,g,[0,-.14,0]);face.castShadow=false;
+ const glyph=mesh(new THREE.PlaneGeometry(.81,.81),ccGlyphs[0],g,[0,-.006,0],[1,1,1],false);
+ glyph.rotation.x=-Math.PI/2;glyph.receiveShadow=false;
+ ccTiles.push({g,face,edge,glyph,color:0,fall:false,phase:Math.random()*6.283});
+}
+// FX have fixed GPU allocations, even when multiple participants fall at once.
+const ccRipples=[];
+const ccRingGeo=new THREE.TorusGeometry(.66,.045,8,36);
+for(let k=0;k<9;k++){
+ const m=new THREE.Mesh(ccRingGeo,new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending}));
+ m.rotation.x=Math.PI/2;m.visible=false;ccArena.add(m);ccRipples.push({m,age:2});
+}
+const cc={status:"idle",round:0,target:0,left:0,total:0,gap:0};
+function ccTile(x,z){
+ const i=Math.floor((x+CC_COLS*CC_W/2)/CC_W),j=Math.floor((z+CC_ROWS*CC_D/2)/CC_D);
+ if(i<0||i>=CC_COLS||j<0||j>=CC_ROWS)return null;
+ const tile=ccTiles[j*CC_COLS+i];
+ return Math.abs(x-tile.g.position.x)<CC_W*.475&&Math.abs(z-tile.g.position.z)<CC_D*.475?tile:null;
+}
+function ccRipple(x,z,hex){
+ const v=ccRipples.find(r=>!r.m.visible)||ccRipples.reduce((a,b)=>a.age>b.age?a:b);
+ v.age=0;v.m.visible=true;v.m.material.color.setHex(hex);v.m.material.opacity=.78;
+ v.m.position.set(x,.13,z);v.m.scale.setScalar(.28);
+}
+function ccShuffle(){
+ const bag=Array.from({length:ccTiles.length},(_,i)=>i%CC_PALETTE.length);
+ for(let i=bag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]]}
+ ccTiles.forEach((tile,i)=>{
+  tile.color=bag[i];tile.fall=false;tile.g.position.y=-3.1;tile.g.rotation.set(0,0,0);
+  tile.face.material=ccMats[tile.color].face;
+  tile.edge.material=ccMats[tile.color].edge;
+  tile.glyph.material=ccGlyphs[tile.color];
+ });
+}
+function ccHUD(){
+ const color=CC_PALETTE[cc.target];
+ $("colorCrashHUD").style.setProperty("--cc","#"+color.hex.toString(16).padStart(6,"0"));
+ $("ccRound").textContent="RONDA "+cc.round+" / "+CC_MAX;
+ $("ccAlive").textContent=liveRacers().length+" EN PIE";
+ $("ccSymbol").textContent=color.symbol;
+ $("ccName").textContent=cc.status==="collapse"?"¡CUIDADO!":color.name;
+ $("ccSeconds").textContent=cc.status==="choose"?cc.left.toFixed(1):"!";
+ $("ccFill").style.width=(cc.status==="choose"?100*cc.left/cc.total:0).toFixed(1)+"%";
+}
+function ccNewRound(){
+ cc.round++;cc.status="choose";
+ cc.total=Math.max(1.16,3.15-(cc.round-1)*.325);
+ cc.left=cc.total;cc.target=Math.floor(Math.random()*CC_PALETTE.length);
+ ccShuffle();
+ for(const r of liveRacers()){
+  r.ccGoal=-1;r.ccReact=miniChallengeElapsed+.11+(1-r.skill)*.56+Math.random()*.24;
+  const error=Math.max(.015,cc.round*.047+(1-r.skill)*.13+(gameSettings.difficulty==="easy"?.10:gameSettings.difficulty==="hard"?-.065:0));
+  r.ccMistake=r.index!==0&&Math.random()<error;
+  r.ccVisited=false;
+ }
+ cue(620+cc.round*42,.14,"triangle",.065);
+ if(cc.round===5)announce("¡REACCIONÁ MÁS RÁPIDO! ⚡",800);
+ ccHUD();
+}
+function ccStart(){
+ cc.round=0;cc.status="idle";cc.gap=0;miniClock=0;
+ ccRipples.forEach(v=>v.m.visible=false);
+ for(const r of activeRacers()){r.ccGoal=-1;r.ccFall=-1;r.ccScore=0;r.ccReact=0;r.ccMistake=false;r.ccVisited=false;r.ccDistance=0}
+ ccNewRound();
+}
+function ccBot(r,t){
+ if(cc.status!=="choose"||miniChallengeElapsed<r.ccReact)return[0,0];
+ if(r.ccGoal<0){
+  let best=Infinity;
+  for(let i=0;i<ccTiles.length;i++){
+   const tile=ccTiles[i];
+   if(r.ccMistake?tile.color===cc.target:tile.color!==cc.target)continue;
+   let d=Math.hypot(r.x-tile.g.position.x,r.z-tile.g.position.z);
+   for(const other of liveRacers())if(other!==r&&other.ccGoal===i)d+=.7;
+   d+=Math.random()*.12;
+   if(d<best){best=d;r.ccGoal=i}
+  }
+ }
+ const tile=ccTiles[r.ccGoal];if(!tile)return[0,0];
+ const dx=tile.g.position.x-r.x,dz=tile.g.position.z-r.z,dist=Math.hypot(dx,dz);
+ return dist<.16?[0,0]:[dx/dist,-dz/dist];
+}
+function ccCollapse(){
+ const ok=[],out=[],color=CC_PALETTE[cc.target];
+ for(const r of liveRacers()){
+  let dist=Infinity;
+  for(const tile of ccTiles)if(tile.color===cc.target)dist=Math.min(dist,Math.hypot(tile.g.position.x-r.x,tile.g.position.z-r.z));
+  r.ccDistance=dist;
+  const tile=ccTile(r.x,r.z);
+  (tile&&tile.color===cc.target?ok:out).push(r);
+ }
+ // In a complete wipeout, the competitor closest to safety survives.
+ if(!ok.length&&out.length){
+  out.sort((a,b)=>a.ccDistance-b.ccDistance);
+  const survivor=out.shift();
+  const nearest=ccTiles.filter(tile=>tile.color===cc.target).reduce((a,b)=>!a||Math.hypot(survivor.x-b.g.position.x,survivor.z-b.g.position.z)<Math.hypot(survivor.x-a.g.position.x,survivor.z-a.g.position.z)?b:a,null);
+  survivor.x=nearest.g.position.x;survivor.z=nearest.g.position.z;survivor.root.position.set(survivor.x,0,survivor.z);
+  ok.push(survivor);
+ }
+ for(const r of ok){
+  r.ccScore=(r.ccScore||0)+1;
+  ccRipple(r.x,r.z,color.hex);
+  if(r.index===0){tactile(18);skillMessage("¡TE SALVASTE! ✨",650)}
+ }
+ for(const r of out){r.ccFall=miniChallengeElapsed;knockoutRunner(r,null)}
+ for(const tile of ccTiles)tile.fall=tile.color!==cc.target;
+ cc.status="collapse";cc.gap=1.05;
+ if(out.length){cue(175,.31,"sawtooth",.12);cameraShake=Math.max(cameraShake,.16)}
+ else cue(780,.12,"triangle",.045);
+ ccHUD();
+}
+function ccTick(dt){
+ if(cc.status==="choose"){
+  const prev=Math.ceil(cc.left);cc.left=Math.max(0,cc.left-dt);miniClock=cc.left;
+  if(Math.ceil(cc.left)!==prev&&cc.left>0)cue(cc.left<1?990:540,.06,"square",.022);
+  // Faster arrival earns a small tiebreak score; the safe color is always legible.
+  for(const r of liveRacers()){
+   const tile=ccTile(r.x,r.z);
+   if(!r.ccVisited&&tile&&tile.color===cc.target){
+    r.ccVisited=true;r.ccScore=(r.ccScore||0)+.01+Math.max(0,cc.left)/cc.total*.09;
+   }
+  }
+  if(cc.left<=0)ccCollapse();
+ }else if(cc.status==="collapse"){
+  cc.gap-=dt;miniClock=0;
+  if(cc.gap<=0){
+   if(liveRacers().length<=roundRule().qualify||cc.round>=CC_MAX){miniCloseRound();return}
+   ccNewRound();
+  }
+ }
+ if(phase==="race")ccHUD();
+}
+function ccAnimate(dt){
+ if(!ccArena.visible)return;
+ const drop=cc.status==="collapse";
+ for(const tile of ccTiles){
+  const bad=drop&&tile.fall;
+  const target=bad?-3.7:0;
+  tile.g.position.y+=(target-tile.g.position.y)*Math.min(1,dt*(bad?5.8:10));
+  tile.g.rotation.z+=((bad?Math.sin(tile.phase)*.25:0)-tile.g.rotation.z)*Math.min(1,dt*6);
+  tile.g.rotation.x+=((bad?Math.cos(tile.phase)*.23:0)-tile.g.rotation.x)*Math.min(1,dt*6);
+ }
+ for(const v of ccRipples){
+  if(!v.m.visible)continue;
+  v.age+=dt/.55;
+  if(v.age>=1){v.m.visible=false;continue}
+  v.m.scale.setScalar(.33+v.age*1.95);v.m.material.opacity=(1-v.age)*.69;
+ }
+ for(const r of activeRacers())if(r.finished&&r.ccFall>=0){
+  const age=Math.max(0,miniChallengeElapsed-r.ccFall);
+  r.root.position.y=-Math.min(3.2,age*4.5);
+  r.root.rotation.z=Math.min(.8,age*1.7);
+ }
 }
 
 // CONQUISTA DE TERRITORIO · original Paper.io-inspired minigame.
@@ -1411,7 +1636,7 @@ function shuffleModes(items){
 }
 function choosePlaylist(){
  // One guaranteed weight-tag round, two unique surprises; shuffled again so tag can start anywhere.
- const order=shuffleModes(["tag","gems","survival","race","territory"]);return [order[0],"ballistix",order[1]];
+ const order=shuffleModes(["tag","gems","survival","race","territory","colorcrash"]);return [order[0],"ballistix",order[1]];
 }
 
 // BALLISTIX - four player air-hockey survival semifinal.
@@ -1961,7 +2186,7 @@ function renderModeLabel(){
  $("stagebanner").textContent=(gameType==="individual"?"PARTIDA INDIVIDUAL":"RONDA "+(roundIndex+1)+"/3")+" · "+tag.emoji+" · "+(gameType==="individual"?"1º GANA":"PASAN "+ROUND_RULES[roundIndex].qualify);
  $("rankLabel").textContent=currentMode==="race"?"POSICIÓN · "+ROUND_RULES[roundIndex].qualify+" PASAN":
   currentMode==="tag"?"PESA · ÚLTIMO PIERDE":
-  currentMode==="gems"?"GEMAS · MÁS JUNTADAS":currentMode==="territory"?"TERRITORIO · ÁREA CONQUISTADA":currentMode==="ballistix"?"VIDAS · NO RECIBAS GOLES":"SUPERVIVIENTES";
+  currentMode==="gems"?"GEMAS · MÁS JUNTADAS":currentMode==="territory"?"TERRITORIO · ÁREA CONQUISTADA":currentMode==="colorcrash"?"COLOR CORRECTO · SOBREVIVÍ":currentMode==="ballistix"?"VIDAS · NO RECIBAS GOLES":"SUPERVIVIENTES";
  $("miniObjective").textContent=tag.objective;
  $("miniObjective").classList.toggle("on",currentMode!=="race");
  $("miniObjective").classList.remove("danger");
@@ -1970,6 +2195,8 @@ function renderModeLabel(){
  moodLights.forEach(obj=>obj.visible=currentMode==="race");
  for(const k of Object.keys(miniStages))miniStages[k].visible=k===currentMode;
  document.body.classList.toggle("ballistix-mode",currentMode==="ballistix");
+ document.body.classList.toggle("colorcrash-mode",currentMode==="colorcrash");
+ $("colorCrashHUD").classList.toggle("on",currentMode==="colorcrash");
  $("gemLeaderboard").classList.toggle("on",currentMode==="gems");
  $("territoryLeaderboard").classList.toggle("on",currentMode==="territory");
  renderer.shadowMap.enabled=currentMode!=="ballistix";
@@ -1979,7 +2206,7 @@ function renderModeLabel(){
   scene.background=new THREE.Color(currentMode==="race"?0x172b4a:currentMode==="tag"?0x180d35:0x0c1736);
   scene.fog.color.setHex(currentMode==="race"?0x142542:0x0c1030);
  }
- camera.fov=currentMode==="ballistix"?(camera.aspect<.68?64:48):currentMode==="territory"?(camera.aspect<.68?63:46):(camera.aspect<.68?58:42);
+ camera.fov=currentMode==="ballistix"?(camera.aspect<.68?64:48):currentMode==="territory"?(camera.aspect<.68?63:46):currentMode==="colorcrash"?(camera.aspect<.68?68:51):(camera.aspect<.68?58:42);
  camera.updateProjectionMatrix();
  ballArena.visible=currentMode==="ballistix";$("ballScoreboard").classList.toggle("on",currentMode==="ballistix");
  for(const o of obstacles){
@@ -2041,6 +2268,8 @@ function startMiniChallenge(){
   miniClock=0;startBallistix();
  }else if(currentMode==="territory"){
   miniClock=MINI_MODES.territory.time;territoryStart();
+ }else if(currentMode==="colorcrash"){
+  ccStart();
  }else if(currentMode==="survival"){
   miniClock=6.5;
   miniSafe={x:0,z:0,radius:3.0};updateSafeZone();
@@ -2070,6 +2299,7 @@ function miniOrder(){
  if(currentMode==="ballistix")return entries.sort((a,b)=>{const ai=ballSides.indexOf(a.index),bi=ballSides.indexOf(b.index);return Number(!ballStatus[ai])-Number(!ballStatus[bi])||ballHealth[bi]-ballHealth[ai]});
  if(currentMode==="gems")return entries.sort((a,b)=>miniScores[b.index]-miniScores[a.index]||(a.index-b.index)*.0001);
  if(currentMode==="territory")return entries.sort((a,b)=>territoryCount[b.index]-territoryCount[a.index]||a.index-b.index);
+ if(currentMode==="colorcrash")return entries.sort((a,b)=>Number(a.finished)-Number(b.finished)||(a.finished?b.eliminatedAt-a.eliminatedAt:(b.ccScore||0)-(a.ccScore||0))||(a.ccDistance||0)-(b.ccDistance||0));
  if(currentMode==="survival")return entries.sort((a,b)=>
   Number(a.finished)-Number(b.finished)||
   (a.finished?b.eliminatedAt-a.eliminatedAt:
@@ -2224,6 +2454,7 @@ function miniSurvival(dt){
  if(miniChallengeElapsed>=27){miniCloseRound()}
 }
 function miniBotDirection(r,t){
+ if(currentMode==="colorcrash")return ccBot(r,t);
  let tx=0,tz=0;
  if(currentMode==="tag"){
   const holder=racers[weightHolder],others=liveRacers().filter(q=>q.index!==r.index&&!(q.tagGraceUntil>miniChallengeElapsed));
@@ -2347,6 +2578,7 @@ function moveMiniGame(dt,t){
  if(currentMode==="tag")miniTag(dt);
  else if(currentMode==="gems")miniGems(dt,t);
  else if(currentMode==="territory")territoryTick(dt);
+ else if(currentMode==="colorcrash")ccTick(dt);
  else if(currentMode==="survival")miniSurvival(dt);
  if(phase!=="race")return;
  $("timer").textContent=formatTime(Math.max(0,miniClock));
@@ -2362,6 +2594,8 @@ function moveMiniGame(dt,t){
   const targetRank=gameType==="individual"?1:Math.min(roundRule().qualify,ranking.length);
   const qualificationScore=ranking[targetRank-1]?.score||0;
   $("miniObjective").textContent="💎 VOS "+miniScores[0]+" · TOP "+targetRank+": "+qualificationScore+" · "+Math.ceil(miniClock)+" s";
+ }else if(currentMode==="colorcrash"){
+  $("miniObjective").textContent="🎨 "+CC_PALETTE[cc.target].name+" · RONDA "+cc.round+"/"+CC_MAX;
  }else if(currentMode==="territory"){
   const own=territoryCount[0],top=Math.max(...territoryCount);
   $("miniObjective").textContent=racers[0].territoryTrail.length?"⚡ RASTRO ABIERTO · ¡VOLVÉ A TU COLOR!":
@@ -2369,7 +2603,7 @@ function moveMiniGame(dt,t){
  }else{
   $("miniObjective").textContent="🌀 ZONA SEGURA · "+Math.ceil(miniClock)+" s";
  }
- $("progressBar").style.width=(Math.min(100,100*miniChallengeElapsed/(currentMode==="territory"?MINI_MODES.territory.time:currentMode==="gems"?25:currentMode==="survival"?27:26))).toFixed(1)+"%";
+ $("progressBar").style.width=(Math.min(100,100*miniChallengeElapsed/(currentMode==="territory"?MINI_MODES.territory.time:currentMode==="colorcrash"?39:currentMode==="gems"?25:currentMode==="survival"?27:26))).toFixed(1)+"%";
  $("dash").classList.toggle("cooldown",racers[0].dashCd>0);
  $("dash").textContent=racers[0].dashCd>0?Math.ceil(racers[0].dashCd)+"s":"TURBO";
  $("jumpCount").textContent=currentMode==="territory"?(racers[0].territoryShieldCd>0?Math.ceil(racers[0].territoryShieldCd)+"s":"LISTO"):(racers[0].jumpCount?"×1":"×2");
@@ -2400,7 +2634,7 @@ function resetRound(){
   r.stun=0;r.dash=0;r.dashCd=0;r.tagGraceUntil=0;r.aiFocus=null;r.aiFocusUntil=0;r.y=0;r.vy=0;r.nearMisses=new Set();
   if(lane>=0){
    if(currentMode==="race"){r.x=(lane-(count-1)/2)*(count>=5?1.29:1.75);r.z=11.6+(lane%2)*.90}
-   else{const a=lane/Math.max(1,count)*Math.PI*2+Math.PI/2;r.x=Math.cos(a)*(currentMode==="territory"?TERRITORY_HALF_X*.67:2.3);r.z=Math.sin(a)*(currentMode==="territory"?TERRITORY_HALF_Z*.66:2.8)}
+   else{const a=lane/Math.max(1,count)*Math.PI*2+Math.PI/2;r.x=Math.cos(a)*(currentMode==="territory"?TERRITORY_HALF_X*.67:currentMode==="colorcrash"?2.5:2.3);r.z=Math.sin(a)*(currentMode==="territory"?TERRITORY_HALF_Z*.66:currentMode==="colorcrash"?3.25:2.8)}
   }
   r.root.position.set(r.x,0,r.z);r.root.rotation.set(0,0,0);r.rig.scale.set(1,1,1);
   if(r.mixer)r.mixer.stopAllAction();useAnimation(r,"Idle");
@@ -2723,18 +2957,18 @@ function physicsTick(frameDt){
   for(let n=0;n<count;n++){physicsTime+=FIXED_DT;move(FIXED_DT,physicsTime);physicsAccumulator-=FIXED_DT}
   if(count===6&&physicsAccumulator>FIXED_DT)physicsAccumulator=0;
 }
-function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;const sec=t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);animateFallingWeights(dt);animateTerritoryFX(dt);try{physicsTick(dt)}catch(error){
+function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;const sec=t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);animateFallingWeights(dt);animateTerritoryFX(dt);ccAnimate(dt);try{physicsTick(dt)}catch(error){
  console.error("MICROCAOS physics error",error);
  phase="paused";physicsAccumulator=0;window.__microcaosError=error?.message||String(error);
  $("notice").textContent="Error al simular la partida. Tocá REINICIAR para volver a jugar. "+window.__microcaosError;
  $("notice").classList.add("show");
 }for(let r of racers)if(r.mixer)r.mixer.update(dt);$("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
-if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=currentMode==="territory"&&follow?new THREE.Vector3(clamp(p.x*.72,-TERRITORY_HALF_X*.72,TERRITORY_HALF_X*.72),0,clamp(p.z*.70,-TERRITORY_HALF_Z*.70,TERRITORY_HALF_Z*.70)):new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,22.3,9.5):new THREE.Vector3(0,18.0,9.7)):currentMode==="territory"&&follow?(portrait?new THREE.Vector3(previewTarget.x,32,previewTarget.z+22):new THREE.Vector3(previewTarget.x+11.8,21,previewTarget.z+22)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.7,11.6,12.5):new THREE.Vector3(9.7,11.8,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
+if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=currentMode==="territory"&&follow?new THREE.Vector3(clamp(p.x*.72,-TERRITORY_HALF_X*.72,TERRITORY_HALF_X*.72),0,clamp(p.z*.70,-TERRITORY_HALF_Z*.70,TERRITORY_HALF_Z*.70)):new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,22.3,9.5):new THREE.Vector3(0,18.0,9.7)):currentMode==="territory"&&follow?(portrait?new THREE.Vector3(previewTarget.x,32,previewTarget.z+22):new THREE.Vector3(previewTarget.x+11.8,21,previewTarget.z+22)):currentMode==="colorcrash"&&follow?(portrait?new THREE.Vector3(0,21,12):new THREE.Vector3(8.2,15.5,13.5)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.7,11.6,12.5):new THREE.Vector3(9.7,11.8,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
 if(mode==="ar"&&frame&&session){if(!hitRequested){hitRequested=true;session.requestReferenceSpace("viewer").then(viewer=>session.requestHitTestSource({space:viewer})).then(s=>hitSource=s).catch(()=>{})}if(hitSource&&!placed){const results=frame.getHitTestResults(hitSource);if(results.length){let pose=results[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;const m=new THREE.Matrix4().fromArray(pose.transform.matrix);reticle.position.setFromMatrixPosition(m);reticle.quaternion.setFromRotationMatrix(m);$("placeArena").style.display="inline-flex";$("notice").textContent="¡Ya veo la superficie! Tocá COLOCAR PISTA para anclar la arena."}}else{reticle.visible=false;$("placeArena").style.display="none"}}}
 if(performance.now()>lastToast)$("toast").classList.remove("show");if(performance.now()>skillToastUntil)$("skillToast").classList.remove("on");renderer.render(scene,camera)}
 const reticle=new THREE.Mesh(new THREE.RingGeometry(.20,.23,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x71ffdf,side:THREE.DoubleSide,depthWrite:false}));reticle.visible=false;scene.add(reticle);
 renderer.setAnimationLoop(render);
-function resize(){camera.aspect=innerWidth/innerHeight;camera.fov=currentMode==="ballistix"?(camera.aspect<.68?64:48):currentMode==="territory"?(camera.aspect<.68?63:46):(camera.aspect<.68?58:42);camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}addEventListener("resize",resize);
+function resize(){camera.aspect=innerWidth/innerHeight;camera.fov=currentMode==="ballistix"?(camera.aspect<.68?64:48):currentMode==="territory"?(camera.aspect<.68?63:46):currentMode==="colorcrash"?(camera.aspect<.68?68:51):(camera.aspect<.68?58:42);camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}addEventListener("resize",resize);
 function leaveCamera(){if(videoStream){videoStream.getTracks().forEach(tr=>tr.stop());videoStream=null}$("cameraVideo").style.display="none";$("scene").classList.remove("camera");scene.background=new THREE.Color(0x172b4a);mode="preview";previewTable.visible=true;$("modebar").textContent="PREVIEW 3D · PC Y CELULAR";$("cam").textContent="◎ VER CON MI CÁMARA"}
 $("cam").onclick=async()=>{if(mode==="camera"){leaveCamera();return}if(!navigator.mediaDevices?.getUserMedia){announce("CÁMARA NO DISPONIBLE",1500);return}try{videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});$("cameraVideo").srcObject=videoStream;$("cameraVideo").style.display="block";await $("cameraVideo").play();$("scene").classList.add("camera");scene.background=null;mode="camera";$("cam").textContent="◉ CERRAR CÁMARA";$("modebar").textContent="CÁMARA DEMO · SIN ANCLAJE ESPACIAL"}catch(e){announce("SIN PERMISO DE CÁMARA",1500)}};
 
