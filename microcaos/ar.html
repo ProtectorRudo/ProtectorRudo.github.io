@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0c1a2a"><title>MICROCAOS · Realidad aumentada</title>
+<meta name="theme-color" content="#0c1a2a"><title>MICROCAOS · Arena premium AR</title>
 <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.1.0/dist/model-viewer.min.js"></script>
 <style>
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}body{margin:0;background:radial-gradient(circle at 50% 19%,#385067,#101f31 49%,#091423);color:#e6fff5;font-family:system-ui,-apple-system,sans-serif}main{min-height:100dvh;max-width:620px;margin:auto;display:flex;flex-direction:column;padding:max(18px,env(safe-area-inset-top)) 17px max(24px,env(safe-area-inset-bottom))}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}body{margin:0;background:radial-gradient(circle at 50% 19%,#3c5166,#121f31 49%,#091423);color:#e6fff5;font-family:system-ui,-apple-system,sans-serif}main{min-height:100dvh;max-width:620px;margin:auto;display:flex;flex-direction:column;padding:max(18px,env(safe-area-inset-top)) 17px max(24px,env(safe-area-inset-bottom))}
 header{display:flex;align-items:center;gap:11px}.brand{background:linear-gradient(140deg,#9ffde8,#29c9b3);color:#13433e;width:39px;height:39px;border-radius:14px;font-size:29px;font-weight:1000;display:grid;place-items:center;transform:rotate(-8deg)}header span{font-size:17px;font-weight:900;letter-spacing:.025em}header small{display:block;font-size:10px;letter-spacing:.15em;color:#bad4de;margin-top:3px}
 h1{font-size:clamp(26px,6vw,39px);line-height:1.02;letter-spacing:-.05em;margin:20px 0 10px;font-weight:900}h1 strong{color:#7ff7d3}p{color:#bed4df;font-size:13px;line-height:1.55;margin:0 0 12px}
 viewer-wrapper{display:block}model-viewer{display:block;width:100%;height:min(40dvh,340px);min-height:210px;border:1px solid #ffffff2b;border-radius:23px;background:radial-gradient(circle,#315468,#091729);margin:8px 0 15px;--poster-color:transparent;overflow:hidden}
@@ -14,15 +14,15 @@ a.backup{background:#e6edff15;color:#e8fbff;border:1px solid #f4ffff32;margin-to
 a.return{font-size:13px;color:#8df8df;text-decoration:none;display:block;text-align:center;margin-top:17px}
 ol{padding-left:21px;color:#cfdee7;font-size:12px;line-height:1.55;margin:9px 0 0}ol li{margin:3px 0}
 </style></head><body><main>
-<header><div class="brand">m</div><div><span>MICROCAOS</span><small>ARENA · CÁMARA AR</small></div></header>
-<h1>La arena en tu <strong>propia mesa.</strong></h1>
-<p>Esta es la versión de visualización espacial: podés colocar y recorrer la arena desde la cámara, con seguimiento real de la superficie. La carrera interactiva sigue siendo una función separada.</p>
-<model-viewer id="viewer" src="https://raw.githubusercontent.com/ProtectorRudo/ProtectorRudo.github.io/main/microcaos/arena.glb" alt="Maqueta 3D de MICROCAOS, arena con seis corredores" camera-controls touch-action="pan-y" auto-rotate ar ar-modes="scene-viewer webxr" ar-placement="floor" shadow-intensity="1" exposure="1.05" interaction-prompt="none">
+<header><div class="brand">m</div><div><span>MICROCAOS</span><small>ARENA PREMIUM 0.6 · CÁMARA AR</small></div></header>
+<h1>El miniestadio en tu <strong>propia mesa.</strong></h1>
+<p>Rediseñamos la arena y sus seis personajes para que luzcan como un juego coleccionable. Colocá este modelo 3D en una superficie real; las carreras interactivas siguen en el juego principal.</p>
+<model-viewer id="viewer" src="https://raw.githubusercontent.com/ProtectorRudo/ProtectorRudo.github.io/25fa6f51f8de5d3efac930631eb45144ac78e761/microcaos/arena.glb?v=6" alt="Maqueta 3D de MICROCAOS, arena con seis corredores" camera-controls touch-action="pan-y" auto-rotate ar ar-modes="scene-viewer webxr" ar-placement="floor" shadow-intensity=".7" exposure="1.1" interaction-prompt="none">
  <div slot="progress-bar" style="position:absolute;left:16px;right:16px;bottom:15px;height:4px;background:#ffffff22;border-radius:10px"><div id="progress" style="width:10%;height:100%;background:#8ef4d9;border-radius:10px"></div></div>
 </model-viewer>
 <button class="primary" id="openCam">◈ ABRIR CÁMARA EN REALIDAD AUMENTADA</button>
-<a class="button backup" href="intent://arvr.google.com/scene-viewer/1.0?file=https%3A%2F%2Fraw.githubusercontent.com%2FProtectorRudo%2FProtectorRudo.github.io%2Fmain%2Fmicrocaos%2Farena.glb&amp;mode=ar_only&amp;title=MICROCAOS%20Party%20Rush#Intent;scheme=https;package=com.google.ar.core;action=android.intent.action.VIEW;S.browser_fallback_url=https%3A%2F%2Fmicrocaos-party-rush.vercel.app%2Far.html%3Fsin-ar%3D1;end;">ABRIR AR CON SERVICIOS DE GOOGLE PLAY</a>
-<a class="button backup" href="intent://arvr.google.com/scene-viewer/1.0?file=https%3A%2F%2Fraw.githubusercontent.com%2FProtectorRudo%2FProtectorRudo.github.io%2Fmain%2Fmicrocaos%2Farena.glb&amp;mode=ar_preferred&amp;title=MICROCAOS%20Party%20Rush#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=https%3A%2F%2Fmicrocaos-party-rush.vercel.app%2Far.html%3Fsin-ar%3D1;end;">ABRIR CON APP DE GOOGLE</a>
+<a class="button backup" href="intent://arvr.google.com/scene-viewer/1.0?file=https%3A%2F%2Fraw.githubusercontent.com%2FProtectorRudo%2FProtectorRudo.github.io%2F25fa6f51f8de5d3efac930631eb45144ac78e761%2Fmicrocaos%2Farena.glb%3Fv%3D6&amp;mode=ar_only&amp;title=MICROCAOS%20Party%20Rush#Intent;scheme=https;package=com.google.ar.core;action=android.intent.action.VIEW;S.browser_fallback_url=https%3A%2F%2Fmicrocaos-party-rush.vercel.app%2Far.html%3Fsin-ar%3D1;end;">ABRIR AR CON SERVICIOS DE GOOGLE PLAY</a>
+<a class="button backup" href="intent://arvr.google.com/scene-viewer/1.0?file=https%3A%2F%2Fraw.githubusercontent.com%2FProtectorRudo%2FProtectorRudo.github.io%2F25fa6f51f8de5d3efac930631eb45144ac78e761%2Fmicrocaos%2Farena.glb%3Fv%3D6&amp;mode=ar_preferred&amp;title=MICROCAOS%20Party%20Rush#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=https%3A%2F%2Fmicrocaos-party-rush.vercel.app%2Far.html%3Fsin-ar%3D1;end;">ABRIR CON APP DE GOOGLE</a>
 <div id="status" class="info">Verificá que estás en Chrome para Android, no dentro de ChatGPT u otra aplicación. Necesitás Servicios de Google Play para RA y la app de Google actualizados.</div>
 <ol><li>Abrí este enlace en <strong>Google Chrome</strong>.</li><li>Tocá «Abrir cámara en realidad aumentada».</li><li>Apuntá a una mesa bien iluminada y mové despacio el teléfono.</li></ol>
 <a class="return" href="/">← Volver al juego MICROCAOS</a>
