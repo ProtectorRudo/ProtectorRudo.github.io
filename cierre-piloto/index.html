@@ -12,16 +12,16 @@
 </style></head>
 <body>
 <div class="app">
-<aside class="side"><div class="brand"><div class="mark">↗</div><div><b>CIERRE</b><small>PILOTO · V0.1</small></div></div>
-<div class="nav"><button class="active" data-tab="radar">◫ &nbsp; Radar comercial</button><button data-tab="lab">◈ &nbsp; Laboratorio</button><button data-tab="config">⚙ &nbsp; Configuración</button></div>
+<aside class="side"><div class="brand"><div class="mark">↗</div><div><b>CIERRE</b><small>PILOTO · V0.2</small></div></div>
+<div class="nav"><button class="active" data-tab="radar">◫ &nbsp; Radar comercial</button><button data-tab="lab">◈ &nbsp; Laboratorio</button><button data-tab="config">⚙ &nbsp; Configuración</button><button data-tab="tests">✓ &nbsp; Pruebas</button></div>
 <div class="sideinfo"><b>● Modo sombra activo</b><p>Este piloto no está conectado a WhatsApp. No envía mensajes ni sube conversaciones a ningún servidor. Todo se procesa en este navegador.</p></div></aside>
 <main class="main"><div class="top"><div><span class="eyebrow">Recuperación inteligente de presupuestos</span><h1 id="pageTitle">Radar comercial</h1><p class="subtitle" id="pageSubtitle">Detectá a quién convendría escribirle, sin molestar ni duplicar seguimientos.</p></div><div class="topright"><span class="chip">0 envíos reales</span></div></div>
-<div class="notice">🔒 <b>Piloto de prueba:</b> las recomendaciones son simuladas. No conectes una cuenta real ni uses datos de clientes sin autorización del corralón. Esta versión no puede verificar compras efectuadas en el mostrador, sincronización de WhatsApp ni consentimiento.</div>
+<div class="notice">🔒 <b>Piloto de prueba:</b> las recomendaciones son simuladas. No conectes una cuenta real ni uses datos de clientes sin autorización del corralón. Esta versión no puede verificar compras efectuadas en el mostrador, sincronización de WhatsApp ni consentimiento. <b>Un diagnóstico positivo no autoriza un envío real.</b></div>
 <section class="tabcontent active" id="tab-radar">
 <div class="metrics"><div class="metric"><span class="label">Presupuestos analizados</span><strong id="mAll">0</strong><small>Conversaciones cargadas</small></div><div class="metric"><span class="label">Posibles seguimientos</span><strong id="mReady">0</strong><small>Solo simulación</small></div><div class="metric"><span class="label">Bloqueados</span><strong id="mBlock">0</strong><small>Por venta, rechazo o seguimiento</small></div><div class="metric"><span class="label">En espera / revisión</span><strong id="mWait">0</strong><small>Prioridad: no molestar</small></div></div>
-<div class="layout"><section class="card"><div class="cardhead"><div><h2>Oportunidades detectadas</h2><small>Seleccioná un caso para ver por qué CIERRE actuaría así</small></div><button class="btn sm" id="addSamples">Probar 7 ejemplos</button></div><div id="opList"></div></section>
+<div class="layout"><section class="card"><div class="cardhead"><div><h2>Oportunidades detectadas</h2><small>Seleccioná un caso para ver por qué CIERRE actuaría así</small></div><button class="btn sm" id="addSamples">Cargar 12 ejemplos</button></div><div style="padding:12px;border-bottom:1px solid var(--line)"><select id="radarFilter" class="textinput"><option value="all">Todos los estados</option><option value="ready">Posible seguimiento</option><option value="wait">Esperar</option><option value="review">Revisar</option><option value="block">Bloqueados</option></select></div><div id="opList"></div></section>
 <section class="card"><div class="cardhead"><div><h2>Auditoría de decisión</h2><small>Transparencia antes que automatización ciega</small></div></div><div id="detail" class="cardbody details"><div class="empty">Elegí una oportunidad para ver el diagnóstico.</div></div></section></div>
-<div class="row wrap mt"><button class="btn" id="toLab">+ Analizar una conversación</button><button class="btn ghost" id="exportBtn">Exportar reporte JSON</button><button class="btn warn ghost" id="clearBtn">Borrar todos los datos locales</button></div>
+<div class="row wrap mt"><button class="btn" id="toLab">+ Analizar una conversación</button><button class="btn ghost" id="exportBtn">Exportar reporte JSON</button><button class="btn ghost" id="csvBtn">Exportar CSV</button><button class="btn warn ghost" id="clearBtn">Borrar todos los datos locales</button></div>
 </section>
 <section class="tabcontent" id="tab-lab"><div class="layout">
 <section class="card"><div class="cardhead"><div><h2>Importar conversación</h2><small>Sin API ni conexiones: ideal para validar las decisiones</small></div></div><div class="cardbody">
@@ -31,7 +31,7 @@
 <p class="help">O pegá el historial a continuación. No hace falta incluir fotos ni archivos multimedia. El nombre del PDF debe estar visible en el texto exportado.</p>
 <label class="label" for="chatText">Conversación (fecha, remitente y mensaje)</label><textarea id="chatText" class="textarea" placeholder="22/10/26, 09:30 - Vendedor: Adjunto presupuesto 1847.pdf&#10;22/10/26, 09:42 - Martín: Muchas gracias!"></textarea>
 <div class="row wrap mt"><button class="btn primary" id="analyzeBtn">Analizar y guardar</button><button class="btn" id="pasteSample">Cargar conversación de ejemplo</button></div>
-<div class="info mt">Los archivos TXT se procesan en tu dispositivo. No necesitamos acceder a WhatsApp ni cargar información del cliente en una base de datos. Este piloto analiza texto; <b>no extrae el contenido interno del PDF</b>.</div><div id="labMsg" class="foot"></div>
+<div class="info mt">Los archivos TXT se procesan en tu dispositivo. No necesitamos acceder a WhatsApp ni cargar información del cliente en una base de datos. Este piloto solo detecta el nombre del PDF en el TXT exportado; <b>no extrae su contenido</b>.</div><div id="labMsg" class="foot"></div>
 </div></section>
 <section class="card"><div class="cardhead"><div><h2>Cómo decide CIERRE</h2><small>Motor conservador V0.1</small></div></div><div class="cardbody">
 <div class="section-title">1 · Reconoce el presupuesto</div><p class="help">Busca un PDF enviado por el vendedor. Sin prueba del documento no recomienda contacto.</p>
@@ -47,7 +47,8 @@
 <p class="help">Variables disponibles: {nombre} y {comercio}. Antes de una futura activación real la plantilla deberá respetar las reglas de Meta y el consentimiento de cada contacto.</p>
 <button class="btn primary" id="saveSettings">Guardar configuración local</button><p class="foot" id="settingsMsg"></p>
 </div></section><section class="card"><div class="cardhead"><h2>Protecciones innegociables</h2></div><div class="cardbody"><p class="reason">Un solo seguimiento por presupuesto.</p><p class="reason">No escribir tras un seguimiento humano.</p><p class="reason">No escribir si detectamos rechazo o compra.</p><p class="reason">Preguntas sin respuesta = esperar.</p><p class="reason">Si faltan datos o existe ambigüedad, no enviar.</p><p class="reason">Nunca generar respuestas automáticas al cliente.</p><div class="divider"></div><span class="pill">Estas reglas no se pueden desactivar</span><p class="foot">La aplicación guarda los casos únicamente durante esta sesión del navegador. Al cerrar la pestaña o sesión del navegador se pueden perder; exportá los reportes si necesitás conservarlos.</p></div></section></div></section>
-<p class="foot">CIERRE Piloto 0.1 · Motor de reglas para pruebas en modo sombra · Sin integración con WhatsApp Business API · No apto para envíos automáticos reales.</p>
+<section class="tabcontent" id="tab-tests"><div class="layout"><section class="card"><div class="cardhead"><h2>Pruebas automáticas</h2></div><div class="cardbody"><p class="help">Comprobamos rechazos, preguntas pendientes, pagos, agradecimientos y seguimiento humano sin contactar a clientes.</p><button id="runTests" class="btn primary">Ejecutar batería</button><div id="testResults" class="mt"></div></div></section><section class="card"><div class="cardhead"><h2>Qué falta para automatizar</h2></div><div class="cardbody"><p class="reason">Permisos y sincronización oficial de WhatsApp.</p><p class="reason">Consentimiento y plantillas aprobadas.</p><p class="reason">Confirmación de ventas que ocurren fuera del chat.</p><p class="reason">Base de datos con envíos únicos y trazabilidad.</p><div class="info">Esta versión es un laboratorio local y no envía mensajes.</div></div></section></div></section>
+<p class="foot">CIERRE Piloto 0.2 · Motor de reglas para pruebas en modo sombra · Sin integración con WhatsApp Business API · No apto para envíos automáticos reales.</p>
 </main></div>
 <script>
 (function(){
@@ -116,7 +117,7 @@ function analyzed(){return state.cases.map(function(c){return {c:c,e:evaluate(c)
 function statusLabel(e){return '<span class="badge '+e.status+'">'+safe(e.heading)+'</span>'}
 function sampleMessage(e){return state.settings.template.replace(/\{nombre\}/g,e.name.split(" ")[0]).replace(/\{comercio\}/g,state.settings.shop)}
 function render(){var arr=analyzed();el("mAll").textContent=arr.length;el("mReady").textContent=arr.filter(function(x){return x.e.status==="ready"}).length;el("mBlock").textContent=arr.filter(function(x){return x.e.status==="block"}).length;el("mWait").textContent=arr.filter(function(x){return x.e.status==="wait"||x.e.status==="review"}).length;
-el("opList").innerHTML=arr.length?arr.map(function(x){return '<div class="op '+(state.selected===x.c.id?'selected':'')+'" data-id="'+safe(x.c.id)+'"><div class="op-head"><b>'+safe(x.e.name)+'</b>'+statusLabel(x.e)+'</div><p>'+safe(x.e.budget)+' · '+(x.e.latest?new Date(x.e.latest).toLocaleString("es-AR"):"Sin fecha")+'</p></div>'}).join(""):'<div class="empty"><big>◎</big><b>El radar está vacío</b><p>Cargá las simulaciones o analizá una conversación exportada desde WhatsApp.</p></div>';
+var filter=el("radarFilter").value||"all";var visible=arr.filter(function(x){return filter==="all"||x.e.status===filter});el("opList").innerHTML=visible.length?visible.map(function(x){return '<div class="op '+(state.selected===x.c.id?'selected':'')+'" data-id="'+safe(x.c.id)+'"><div class="op-head"><b>'+safe(x.e.name)+'</b>'+statusLabel(x.e)+'</div><p>'+safe(x.e.budget)+' · '+(x.e.latest?new Date(x.e.latest).toLocaleString("es-AR"):"Sin fecha")+'</p></div>'}).join(""):'<div class="empty"><big>◎</big><b>El radar está vacío</b><p>Cargá las simulaciones o analizá una conversación exportada desde WhatsApp.</p></div>';
  Array.prototype.forEach.call(el("opList").querySelectorAll("[data-id]"),function(a){a.addEventListener("click",function(){state.selected=a.dataset.id;save();render()})});
 var x=arr.find(function(z){return z.c.id===state.selected});if(!x){el("detail").innerHTML='<div class="empty">Seleccioná un presupuesto para auditar la decisión.</div>';return}
 var ev=x.e,cs=x.c;
@@ -128,25 +129,61 @@ function addCase(text,sellers){var messages=lineParse(text);if(!messages.length)
 function formatDate(hours){var d=new Date(Date.now()-hours*3600000);return String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+String(d.getFullYear()).slice(-2)+", "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
 function demoLine(h,who,text){return formatDate(h)+" - "+who+": "+text}
 var examples=[
- [demoLine(54,"Vendedor","Te mando presupuesto 1847.pdf"),demoLine(53.8,"Martín","Muchas gracias, lo miro.")],
- [demoLine(70,"Vendedor","Adjunto presupuesto 1848.pdf"),demoLine(69,"Lucía","No me interesa, gracias.")],
- [demoLine(61,"Julieta","¿Me cotizás cemento y arena?"),demoLine(60,"Vendedor","Te envío presupuesto 1849.pdf"),demoLine(45,"Vendedor","Hola, ¿pudiste revisar el presupuesto?")],
- [demoLine(49,"Vendedor","Presupuesto 1850.pdf"),demoLine(47,"Facundo","¿Cuánto me sale el envío hasta Ringuelet?")],
- [demoLine(52,"Vendedor","Presupuesto 1851.pdf"),demoLine(51,"Sofía","Listo, mañana paso a pagar.")],
+ [demoLine(54,"Vendedor","Presupuesto 1847.pdf"),demoLine(53,"Martín","Muchas gracias")],
+ [demoLine(70,"Vendedor","Presupuesto 1848.pdf"),demoLine(69,"Lucía","No me interesa")],
+ [demoLine(61,"Julieta","¿Me cotizás?"),demoLine(60,"Vendedor","Presupuesto 1849.pdf"),demoLine(45,"Vendedor","Hola, ¿pudiste revisar el presupuesto?")],
+ [demoLine(49,"Vendedor","Presupuesto 1850.pdf"),demoLine(47,"Facundo","¿Cuánto sale el envío?")],
+ [demoLine(52,"Vendedor","Presupuesto 1851.pdf"),demoLine(51,"Sofía","Mañana paso a pagar")],
  [demoLine(5,"Vendedor","Presupuesto 1852.pdf"),demoLine(4,"Nicolás","Muchas gracias!")],
- [demoLine(52,"Vendedor","Presupuesto 1853.pdf"),demoLine(51,"Carla","Lo voy a pensar, cualquier cosa te aviso.")]
+ [demoLine(52,"Vendedor","Presupuesto 1853.pdf"),demoLine(51,"Carla","Lo voy a pensar, cualquier cosa te aviso")],
+ [demoLine(60,"Vendedor","Presupuesto 1854.pdf"),demoLine(59,"Diego","¿Incluye flete?"),demoLine(58,"Vendedor","Sí, incluido"),demoLine(57,"Diego","Gracias")],
+ [demoLine(60,"Vendedor","Presupuesto 1855.pdf"),demoLine(59,"Ana","¿Cuándo entregan?"),demoLine(58,"Vendedor","En 48 horas"),demoLine(57,"Ana","Te transferí")],
+ [demoLine(60,"Vendedor","Presupuesto 1856.pdf"),demoLine(59,"Pablo","Dale")],
+ [demoLine(60,"Vendedor","Presupuesto 1857.pdf"),demoLine(59,"Valeria","No me escribas más")],
+ [demoLine(60,"Vendedor","Presupuesto 1858.pdf"),demoLine(59,"Gustavo","¿Incluye cemento?"),demoLine(58,"Vendedor","Sí, claro"),demoLine(57,"Gustavo","Gracias")]
 ];
-function showTab(t){Array.prototype.forEach.call(document.querySelectorAll(".tabcontent"),function(n){n.classList.toggle("active",n.id==="tab-"+t)});Array.prototype.forEach.call(document.querySelectorAll("[data-tab]"),function(n){n.classList.toggle("active",n.dataset.tab===t)});el("pageTitle").textContent={radar:"Radar comercial",lab:"Laboratorio de conversaciones",config:"Configuración"}[t];el("pageSubtitle").textContent={radar:"Detectá a quién convendría escribirle, sin molestar ni duplicar seguimientos.",lab:"Probá el motor con historiales ficticios o autorizados.",config:"Una sola política, un solo mensaje, ningún chatbot."}[t]}
+
+function runEngineTests(){
+ var cases=[
+ ["Agradecimiento","ready",[[55,"Vendedor","Presupuesto 301.pdf"],[54,"Mauro","Gracias"]]],
+ ["Rechazo","block",[[55,"Vendedor","Presupuesto 302.pdf"],[54,"Ana","No me interesa"]]],
+ ["Seguimiento humano","block",[[60,"Ana","Necesito cotización"],[55,"Vendedor","Presupuesto 303.pdf"],[40,"Vendedor","Pudiste revisar el presupuesto?"]]],
+ ["Pregunta pendiente","wait",[[55,"Vendedor","Presupuesto 304.pdf"],[54,"Juan","¿Cuánto sale el flete?"]]],
+ ["Compra","block",[[55,"Vendedor","Presupuesto 305.pdf"],[54,"Clara","Mañana paso a pagar"]]],
+ ["Pago","block",[[55,"Vendedor","Presupuesto 306.pdf"],[54,"Juan","Te transferí"]]],
+ ["Baja","block",[[55,"Vendedor","Presupuesto 307.pdf"],[54,"Ada","No me escribas más"]]],
+ ["Pensando","review",[[55,"Vendedor","Presupuesto 308.pdf"],[54,"Rober","Lo voy a pensar"]]],
+ ["Dale ambiguo","review",[[55,"Vendedor","Presupuesto 309.pdf"],[54,"Facu","Dale"]]],
+ ["Interacción reciente","wait",[[3,"Vendedor","Presupuesto 310.pdf"],[2,"Pablo","Gracias"]]],
+ ["Consulta resuelta","ready",[[55,"Vendedor","Presupuesto 311.pdf"],[54,"Sara","¿Incluye flete?"],[53,"Vendedor","Sí, incluido"],[52,"Sara","Gracias"]]],
+ ["Compró en otro lado","block",[[55,"Vendedor","Presupuesto 312.pdf"],[54,"Inés","Compré en otro lado"]]],
+ ["Sin PDF","review",[[55,"Vendedor","Buenas tardes"],[54,"Pato","Gracias"]]],
+ ["PDF corregido","ready",[[66,"Vendedor","Presupuesto 313.pdf"],[55,"Vendedor","Presupuesto corregido 313.pdf"],[54,"Luz","Gracias"]]],
+ ["Sin cliente","review",[[55,"Vendedor","Presupuesto 314.pdf"]]],
+ ["Respuesta breve","review",[[55,"Vendedor","Presupuesto 315.pdf"],[54,"Paz","Cuanto sale?"],[53,"Vendedor","$10.000"],[52,"Paz","Listo"]]]
+ ];
+ var results=cases.map(function(c){var input=c[2].map(function(row){return demoLine(row[0],row[1],row[2])}).join("\n");var result=evaluate({messages:lineParse(input),sellers:"Vendedor"});return {name:c[0],expected:c[1],actual:result.status,ok:c[1]===result.status}});
+ var passed=results.filter(function(x){return x.ok}).length;
+ el("testResults").innerHTML='<div class="info"><b>'+passed+'/'+results.length+' correctas</b> · Casos simulados, no precisión con clientes reales.</div>'+results.map(function(x){return '<div style="padding:9px 0;border-bottom:1px solid var(--line);font-size:12px;display:flex;justify-content:space-between;gap:9px"><span>'+safe(x.name)+'</span><b style="color:'+(x.ok?'var(--teal)':'var(--red)')+'">'+(x.ok?'✓ ':'✕ ')+safe(x.actual)+'</b></div>'}).join("");
+ return {passed:passed,total:results.length,failed:results.filter(function(x){return !x.ok})};
+}
+
+function showTab(t){Array.prototype.forEach.call(document.querySelectorAll(".tabcontent"),function(n){n.classList.toggle("active",n.id==="tab-"+t)});Array.prototype.forEach.call(document.querySelectorAll("[data-tab]"),function(n){n.classList.toggle("active",n.dataset.tab===t)});el("pageTitle").textContent={radar:"Radar comercial",lab:"Laboratorio de conversaciones",config:"Configuración",tests:"Pruebas del motor"}[t];el("pageSubtitle").textContent={radar:"Detectá a quién convendría escribirle, sin molestar ni duplicar seguimientos.",lab:"Probá el motor con historiales ficticios o autorizados.",config:"Una sola política, un solo mensaje, ningún chatbot.",tests:"Comprobamos la lógica de seguridad con escenarios simulados."}[t]}
 Array.prototype.forEach.call(document.querySelectorAll("[data-tab]"),function(n){n.addEventListener("click",function(){showTab(n.dataset.tab)})});
-el("toLab").addEventListener("click",function(){showTab("lab")});
+el("toLab").addEventListener("click",function(){showTab("lab")});el("radarFilter").addEventListener("change",render);el("runTests").addEventListener("click",runEngineTests);
 el("addSamples").addEventListener("click",function(){var added=0;examples.forEach(function(a){if(addCase(a.join("\n"),"Vendedor").ok)added++});showTab("radar");if(!added)alert("Las simulaciones ya estaban cargadas.")});
 el("pasteSample").addEventListener("click",function(){el("chatText").value=examples[0].join("\n");el("business").value="Vendedor";el("labMsg").textContent="Conversación ficticia cargada. Apretá Analizar y guardar."});
 el("chatFile").addEventListener("change",function(){var file=this.files&&this.files[0];if(!file)return;if(file.size>2000000){el("labMsg").textContent="Archivo demasiado grande. Máximo 2 MB.";return}var reader=new FileReader();reader.onload=function(){el("chatText").value=String(reader.result||"");el("labMsg").textContent="TXT leído solamente en este navegador. Ahora podés analizarlo."};reader.readAsText(file,"UTF-8")});
 el("analyzeBtn").addEventListener("click",function(){var result=addCase(el("chatText").value,el("business").value);if(result.ok){el("labMsg").textContent="✓ Conversación procesada y añadida al radar.";showTab("radar")}else el("labMsg").textContent=result.error});
 el("saveSettings").addEventListener("click",function(){state.settings={hours:Number(el("hours").value),shop:el("shop").value.trim()||"el corralón",template:el("template").value.trim()||state.settings.template};save();render();el("settingsMsg").textContent="✓ Guardado en esta sesión."});
 el("exportBtn").addEventListener("click",function(){var data=JSON.stringify({generated_at:new Date().toISOString(),mode:"shadow",settings:state.settings,opportunities:analyzed().map(function(z){return {cliente:z.e.name,pdf:z.e.budget,decision:z.e.heading,razones:z.e.reasons,ultima_interaccion:z.e.latest?new Date(z.e.latest).toISOString():null}})},null,2);var a=document.createElement("a"),url=URL.createObjectURL(new Blob([data],{type:"application/json"}));a.href=url;a.download="cierre-piloto-reporte.json";a.click();setTimeout(function(){URL.revokeObjectURL(url)},1000)});
+el("csvBtn").addEventListener("click",function(){
+ var rows=[["Cliente","PDF","Estado","Motivo"]].concat(analyzed().map(function(x){return [x.e.name,x.e.budget,x.e.heading,x.e.reasons.join(" / ")]}));
+ var csv="\uFEFF"+rows.map(function(r){return r.map(function(t){return '"'+String(t).replace(/"/g,'""')+'"'}).join(";")}).join("\r\n");
+ var a=document.createElement("a"),u=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.href=u;a.download="cierre-piloto.csv";a.click();setTimeout(function(){URL.revokeObjectURL(u)},1000);
+});
 el("clearBtn").addEventListener("click",function(){if(confirm("¿Borrar las conversaciones cargadas de esta sesión? Esta acción no se puede deshacer.")){state.cases=[];state.selected=null;save();render()}});
 el("hours").value=String(state.settings.hours);el("shop").value=state.settings.shop;el("template").value=state.settings.template;
-render();
+render();runEngineTests();
 })();
 </script></body></html>
