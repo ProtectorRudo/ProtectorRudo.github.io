@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#070f28">
-<title>MICROCAOS — Multijugador Premium V3.7 · Realidad aumentada</title>
+<title>MICROCAOS — Multijugador Premium V3.7.1 · Realidad aumentada</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -2532,6 +2532,9 @@ const BM={
    shield.visible=false;ship.add(shield);ballPulseShields[k]=shield;
    return ship;
  });
+// Ballistix game-space constants preserved across the V3.7 arena redesign.
+const ballScoreLabels=["VOS","BOT","BOT","BOT"];
+const ballFieldHalf=4.82,ballPaddleAt=4.13,ballPaddleHalf=1.25,ballMaxMove=3.48,ballGoalHalf=3.25;
 let ballSides=[],ballHealth=[],ballStatus=[],ballBalls=[],ballPool=[],ballSpawnDelay=0,ballPulseUntil=0,ballPulseCd=0,ballElapsed=0,ballTimeSinceScore=0;
 const ballShipPrevPositions=[0,0,0,0],ballSaves=[0,0,0,0],ballStats={hits:0,goals:0,corner:0,restarts:0,physicsErrors:0};
 const BALL_MAX_SECONDS=76,BALL_SUDDEN_DEATH=58;
@@ -3367,6 +3370,7 @@ function v35ApplyArt(){
  for(const [name,kit]of Object.entries(v35.kits))kit.visible=name==="race"?currentMode==="race":name==="ballistix"?false:true; // V3.7 custom venue owns Ballistix
  v35.mode=currentMode;
 }
+window.__microcaosStartQA=()=>({version:"3.7.1",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
 window.__microcaosV37QA=()=>({version:"3.7",characterSource:v37CharacterState.source,loadedHeroes:v37CharacterState.loaded,arena:!!ballArena,impulseCooldown:1.95,impulseCharges:"infinite",sevenModes:Object.keys(MINI_MODES).length,arKept:!!renderer.xr.enabled});
 window.__microcaosDirectorQA=()=>({raceFloorIsolated:currentMode==="race"||!raceFloor.visible,version:"3.7",venues:Object.keys(v36Venues),sevenScenes:Object.keys(v36Venues).length===7,mode:currentMode,webxr:renderer.xr.isPresenting,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,unchangedARScale:true});
 window.__microcaosCinematicQA=()=>({
@@ -3923,7 +3927,17 @@ function roundAdvance(){
 let mode="preview",session=null,hitSource=null,hitRequested=false,placed=false,videoStream=null,camEnabled=false,phase="intro",elapsed=0,countdown=0,steer=0,moveTouch=false,soundOn=true,audio=null,lastToast=0,last=0,finishAt=0,checkpoint=-1,stunMessage=0;let skillToastUntil=0,runParticles=0,zoomEase=0;
 function cue(f=440,d=.1,type="sine",volume=.06){if(!soundOn)return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();if(audio.state==="suspended")audio.resume();const o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.setValueAtTime(f,audio.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(100,f*.58),audio.currentTime+d);g.gain.setValueAtTime(volume,audio.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+d);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+d)}catch(e){}}
 function announce(s,ms=1100){$("toast").textContent=s;$("toast").classList.add("show");lastToast=performance.now()+ms}
-function begin(){if(mode==="ar"&&!placed){announce("TOCÁ UNA SUPERFICIE",1400);return}startTournament()}
+function begin(){
+  if(mode==="ar"&&!placed){announce("TOCÁ UNA SUPERFICIE",1400);return}
+  try{startTournament()}
+  catch(error){
+    console.error("MICROCAOS tournament initialization failed",error);
+    window.__microcaosBootError=error?.message||String(error);
+    phase="intro";$("intro").classList.remove("hidden");
+    $("notice").textContent="No se pudo iniciar el torneo: "+window.__microcaosBootError;
+    $("notice").classList.add("show");
+  }
+}
 function hit(r,power=1){
  if(r.invuln>0||r.y>.75||r.dash>.10)return;
  r.stun=.21;r.invuln=1.05;r.speedBonus=0;r.combo=0;
