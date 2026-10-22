@@ -2704,7 +2704,13 @@ $("settingQuality").onchange=()=>{gameSettings.quality=$("settingQuality").value
 $("settingDifficulty").onchange=()=>{gameSettings.difficulty=$("settingDifficulty").value;saveGamePreferences()};
 syncSettingsUI();
 selectMascot(selectedMascot);
-showMenuPage("home");
+// Direct-access links can preselect a minigame without auto-launching camera or audio.
+const initialRequestedMode=new URLSearchParams(location.search).get("mode");
+if(initialRequestedMode&&Object.prototype.hasOwnProperty.call(MINI_MODES,initialRequestedMode)){
+ chosenSoloMode=initialRequestedMode;
+ document.querySelectorAll("[data-mode]").forEach(el=>el.classList.toggle("selected",el.dataset.mode===initialRequestedMode));
+ showMenuPage("modes");
+}else showMenuPage("home");
 function bindFastAction(id,fn){
  const button=$(id);let pointerAt=-99999;
  button.style.touchAction="manipulation";
