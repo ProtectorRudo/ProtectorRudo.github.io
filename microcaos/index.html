@@ -282,7 +282,7 @@ body.ballistix-mode #ui .jump.ballistix-pulse-ready{animation:ballPulseReady 1.1
 <div id="scene"></div>
 <div id="ui">
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · TERRITORIOS V2.5</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · TERRITORIOS V2.6</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -862,7 +862,7 @@ const MINI_MODES={
  tag:{title:"LA MANCHA DE LA PESA",emoji:"⚖",objective:"¡PASÁ LA PESA!",time:12.5,color:0xff438d},
  gems:{title:"FIEBRE DE GEMAS",emoji:"💎",objective:"¡JUNTÁ GEMAS!",time:25,color:0xffd13e},
  survival:{title:"EL PISO SE HUNDE",emoji:"🌀",objective:"¡ENTRÁ EN EL CÍRCULO!",time:26,color:0x835eff},
- territory:{title:"CONQUISTA DE TERRITORIO",emoji:"🟩",objective:"CERRÁ TU RASTRO PARA CONQUISTAR",time:65,color:0x4affb7},
+ territory:{title:"CONQUISTA DE TERRITORIO",emoji:"🟩",objective:"CERRÁ TU RASTRO PARA CONQUISTAR",time:90,color:0x4affb7},
  ballistix:{title:"BATALLA BALLISTIX",emoji:"⚽",objective:"¡DEFENDÉ TU ARCO!",time:0,color:0x87efff},
  race:{title:"CARRERA LOCA",emoji:"🏁",objective:"¡LLEGÁ A LA META!",time:53,color:0x80ffe5}
 };
@@ -920,10 +920,10 @@ for(const modeName of ["tag","gems","survival"]){
 
 // CONQUISTA DE TERRITORIO · original Paper.io-inspired minigame.
 // Ownership is discrete and deterministic. All cells share one instanced mesh.
-// Field v2.5: 50% wider and 50% longer = 2.25x more conquest space.
-const TERRITORY_X=48,TERRITORY_Z=63,TERRITORY_SIZE=TERRITORY_X*TERRITORY_Z;
-const TERRITORY_HALF_X=6.375,TERRITORY_HALF_Z=8.775;
-const TERRITORY_DX=(2*TERRITORY_HALF_X)/TERRITORY_X,TERRITORY_DZ=(2*TERRITORY_HALF_Z)/TERRITORY_Z;
+// Field v2.6: 68 x 89 cells, twice the v2.5 playable area. Keep each cell's world dimensions unchanged.
+const TERRITORY_X=68,TERRITORY_Z=89,TERRITORY_SIZE=TERRITORY_X*TERRITORY_Z;
+const TERRITORY_DX=12.75/48,TERRITORY_DZ=17.55/63;
+const TERRITORY_HALF_X=TERRITORY_DX*TERRITORY_X/2,TERRITORY_HALF_Z=TERRITORY_DZ*TERRITORY_Z/2;
 const territoryOwners=new Int8Array(TERRITORY_SIZE).fill(-1);
 const territoryTrails=new Int8Array(TERRITORY_SIZE).fill(-1);
 const territoryBaseCells=new Int8Array(TERRITORY_SIZE).fill(-1);
@@ -932,9 +932,9 @@ const territoryDark=new THREE.Color(0x112c5b),territoryScratch=new THREE.Object3
 const territoryArea=new THREE.Group();territoryArea.visible=false;stage.add(territoryArea);
 miniStages.territory=territoryArea;
 const territoryBase=mat(0x0c1640,.09,.48,{emissive:0x051128,emissiveIntensity:.2});
-soft(territoryBase,territoryArea,[0,-.57,0],[15.5,.99,20.6]);
-soft(mat(0x2d6caa,.11,.43),territoryArea,[0,-.09,0],[14.6,.18,19.9]);
-soft(mat(0x050b26,.05,.53),territoryArea,[0,.025,0],[13.25,.16,18.35]);
+soft(territoryBase,territoryArea,[0,-.57,0],[TERRITORY_HALF_X*2+2.75,.99,TERRITORY_HALF_Z*2+3.05]);
+soft(mat(0x2d6caa,.11,.43),territoryArea,[0,-.09,0],[TERRITORY_HALF_X*2+1.85,.18,TERRITORY_HALF_Z*2+2.35]);
+soft(mat(0x050b26,.05,.53),territoryArea,[0,.025,0],[TERRITORY_HALF_X*2+.50,.16,TERRITORY_HALF_Z*2+.80]);
 // Hand-drawn sci-fi floor grid with ambient gradients. One canvas texture,
 // generated once; no per-frame draw calls and no external image dependency.
 const territoryCanvas=document.createElement("canvas");
@@ -956,22 +956,22 @@ if(territoryCtx){
 }
 const territoryGroundTexture=new THREE.CanvasTexture(territoryCanvas);
 territoryGroundTexture.colorSpace=THREE.SRGBColorSpace;
-const territoryGround=new THREE.Mesh(new THREE.PlaneGeometry(12.77,17.58),
+const territoryGround=new THREE.Mesh(new THREE.PlaneGeometry(TERRITORY_HALF_X*2+.02,TERRITORY_HALF_Z*2+.03),
  new THREE.MeshBasicMaterial({map:territoryGroundTexture,depthWrite:false}));
 territoryGround.rotation.x=-Math.PI/2;territoryGround.position.y=.122;
 territoryArea.add(territoryGround);
 const territoryBorder=mat(0x32ebcb,.11,.27,{emissive:0x079d7d,emissiveIntensity:.29});
-for(const x of [-6.78,6.78])soft(territoryBorder,territoryArea,[x,.22,0],[.15,.36,18.50]);
-for(const z of [-9.2,9.2])soft(territoryBorder,territoryArea,[0,.22,z],[13.7,.36,.16]);
+for(const x of [-(TERRITORY_HALF_X+.405),TERRITORY_HALF_X+.405])soft(territoryBorder,territoryArea,[x,.22,0],[.15,.36,TERRITORY_HALF_Z*2+.95]);
+for(const z of [-(TERRITORY_HALF_Z+.425),TERRITORY_HALF_Z+.425])soft(territoryBorder,territoryArea,[0,.22,z],[TERRITORY_HALF_X*2+.95,.36,.16]);
 // Inset perimeter LEDs and jewel-like corner beacons.
 const territoryLED=new THREE.MeshBasicMaterial({color:0x20ffe9});
 const territoryPinkLED=new THREE.MeshBasicMaterial({color:0xfb41e2});
-for(const x of [-6.67,6.67]){
- soft(territoryLED,territoryArea,[x,.41,0],[.075,.055,17.95],false);
- for(const z of [-6,-3,0,3,6])ball(territoryPinkLED,territoryArea,[x,.55,z],[.12,.11,.12]).castShadow=false;
+for(const x of [-(TERRITORY_HALF_X+.295),TERRITORY_HALF_X+.295]){
+ soft(territoryLED,territoryArea,[x,.41,0],[.075,.055,TERRITORY_HALF_Z*2+.40],false);
+ for(const f of [-.70,-.35,0,.35,.70])ball(territoryPinkLED,territoryArea,[x,.55,f*TERRITORY_HALF_Z],[.12,.11,.12]).castShadow=false;
 }
-for(const z of [-9.15,9.15])soft(territoryPinkLED,territoryArea,[0,.41,z],[13.35,.06,.075],false);
-for(const x of [-6.66,6.66])for(const z of [-9.1,9.1]){
+for(const z of [-(TERRITORY_HALF_Z+.375),TERRITORY_HALF_Z+.375])soft(territoryPinkLED,territoryArea,[0,.41,z],[TERRITORY_HALF_X*2+.60,.06,.075],false);
+for(const x of [-(TERRITORY_HALF_X+.285),TERRITORY_HALF_X+.285])for(const z of [-(TERRITORY_HALF_Z+.325),TERRITORY_HALF_Z+.325]){
  cyl(territoryBorder,territoryArea,[x,.75,z],.15,.16,1.24);
  ball(territoryLED,territoryArea,[x,1.46,z],[.27,.25,.27]).castShadow=false;
  const shine=ball(new THREE.MeshBasicMaterial({color:0x24ffe4,transparent:true,opacity:.14,depthWrite:false,blending:THREE.AdditiveBlending}),
@@ -1233,7 +1233,7 @@ function territoryStepCell(r,idx){
  }
  territoryTrails[idx]=r.index;
  r.territoryTrail.push(idx);
- if(r.territoryTrail.length>205){territoryBreak(r,r);return}
+ if(r.territoryTrail.length>285){territoryBreak(r,r);return}
  territoryTrailDirty=true;
 }
 function territoryMovePath(r){
@@ -1277,12 +1277,12 @@ function territoryBotDirection(r,t){
  // attack exposed enemy trails when they're already within reach.
  if(!r.territoryAiPlan||r.territoryAiStep>=r.territoryAiPlan.length){
   const x=r.x,z=r.z;
-  const sideX=x>3.1?-1:x< -3.1?1:r.index%2?1:-1;
-  const sideZ=z>4.8?-1:z< -4.8?1:r.index%3?1:-1;
-  const width=3.10+Math.random()*1.0*(r.skill||.7);
-  const depth=2.95+Math.random()*.95*(r.skill||.7);
-  const x1=clamp(x+sideX*width,-5.82,5.82);
-  const z2=clamp(z+sideZ*depth,-8.10,8.10);
+  const sideX=x>TERRITORY_HALF_X*.48?-1:x< -TERRITORY_HALF_X*.48?1:r.index%2?1:-1;
+  const sideZ=z>TERRITORY_HALF_Z*.55?-1:z< -TERRITORY_HALF_Z*.55?1:r.index%3?1:-1;
+  const width=4.0+Math.random()*1.3*(r.skill||.7);
+  const depth=3.9+Math.random()*1.25*(r.skill||.7);
+  const x1=clamp(x+sideX*width,-TERRITORY_HALF_X+.60,TERRITORY_HALF_X-.60);
+  const z2=clamp(z+sideZ*depth,-TERRITORY_HALF_Z+.70,TERRITORY_HALF_Z-.70);
   r.territoryAiPlan=[
    {x:x1,z},
    {x:x1,z:z2},
@@ -1313,7 +1313,7 @@ function territoryBotDirection(r,t){
    r.territoryAiStep=0;goal=hunt;
   }
  }
- if(r.territoryTrail.length>128)goal={x:r.territoryHomeX,z:r.territoryHomeZ};
+ if(r.territoryTrail.length>180)goal={x:r.territoryHomeX,z:r.territoryHomeZ};
  const dx=goal.x-r.x,dz=goal.z-r.z,dist=Math.hypot(dx,dz)||1;
  return[dx/dist,-dz/dist];
 }
@@ -2400,7 +2400,7 @@ function resetRound(){
   r.stun=0;r.dash=0;r.dashCd=0;r.tagGraceUntil=0;r.aiFocus=null;r.aiFocusUntil=0;r.y=0;r.vy=0;r.nearMisses=new Set();
   if(lane>=0){
    if(currentMode==="race"){r.x=(lane-(count-1)/2)*(count>=5?1.29:1.75);r.z=11.6+(lane%2)*.90}
-   else{const a=lane/Math.max(1,count)*Math.PI*2+Math.PI/2;r.x=Math.cos(a)*(currentMode==="territory"?4.25:2.3);r.z=Math.sin(a)*(currentMode==="territory"?5.75:2.8)}
+   else{const a=lane/Math.max(1,count)*Math.PI*2+Math.PI/2;r.x=Math.cos(a)*(currentMode==="territory"?TERRITORY_HALF_X*.67:2.3);r.z=Math.sin(a)*(currentMode==="territory"?TERRITORY_HALF_Z*.66:2.8)}
   }
   r.root.position.set(r.x,0,r.z);r.root.rotation.set(0,0,0);r.rig.scale.set(1,1,1);
   if(r.mixer)r.mixer.stopAllAction();useAnimation(r,"Idle");
@@ -2729,12 +2729,12 @@ function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;
  $("notice").textContent="Error al simular la partida. Tocá REINICIAR para volver a jugar. "+window.__microcaosError;
  $("notice").classList.add("show");
 }for(let r of racers)if(r.mixer)r.mixer.update(dt);$("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
-if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,22.3,9.5):new THREE.Vector3(0,18.0,9.7)):currentMode==="territory"&&follow?(portrait?new THREE.Vector3(0,28,19):new THREE.Vector3(11.5,17.5,18.5)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.7,11.6,12.5):new THREE.Vector3(9.7,11.8,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
+if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=currentMode==="territory"&&follow?new THREE.Vector3(clamp(p.x*.72,-TERRITORY_HALF_X*.72,TERRITORY_HALF_X*.72),0,clamp(p.z*.70,-TERRITORY_HALF_Z*.70,TERRITORY_HALF_Z*.70)):new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,22.3,9.5):new THREE.Vector3(0,18.0,9.7)):currentMode==="territory"&&follow?(portrait?new THREE.Vector3(previewTarget.x,32,previewTarget.z+22):new THREE.Vector3(previewTarget.x+11.8,21,previewTarget.z+22)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.7,11.6,12.5):new THREE.Vector3(9.7,11.8,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
 if(mode==="ar"&&frame&&session){if(!hitRequested){hitRequested=true;session.requestReferenceSpace("viewer").then(viewer=>session.requestHitTestSource({space:viewer})).then(s=>hitSource=s).catch(()=>{})}if(hitSource&&!placed){const results=frame.getHitTestResults(hitSource);if(results.length){let pose=results[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;const m=new THREE.Matrix4().fromArray(pose.transform.matrix);reticle.position.setFromMatrixPosition(m);reticle.quaternion.setFromRotationMatrix(m);$("placeArena").style.display="inline-flex";$("notice").textContent="¡Ya veo la superficie! Tocá COLOCAR PISTA para anclar la arena."}}else{reticle.visible=false;$("placeArena").style.display="none"}}}
 if(performance.now()>lastToast)$("toast").classList.remove("show");if(performance.now()>skillToastUntil)$("skillToast").classList.remove("on");renderer.render(scene,camera)}
 const reticle=new THREE.Mesh(new THREE.RingGeometry(.20,.23,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x71ffdf,side:THREE.DoubleSide,depthWrite:false}));reticle.visible=false;scene.add(reticle);
 renderer.setAnimationLoop(render);
-function resize(){camera.aspect=innerWidth/innerHeight;camera.fov=currentMode==="ballistix"?(camera.aspect<.68?64:48):(camera.aspect<.68?58:42);camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}addEventListener("resize",resize);
+function resize(){camera.aspect=innerWidth/innerHeight;camera.fov=currentMode==="ballistix"?(camera.aspect<.68?64:48):currentMode==="territory"?(camera.aspect<.68?63:46):(camera.aspect<.68?58:42);camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}addEventListener("resize",resize);
 function leaveCamera(){if(videoStream){videoStream.getTracks().forEach(tr=>tr.stop());videoStream=null}$("cameraVideo").style.display="none";$("scene").classList.remove("camera");scene.background=new THREE.Color(0x172b4a);mode="preview";previewTable.visible=true;$("modebar").textContent="PREVIEW 3D · PC Y CELULAR";$("cam").textContent="◎ VER CON MI CÁMARA"}
 $("cam").onclick=async()=>{if(mode==="camera"){leaveCamera();return}if(!navigator.mediaDevices?.getUserMedia){announce("CÁMARA NO DISPONIBLE",1500);return}try{videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});$("cameraVideo").srcObject=videoStream;$("cameraVideo").style.display="block";await $("cameraVideo").play();$("scene").classList.add("camera");scene.background=null;mode="camera";$("cam").textContent="◉ CERRAR CÁMARA";$("modebar").textContent="CÁMARA DEMO · SIN ANCLAJE ESPACIAL"}catch(e){announce("SIN PERMISO DE CÁMARA",1500)}};
 
