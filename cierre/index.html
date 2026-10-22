@@ -7,7 +7,7 @@
 <script>
 (()=>{"use strict";
 const API="https://bwsgxpttnrctklrcjmjs.supabase.co",META_EDGE="https://bwsgxpttnrctklrcjmjs.supabase.co/functions/v1/cierre-meta-connect",KEY="sb_publishable_2wOSRn_o7M6OqRSikERXUg_2RGQWkFW",STORE="cierre_pages_session_v1",DEFAULT="Hola, ¿cómo estás? Te escribimos por el presupuesto que te enviamos. ¿Pudiste revisarlo? Si necesitás algo, estamos para ayudarte.";
-const S={session:null,user:null,business:null,settings:null,connection:null,quotes:[],reviews:{},meta:{ready:false,app_id:null,config_id:null},metaReady:false,metaCode:null,metaSession:null,metaBusy:false,page:"overview",mode:"login",notice:"",busy:false,hours:36,scope:"all",message:DEFAULT};
+const S={session:null,user:null,business:null,settings:null,connection:null,quotes:[],reviews:{},meta:{ready:false,app_id:null,config_id:null},metaReady:false,metaCode:null,metaSession:null,metaBusy:false,previewReady:false,previewChecked:false,pdfPreview:null,page:"overview",mode:"login",notice:"",busy:false,hours:36,scope:"all",message:DEFAULT};
 const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const app=()=>document.getElementById("app");
 function save(){if(S.session)sessionStorage.setItem(STORE,JSON.stringify(S.session));else sessionStorage.removeItem(STORE);}
@@ -49,8 +49,23 @@ function overview(){return notice()+'<span class="eyebrow">RADAR COMERCIAL</span
 function quotes(){return '<span class="eyebrow">OPERACIONES</span><h1>Presupuestos.</h1><p>Exclusivos de '+esc(S.business.name)+'.</p><section class="card"><div class="head"><h2>Historial</h2><span class="tag">MODO SOMBRA</span></div>'+quoteList(S.quotes)+'</section>';}
 function settings(){
  return '<span class="eyebrow">EN TRES PASOS</span><h1>Elegí cómo trabajar.</h1><p>Un solo mensaje eventual. Ningún chatbot.</p>'+notice()+'<form id="settingsform"><section class="card"><div class="pad"><span class="eyebrow">01 · CUÁNDO</span><h2 style="margin-top:8px">¿Cuánto tiempo esperamos?</h2><p>Desde la última interacción del cliente o vendedor.</p><div class="picks">'+[24,36,48,72].map(h=>'<button type="button" data-act="hours" data-value="'+h+'" class="'+(S.hours===h?"sel":"")+'">'+h+' horas</button>').join("")+'</div></div></section><section class="card"><div class="pad"><span class="eyebrow">02 · QUIÉNES</span><h2 style="margin-top:8px">¿A qué clientes?</h2><div class="opts">'+[["all","Todos","Agendados y no agendados"],["saved","Solo agendados","Guardados en WhatsApp Business"],["unsaved","Solo sin agendar","No guardados en la agenda"]].map(([k,t,d])=>'<label><input type="radio" name="scope" value="'+k+'" '+(S.scope===k?"checked":"")+'><span>'+t+'<small>'+d+'</small></span></label>').join("")+'</div>'+(S.scope!=="all"?'<div class="notice">Este filtro exige una sincronización completa y verificada de la agenda de WhatsApp.</div>':"")+'</div></section><section class="card"><div class="pad"><span class="eyebrow">03 · MENSAJE</span><h2 style="margin-top:8px">¿Qué escribiría CIERRE?</h2><p>Una plantilla aprobada por Meta será necesaria antes de cualquier envío real.</p><label class="field">Texto<textarea name="message" minlength="35" maxlength="800" rows="5" required>'+esc(S.message)+'</textarea></label></div></section><div class="banner"><strong>● Envíos automáticos desactivados</strong><button class="btn" '+(S.busy?"disabled":"")+'>Guardar cambios</button></div></form>';}
-function connection(){const c=S.connection;return notice()+'<span class="eyebrow">CONEXIÓN OFICIAL</span><h1>WhatsApp Business.</h1><p>El dueño autoriza el número desde Meta. No basta con escribirlo.</p><div class="card"><div class="pad"><span class="tag">'+(c?.state==="connected"?"VINCULACIÓN REGISTRADA":"AÚN SIN CONECTAR")+'</span><h2 style="margin-top:25px">Enlace oficial, sin QR falso</h2><p>La vinculación mediante Meta Embedded Signup está en preparación. Cuando dispongamos de los permisos y el receptor esté publicado, el negocio podrá confirmar el número desde el flujo de Meta.</p><div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+[["Cliente",c?.inbound_seen],["Vendedor",c?.seller_echo_seen],["PDF",c?.pdf_echo_seen]].map(([x,ok])=>'<div class="stat"><span>'+x+'</span><strong style="font-size:15px">'+(ok?"Detectado":"Pendiente")+'</strong></div>').join("")+'</div><div style="margin:18px 0"><button class="btn" data-act="meta" '+(!S.meta.ready||!S.metaReady||S.metaBusy?'disabled':'')+'>'+(S.metaBusy?"Validando con Meta…":S.meta.ready?S.metaReady?"Conectar con Meta →":"Preparando conexión…":"Habilitación de Meta pendiente")+'</button><p style="font-size:12px;margin-top:8px">'+(S.meta.ready?"Se abrirá la vinculación oficial. Confirmá el QR desde WhatsApp Business si aparece.":"La conexión estará disponible al completar el alta del proveedor ante Meta.")+'</p></div><p style="font-size:12px">Hasta verificar todos los eventos, el sistema no puede hacer seguimientos.</p></div></div>';}
+function pdfLab(){
+ const result=S.pdfPreview;
+ return '<details class="card"><summary class="pad" style="cursor:pointer;font-weight:800">Laboratorio PDF · Probar lectura de presupuesto</summary><div class="pad" style="border-top:1px solid var(--line)"><p>Prueba opcional para el responsable. No forma parte del trabajo diario de los vendedores y no genera mensajes.</p>'+
+  (S.previewChecked&&!S.previewReady?'<div class="notice">La IA todavía no está configurada en el servidor. No subas documentos reales hasta habilitarla.</div>':'')+
+  (S.previewReady?'<form id="pdfform"><label class="field">PDF de prueba (máximo 5 MB)<input name="pdf" type="file" accept=".pdf,application/pdf" required></label><button class="btn" '+(S.busy?"disabled":"")+'>Analizar PDF de prueba</button></form>':'<p>La prueba estará disponible cuando el proveedor configure la IA.</p>')+
+  (result?'<div class="notice" style="background:#193a31;border-color:#3c7860;color:#d2f7e8"><b>'+esc(result.state==="extracted"?"✓ Presupuesto reconocido":"Se requiere revisión")+'</b><p>'+esc(result.reason||"")+'</p><div>Número: '+esc(result.quote_number||"No verificable")+'</div><div>Importe: '+(result.amount!==null&&result.currency?esc(result.currency)+" "+Number(result.amount).toLocaleString("es-AR"):"No verificable")+'</div><small>Solo diagnóstico: no se registra ninguna oportunidad ni se contacta al cliente.</small></div>':'')+
+ '</div></details>';
+}
 
+function connection(){const c=S.connection;return notice()+'<span class="eyebrow">CONEXIÓN OFICIAL</span><h1>WhatsApp Business.</h1><p>El dueño autoriza el número desde Meta. No basta con escribirlo.</p><div class="card"><div class="pad"><span class="tag">'+(c?.state==="connected"?"VINCULACIÓN REGISTRADA":"AÚN SIN CONECTAR")+'</span><h2 style="margin-top:25px">Enlace oficial, sin QR falso</h2><p>La vinculación mediante Meta Embedded Signup está en preparación. Cuando dispongamos de los permisos y el receptor esté publicado, el negocio podrá confirmar el número desde el flujo de Meta.</p><div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+[["Cliente",c?.inbound_seen],["Vendedor",c?.seller_echo_seen],["PDF",c?.pdf_echo_seen]].map(([x,ok])=>'<div class="stat"><span>'+x+'</span><strong style="font-size:15px">'+(ok?"Detectado":"Pendiente")+'</strong></div>').join("")+'</div><div style="margin:18px 0"><button class="btn" data-act="meta" '+(!S.meta.ready||!S.metaReady||S.metaBusy?'disabled':'')+'>'+(S.metaBusy?"Validando con Meta…":S.meta.ready?S.metaReady?"Conectar con Meta →":"Preparando conexión…":"Habilitación de Meta pendiente")+'</button><p style="font-size:12px;margin-top:8px">'+(S.meta.ready?"Se abrirá la vinculación oficial. Confirmá el QR desde WhatsApp Business si aparece.":"La conexión estará disponible al completar el alta del proveedor ante Meta.")+'</p></div><p style="font-size:12px">Hasta verificar todos los eventos, el sistema no puede hacer seguimientos.</p></div></div>'+pdfLab();}
+
+async function initPreview(){
+ try{const r=await fetch(API+"/functions/v1/cierre-pdf-preview",{cache:"no-store"});const v=await r.json();
+  S.previewChecked=true;S.previewReady=Boolean(r.ok&&v.ready);
+ }catch{S.previewChecked=true;S.previewReady=false;}
+ render();
+}
 async function initMeta(){
  try{
   const resp=await fetch(META_EDGE,{cache:"no-store"});
@@ -111,7 +126,7 @@ async function transaction(fn){if(S.busy)return;S.busy=true;S.notice="";try{awai
 document.addEventListener("click",event=>{
  const btn=event.target.closest("button[data-act]");if(!btn)return;
  const action=btn.dataset.act,value=btn.dataset.value;
- if(action==="page"){event.preventDefault();S.page=value;S.notice="";render();if(value==="connect")void initMeta();}
+ if(action==="page"){event.preventDefault();S.page=value;S.notice="";render();if(value==="connect"){void initMeta();void initPreview();}}
  if(action==="mode"){S.mode=value;S.notice="";render();}
  if(action==="meta")launchMeta();
  if(action==="hours"){const draft=document.querySelector('textarea[name="message"]');if(draft)S.message=draft.value;S.hours=Number(value);render();}
@@ -139,11 +154,22 @@ document.addEventListener("change",event=>{
  if(event.target.matches('input[name="scope"]')){const draft=document.querySelector('textarea[name="message"]');if(draft)S.message=draft.value;S.scope=event.target.value;render();}
 });
 document.addEventListener("submit",event=>{
- const id=event.target.id;if(!["authform","newbusiness","settingsform"].includes(id))return;
+ const id=event.target.id;if(!["authform","newbusiness","settingsform","pdfform"].includes(id))return;
  event.preventDefault();
  const data=new FormData(event.target);
  transaction(async()=>{
-  if(id==="authform"){
+  if(id==="pdfform"){
+   if(!S.session||!S.business||!S.previewReady)throw Error("La lectura con IA no está habilitada.");
+   const pdf=data.get("pdf");
+   if(!(pdf instanceof File)||pdf.size<50||pdf.size>5*1024*1024||!pdf.name.toLowerCase().endsWith(".pdf"))throw Error("Elegí un PDF válido menor a 5 MB.");
+   await refreshToken();const multipart=new FormData();multipart.append("pdf",pdf,"documento.pdf");
+   const r=await fetch(API+"/functions/v1/cierre-pdf-preview",{
+     method:"POST",headers:{Authorization:"Bearer "+S.session.access_token,"x-cierre-business-id":S.business.id},
+     body:multipart,cache:"no-store"});
+   const out=await r.json().catch(()=>({}));
+   if(!r.ok)throw Error("No se pudo analizar: "+(out.error||"Intentalo más tarde"));
+   S.pdfPreview=out;S.page="connect";S.notice="Lectura de prueba completada. No se ha registrado un presupuesto.";
+  }else if(id==="authform"){
    const email=String(data.get("email")||"").trim().toLowerCase(),password=String(data.get("password")||"");
    if(S.mode==="reset"){
     await call("/auth/v1/recover","POST",{email});
