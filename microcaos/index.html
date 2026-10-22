@@ -2541,6 +2541,8 @@ function moveMiniGame(dt,t){
  if(currentMode==="ballistix"){ballTick(dt);return}
  for(const r of activeRacers()){
   if(r.finished)continue;
+  // Lock movement during the disappearing-floor animation: no walking on empty space.
+  if(currentMode==="colorcrash"&&cc.status==="collapse"){r.vx=0;r.vz=0;continue}
   if(currentMode==="territory"&&miniChallengeElapsed<r.territoryStunnedUntil){
    r.vx=0;r.vz=0;continue;
   }
