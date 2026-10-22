@@ -43,10 +43,19 @@ async function receiveMessage(env,event){
  if(event.phoneId!==env.ALLOWED_PHONE_NUMBER_ID)return {skip:true,reason:"phone_not_allowed"};
  const key=await hashContact(env,event.phoneId,event.contact);
  const signal=event.kind==="text"?classifyText(event.text,event.direction):"non_text";
+ const uniqueId=event.phoneId+":"+event.id;
  const inserted=await env.DB.prepare(
-  "INSERT OR IGNORE INTO inbound_events(id,phone_id,contact_key,field,direction,kind,signal,created_at,received_at) VALUES (?,?,?,?,?,?,?,?,?)"
- ).bind(event.phoneId+":"+event.id,event.phoneId,key,event.field,event.direction,event.kind,signal,event.createdAt,now()).run();
- if(Number(inserted?.meta?.changes??0)===0)return {skip:true,reason:"duplicate"};
+  "INSERT OR IGNORE INTO inbound_events(id,phone_id,contact_key,field,direction,kind,signal,created_at,received_at,processed_at) VALUES (?,?,?,?,?,?,?,?,?,NULL)"
+ ).bind(uniqueId,event.phoneId,key,event.field,event.direction,event.kind,signal,event.createdAt,now()).run();
+ if(Number(inserted?.meta?.changes??0)===0){
+   const previous=await env.DB.prepare("SELECT processed_at FROM inbound_events WHERE id=?").bind(uniqueId).first();
+   if(previous?.processed_at!==null&&previous?.processed_at!==undefined)return {skip:true,reason:"duplicate"};
+ }
+ const result=await applyMessageState(env,event,key,signal);
+ await env.DB.prepare("UPDATE inbound_events SET processed_at=? WHERE id=? AND processed_at IS NULL").bind(now(),uniqueId).run();
+ return result;
+}
+async function applyMessageState(env,event,key,signal){
  if(signal==="optout"){
   await env.DB.prepare("INSERT OR IGNORE INTO contact_blocks(phone_id,contact_key,reason,blocked_at) VALUES (?,?,?,?)").bind(event.phoneId,key,"Solicitó no recibir mensajes",now()).run();
   await env.DB.prepare("UPDATE opportunities SET status='blocked',reason='Solicitud de no contacto',updated_at=? WHERE phone_id=? AND contact_key=? AND status NOT IN ('blocked','superseded')").bind(now(),event.phoneId,key).run();
@@ -60,6 +69,10 @@ async function receiveMessage(env,event){
   const isPdf=Boolean(filename?.toLowerCase().endsWith(".pdf")||!filename);
   if(!isPdf)return {ok:true,signal:"ignored_non_pdf"};
   const previous=await env.DB.prepare("SELECT 1 AS found FROM contact_blocks WHERE phone_id=? AND contact_key=?").bind(event.phoneId,key).first();
+  const newest=await env.DB.prepare(
+   "SELECT quote_at FROM opportunities WHERE phone_id=? AND contact_key=? ORDER BY quote_at DESC LIMIT 1"
+  ).bind(event.phoneId,key).first();
+  if(newest && Number(newest.quote_at)>event.createdAt)return {ok:true,signal:"older_pdf_ignored"};
   await env.DB.prepare(
    "UPDATE opportunities SET status='superseded',reason='PDF posterior en la misma conversación',updated_at=? WHERE phone_id=? AND contact_key=? AND status NOT IN ('blocked','superseded')"
   ).bind(now(),event.phoneId,key).run();
@@ -128,6 +141,13 @@ async function admin(request,env,url,cors){
   const result=await env.DB.prepare(
    "UPDATE opportunities SET status='blocked',reason=?,manual_control=?,updated_at=? WHERE quote_id=? AND status!='superseded'"
   ).bind({sale:"Venta verificada por responsable",human:"Seguimiento humano realizado",optout:"Baja manual",sent:"Ya contactado",other:"Cierre manual"}[reason],reason,now(),quoteId).run();
+  if(Number(result?.meta?.changes??0)>0 && reason==="optout"){
+    const row=await env.DB.prepare("SELECT phone_id,contact_key FROM opportunities WHERE quote_id=?").bind(quoteId).first();
+    if(row){
+      await env.DB.prepare("INSERT OR IGNORE INTO contact_blocks(phone_id,contact_key,reason,blocked_at) VALUES (?,?,?,?)").bind(row.phone_id,row.contact_key,"Baja manual",now()).run();
+      await env.DB.prepare("UPDATE opportunities SET status='blocked',reason='Solicitud de no contacto',updated_at=? WHERE phone_id=? AND contact_key=? AND status NOT IN ('blocked','superseded')").bind(now(),row.phone_id,row.contact_key).run();
+    }
+  }
   return json({ok:Number(result?.meta?.changes??0)>0,can_send:false},200,cors);
  }
  return json({error:"not_found"},404,cors);
