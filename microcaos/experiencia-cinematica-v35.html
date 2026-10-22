@@ -2597,6 +2597,35 @@ for(const [name,meta] of Object.entries(V33_PRESETS)){
  }
 }
 // Subtle oversized concentric stage halos visible only in the normal 3D viewer.
+
+// Cinematic studio cyclorama: atmospheric focus without heavy postprocessing.
+const v35BackdropCanvas=document.createElement("canvas");
+v35BackdropCanvas.width=v35BackdropCanvas.height=1024;
+const v35BackdropCtx=v35BackdropCanvas.getContext("2d");
+v35BackdropCtx.fillStyle="#050c20";v35BackdropCtx.fillRect(0,0,1024,1024);
+const v35BgGlow=v35BackdropCtx.createRadialGradient(525,530,12,525,530,650);
+v35BgGlow.addColorStop(0,"#19395b");
+v35BgGlow.addColorStop(.35,"#0d2142");
+v35BgGlow.addColorStop(.72,"#070f26");
+v35BgGlow.addColorStop(1,"#040916");
+v35BackdropCtx.fillStyle=v35BgGlow;v35BackdropCtx.fillRect(0,0,1024,1024);
+const v35LeftLight=v35BackdropCtx.createLinearGradient(0,0,320,0);
+v35LeftLight.addColorStop(0,"rgba(39,119,155,.15)");
+v35LeftLight.addColorStop(1,"rgba(39,119,155,0)");
+v35BackdropCtx.fillStyle=v35LeftLight;v35BackdropCtx.fillRect(0,0,320,1024);
+const v35RightLight=v35BackdropCtx.createLinearGradient(704,0,1024,0);
+v35RightLight.addColorStop(0,"rgba(53,34,116,0)");
+v35RightLight.addColorStop(1,"rgba(53,34,116,.17)");
+v35BackdropCtx.fillStyle=v35RightLight;v35BackdropCtx.fillRect(704,0,320,1024);
+v35BackdropCtx.strokeStyle="rgba(105,206,246,.045)";
+v35BackdropCtx.lineWidth=1;
+for(let step=64;step<1024;step+=64){
+ v35BackdropCtx.beginPath();v35BackdropCtx.moveTo(step,0);v35BackdropCtx.lineTo(step,1024);v35BackdropCtx.stroke();
+ v35BackdropCtx.beginPath();v35BackdropCtx.moveTo(0,step);v35BackdropCtx.lineTo(1024,step);v35BackdropCtx.stroke();
+}
+const v35StudioBackground=new THREE.CanvasTexture(v35BackdropCanvas);
+v35StudioBackground.colorSpace=THREE.SRGBColorSpace;
+
 const v35Backdrop=new THREE.Group();scene.add(v35Backdrop);
 for(const radius of [10.5,15.5,22]){
  const ring=new THREE.Mesh(new THREE.RingGeometry(radius,radius+.13,96),
@@ -2658,7 +2687,7 @@ function renderModeLabel(){
  if(mode==="ar"&&placed)arUpdateScale();
  if(mode==="preview"){
   previewTable.visible=currentMode==="race";
-  scene.background=new THREE.Color(currentMode==="race"?0x172b4a:currentMode==="tag"?0x180d35:0x0c1736);
+  scene.background=v35StudioBackground;
   scene.fog.color.setHex(currentMode==="race"?0x142542:0x0c1030);
  }
  camera.fov=currentMode==="ballistix"?(camera.aspect<.68?64:48):currentMode==="territory"?(camera.aspect<.68?63:46):currentMode==="colorcrash"?(camera.aspect<.68?65:48):(camera.aspect<.68?58:42);
