@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS inbound_events(
  kind TEXT NOT NULL,
  signal TEXT NOT NULL,
  created_at INTEGER NOT NULL,
- received_at INTEGER NOT NULL
+ received_at INTEGER NOT NULL,
+ processed_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS ix_inbound_phone_contact
  ON inbound_events(phone_id, contact_key, created_at DESC);
