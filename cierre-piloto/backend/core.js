@@ -101,6 +101,7 @@ export function transition(current,event){
  }else if(event.direction==="out"){
    if(signal==="human_followup"){result.status="blocked";result.reason="Seguimiento del vendedor";}
    else if(prior?.status==="waiting"){result.status="review";result.reason="El vendedor respondió, pero falta comprobar si se cerró la consulta";}
+   else if(prior?.status==="candidate"){result.status="review";result.reason="El vendedor volvió a escribir; evaluar contexto antes de cualquier seguimiento";}
  }
  return result;
 }
