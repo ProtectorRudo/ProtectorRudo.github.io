@@ -1,44 +1,133 @@
-<!DOCTYPE html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0c1a2a"><title>MICROCAOS · Arena premium AR</title>
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#061326">
+<meta name="description" content="MICROCAOS: un miniestadio 3D en tu propia mesa. Explorá la arena y colocala en realidad aumentada.">
+<title>MICROCAOS — Tu propio estadio en realidad aumentada</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.1.0/dist/model-viewer.min.js"></script>
 <style>
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}body{margin:0;background:radial-gradient(circle at 50% 19%,#3c5166,#121f31 49%,#091423);color:#e6fff5;font-family:system-ui,-apple-system,sans-serif}main{min-height:100dvh;max-width:620px;margin:auto;display:flex;flex-direction:column;padding:max(18px,env(safe-area-inset-top)) 17px max(24px,env(safe-area-inset-bottom))}
-header{display:flex;align-items:center;gap:11px}.brand{background:linear-gradient(140deg,#9ffde8,#29c9b3);color:#13433e;width:39px;height:39px;border-radius:14px;font-size:29px;font-weight:1000;display:grid;place-items:center;transform:rotate(-8deg)}header span{font-size:17px;font-weight:900;letter-spacing:.025em}header small{display:block;font-size:10px;letter-spacing:.15em;color:#bad4de;margin-top:3px}
-h1{font-size:clamp(26px,6vw,39px);line-height:1.02;letter-spacing:-.05em;margin:20px 0 10px;font-weight:900}h1 strong{color:#7ff7d3}p{color:#bed4df;font-size:13px;line-height:1.55;margin:0 0 12px}
-viewer-wrapper{display:block}model-viewer{display:block;width:100%;height:min(40dvh,340px);min-height:210px;border:1px solid #ffffff2b;border-radius:23px;background:radial-gradient(circle,#315468,#091729);margin:8px 0 15px;--poster-color:transparent;overflow:hidden}
-button,a.button{border:0;display:flex;align-items:center;justify-content:center;gap:9px;width:100%;border-radius:16px;padding:15px 12px;text-align:center;min-height:56px;font-size:14px;font-weight:900;letter-spacing:.01em;text-decoration:none;cursor:pointer}
-button.primary{background:linear-gradient(115deg,#adffe5,#61e1ca);color:#05392f;box-shadow:0 10px 34px #37e2b833}
-a.backup{background:#e6edff15;color:#e8fbff;border:1px solid #f4ffff32;margin-top:9px}
-.info{font-size:12px;color:#9cb7c9;background:#0a1728bc;border-radius:14px;border:1px solid #ffffff22;padding:12px 14px;line-height:1.45;margin:11px 0}.warn{background:#602d38c2;border-color:#ffb6bc65;color:#fff}
-a.return{font-size:13px;color:#8df8df;text-decoration:none;display:block;text-align:center;margin-top:17px}
-ol{padding-left:21px;color:#cfdee7;font-size:12px;line-height:1.55;margin:9px 0 0}ol li{margin:3px 0}
-</style></head><body><main>
-<header><div class="brand">m</div><div><span>MICROCAOS</span><small>ARENA PREMIUM 0.6 · CÁMARA AR</small></div></header>
-<h1>El miniestadio en tu <strong>propia mesa.</strong></h1>
-<p>Rediseñamos la arena y sus seis personajes para que luzcan como un juego coleccionable. Colocá este modelo 3D en una superficie real; las carreras interactivas siguen en el juego principal.</p>
-<model-viewer id="viewer" src="https://raw.githubusercontent.com/ProtectorRudo/ProtectorRudo.github.io/25fa6f51f8de5d3efac930631eb45144ac78e761/microcaos/arena.glb?v=6" alt="Maqueta 3D de MICROCAOS, arena con seis corredores" camera-controls touch-action="pan-y" auto-rotate ar ar-modes="scene-viewer webxr" ar-placement="floor" shadow-intensity=".7" exposure="1.1" interaction-prompt="none">
- <div slot="progress-bar" style="position:absolute;left:16px;right:16px;bottom:15px;height:4px;background:#ffffff22;border-radius:10px"><div id="progress" style="width:10%;height:100%;background:#8ef4d9;border-radius:10px"></div></div>
-</model-viewer>
-<button class="primary" id="openCam">◈ ABRIR CÁMARA EN REALIDAD AUMENTADA</button>
-<a class="button backup" href="intent://arvr.google.com/scene-viewer/1.0?file=https%3A%2F%2Fraw.githubusercontent.com%2FProtectorRudo%2FProtectorRudo.github.io%2F25fa6f51f8de5d3efac930631eb45144ac78e761%2Fmicrocaos%2Farena.glb%3Fv%3D6&amp;mode=ar_only&amp;title=MICROCAOS%20Party%20Rush#Intent;scheme=https;package=com.google.ar.core;action=android.intent.action.VIEW;S.browser_fallback_url=https%3A%2F%2Fmicrocaos-party-rush.vercel.app%2Far.html%3Fsin-ar%3D1;end;">ABRIR AR CON SERVICIOS DE GOOGLE PLAY</a>
-<a class="button backup" href="intent://arvr.google.com/scene-viewer/1.0?file=https%3A%2F%2Fraw.githubusercontent.com%2FProtectorRudo%2FProtectorRudo.github.io%2F25fa6f51f8de5d3efac930631eb45144ac78e761%2Fmicrocaos%2Farena.glb%3Fv%3D6&amp;mode=ar_preferred&amp;title=MICROCAOS%20Party%20Rush#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=https%3A%2F%2Fmicrocaos-party-rush.vercel.app%2Far.html%3Fsin-ar%3D1;end;">ABRIR CON APP DE GOOGLE</a>
-<div id="status" class="info">Verificá que estás en Chrome para Android, no dentro de ChatGPT u otra aplicación. Necesitás Servicios de Google Play para RA y la app de Google actualizados.</div>
-<ol><li>Abrí este enlace en <strong>Google Chrome</strong>.</li><li>Tocá «Abrir cámara en realidad aumentada».</li><li>Apuntá a una mesa bien iluminada y mové despacio el teléfono.</li></ol>
-<a class="return" href="/">← Volver al juego MICROCAOS</a>
+:root{color-scheme:dark;--night:#061326;--navy:#0e2443;--card:#0f2340;--mint:#73f4d8;--mint2:#27dcbf;--text:#f5f9ff;--muted:#bfd0e2;--stroke:#ffffff29}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{min-height:100%;background:var(--night)}body{margin:0;min-height:100dvh;color:var(--text);font-family:"DM Sans",system-ui,sans-serif;overflow-x:hidden;background:radial-gradient(ellipse at 62% 14%,#0f35536e,transparent 49%),radial-gradient(ellipse at 4% 54%,#102e5d71,transparent 50%),linear-gradient(167deg,#0a1c36 0%,#07152b 56%,#050e1c 100%)}
+body:before{content:"";position:fixed;pointer-events:none;z-index:0;width:70vw;height:70vw;max-width:620px;max-height:620px;border:1px solid #57cdfc18;border-radius:45%;top:-38vw;right:-24vw;transform:rotate(30deg);box-shadow:0 0 0 60px #72d6ff06,0 0 0 160px #72d6ff04}
+body:after{content:"✦";position:absolute;right:7%;top:85px;color:#8df3ff5c;font-size:24px;pointer-events:none;text-shadow:0 0 30px #7de8ff9c}
+main{position:relative;z-index:1;max-width:990px;margin:0 auto;padding:clamp(19px,4vw,36px) clamp(17px,4vw,32px) max(29px,env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:35px}
+.branding{display:flex;gap:15px;align-items:center}.mark{flex:none;width:58px;height:58px;border-radius:19px;background:linear-gradient(140deg,#b3ffe9,#45ecd3 58%,#29c8c6);display:grid;place-items:center;color:#073b3c;font-family:Outfit,sans-serif;font-size:42px;font-weight:900;letter-spacing:-.08em;transform:rotate(-8deg);box-shadow:inset 0 2px 1px #ffffffb3,0 8px 25px #30edd123}.mark span{transform:rotate(8deg) translateX(-2px)}
+.brandname{font-family:Outfit,sans-serif;font-size:26px;font-weight:900;letter-spacing:.005em;line-height:1}.tagline{font-size:10px;font-weight:800;letter-spacing:.25em;color:#b4cbdf;margin-top:9px}
+.toplink{color:#b0fbeb;font:800 12px "DM Sans",sans-serif;text-decoration:none;border:1px solid #74ebda53;border-radius:12px;padding:10px 13px;white-space:nowrap;background:#0e283c9a}.toplink:focus-visible,a:focus-visible,button:focus-visible{outline:3px solid #bbfff0;outline-offset:3px}
+.layout{display:grid;grid-template-columns: minmax(0,1fr);gap:0}.eyebrow{display:inline-flex;align-items:center;gap:8px;border-radius:999px;color:#c1fbe9;border:1px solid #6cffd25a;background:#0f443f64;padding:7px 12px;font:800 10px "DM Sans",sans-serif;letter-spacing:.16em;text-transform:uppercase}
+.eyebrow i{height:7px;width:7px;border-radius:50%;background:#72ffc5;box-shadow:0 0 10px #83ffce}
+h1{font:900 clamp(39px,7.3vw,67px)/.99 Outfit,sans-serif;letter-spacing:-.055em;margin:16px 0 15px;max-width:700px;text-wrap:balance}
+h1 strong{font-weight:900;background:linear-gradient(105deg,#bbffed 2%,#5df7d4 54%,#37d8ce 100%);color:transparent;background-clip:text;-webkit-background-clip:text;text-shadow:0 8px 31px #40edc62b}
+.lead{font-size:clamp(14px,2.25vw,17px);line-height:1.62;color:var(--muted);max-width:625px;margin:0 0 22px}
+.lead b{color:#e6fff5;font-weight:800}
+.viewer-card{position:relative;isolation:isolate;border-radius:25px;overflow:hidden;border:1px solid #9ee8ff66;box-shadow:0 20px 65px #0008,0 0 45px #63aeff14,inset 0 1px 0 #ffffff66;background:radial-gradient(ellipse at 50% 40%,#5687a6a8 0%,#14334e 51%,#0d172b 100%);aspect-ratio:1.31;min-height:275px;max-height:580px}
+.viewer-card:before{content:"";pointer-events:none;position:absolute;z-index:2;inset:0;border-radius:24px;box-shadow:inset 0 2px 0 #ffffff45,inset 0 -35px 60px #091e3d74}
+.viewer-card:after{content:"";pointer-events:none;position:absolute;inset:auto 13% -30% 13%;height:45%;background:#31ebcf55;filter:blur(68px);z-index:0}
+model-viewer{position:absolute;z-index:1;inset:0;width:100%;height:100%;background:transparent;--poster-color:transparent;outline:none;touch-action:pan-y}
+.glow{position:absolute;z-index:0;width:230px;height:270px;pointer-events:none;filter:blur(53px);opacity:.45}.g1{left:-13%;top:-25%;background:#28e7df}.g2{right:-15%;top:5%;background:#efb25d}
+.viewer-top{position:absolute;z-index:3;top:15px;left:14px;right:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;pointer-events:none}
+.pill{padding:8px 11px;border-radius:999px;background:#081b2eae;border:1px solid #dcfff35a;backdrop-filter:blur(18px);font-size:10px;font-weight:900;letter-spacing:.12em;color:#ddfffa}
+.pill span{color:var(--mint)}.mini-label{font-size:9px;font-weight:900;color:#d5f5ff;letter-spacing:.12em;background:#071b2fb8;border:1px solid #ffffff3d;border-radius:999px;padding:8px 12px}
+.viewer-bottom{position:absolute;z-index:4;left:14px;right:14px;bottom:15px;display:flex;align-items:end;justify-content:space-between;gap:9px;pointer-events:none}
+.viewer-instruction{background:#071c36d9;border:1px solid #ffffff38;border-radius:11px;padding:10px 12px;backdrop-filter:blur(15px);font-size:11px;font-weight:700;color:#e6faff;text-shadow:0 2px 6px #0006;max-width:68%}
+.viewer-instruction strong{display:block;font:900 13px Outfit;color:white;letter-spacing:.02em;margin-bottom:3px}
+.view-3d-btn{pointer-events:auto;border:1px solid #baffee9c;color:#edfffa;background:#062c3bd9;border-radius:14px;padding:11px 13px;min-height:50px;display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:900;backdrop-filter:blur(13px);box-shadow:0 5px 20px #0004}
+.view-3d-btn svg{width:18px;height:18px}
+.skeleton{position:absolute;inset:0;z-index:1;pointer-events:none;display:grid;place-items:center;color:#bffdec;font-size:12px;font-weight:800;background:linear-gradient(115deg,#17385868,#216c7f39,#17385868);animation:glimmer 1.6s ease-in-out infinite alternate}.skeleton.hidden{display:none}@keyframes glimmer{to{opacity:.4}}
+.info-strip{display:flex;align-items:center;gap:9px;margin:13px 0 17px;color:#abced7;font-size:11px;font-weight:700;letter-spacing:.035em;flex-wrap:wrap}
+.info-strip svg{width:16px;height:16px;color:#83f7d7}.dot{color:#4f8190}
+.actions{display:grid;gap:10px}
+.action{width:100%;min-height:62px;border:0;border-radius:19px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 17px;text-decoration:none;cursor:pointer;transition:transform .15s,filter .15s;font-family:Outfit,sans-serif;font-weight:900;letter-spacing:.015em;text-align:left}
+.action:active{transform:scale(.985)}.action svg{width:22px;height:22px;flex:none}.action .arrow{margin-left:auto;width:18px;height:18px}.action .middle{flex:1;min-width:0}
+.action-primary{color:#06332f;background:linear-gradient(112deg,#a4ffe2 0%,#6ff8d7 53%,#3ce5d1 100%);border:1px solid #d1fff5;box-shadow:0 0 20px #2de9cb39,0 13px 31px #0006,inset 0 2px 2px #ffffff9e;font-size:clamp(13px,2.6vw,16px)}
+.action-secondary{background:linear-gradient(125deg,#1c3557b8,#0c233fc2);color:#edfcff;border:1px solid #99befb73;box-shadow:0 7px 24px #0002,inset 0 1px 0 #e7f0ff16;font-size:13px;min-height:54px}
+.action-secondary svg{color:#b9e2fc}.action:hover{filter:brightness(1.055)}
+.status{margin-top:14px;display:flex;gap:12px;align-items:flex-start;border:1px solid #779bd04e;background:#071a30a3;padding:14px 15px;border-radius:16px;font-size:12px;color:#bed3e5;line-height:1.55}
+.status svg{height:19px;width:19px;flex:none;color:#8bf1de;margin-top:1px}.status.problem{border-color:#f1b38c7a;background:#35212a91}.status.problem svg{color:#f2b18f}
+.instructions{font-size:12px;color:#acc7d8;line-height:1.6;padding:14px 0 3px}.instructions b{color:#e7fff6}.instructions a{color:#87f7df;font-weight:800;text-decoration:none}
+.below{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}.below a{color:#a2ffdf;font-size:12px;font-weight:800;text-decoration:none;border-bottom:1px solid #a2ffdf73;padding-bottom:2px}
+.note{font-size:11px;color:#7894ac;text-align:center;line-height:1.55;margin:19px auto 0;max-width:510px}
+footer{margin-top:20px;padding:16px 0 7px;color:#66849d;text-align:center;font:800 10px "DM Sans",sans-serif;letter-spacing:.16em;border-top:1px solid #ffffff13}
+@media(min-width:840px){main{padding-top:35px}.layout{grid-template-columns:1.08fr .92fr;column-gap:28px;align-items:center}.head{grid-column:1/-1}.viewer-card{aspect-ratio:.98;height:560px}.right{padding-top:3px}.info-strip{margin-top:16px}.viewer-top{top:19px;left:17px;right:17px}}
+@media(max-width:420px){header{margin-bottom:23px}.mark{width:48px;height:48px;border-radius:15px;font-size:36px}.brandname{font-size:21px}.tagline{font-size:8.5px;letter-spacing:.18em}.toplink{font-size:10px;padding:10px}.eyebrow{font-size:9px}h1{font-size:39px;margin:14px 0 13px}.lead{font-size:13px;margin-bottom:18px}.viewer-card{min-height:268px;aspect-ratio:1.12;border-radius:22px}.viewer-top{top:12px;left:11px;right:11px}.viewer-bottom{left:11px;right:11px;bottom:12px}.mini-label{font-size:8px}.viewer-instruction{font-size:10px}.action-primary{font-size:12px}.action-secondary{font-size:12px;padding:0 13px}.action svg{width:18px;height:18px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <div class="branding"><div class="mark"><span>m</span></div><div><div class="brandname">MICROCAOS</div><div class="tagline">ARENA PREMIUM · REALIDAD AUMENTADA</div></div></div>
+ <a class="toplink" href="/" aria-label="Volver al juego">JUGAR ↗</a>
+</header>
+<div class="layout">
+<section class="head">
+ <div class="eyebrow"><i></i> UNA ARENA EN TU MUNDO</div>
+ <h1>El miniestadio<br>en tu <strong>propia mesa.</strong></h1>
+ <p class="lead">Una competencia diminuta con seis personajes adorables. <b>Explorá la pista en 3D</b> y llevá el estadio a tu casa con la cámara de realidad aumentada.</p>
+</section>
+<section aria-label="Vista 3D del estadio">
+ <div class="viewer-card" id="viewerCard">
+  <div class="glow g1"></div><div class="glow g2"></div>
+  <div class="skeleton" id="skeleton">Preparando tu miniestadio 3D...</div>
+  <model-viewer id="viewer" src="https://raw.githubusercontent.com/ProtectorRudo/ProtectorRudo.github.io/25fa6f51f8de5d3efac930631eb45144ac78e761/microcaos/arena.glb" alt="Modelo tridimensional interactivo de MICROCAOS con seis mascotas y obstáculos" ar ar-modes="scene-viewer webxr quick-look" ar-placement="floor" ar-scale="auto" shadow-intensity=".75" exposure="1.15" environment-image="neutral" camera-controls auto-rotate auto-rotate-delay="500" rotation-per-second="7deg" interaction-prompt="none" camera-orbit="26deg 64deg auto" field-of-view="33deg" touch-action="pan-y" loading="eager">
+  </model-viewer>
+  <div class="viewer-top"><div class="pill"><span>●</span> MODELO 3D REAL</div><div class="mini-label">6 COMPETIDORES ✦</div></div>
+  <div class="viewer-bottom"><div class="viewer-instruction"><strong>Tu estadio en miniatura</strong>Deslizá para girar · Pellizcá para acercar</div><button type="button" class="view-3d-btn" id="resetCam" aria-label="Volver a vista inicial"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m12 2 8.5 5v10L12 22l-8.5-5V7L12 2Z"/><path d="m3.5 7 8.5 5 8.5-5M12 12v10"/></svg> 3D</button></div>
+ </div>
+ <div class="info-strip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 8l10 5 10-5-10-5ZM2 12l10 5 10-5M2 16l10 5 10-5"/></svg><span>Modelo interactivo · Girá y hacé zoom</span><span class="dot">•</span><span>AR Android compatible</span></div>
+</section>
+<section class="right" aria-label="Abrir realidad aumentada">
+ <div class="actions">
+  <button type="button" id="openAR" class="action action-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M4 7h3l2-3h6l2 3h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="14" r="4"/></svg><span class="middle">ABRIR CÁMARA EN REALIDAD AUMENTADA</span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="m9 5 7 7-7 7"/></svg></button>
+  <a id="withARCore" class="action action-secondary" href="#"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 2.7 17.2 12 4 21.3V2.7Zm2.4 4.1v10.4l7.3-5.2-7.3-5.2Z"/></svg><span class="middle">ABRIR AR CON SERVICIOS DE GOOGLE PLAY</span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg></a>
+  <a id="withGoogle" class="action action-secondary" href="#"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.5 12.2c0-.75-.06-1.5-.2-2.2H12v4h5.35a4.6 4.6 0 0 1-2 3.05v2.54h3.22c1.9-1.75 2.93-4.33 2.93-7.39ZM12 22c2.7 0 4.96-.9 6.57-2.41l-3.22-2.54c-.91.61-2.06.98-3.35.98a6.03 6.03 0 0 1-5.7-4.17H2.95v2.61A9.99 9.99 0 0 0 12 22ZM6.3 13.86a6.02 6.02 0 0 1 0-3.72V7.53H2.95a10 10 0 0 0 0 8.94l3.35-2.61ZM12 5.97c1.47 0 2.79.51 3.84 1.5l2.88-2.88A9.54 9.54 0 0 0 12 2a10 10 0 0 0-9.05 5.53l3.35 2.61A6.03 6.03 0 0 1 12 5.97Z"/></svg><span class="middle">ABRIR CON LA APP DE GOOGLE</span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg></a>
+ </div>
+ <div class="status" id="status" role="status" aria-live="polite"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 4v.5"/></svg><span id="statusText">Preparando el visor AR… Abrí esta página directamente en Chrome si el navegador de la aplicación no permite abrir la cámara.</span></div>
+ <div class="instructions">Para colocarlo sobre una mesa: <b>1.</b> Abrí esta página en <b>Chrome</b>. <b>2.</b> Tocá «Abrir cámara». <b>3.</b> Mové el celular lentamente sobre una superficie iluminada. Si no funciona, <a href="/diagnostico.html">revisá la compatibilidad AR</a>.</div>
+ <div class="below"><a href="/">Jugar carrera 3D ↗</a><a href="/diagnostico.html">Diagnosticar cámara ↗</a></div>
+ <p class="note">La arena se puede visualizar en realidad aumentada en dispositivos compatibles. La carrera interactiva todavía funciona por separado desde el juego 3D.</p>
+</section>
+</div>
+<footer>MICROCAOS · UN MUNDO CHIQUITO. UN CAOS GIGANTE.</footer>
+</main>
 <script>
-const viewer=document.getElementById("viewer"),status=document.getElementById("status"),button=document.getElementById("openCam");
-const show=(msg,warn=false)=>{status.textContent=msg;status.className="info"+(warn?" warn":"")};
-const android=/Android/i.test(navigator.userAgent);
-if(!android)show("La colocación AR nativa en este enlace está preparada para Android. En iPhone necesitaremos una versión ARKit o un archivo USDZ compatible.",true);
-if(location.search.includes("sin-ar=1"))show("Android no pudo abrir el visor AR. Probá en Chrome (fuera de ChatGPT), actualizá Servicios de Google Play para RA y la app de Google. Si no funciona, usá el botón alternativo.",true);
-viewer.addEventListener("progress",e=>{const v=document.getElementById("progress");if(v)v.style.width=(e.detail.totalProgress*100)+"%"});
-viewer.addEventListener("error",e=>show("No se pudo cargar el modelo 3D. Comprobá conexión y probá de nuevo.",true));
-viewer.addEventListener("load",()=>show("Modelo 3D cargado. Tocá el botón para abrir el visor espacial en tu cámara."));
-viewer.addEventListener("ar-status",e=>{if(e.detail.status==="session-started")show("Cámara AR iniciada. Apuntá a una mesa iluminada.");if(e.detail.status==="failed")show("No se inició AR. Probá los enlaces alternativos o Google Chrome.",true)});
-button.addEventListener("click",()=>{
- if(!android){show("Esta modalidad nativa usa Android. En iOS la vista previa 3D sí funciona, pero falta ARKit.",true);return}
- if(typeof viewer.activateAR==="function"){show("Solicitando apertura del visor nativo de realidad aumentada...");viewer.activateAR().catch(e=>show("No se pudo abrir la cámara AR: "+(e?.message||"compatibilidad del navegador")+". Probá el enlace directo de Google Play.",true))}
- else show("El visor web no cargó. Probá directamente con Servicios de Google Play.",true)
-});
-</script></main></body></html>
+(()=>{
+ const $=id=>document.getElementById(id);
+ const viewer=$("viewer"),status=$("status"),statusText=$("statusText"),open=$("openAR");
+ const android=/Android/i.test(navigator.userAgent),ios=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+ const asset="https://raw.githubusercontent.com/ProtectorRudo/ProtectorRudo.github.io/25fa6f51f8de5d3efac930631eb45144ac78e761/microcaos/arena.glb";
+ const fallback="https://microcaos-party-rush.vercel.app/ar.html?sin-ar=1";
+ const intent=(pkg,mode)=>"intent://arvr.google.com/scene-viewer/1.0?file="+encodeURIComponent(asset)+"&mode="+mode+"#Intent;scheme=https;package="+pkg+";action=android.intent.action.VIEW;S.browser_fallback_url="+encodeURIComponent(fallback)+";end;";
+ $("withARCore").href=intent("com.google.ar.core","ar_only");
+ $("withGoogle").href=intent("com.google.android.googlequicksearchbox","ar_preferred");
+ if(!android){$("withARCore").style.display="none";$("withGoogle").style.display="none"}
+ const setStatus=(message,problem=false)=>{statusText.textContent=message;status.classList.toggle("problem",problem)};
+ viewer.addEventListener("load",()=>{$("skeleton").classList.add("hidden");setStatus(android?"✓ Miniestadio 3D cargado. Tocá «Abrir cámara» para colocarlo en una superficie.":ios?"✓ Miniestadio 3D cargado. Tocá AR para comprobar Quick Look en este iPhone.":"✓ Miniestadio 3D cargado. Podés explorarlo con el dedo o el mouse.")});
+ viewer.addEventListener("error",e=>{$("skeleton").textContent="No se pudo cargar el modelo. Probá recargar la página.";setStatus("La vista 3D no se cargó. Revisá conexión a Internet o probá nuevamente.",true)});
+ viewer.addEventListener("ar-status",e=>{
+  const s=e.detail?.status;
+  if(s==="session-started")setStatus("✓ Cámara AR iniciada. Apuntá a una mesa iluminada.");
+  if(s==="object-placed")setStatus("✓ ¡Arena colocada! Caminá alrededor para explorarla.");
+  if(s==="failed")setStatus("No se abrió AR. Probá el enlace directo de Google Play, o abrí la página en Chrome.",true)
+ });
+ $("resetCam").addEventListener("click",()=>{viewer.cameraOrbit="26deg 64deg auto";viewer.fieldOfView="33deg";viewer.jumpCameraToGoal?.()});
+ open.addEventListener("click",()=>{
+  if(!viewer.canActivateAR){setStatus("Este navegador no ofrece AR. Abrí la página fuera de ChatGPT, directamente en Chrome para Android; en iPhone necesitás Safari/Quick Look compatible.",true);return}
+  setStatus("Solicitando al teléfono que abra la cámara AR… Si no se abre, probá «Servicios de Google Play» o Chrome directamente.");
+  try{
+   const p=viewer.activateAR();
+   if(p&&typeof p.catch==="function")p.catch(e=>setStatus("No se pudo iniciar AR: "+(e?.message||"el navegador lo bloqueó")+". Probá el acceso alternativo.",true));
+  }catch(e){setStatus("El navegador bloqueó AR: "+(e?.message||"intento no permitido"),true)}
+ });
+ if(location.search.includes("sin-ar=1"))setStatus("El teléfono no pudo abrir el visor AR. Usá Chrome para Android y actualizá Servicios de Google Play para RA o probá el botón alternativo.",true);
+ document.addEventListener("visibilitychange",()=>{if(!document.hidden&&statusText.textContent.includes("Solicitando"))setStatus("Si no apareció la cámara, probá los botones alternativos. El modelo 3D se puede explorar aquí sin AR.")});
+})();
+</script>
+</body></html>
