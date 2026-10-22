@@ -89,7 +89,6 @@ if(!msgs.length){reasons.push("El texto no tiene mensajes con fecha, remitente y
   }
  }
 }
-}
 var budgetName=budget?(budget.text.match(/[\wáéíóúñÁÉÍÓÚÑ()\- .]+\.pdf\b/i)||["PDF detectado"])[0].trim():"Sin PDF";
 if(status==="ready")heading="Posible seguimiento";
 if(status==="wait")heading="Esperar";
