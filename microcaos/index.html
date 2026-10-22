@@ -1095,42 +1095,50 @@ function territoryStart(){
  territoryFlushTiles();territoryUpdateTrails();territoryUpdateBoard(true);
 }
 function territoryBotDirection(r,t){
+ // Expand in clear rectangular loops; every route returns to controlled tiles.
+ // Routes vary in direction, depth and width, and bots may opportunistically
+ // attack exposed enemy trails when they're already within reach.
  if(!r.territoryAiPlan||r.territoryAiStep>=r.territoryAiPlan.length){
-  const a=r.phase+t*.24+Math.random()*Math.PI*.9;
-  let dx=Math.cos(a),dz=Math.sin(a);
-  // Point inward when near walls, otherwise some bots freeze against a boundary.
-  if(r.x>2.2)dx=-Math.abs(dx);if(r.x< -2.2)dx=Math.abs(dx);
-  if(r.z>3.5)dz=-Math.abs(dz);if(r.z< -3.5)dz=Math.abs(dz);
-  const homeX=r.x,homeZ=r.z;
-  const size=2.3+Math.random()*.9*(r.skill||.7);
-  const p1={x:clamp(homeX+dx*size,-3.83,3.83),z:clamp(homeZ+dz*size,-5.15,5.15)};
-  const p2={x:clamp(p1.x-dz*(1.4+Math.random()),-3.83,3.83),z:clamp(p1.z+dx*(1.4+Math.random()),-5.15,5.15)};
-  r.territoryAiPlan=[p1,p2,{x:homeX,z:homeZ}];
+  const x=r.x,z=r.z;
+  const sideX=x>1.5?-1:x< -1.5?1:r.index%2?1:-1;
+  const sideZ=z>2.3?-1:z< -2.3?1:r.index%3?1:-1;
+  const width=1.95+Math.random()*.8*(r.skill||.7);
+  const depth=1.75+Math.random()*.65*(r.skill||.7);
+  const x1=clamp(x+sideX*width,-3.82,3.82);
+  const z2=clamp(z+sideZ*depth,-5.12,5.12);
+  r.territoryAiPlan=[
+   {x:x1,z},
+   {x:x1,z:z2},
+   {x,z:z2},
+   {x,z}
+  ];
   r.territoryAiStep=0;
  }
  let goal=r.territoryAiPlan[r.territoryAiStep];
- if(Math.hypot(goal.x-r.x,goal.z-r.z)<.42){
+ if(Math.hypot(goal.x-r.x,goal.z-r.z)<.35){
   r.territoryAiStep++;
   goal=r.territoryAiPlan[r.territoryAiStep];
  }
  if(!goal){r.territoryAiPlan=null;return[0,0]}
- // Enemy trails are vulnerable: occasionally opportunistically cut one nearby.
- if(r.territoryTrail.length===0&&r.skill>.60&&t>(r.territoryHuntAt||0)){
-  r.territoryHuntAt=t+.7;
-  let hunt=null,best=2.2;
+ if(r.territoryTrail.length===0&&r.skill>.66&&t>(r.territoryHuntAt||0)){
+  r.territoryHuntAt=t+.9;
+  let hunt=null,best=1.65;
   for(const target of activeRacers()){
    if(target.index===r.index||!target.territoryTrail.length)continue;
-   for(let i=0;i<target.territoryTrail.length;i+=3){
-    const pos=territoryPos(target.territoryTrail[i]);
-    const d=Math.hypot(pos.x-r.x,pos.z-r.z);
-    if(d<best){best=d;hunt=pos}
+   for(let i=0;i<target.territoryTrail.length;i+=4){
+    const p=territoryPos(target.territoryTrail[i]);
+    const d=Math.hypot(p.x-r.x,p.z-r.z);
+    if(d<best){best=d;hunt=p}
    }
   }
-  if(hunt&&Math.random()<r.skill*.68){r.territoryAiPlan=[hunt,{x:r.territoryHomeX,z:r.territoryHomeZ}];r.territoryAiStep=0;goal=hunt}
+  if(hunt&&Math.random()<r.skill*.54){
+   r.territoryAiPlan=[hunt,{x:r.territoryHomeX,z:r.territoryHomeZ}];
+   r.territoryAiStep=0;goal=hunt;
+  }
  }
- if(r.territoryTrail.length>58)goal={x:r.territoryHomeX,z:r.territoryHomeZ};
- const ddx=goal.x-r.x,ddz=goal.z-r.z,dist=Math.hypot(ddx,ddz)||1;
- return[ddx/dist,-ddz/dist];
+ if(r.territoryTrail.length>90)goal={x:r.territoryHomeX,z:r.territoryHomeZ};
+ const dx=goal.x-r.x,dz=goal.z-r.z,dist=Math.hypot(dx,dz)||1;
+ return[dx/dist,-dz/dist];
 }
 function territoryUpdateBoard(force=false){
  if(currentMode!=="territory")return;
