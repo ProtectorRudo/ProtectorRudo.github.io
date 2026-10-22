@@ -586,7 +586,7 @@ function createCharacter(col,index){
  const root=new THREE.Group();stage.add(root);
  const shade=new THREE.Mesh(new THREE.PlaneGeometry(1.75,1.75),v33ShadowMaterial);
  shade.castShadow=false;shade.receiveShadow=false;shade.rotation.x=-Math.PI/2;
- shade.position.y=.102;root.add(shade);
+ shade.position.y=.14;stage.add(shade);
  const rig=new THREE.Group();root.add(rig);
  const fur=toyMat([0x23dfd6,0xff665f,0x9b64fa,0x8dea48,0xffae40,0x85c4ff][index]);
  const light=toyMat([0xc4fff1,0xffdccb,0xdfb8ff,0xdaffb0,0xffe9c5,0xf5f8ff][index]);
@@ -3153,7 +3153,7 @@ function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;
  for(const r of racers){
   if(r.mixer)r.mixer.update(dt);
   if(r.shade){
-   r.shade.position.y=currentMode==="colorcrash"?.167:currentMode==="territory"?.17:.10;
+   r.shade.position.set(r.root.position.x,currentMode==="colorcrash"?.17:currentMode==="territory"?.18:currentMode==="race"?.09:.14,r.root.position.z);
    const shadowScale=1+Math.max(0,r.y||0)*.12;
    r.shade.scale.setScalar(shadowScale);
    r.shade.visible=!r.finished&&currentMode!=="ballistix";
