@@ -431,7 +431,7 @@ body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172a
 </div></section>
 <div class="mp-live" id="mpLive"></div>
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V3.9</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V4.0</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -875,16 +875,51 @@ function selectMascot(index){
 const ROBOT_ASSET="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r180/examples/models/gltf/RobotExpressive/RobotExpressive.glb";
 let modelLoaded=false;
 const robotAnimations={};
-function useAnimation(r,name){
-  if(!r?.mixer||!r?.actions)return;
-  const candidates=name==="Run"?["Running","Walking","WalkJump","Idle"]:name==="Jump"?["Jump","WalkJump","Running"]:name==="Hit"?["No","Death","Idle"]:name==="Dance"?["Dance","ThumbsUp","Wave","Idle"]:["Idle","Standing","Walking"];
-  let key=candidates.find(x=>r.actions[x]);
-   if(!key){const all=Object.keys(r.actions);const hints=name==="Run"?["run","walk","sprint","move","fast_flying","flying"]:name==="Jump"?["jump","hop"]:name==="Hit"?["hit","hurt","damage","stagger"]:name==="Dance"?["dance","cheer","victory","wave"]:["idle","standing","breathe"];
-     key=all.find(k=>hints.some(h=>k.toLowerCase().includes(h)))||all.find(k=>k.toLowerCase().includes("idle"))||all[0];}
-   if(!key||key===r.animationName)return;
-  const next=r.actions[key],prev=r.actions[r.animationName];next.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).play();
-  if(prev){next.crossFadeFrom(prev,.16,false)}r.animationName=key;
+
+const v40ClipAliases={
+ Idle:["idle","flying_idle","hover","stand","breathe"],
+ Run:["running","run","walk","fast_flying","flying","move"],
+ Jump:["jump","hop","fly"],
+ Hit:["hitreact","hit","hurt","damage","stagger"],
+ Dance:["victory","cheer","dance","wave","yes"]
+};
+function v40GetClip(r,state){
+ const keys=Object.keys(r.actions||{}),names=v40ClipAliases[state]||v40ClipAliases.Idle;
+ if(!keys.length)return null;
+ const norm=n=>n.toLowerCase().replace(/[^a-z0-9]+/g,"_");
+ for(const wanted of names){const match=keys.find(k=>norm(k)===wanted||norm(k).endsWith("_"+wanted));if(match)return match}
+ for(const wanted of names){const match=keys.find(k=>norm(k).includes(wanted));if(match)return match}
+ return state==="Idle"?keys[0]:v40GetClip(r,"Idle");
 }
+function useAnimation(r,state){
+ if(!r?.mixer||!r?.actions)return;
+ const key=v40GetClip(r,state);if(!key)return;
+ const info=r.rig?.userData?.premiumCharacter;
+ const fallbackRun=state==="Run"&&!info?.clips?.some(s=>/run|walk|fly/i.test(s));
+ if(key===r.animationName){
+  if(state==="Run")r.actions[key].setEffectiveTimeScale(fallbackRun?1.55:1.15);
+  return;
+ }
+ const action=r.actions[key],previous=r.actions[r.animationName];
+ action.reset().setEffectiveWeight(1).setEffectiveTimeScale(state==="Run"?(fallbackRun?1.55:1.15):1).play();
+ if(previous&&previous!==action)action.crossFadeFrom(previous,.16,false);
+ r.animationName=key;
+}
+function v40UpdateAnimations(t,dt){
+ for(const r of racers){
+  const info=r.rig?.userData?.premiumCharacter;if(!info||!r.root.visible)continue;
+  const speed=Math.hypot(r.vx||0,r.vz||0);
+  const active=phase==="race"&&!r.finished;
+  const moving=active&&(currentMode==="race"||currentMode==="ballistix"?true:speed>.65);
+  useAnimation(r,active&&r.y>.3?"Jump":moving?"Run":"Idle");
+  // Dragon and Bat only provide Idle + attack clips: keep their real skeletal
+  // idle clip playing while translating with a subtle, species-specific bob.
+  const noTravel=!info.clips.some(c=>/run|walk|fly/i.test(c));
+  info.model.position.y=info.model.userData.restY+(moving&&noTravel?Math.abs(Math.sin(t*.0105+r.phase))*.12:0);
+  info.model.rotation.z=moving&&noTravel?Math.sin(t*.008+r.phase)*.042:0;
+ }
+}
+
 function initCharacterModels(){
   const loader=new GLTFLoader();
   loader.load(ROBOT_ASSET,(gltf)=>{
@@ -973,6 +1008,8 @@ function v37InstallCharacter(index,gltf){
   const polish=m=>{if(!m?.clone)return m;const c=m.clone();if("roughness" in c)c.roughness=Math.min(.9,Math.max(.33,c.roughness??.5));return c};
   o.material=Array.isArray(o.material)?o.material.map(polish):polish(o.material);
  });
+ model.rotation.y=Math.PI; // align imported +Z model heading to game forward -Z
+ model.userData.restY=model.position.y;
  const clips=gltf.animations||[];
  const mixer=new THREE.AnimationMixer(model),actions={};
  for(const clip of clips)actions[clip.name]=mixer.clipAction(clip);
@@ -1002,7 +1039,7 @@ async function v37LoadCharacters(){
   $("notice").textContent="⚠ No cargaron todos los monstruos. Actualizá la página para reintentar.";
   $("notice").classList.add("show");
  }
- window.__microcaosHeroQA=()=>({version:"3.9",ready:state.ready,loaded:state.loaded,failed:state.failed,errors:state.errors,source:state.source,assets:V37_HERO_ASSETS,clips:racers.map(r=>r.rig.userData.premiumCharacter?.clips||[])});
+ window.__microcaosHeroQA=()=>({version:"4.0",ready:state.ready,loaded:state.loaded,failed:state.failed,errors:state.errors,source:state.source,assets:V37_HERO_ASSETS,clips:racers.map(r=>r.rig.userData.premiumCharacter?.clips||[])});
 }
  v37LoadCharacters().catch(error=>{console.warn("Premium characters unavailable",error)});
 
@@ -1114,7 +1151,7 @@ function returnToMenu(){
  if(mp.active&&mp.started){
   if(mp.host&&!confirm("Si salís, la sala se cierra para todos. ¿Querés salir?"))return;
   mp.closing=true;mpForget();
-  mpAPI("leave",{code:mp.code,token:mp.token}).catch(()=>{}).finally(()=>{location.href="./multijugador-monsters-v39.html"});
+  mpAPI("leave",{code:mp.code,token:mp.token}).catch(()=>{}).finally(()=>{location.href="./multijugador-monsters-v40.html"});
   return;
  }
  cancelAutoAdvance();
@@ -1251,7 +1288,7 @@ function mpRemember(){
 }
 function mpForget(){try{sessionStorage.removeItem(MP_SESSION_KEY)}catch(e){}}
 function mpSaveName(){try{localStorage.setItem(MP_NAME_KEY,$("mpName").value.trim().slice(0,18))}catch(e){}}
-function mpLink(){const url=new URL("multijugador-monsters-v39.html",location.href);url.search="?room="+mp.code;return url.href}
+function mpLink(){const url=new URL("multijugador-monsters-v40.html",location.href);url.search="?room="+mp.code;return url.href}
 function mpIsHuman(slot){return mp.active&&mp.host&&mp.players.some(p=>p.slot===slot&&p.online)}
 function mpReadyStatus(ready){mp.ready=!!ready;$("mpReadyText").textContent=ready?(mp.useAR?"✓ Arena RA lista para jugar":"✓ Listo para jugar en 3D"):"◈ Preparando arena en realidad aumentada…";$("mpReadyText").classList.toggle("not-ready",!ready)}
 async function mpSetReady(ready){
@@ -1682,7 +1719,7 @@ $("mpLeave").onclick=async()=>{
  if(!confirm(mp.host?"¿Cerrar la sala para todos?":"¿Salir de la sala?"))return;
  mp.closing=true;mpForget();
  try{await mpAPI("leave",{code:mp.code,token:mp.token})}catch(e){}
- location.href="./multijugador-monsters-v39.html";
+ location.href="./multijugador-monsters-v40.html";
 };
 document.querySelectorAll(".mp-cap-option").forEach(btn=>{
  btn.onclick=()=>{
@@ -3223,7 +3260,7 @@ function v34AnimateFaces(t,dt){
 // MICROCAOS CINEMATIC ARENA V3.5 — large, unmistakable stage architecture.
 // Compact geometry + one instanced crowd and one instanced LED row per mode.
 // All details sit OUTSIDE playable cells; rules, hitboxes and AR anchoring unchanged.
-const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"3.9"};
+const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"4.0"};
 const v35Ink=new THREE.MeshStandardMaterial({color:0x09132d,metalness:.42,roughness:.36,clearcoat:1});
 const v35Alloy=new THREE.MeshStandardMaterial({color:0x294665,metalness:.72,roughness:.24,clearcoat:.72});
 const v35SeatMaterial=new THREE.MeshStandardMaterial({color:0xffffff,metalness:.12,roughness:.35,clearcoat:.6});
@@ -3405,8 +3442,8 @@ function v35ApplyArt(){
  for(const [name,kit]of Object.entries(v35.kits))kit.visible=name==="race"?currentMode==="race":name==="ballistix"?false:true; // V3.7 custom venue owns Ballistix
  v35.mode=currentMode;
 }
-window.__microcaosV38QA=()=>({version:"3.9",uniqueModels:new Set(V37_HERO_ASSETS).size,modelCount:V37_HERO_ASSETS.length,loaded:v37CharacterState.loaded,beaconReady:!!v38Beacon,localSlot:typeof mp!=="undefined"&&mp.active?mp.slot:0,mode:currentMode,ar:renderer.xr.enabled});
-window.__microcaosStartQA=()=>({version:"3.9",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
+window.__microcaosV38QA=()=>({version:"4.0",uniqueModels:new Set(V37_HERO_ASSETS).size,modelCount:V37_HERO_ASSETS.length,loaded:v37CharacterState.loaded,beaconReady:!!v38Beacon,localSlot:typeof mp!=="undefined"&&mp.active?mp.slot:0,mode:currentMode,ar:renderer.xr.enabled});
+window.__microcaosStartQA=()=>({version:"4.0",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
 window.__microcaosV37QA=()=>({version:"3.7",characterSource:v37CharacterState.source,loadedHeroes:v37CharacterState.loaded,arena:!!ballArena,impulseCooldown:1.95,impulseCharges:"infinite",sevenModes:Object.keys(MINI_MODES).length,arKept:!!renderer.xr.enabled});
 window.__microcaosDirectorQA=()=>({raceFloorIsolated:currentMode==="race"||!raceFloor.visible,version:"3.7",venues:Object.keys(v36Venues),sevenScenes:Object.keys(v36Venues).length===7,mode:currentMode,webxr:renderer.xr.isPresenting,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,unchangedARScale:true});
 window.__microcaosCinematicQA=()=>({
@@ -3568,7 +3605,7 @@ function miniTag(dt){
   if(miniChallengeElapsed-miniLastTouch>.85){
    for(const other of living){
     if(other.index===weightHolder||other.y>.8||h.y>.8||other.tagGraceUntil>miniChallengeElapsed)continue;
-    if(Math.hypot(other.x-h.x,other.z-h.z)<.92){
+    if(Math.hypot(other.x-h.x,other.z-h.z)<1.18){
      const prev=weightHolder;weightHolder=other.index;
      racers[prev].tagGraceUntil=miniChallengeElapsed+2.1;
      miniScores[prev]++;tagTransfers++;miniLastTouch=miniChallengeElapsed;
@@ -3847,6 +3884,7 @@ function moveMiniGame(dt,t){
   r.root.scale.y+=(1-r.root.scale.y)*Math.min(1,dt*10);
   if(r.sheen){r.sheen.material.opacity=r.dash>0?.28:.06}
  }
+ separateRacers(dt);
  if(currentMode==="tag")miniTag(dt);
  else if(currentMode==="gems")miniGems(dt,t);
  else if(currentMode==="territory")territoryTick(dt);
@@ -4080,7 +4118,7 @@ function move(dt,t){
   if(nextX!==r.x)r.vx=0;
   r.lean=(r.lean||0)+(clamp(-r.vx*.055,-.22,.22)-(r.lean||0))*(1-Math.exp(-11*dt));
   const forward=r.speed*(bot?difficultyScale():1)*(r.stun>0?.72:1)*(r.dash>0?1.72:1)*(r.speedBonus>0?1.16:1);
-  r.z-=forward*dt;
+  r.z-=forward*dt;r.vz=-forward;
   const airborne=r.y>.015||r.vy>0;
   if(airborne){r.vy-=18.5*dt;r.y=Math.max(0,r.y+r.vy*dt);r.airTime+=dt}else{r.y=0;r.vy=0}
   if(r.y===0&&airborne&&r.vy<=0){
@@ -4126,7 +4164,7 @@ function move(dt,t){
   r.animDistance=(r.animDistance||0)+dt*(r.stun>0?9:r.dash>0?22:15);const run=r.animDistance+r.phase;
   r.root.position.set(r.x,r.y,r.z);
   r.root.rotation.y=(r.root.rotation.y||0)+(r.lean-r.root.rotation.y)*(1-Math.exp(-12*dt));
-  if(r.robot)useAnimation(r,r.stun>0?"Hit":r.y>.2?"Jump":"Run");
+  if(r.mixer)useAnimation(r,r.stun>0?"Hit":r.y>.2?"Jump":"Run");
   r.rig.position.y=Math.sin(run*1.15)*(r.y>.1?.012:.036)+(r.stun>0?-.035:0);
   r.rig.rotation.z=r.stun>0?Math.sin(t*14)*.08:Math.sin(run)*.028;
   const landSquash=r.landing>0?Math.sin(r.landing/.18*Math.PI)*.075:0;
@@ -4189,22 +4227,32 @@ function performJump(r,double=false){
  }
  return true;
 }
+
 function separateRacers(dt){
- // Soft, velocity-based interactions instead of teleporting opponents sideways.
- for(let i=0;i<racers.length;i++){
-  for(let j=i+1;j<racers.length;j++){
-   const a=racers[i],b=racers[j];
-   if(!contestants.includes(a.index)||!contestants.includes(b.index)||a.finished||b.finished||a.y>.55||b.y>.55)continue;
-   const dx=b.x-a.x,dz=b.z-a.z;
-   if(Math.abs(dx)<.68&&Math.abs(dz)<.55){
-    const side=Math.abs(dx)>.04?Math.sign(dx):(a.index<b.index?1:-1);
-    const overlap=.68-Math.abs(dx);
-    const softPush=Math.min(1.6,overlap*4)*dt;
-    a.vx=(a.vx||0)-side*softPush*3;
-    b.vx=(b.vx||0)+side*softPush*3;
+ // Pairwise disc collisions, solved in simulation rather than rendering.
+ // Guests receive corrected host positions via multiplayer snapshots.
+ if(currentMode==="ballistix")return;
+ const minDist=currentMode==="race"?.89:currentMode==="territory"?.83:1.02;
+ const active=activeRacers().filter(r=>!r.finished&&r.root.visible&&r.y<.62);
+ const maxX=currentMode==="territory"?TERRITORY_HALF_X:currentMode==="colorcrash"?CC_HALF_X-.38:currentMode==="race"?3.38:4.25;
+ const maxZ=currentMode==="territory"?TERRITORY_HALF_Z:currentMode==="colorcrash"?CC_HALF_Z-.40:currentMode==="race"?13.08:5.85;
+ for(let pass=0;pass<3;pass++){
+  for(let i=0;i<active.length;i++)for(let j=i+1;j<active.length;j++){
+   const a=active[i],b=active[j];let dx=b.x-a.x,dz=b.z-a.z;
+   let dist=Math.hypot(dx,dz);if(dist>=minDist)continue;
+   if(dist<.0001){const angle=(a.index*7+b.index*11)*2.39996;dx=Math.cos(angle)*.001;dz=Math.sin(angle)*.001;dist=.001}
+   const nx=dx/dist,nz=dz/dist,push=(minDist-dist)*.505;
+   a.x=clamp(a.x-nx*push,-maxX,maxX);a.z=clamp(a.z-nz*push,-maxZ,maxZ);
+   b.x=clamp(b.x+nx*push,-maxX,maxX);b.z=clamp(b.z+nz*push,-maxZ,maxZ);
+   const va=(a.vx||0)*nx+(a.vz||0)*nz,vb=(b.vx||0)*nx+(b.vz||0)*nz;
+   if(va>vb){
+     const imp=(va-vb)*.50;
+     a.vx=(a.vx||0)-nx*imp;a.vz=(a.vz||0)-nz*imp;
+     b.vx=(b.vx||0)+nx*imp;b.vz=(b.vz||0)+nz*imp;
    }
   }
  }
+ for(const r of active){r.root.position.x=r.x;r.root.position.z=r.z}
 }
 
 function jump(){
@@ -4321,6 +4369,7 @@ function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;
   // Small torso tilt communicates direction but never distorts world physics.
   r.rig.rotation.x+=(Math.max(-.09,Math.min(.09,(r.vz||0)*.012))*active-r.rig.rotation.x)*blend;
  }
+ v40UpdateAnimations(t,dt);
  v34AnimateFaces(t,dt);
   v38UpdateBeacon(t);
  // Art-only multiplier: larger readable characters; physics remain untouched.
