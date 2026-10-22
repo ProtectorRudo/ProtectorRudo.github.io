@@ -1,3 +1,17 @@
+# CIERRE — Piloto 0.3
+
+Estado: el radar 0.2 y el monitor 0.3 están guardados en GitHub. El receptor para webhooks oficiales de WhatsApp existe en código, pero todavía no está desplegado ni conectado al número del corralón.
+
+- Radar de prueba: index.html
+- Panel de conexión/monitor: live.html
+- Backend de webhooks, base de datos y configuración: backend/
+- Instrucciones de despliegue seguro: backend/README.md
+
+Modo sombra obligatorio: CIERRE todavía no envía mensajes de WhatsApp.
+
+Motor probado con 21 tests unitarios simulados. La conexión real con Meta/D1 aún no está validada; no utilizar con clientes sin autorización.
+
+---
 # CIERRE — piloto 0.2 (modo sombra)
 
 Prototipo funcional y gratuito, orientado a validar el seguimiento de presupuestos de un corralón sin conectar WhatsApp ni enviar mensajes a clientes.
