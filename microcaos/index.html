@@ -59,7 +59,7 @@ html.xr-active,html.xr-active body,html.xr-active #scene{background:transparent!
 <div id="scene"></div>
 <div id="ui">
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · BALLISTIX V1.4</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · BALLISTIX V1.5</div></div></div>
 <div class="topright"><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -536,10 +536,10 @@ const ballShipGroups=Array.from({length:4},(_,k)=>{
  return grp;
 });
 const ballScoreLabels=["VOS","BOT","BOT","BOT"];
-const ballFieldHalf=4.82,ballPaddleAt=4.13,ballPaddleHalf=1.10,ballMaxMove=3.55,ballGoalHalf=3.25;
+const ballFieldHalf=4.82,ballPaddleAt=4.13,ballPaddleHalf=1.25,ballMaxMove=3.48,ballGoalHalf=3.25;
 let ballSides=[],ballHealth=[],ballStatus=[],ballBalls=[],ballPool=[],ballSpawnDelay=0,ballPulseUntil=0,ballPulseCd=0,ballElapsed=0,ballTimeSinceScore=0;
 const ballShipPrevPositions=[0,0,0,0],ballSaves=[0,0,0,0],ballStats={hits:0,goals:0,corner:0,restarts:0,physicsErrors:0};
-const BALL_MAX_SECONDS=82,BALL_SUDDEN_DEATH=57;
+const BALL_MAX_SECONDS=76,BALL_SUDDEN_DEATH=58;
 const ballBallMats=[
  mat(0xdcecfb,.55,.19,{emissive:0x1c6eab,emissiveIntensity:.25}),
  mat(0xffd79d,.43,.25,{emissive:0xaa691c,emissiveIntensity:.30}),
@@ -564,7 +564,7 @@ function ballCreateBall(){
   recycled.g.visible=true;recycled.historyCount=0;recycled.trailHead=0;
   recycled.vx=1;recycled.vz=1;recycled.immunity=0;recycled.glow=0;
   recycled.x=(Math.random()-.5)*1.4;recycled.z=(Math.random()-.5)*1.4;
-  const a=Math.random()*Math.PI*2,speed=5.4+Math.min(2,ballElapsed*.07);
+  const a=Math.random()*Math.PI*2,speed=4.5+Math.min(1.6,ballElapsed*.034);
   recycled.vx=Math.cos(a)*speed;recycled.vz=Math.sin(a)*speed;
   recycled.g.position.set(recycled.x,0,recycled.z);
   recycled.trails.forEach(t=>t.visible=false);
@@ -585,15 +585,15 @@ function ballCreateBall(){
    ballArena,[0,.47,0],[1,1,1],false);
   tail.visible=false;trails.push(tail);
  }
- const theta=Math.random()*Math.PI*2,speed=5.3+Math.min(2.0,ballElapsed*.07);
+ const theta=Math.random()*Math.PI*2,speed=4.5+Math.min(1.6,ballElapsed*.034);
  const b={g,orb,x:(Math.random()-.5)*1.7,z:(Math.random()-.5)*1.7,vx:Math.cos(theta)*speed,vz:Math.sin(theta)*speed,tag:kind,immunity:0,trails,historyCount:0,trailHead:0,trailCoords:new Float32Array(64),glow:0};
  g.position.set(b.x,0,b.z);ballBalls.push(b);ballPool.push(b);return b;
 }
 function startBallistix(){
- ballElapsed=0;ballSpawnDelay=10;ballTimeSinceScore=0;ballLastHudAt=-1;
+ ballElapsed=0;ballSpawnDelay=14;ballTimeSinceScore=0;ballLastHudAt=-1;
  ballSides=[0,...contestants.filter(i=>i!==0)];
  if(ballSides.length!==4)throw new Error("Ballistix requires exactly four contestants");
- ballHealth=Array(4).fill(8);ballStatus=Array(4).fill(true);ballSaves.fill(0);
+ ballHealth=[10,7,7,7];ballStatus=Array(4).fill(true);ballSaves.fill(0);
  ballPulseUntil=0;ballPulseCd=0;
  ballBalls.forEach(b=>{b.g.visible=false;b.trails.forEach(t=>t.visible=false)});
  ballBalls.length=0;ballStats.restarts++;
@@ -605,7 +605,7 @@ function startBallistix(){
  updateBallScoreboard();ballShipUpdate(0);
  $("jump").innerHTML='PULSO <span class="jump-count" id="jumpCount">LISTO</span>';
  $("dash").textContent="RÁPIDO";
- $("miniObjective").textContent="⚽ DEFENDÉ TU ARCO · 8 VIDAS";
+ $("miniObjective").textContent="DESLIZÁ PARA DEFENDER · PULSO PARA SALVAR";
 }
 function ballSidePosition(k,position){
  const x=k===0||k===1?position:k===2?-ballPaddleAt:ballPaddleAt;
@@ -649,7 +649,7 @@ function ballShipUpdate(dt){
    target=clamp((delayedSeek-ballShipPositions[k])*(1.15+accuracy*.9),-1,1);
    if(ballElapsed<4&&k===3)target*=.8;
   }
-  const baseSpeed=k===0?(racers[0].dash>0?12.4:9.2):(4.2+(r.skill||.7)*1.6);
+  const baseSpeed=k===0?(racers[0].dash>0?13.0:10.8):(3.85+(r.skill||.7)*1.45);
   ballShipPositions[k]=clamp(ballShipPositions[k]+target*baseSpeed*dt,-ballMaxMove,ballMaxMove);
   const pos=ballSidePosition(k,ballShipPositions[k]);
   const rotation=k===0?0:k===1?Math.PI:k===2?-Math.PI/2:Math.PI/2;
@@ -678,17 +678,17 @@ if(incoming){
 }else ballGoalGuide.visible=false;
 const pulseRemaining=Math.max(0,ballPulseUntil-ballElapsed);
  ballPulseFx.visible=pulseRemaining>0;
- if(pulseRemaining>0)ballPulseFx.scale.setScalar(1+(0.5-pulseRemaining)*2.9);
+ if(pulseRemaining>0)ballPulseFx.scale.setScalar(1+(0.7-pulseRemaining)*2.2);
 }
 function ballPulse(){
  if(currentMode!=="ballistix"||phase!=="race"||!ballStatus[0]||ballPulseCd>0)return;
- ballPulseUntil=ballElapsed+.50;ballPulseCd=1.30;
+ ballPulseUntil=ballElapsed+.70;ballPulseCd=1.10;
  cue(870,.12,"sine",.10);tactile(21);
 }
 function ballContact(b,k,projectedPosition=ballShipPositions[k]){
  const p=projectedPosition,v=k<2?b.x:b.z,d=Math.abs(v-p);
- if(d>ballPaddleHalf+(k===0&&ballPulseUntil>ballElapsed?.85:.24))return false;
- const s=Math.min(13.0,Math.max(5.3,Math.hypot(b.vx,b.vz)*1.05));
+ if(d>ballPaddleHalf+(k===0&&ballPulseUntil>ballElapsed?.90:.22))return false;
+ const s=Math.min(10.2,Math.max(4.7,Math.hypot(b.vx,b.vz)*1.032));
  const offset=clamp((v-p)/(ballPaddleHalf+.12),-1,1);
  const hot=k===0&&ballPulseUntil>ballElapsed;
  if(k<2){
@@ -700,10 +700,10 @@ function ballContact(b,k,projectedPosition=ballShipPositions[k]){
   b.vz=offset*1.60+ballShipVel(k);
   b.x=k===2?-ballPaddleAt+.43:ballPaddleAt-.43;
  }
- ballNormalize(b,Math.min(14.5,s*(hot?1.55:1.06)));b.glow=hot?1:.5;ballStats.hits++;ballSaves[k]++;
+ ballNormalize(b,Math.min(12.6,s*(hot?1.40:1.035)));b.glow=hot?1:.5;ballStats.hits++;ballSaves[k]++;
  b.immunity=.11;
  if(hot){
-  ballPulseUntil=0;ballPulseCd=.76;
+  ballPulseUntil=0;ballPulseCd=.62;
   puff(b.x,b.z,0xa2fff1,13);cue(1050,.17,"triangle",.10);
   skillMessage("¡GOLPE POTENTE!",600);
   tactile(26);
@@ -738,7 +738,7 @@ function ballGoal(b,k){
  }
  // Keep existing balls in play after a goal. Re-launch from central area.
  b.x=(Math.random()-.5)*1.6;b.z=(Math.random()-.5)*1.6;b.immunity=.4;
- const theta=Math.random()*6.2831853;const velocity=5.2+Math.min(4.5,ballElapsed*.055);
+ const theta=Math.random()*6.2831853;const velocity=4.6+Math.min(2.8,ballElapsed*.035);
  b.vx=Math.cos(theta)*velocity;b.vz=Math.sin(theta)*velocity;
  b.g.position.set(b.x,0,b.z);b.historyCount=0;b.trailHead=0;b.trails.forEach(t=>t.visible=false);
 }
@@ -746,7 +746,7 @@ function updateBallScoreboard(){
  const target=$("ballScoreboard");
  target.innerHTML=ballSides.map((id,k)=>
   '<div class="ball-score'+(k===0?' you':'')+(!ballStatus[k]?' out':'')+'"><small><i style="background:#'+colors[id].toString(16).padStart(6,"0")+'"></i>'+
-  (k===0?'VOS':profiles[id].name)+'</small><strong>'+String(ballHealth[k]||0).padStart(2,"0")+'</strong><span class="hp-track"><span style="width:'+(ballHealth[k]/8*100)+'%"></span></span></div>').join("");
+  (k===0?'VOS':profiles[id].name)+'</small><strong>'+String(ballHealth[k]||0).padStart(2,"0")+'</strong><span class="hp-track"><span style="width:'+(ballHealth[k]/(k===0?10:7)*100)+'%"></span></span></div>').join("");
 }
 function completeBallistix(){
  if(phase!=="race")return;
@@ -796,7 +796,7 @@ function ballSweepStep(b,dt){
    const timeFrac=clamp((dt-remaining+remaining*earliest)/dt,0,1);
    const paddle=ballShipPrevPositions[k]+(ballShipPositions[k]-ballShipPrevPositions[k])*timeFrac;
    const pulse=k===0&&ballPulseUntil>ballElapsed;
-   const reach=ballPaddleHalf+(pulse?.85:.24);
+   const reach=ballPaddleHalf+(pulse?.90:.22);
    if(ballStatus[k]&&Math.abs(along-paddle)<=reach&&Math.abs(along)<=ballGoalHalf+.3){
     ballContact(b,k,paddle);
     remaining=after;
@@ -839,13 +839,13 @@ function ballUIUpdate(){
  ballLastHudAt=ballElapsed;
  const p=racers[0];
  $("miniObjective").textContent=ballStatus[0]?
-  ballElapsed<6?"⚽ ARRASTRÁ PARA DEFENDER · PULSO AL REBOTAR":
-  ballElapsed>=BALL_SUDDEN_DEATH?"⚠ MUERTE SÚBITA · ¡DEFENDÉ TU ARCO!":
-  "⚽ "+ballBalls.length+" PELOTAS · "+Math.ceil(BALL_MAX_SECONDS-ballElapsed)+" s":
-  "⚽ ELIMINADO";
+  ballElapsed<8?"DESLIZÁ PARA DEFENDER  •  PULSO PARA SALVAR":
+  ballElapsed>=BALL_SUDDEN_DEATH?"⚡ ÚLTIMOS SEGUNDOS":
+  "⚽ "+ballBalls.length+" PELOTA"+(ballBalls.length===1?"":"S")+"   ·   "+Math.ceil(BALL_MAX_SECONDS-ballElapsed)+" s":
+  "ELIMINADO";
  $("miniObjective").classList.toggle("danger",ballHealth[0]<=2||ballElapsed>=BALL_SUDDEN_DEATH);
  $("timer").textContent=""+Math.max(0,Math.ceil(BALL_MAX_SECONDS-ballElapsed));
- $("place").innerHTML=ballHealth[0]+"<em> / 8</em>";
+ $("place").innerHTML=ballHealth[0]+"<em> / 10</em>";
  $("jumpCount").textContent=ballPulseCd>0?ballPulseCd.toFixed(1)+"s":"LISTO";
  $("jump").classList.toggle("ballistix-pulse-ready",ballPulseCd===0);
  $("jump").classList.toggle("ballistix-pulse-cool",ballPulseCd>0);
@@ -868,9 +868,9 @@ function ballTick(dt){
   }
   completeBallistix();return;
  }
- const maxBalls=innerWidth<700?3:4;
+ const maxBalls=innerWidth<700?(ballElapsed<29?1:2):(ballElapsed<25?1:3);
  if(ballSpawnDelay<=0&&ballBalls.length<maxBalls){
-  ballCreateBall();ballSpawnDelay=Math.max(5.5,10-ballElapsed*.028);cue(760,.10);
+  ballCreateBall();ballSpawnDelay=Math.max(9.0,14-ballElapsed*.045);cue(760,.10);
  }
  ballSpawnDelay-=dt;ballPulseCd=Math.max(0,ballPulseCd-dt);
  const p=racers[0];p.dash=Math.max(0,p.dash-dt);p.dashCd=Math.max(0,p.dashCd-dt);
