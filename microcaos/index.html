@@ -359,7 +359,7 @@ body.ballistix-mode #ui .jump.ballistix-pulse-ready{animation:ballPulseReady 1.1
  </section>
  <div class="menu-footer"><a id="nativeAR" href="ar.html">◈ VISOR AR</a><button id="ar">AR JUGABLE · BETA</button><button id="cam" style="display:none" aria-hidden="true">DEMO CÁMARA</button></div>
  <div id="arDevice" class="ar-device">Comprobando compatibilidad AR...</div>
- <div class="hint" id="gamehint">UN TORNEO DIFERENTE EN CADA PARTIDA · 6 MASCOTAS · 5 MODOS</div>
+ <div class="hint" id="gamehint">UN TORNEO DIFERENTE EN CADA PARTIDA · 6 MASCOTAS · 6 MODOS</div>
 </div></div>
 <div class="controls" id="controls">
 <div class="joyarea" id="joy" aria-label="Control de dirección"><div class="joyrim"></div><div class="joycenter" id="stick">↔</div></div>
@@ -1037,7 +1037,7 @@ function territoryBreak(victim,attacker){
   if(territoryOwners[i]!==victim.index)continue;
   const pos=territoryPos(i);
   if(Math.hypot(pos.x-victim.territoryHomeX,pos.z-victim.territoryHomeZ)<.85)continue;
-  if((i+Math.round(miniChallengeElapsed*10))%3===0){territorySetCell(i,-1);kept++}
+  if((i+Math.round(miniChallengeElapsed*10))%7===0){territorySetCell(i,-1);kept++}
  }
  if(victim.index===0){tactile(70);cue(235,.24);skillMessage("💥 ¡TE CORTARON EL RASTRO!",1100)}
  else if(attacker?.index===0){tactile(24);cue(950,.14);skillMessage("✂️ ¡CORTASTE A "+profiles[victim.index].name+"!",950)}
@@ -1048,6 +1048,8 @@ function territoryStepCell(r,idx){
  const enemyTrail=territoryTrails[idx];
  if(enemyTrail>=0&&enemyTrail!==r.index){
   territoryBreak(racers[enemyTrail],r);
+  // A protected trail stays intact; never overwrite its owner after a blocked cut.
+  if(territoryTrails[idx]!==-1&&territoryTrails[idx]!==r.index)return;
  }
  if(territoryOwners[idx]===r.index){
   if(r.territoryTrail.length)territoryClaim(r);
@@ -1083,13 +1085,13 @@ function territoryStart(){
  territoryTiles.instanceColor.needsUpdate=true;territoryChanged=false;
  for(const r of activeRacers()){
   r.territoryTrail=[];r.territoryAiPlan=null;r.territoryAiStep=0;
-  r.territoryShieldCd=0;r.territoryShieldUntil=0;r.territoryStunnedUntil=0;
+  r.territoryShieldCd=0;r.territoryShieldUntil=miniChallengeElapsed+1.25;r.territoryStunnedUntil=0;
   r.territoryHomeX=r.x;r.territoryHomeZ=r.z;
   r.territoryLastX=r.x;r.territoryLastZ=r.z;
   // Distinct nonoverlapping, recognizable home areas for six players.
   for(let idx=0;idx<TERRITORY_SIZE;idx++){
    const pos=territoryPos(idx);
-   if(Math.abs(pos.x-r.x)<.57&&Math.abs(pos.z-r.z)<.63)territorySetCell(idx,r.index);
+   if(Math.abs(pos.x-r.x)<.72&&Math.abs(pos.z-r.z)<.79)territorySetCell(idx,r.index);
   }
  }
  territoryFlushTiles();territoryUpdateTrails();territoryUpdateBoard(true);
@@ -1102,8 +1104,8 @@ function territoryBotDirection(r,t){
   const x=r.x,z=r.z;
   const sideX=x>1.5?-1:x< -1.5?1:r.index%2?1:-1;
   const sideZ=z>2.3?-1:z< -2.3?1:r.index%3?1:-1;
-  const width=1.95+Math.random()*.8*(r.skill||.7);
-  const depth=1.75+Math.random()*.65*(r.skill||.7);
+  const width=2.20+Math.random()*.75*(r.skill||.7);
+  const depth=2.05+Math.random()*.65*(r.skill||.7);
   const x1=clamp(x+sideX*width,-3.82,3.82);
   const z2=clamp(z+sideZ*depth,-5.12,5.12);
   r.territoryAiPlan=[
@@ -1122,7 +1124,7 @@ function territoryBotDirection(r,t){
  if(!goal){r.territoryAiPlan=null;return[0,0]}
  if(r.territoryTrail.length===0&&r.skill>.66&&t>(r.territoryHuntAt||0)){
   r.territoryHuntAt=t+.9;
-  let hunt=null,best=1.65;
+  let hunt=null,best=1.28;
   for(const target of activeRacers()){
    if(target.index===r.index||!target.territoryTrail.length)continue;
    for(let i=0;i<target.territoryTrail.length;i+=4){
@@ -1131,7 +1133,7 @@ function territoryBotDirection(r,t){
     if(d<best){best=d;hunt=p}
    }
   }
-  if(hunt&&Math.random()<r.skill*.54){
+  if(hunt&&Math.random()<r.skill*.30){
    r.territoryAiPlan=[hunt,{x:r.territoryHomeX,z:r.territoryHomeZ}];
    r.territoryAiStep=0;goal=hunt;
   }
