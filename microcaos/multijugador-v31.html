@@ -377,7 +377,7 @@ html.xr-active .modalshade:not(.hidden),html.xr-active .mp-lobby:not([hidden]){b
  <details class="mp-advanced"><summary>⚙️ Opciones de partida · Color Crash por defecto</summary><div class="mp-fields"><div class="mp-hidden-control"><label for="mpCapacity">PARTICIPANTES REALES</label><select id="mpCapacity"><option value="2">2 jugadores</option><option value="3">3 jugadores</option><option value="4" selected>4 jugadores</option></select></div>
   <div><label for="mpGameType">ELEGÍ CÓMO JUGAR</label><select id="mpGameType"><option value="individual">Una prueba</option><option value="tournament">Torneo (3 pruebas)</option></select></div></div>
   <label for="mpMode">MINIJUEGO</label>
-  <select id="mpMode"><option value="colorcrash">🎨 Color Crash</option><option value="gems">💎 Fiebre de Gemas</option><option value="survival">🌀 El Piso se Hunde</option><option value="tag">⚖ La Mancha</option><option value="territory">🟩 Territorios (beta)</option><option value="race">🏁 Carrera Loca</option></select>
+  <select id="mpMode"><option value="colorcrash">🎨 Color Crash</option><option value="gems">💎 Fiebre de Gemas</option><option value="survival">🌀 El Piso se Hunde</option><option value="tag">⚖ La Mancha</option><option value="territory">🟩 Territorios (beta)</option><option value="race">🏁 Carrera Loca</option><option value="ballistix">⚽ Ballistix · 4 defensas</option></select>
   </details><div class="mp-actions"><button id="mpCreate" class="mp-btn primary">✦ CREAR SALA</button></div>
   <div class="mp-division">O SUMATE A UNA SALA</div>
   <label for="mpJoinCode">CÓDIGO DE INVITACIÓN</label><input id="mpJoinCode" maxlength="6" placeholder="ABC234" autocapitalize="characters">
@@ -1237,6 +1237,27 @@ function mpOnAction(p){
  const r=racers[slot];if(!r||r.finished)return;
  if(p.button==="turbo"&&r.dashCd<=0){r.dash=1.05;r.dashCd=4.1}
  if(p.button==="jump"){
+  if(currentMode==="ballistix"){
+   const side=ballSides.indexOf(slot);
+   if(side>0&&(r.ballPulseCd||0)<=0){
+    r.ballPulseCd=1.7;
+    const pos=ballSidePosition(side,ballShipPositions[side]);
+    let nearest=null,dist=3.0;
+    for(const b of ballBalls){
+     const d=Math.hypot(b.x-pos.x,b.z-pos.z);
+     if(d<dist){nearest=b;dist=d}
+    }
+    if(nearest){
+     const speed=12.0;
+     if(side===1){nearest.vz=Math.abs(speed);nearest.vx=clamp(nearest.x-pos.x,-2.2,2.2)}
+     if(side===2){nearest.vx=Math.abs(speed);nearest.vz=clamp(nearest.z-pos.z,-2.2,2.2)}
+     if(side===3){nearest.vx=-Math.abs(speed);nearest.vz=clamp(nearest.z-pos.z,-2.2,2.2)}
+     nearest.immunity=.20;
+     puff(nearest.x,nearest.z,runnerColor(slot),15);
+    }else puff(pos.x,pos.z,runnerColor(slot),7);
+   }
+   return;
+  }
   if(currentMode==="territory"){
    if((r.territoryShieldCd||0)<=0){r.territoryShieldCd=10;r.territoryShieldUntil=miniChallengeElapsed+2}
   }else if(r.y<.1&&r.jumpCount===0)performJump(r,false);
@@ -1249,7 +1270,7 @@ function mpPack(){
   scores:miniScores,weightHolder,miniSafe:{...miniSafe},territoryCount:Array.from(territoryCount),
   cc:{status:cc.status,round:cc.round,target:cc.target,left:cc.left,total:cc.total,gap:cc.gap,colors:ccTiles.map(t=>t.color),fall:ccTiles.map(t=>t.fall?1:0)},
   gems:gemItems.map(g=>({x:g.x,z:g.z,visible:g.g.visible})),
-  ball:{status:[...ballStatus],health:[...ballHealth],ship:[...ballShipPositions]},
+  ball:{status:[...ballStatus],health:[...ballHealth],ship:[...ballShipPositions],elapsed:ballElapsed,balls:ballBalls.map(b=>({x:b.x,z:b.z,vx:b.vx,vz:b.vz}))},
   ts:Date.now()};
  if(currentMode==="territory"&&mp.seq%8===0){
   state.land=btoa(Array.from(territoryOwners,v=>String.fromCharCode(v+1)).join(""));
@@ -1294,7 +1315,7 @@ function mpState(p){
   r.x=v.x;r.y=v.y;r.z=v.z;r.vx=v.vx;r.vz=v.vz;
   r.finished=v.finished;r.eliminatedAt=v.eliminatedAt;r.ccFall=v.ccFall;r.ccScore=v.ccScore;
   if(!r.netTarget)r.root.position.set(v.x,v.y,v.z);
-  r.netTarget={x:v.x,y:v.y,z:v.z,rot:v.rot};
+  r.netTarget=currentMode==="ballistix"?null:{x:v.x,y:v.y,z:v.z,rot:v.rot};
   r.root.visible=contestants.includes(i)&&(!r.finished||currentMode==="race");
   r.root.scale.y=1;
  }
@@ -1308,6 +1329,38 @@ function mpState(p){
    t.fall=!!p.cc.fall[i];
   }
   ccHUD();
+ }
+ 
+ if(currentMode==="ballistix"&&p.ball){
+  const v=p.ball;
+  ballElapsed=v.elapsed||0;
+  for(let k=0;k<4;k++){
+   if(v.status[k]===undefined)continue;
+   ballStatus[k]=!!v.status[k];
+   ballHealth[k]=v.health[k];
+   ballShipPositions[k]=v.ship[k];
+   const pos=ballSidePosition(k,v.ship[k]);
+   const ship=ballShipGroups[k],r=racers[ballSides[k]];
+   ship.visible=ballStatus[k];
+   ship.position.set(pos.x,.03,pos.z);
+   ship.rotation.y=k===0?0:k===1?Math.PI:k===2?-Math.PI/2:Math.PI/2;
+   if(r){
+    r.netTarget=null;r.root.position.set(pos.x,.55,pos.z);
+    r.root.visible=ballStatus[k];r.root.rotation.y=ship.rotation.y;r.root.scale.setScalar(.77);
+   }
+  }
+  for(let i=0;i<(v.balls||[]).length;i++){
+   if(!ballBalls[i])ballCreateBall();
+   const b=ballBalls[i],from=v.balls[i];
+   b.x=from.x;b.z=from.z;b.vx=from.vx;b.vz=from.vz;
+   b.g.position.set(from.x,0,from.z);b.g.visible=true;
+   if(b.trails)b.trails.forEach(t=>t.visible=false);
+  }
+  while(ballBalls.length>(v.balls||[]).length){
+   const b=ballBalls.pop();b.g.visible=false;if(b.trails)b.trails.forEach(t=>t.visible=false);
+  }
+  updateBallScoreboard();
+  ballUIUpdate();
  }
  if(currentMode==="gems"&&p.gems){
   for(let i=0;i<gemItems.length;i++){const v=p.gems[i],g=gemItems[i];if(!v)continue;g.x=v.x;g.z=v.z;g.g.position.x=v.x;g.g.position.z=v.z;g.g.visible=v.visible}
@@ -2413,7 +2466,7 @@ function ballShipUpdate(dt){
    target=clamp((delayedSeek-ballShipPositions[k])*(1.15+accuracy*.9),-1,1);
    if(ballElapsed<4&&k===3)target*=.8;
   }
-  const baseSpeed=k===0?(racers[0].dash>0?13.0:10.8):onlineInput?10.8:(3.85+(r.skill||.7)*1.45)*difficultyScale();
+  const baseSpeed=k===0?(racers[0].dash>0?13.0:10.8):onlineInput?(r.dash>0?13.5:10.8):(3.85+(r.skill||.7)*1.45)*difficultyScale();
   ballShipPositions[k]=clamp(ballShipPositions[k]+target*baseSpeed*dt,-ballMaxMove,ballMaxMove);
   const pos=ballSidePosition(k,ballShipPositions[k]);
   const rotation=k===0?0:k===1?Math.PI:k===2?-Math.PI/2:Math.PI/2;
@@ -2659,6 +2712,7 @@ function ballUIUpdate(){
 }
 function ballTick(dt){
  ballElapsed+=dt;
+ if(mp.active)for(const r of activeRacers()){r.ballPulseCd=Math.max(0,(r.ballPulseCd||0)-dt);if(r.index>0){r.dash=Math.max(0,(r.dash||0)-dt);r.dashCd=Math.max(0,(r.dashCd||0)-dt)}}
  ballCenterMedallion.rotation.y=ballElapsed*.24;
  for(let k=0;k<4;k++){
   if(ballGoalFlash[k]>.005){
