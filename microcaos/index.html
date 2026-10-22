@@ -1111,6 +1111,7 @@ for(let idx=0;idx<TERRITORY_SIZE;idx++){
 }
 territoryTiles.instanceColor.needsUpdate=true;
 let territoryUpdatedAt=-1,territoryChanged=true,territoryLastMessageAt=-10,territoryLeaderboardSignature="";
+let territoryTrailDirty=true,territoryTrailVisualAt=-1;
 function territorySetCell(idx,owner){
  if(idx<0||idx>=TERRITORY_SIZE||territoryOwners[idx]===owner)return;
  const previous=territoryOwners[idx];
@@ -1146,10 +1147,11 @@ function territoryUpdateTrails(){
  territoryAuraMesh.instanceMatrix.needsUpdate=true;
  if(territoryTrailMesh.instanceColor)territoryTrailMesh.instanceColor.needsUpdate=true;
  if(territoryAuraMesh.instanceColor)territoryAuraMesh.instanceColor.needsUpdate=true;
+ territoryTrailDirty=false;territoryTrailVisualAt=miniChallengeElapsed;
 }
 function territoryClearTrail(r){
  for(const idx of r.territoryTrail)if(territoryTrails[idx]===r.index)territoryTrails[idx]=-1;
- r.territoryTrail.length=0;territoryUpdateTrails();
+ r.territoryTrail.length=0;territoryTrailDirty=true;
 }
 function territoryClaim(r){
  // Seal the trail, then flood from all outer edges; unreachable cells are enclosed.
@@ -1232,7 +1234,7 @@ function territoryStepCell(r,idx){
  territoryTrails[idx]=r.index;
  r.territoryTrail.push(idx);
  if(r.territoryTrail.length>205){territoryBreak(r,r);return}
- territoryUpdateTrails();
+ territoryTrailDirty=true;
 }
 function territoryMovePath(r){
  if(miniChallengeElapsed<r.territoryStunnedUntil)return;
@@ -1250,7 +1252,7 @@ function territoryMovePath(r){
 }
 function territoryStart(){
  territoryOwners.fill(-1);territoryTrails.fill(-1);territoryBaseCells.fill(-1);territoryCount.fill(0);
- territoryTrailMesh.count=0;territoryAuraMesh.count=0;territoryShieldVisual.visible=false;territoryShieldOuter.visible=false;territoryShieldOrbit.visible=false;clearTerritoryFX();territoryUpdatedAt=-1;territoryLeaderboardSignature="";
+ territoryTrailMesh.count=0;territoryAuraMesh.count=0;territoryTrailDirty=true;territoryTrailVisualAt=-1;territoryShieldVisual.visible=false;territoryShieldOuter.visible=false;territoryShieldOrbit.visible=false;clearTerritoryFX();territoryUpdatedAt=-1;territoryLeaderboardSignature="";
  for(let idx=0;idx<TERRITORY_SIZE;idx++)territoryTiles.setColorAt(idx,territoryDark);
  territoryTiles.instanceColor.needsUpdate=true;territoryChanged=false;
  for(const r of activeRacers()){
@@ -1361,6 +1363,8 @@ function territoryTick(dt){
   territoryShieldOrbit.rotation.y+=dt*2.4;
  }
  for(const r of activeRacers())territoryMovePath(r);
+ // Draw energetic trails at 20 Hz, while collisions remain 60 Hz.
+ if(territoryTrailDirty&&miniChallengeElapsed-territoryTrailVisualAt>=.05)territoryUpdateTrails();
  territoryFlushTiles();
  if(miniChallengeElapsed-territoryUpdatedAt>.22){
   territoryUpdatedAt=miniChallengeElapsed;territoryUpdateBoard();
@@ -2407,7 +2411,7 @@ function startTournament(){cancelAutoAdvance();gameType="tournament";raceEndAfte
 function concludeRound(){
  if(phase!=="race")return;
  phase="finished";dragSteeringActive=false;tagWeight.visible=false;tagDangerRing.visible=false;
- for(const id of ["controls","obstacleHint","hud","progress","stagebanner","pickupCounter","miniObjective","gemLeaderboard"])$(id).classList.remove("on");
+ for(const id of ["controls","obstacleHint","hud","progress","stagebanner","pickupCounter","miniObjective","gemLeaderboard","territoryLeaderboard"])$(id).classList.remove("on");
  $("speedtrails").classList.remove("active");$("miniObjective").classList.remove("danger");
  $("ballScoreboard").classList.remove("on");
  showFinalGemLeaderboard();showFinalTerritoryLeaderboard();
