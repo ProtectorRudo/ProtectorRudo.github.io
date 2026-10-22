@@ -3,7 +3,7 @@
  * Cloudflare Worker + D1; ingest verified Meta webhooks and display anonymized states.
  * Important: there is NO Graph API send call, template sender, cron sender or outbound bot.
  */
-import {VERSION, classifyText, isQuoteFilename, normaliseWebhook, transition} from "./core.js";
+import {VERSION, normaliseWebhook, transition, extractEventSignal, shouldForceSafetyHold, safetyStateForLateSignal} from "./core.js";
 const MAX_BYTES=512000;
 const json=(data,status=200,extra={})=>new Response(JSON.stringify(data),{status,headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store","X-Content-Type-Options":"nosniff",...extra}});
 const forbidden=()=>json({error:"forbidden"},403);
@@ -42,17 +42,26 @@ async function recordCoverage(env,field){
 async function receiveMessage(env,event){
  if(event.phoneId!==env.ALLOWED_PHONE_NUMBER_ID)return {skip:true,reason:"phone_not_allowed"};
  const key=await hashContact(env,event.phoneId,event.contact);
- const signal=event.kind==="text"?classifyText(event.text,event.direction):"non_text";
+ const signal=extractEventSignal(event);
  const uniqueId=event.phoneId+":"+event.id;
- const inserted=await env.DB.prepare(
+
+ await env.DB.prepare(
   "INSERT OR IGNORE INTO inbound_events(id,phone_id,contact_key,field,direction,kind,signal,created_at,received_at,processed_at) VALUES (?,?,?,?,?,?,?,?,?,NULL)"
  ).bind(uniqueId,event.phoneId,key,event.field,event.direction,event.kind,signal,event.createdAt,now()).run();
- if(Number(inserted?.meta?.changes??0)===0){
-   const previous=await env.DB.prepare("SELECT processed_at FROM inbound_events WHERE id=?").bind(uniqueId).first();
-   if(previous?.processed_at!==null&&previous?.processed_at!==undefined)return {skip:true,reason:"duplicate"};
+ // Claim each message atomically. Negative timestamp = in progress; positive = completed.
+ // A crashed claim becomes reclaimable after 2 minutes. Meta receives 503 on a
+ // simultaneous in-progress delivery so it will retry instead of silently losing it.
+ const stamp=now();
+ const claimed=await env.DB.prepare(
+  "UPDATE inbound_events SET processed_at=? WHERE id=? AND (processed_at IS NULL OR (processed_at<0 AND processed_at>?))"
+ ).bind(-stamp,uniqueId,-(stamp-120000)).run();
+ if(Number(claimed?.meta?.changes??0)!==1){
+  const previous=await env.DB.prepare("SELECT processed_at FROM inbound_events WHERE id=?").bind(uniqueId).first();
+  if(Number(previous?.processed_at??0)>0)return {skip:true,reason:"duplicate"};
+  throw Error("webhook_event_processing_in_progress");
  }
  const result=await applyMessageState(env,event,key,signal);
- await env.DB.prepare("UPDATE inbound_events SET processed_at=? WHERE id=? AND processed_at IS NULL").bind(now(),uniqueId).run();
+ await env.DB.prepare("UPDATE inbound_events SET processed_at=? WHERE id=? AND processed_at=?").bind(now(),uniqueId,-stamp).run();
  return result;
 }
 async function applyMessageState(env,event,key,signal){
@@ -61,28 +70,49 @@ async function applyMessageState(env,event,key,signal){
   await env.DB.prepare("UPDATE opportunities SET status='blocked',reason='Solicitud de no contacto',updated_at=? WHERE phone_id=? AND contact_key=? AND status NOT IN ('blocked','superseded')").bind(now(),event.phoneId,key).run();
   return {ok:true,signal};
  }
- const isDocument=event.direction==="out"&&event.kind==="document";
- // PDF with or without filename: unidentified media must never become a send candidate.
- if(isDocument){
-  const filename=event.filename;
-  const recognized=Boolean(filename&&isQuoteFilename(filename));
-  const isPdf=Boolean(filename?.toLowerCase().endsWith(".pdf")||!filename);
-  if(!isPdf)return {ok:true,signal:"ignored_non_pdf"};
+ // Do not invent a new quote from a PDF without commercial name or a missing filename.
+ // It could be a remito, invoice, receipt or an edited attachment.
+ if(event.direction==="out"&&event.kind==="document"&&signal!=="quote_pdf"){
+  await env.DB.prepare(
+   "UPDATE opportunities SET status='review',reason='Documento enviado que requiere revisión',last_activity_at=max(last_activity_at,?),updated_at=? WHERE phone_id=? AND contact_key=? AND quote_at<=? AND status IN ('candidate','waiting','review')"
+  ).bind(event.createdAt,now(),event.phoneId,key,event.createdAt).run();
+  return {ok:true,signal:"document_to_review"};
+ }
+ if(signal==="quote_pdf"){
   const previous=await env.DB.prepare("SELECT 1 AS found FROM contact_blocks WHERE phone_id=? AND contact_key=?").bind(event.phoneId,key).first();
   const newest=await env.DB.prepare(
    "SELECT quote_at FROM opportunities WHERE phone_id=? AND contact_key=? ORDER BY quote_at DESC LIMIT 1"
   ).bind(event.phoneId,key).first();
   if(newest && Number(newest.quote_at)>event.createdAt)return {ok:true,signal:"older_pdf_ignored"};
   await env.DB.prepare(
-   "UPDATE opportunities SET status='superseded',reason='PDF posterior en la misma conversación',updated_at=? WHERE phone_id=? AND contact_key=? AND status NOT IN ('blocked','superseded')"
-  ).bind(now(),event.phoneId,key).run();
-  let status=recognized?"candidate":"review";
-  let reason=recognized?"Presupuesto PDF detectado; esperando contexto":"PDF sin nombre comercial verificable; revisar";
-  if(previous){status="blocked";reason="Contacto que pidió no recibir mensajes";}
+   "UPDATE opportunities SET status='superseded',reason='Presupuesto posterior en la conversación',updated_at=? WHERE phone_id=? AND contact_key=? AND quote_at<=? AND status NOT IN ('blocked','superseded')"
+  ).bind(now(),event.phoneId,key,event.createdAt).run();
   await env.DB.prepare(
    "INSERT OR IGNORE INTO opportunities(quote_id,phone_id,contact_key,quote_at,last_activity_at,status,reason,pdf_detected,manual_control,updated_at) VALUES (?,?,?,?,?,?,?,?,NULL,?)"
-  ).bind(event.phoneId+":"+event.id,event.phoneId,key,event.createdAt,event.createdAt,status,reason,recognized?1:0,now()).run();
-  return {ok:true,signal:recognized?"quote":"document_to_review"};
+  ).bind(event.phoneId+":"+event.id,event.phoneId,key,event.createdAt,event.createdAt,previous?"blocked":"candidate",previous?"Baja registrada":"Presupuesto detectado, falta validar contexto",1,now()).run();
+  if(!previous){
+   // Some callbacks are delivered out of order. Analyze stored *signals* even
+   // when they arrived before the PDF event; no plaintext or raw numbers needed.
+   const replay=await env.DB.prepare(
+    "SELECT signal,created_at FROM inbound_events WHERE phone_id=? AND contact_key=? AND created_at>=? AND id<>? ORDER BY created_at ASC LIMIT 501"
+   ).bind(event.phoneId,key,event.createdAt,event.phoneId+":"+event.id).all();
+   const rows=replay?.results??[];
+   let status="candidate",reason="PDF detectado; no constan impedimentos en señales recibidas";
+   if(rows.length>500){status="review";reason="Más de 500 eventos posteriores; revisión obligatoria";}
+   else{
+    let blockers=rows.filter(r=>["optout","rejected","purchased","human_followup"].includes(r.signal));
+    if(blockers.length){
+     status="blocked";reason="Señal de compra, rechazo, baja o seguimiento humano detectada en eventos anteriores";
+    }else if(rows.some(r=>shouldForceSafetyHold(r.signal)||r.signal==="unknown"||r.signal==="seller_message")){
+     status="review";reason="Hay actividad posterior que requiere revisión; no se autoriza mensaje";
+    }
+   }
+   const maxAt=rows.reduce((a,r)=>Math.max(a,Number(r.created_at)),event.createdAt);
+   await env.DB.prepare(
+    "UPDATE opportunities SET status=?,reason=?,last_activity_at=max(last_activity_at,?),updated_at=? WHERE quote_id=? AND manual_control IS NULL AND status NOT IN ('blocked','superseded')"
+   ).bind(status,reason,maxAt,now(),event.phoneId+":"+event.id).run();
+  }
+  return {ok:true,signal:"quote"};
  }
  const caseRow=await env.DB.prepare(
   "SELECT * FROM opportunities WHERE phone_id=? AND contact_key=? ORDER BY quote_at DESC LIMIT 1"
@@ -90,12 +120,20 @@ async function applyMessageState(env,event,key,signal){
  if(!caseRow)return {ok:true,signal:"before_quote"};
  if(event.createdAt<caseRow.quote_at)return {ok:true,signal:"before_current_quote"};
  // Older webhook deliveries must not reactivate/erase a newer decision.
- if(event.createdAt<caseRow.last_activity_at)return {ok:true,signal:"out_of_order"};
+ if(event.createdAt<caseRow.last_activity_at){
+  if(shouldForceSafetyHold(signal)||signal==="unknown"||signal==="seller_message"){
+   const state=safetyStateForLateSignal(signal);
+   await env.DB.prepare(
+    "UPDATE opportunities SET status=?,reason=?,updated_at=? WHERE quote_id=? AND quote_at<=? AND status NOT IN ('blocked','superseded') AND manual_control IS NULL"
+   ).bind(state,state==="blocked"?"Evento atrasado de compra, rechazo, baja o seguimiento humano":"Evento atrasado que necesita revisión",now(),caseRow.quote_id,event.createdAt).run();
+  }
+  return {ok:true,signal:"out_of_order_safe_hold"};
+ }
  const decision=transition({
   status:caseRow.status,reason:caseRow.reason,control:caseRow.manual_control,quoteAt:caseRow.quote_at
  },event);
  await env.DB.prepare(
-  "UPDATE opportunities SET status=?,reason=?,last_activity_at=?,updated_at=? WHERE quote_id=? AND last_activity_at<=?"
+  "UPDATE opportunities SET status=?,reason=?,last_activity_at=?,updated_at=? WHERE quote_id=? AND last_activity_at<=? AND status NOT IN ('blocked','superseded') AND manual_control IS NULL"
  ).bind(decision.status,decision.reason,event.createdAt,now(),caseRow.quote_id,event.createdAt).run();
  return {ok:true,signal,decision:decision.status};
 }
