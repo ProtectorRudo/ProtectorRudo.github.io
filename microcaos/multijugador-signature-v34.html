@@ -378,6 +378,18 @@ html.xr-active #scene:after{display:none!important}
 .mascot-option span{filter:drop-shadow(0 3px 7px #0007)}
 @media(hover:hover){.mascot-option:hover{transform:translateY(-3px)}}
 html.xr-active .menu-feature{box-shadow:none!important}
+
+/* V3.5: theatrical broadcast graphics, with no opaque panels over gameplay. */
+body.colorcrash-mode .color-crash-hud{border:1px solid color-mix(in srgb,var(--cc) 72%,white)!important;
+ box-shadow:0 15px 42px #000c,0 0 30px color-mix(in srgb,var(--cc) 22%,transparent),inset 0 1px 0 #ffffff32!important;
+ width:min(400px,88vw)!important}
+body.colorcrash-mode .cc-call strong{font-size:clamp(25px,5vw,33px);letter-spacing:-.02em}
+body.colorcrash-mode .cc-symbol{width:50px;height:50px;border-radius:14px}
+body.colorcrash-mode .color-crash-hud.critical{animation:v35Pulse .29s linear infinite alternate}
+@keyframes v35Pulse{to{filter:brightness(1.15);border-color:#fff!important}}
+body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172aef,#153555e8,#09172aef)}
+#scene{background:radial-gradient(ellipse 62% 72% at 50% 45%,#17325a 0%,#06142c 64%,#040918 100%)!important}
+
 </style>
 </head>
 <body>
@@ -1610,10 +1622,31 @@ for(const x of [-(CC_HALF_X+.50),CC_HALF_X+.50])for(const z of [-(CC_HALF_Z+.50)
 // Gameplay color accuracy: intense studio lights and ACES were washing
 // physical tile materials into pastels. Render color-critical faces with
 // exact sRGB pigments; the glossy surrounding stadium remains physically lit.
-const ccMats=CC_PALETTE.map(c=>({
- face:new THREE.MeshBasicMaterial({color:c.hex,toneMapped:false}),
- edge:new THREE.MeshBasicMaterial({color:c.hex,toneMapped:false})
-}));
+
+// Retain exact vivid sRGB colors while giving the floor the surface language
+// of premium game-show glass: controlled highlights, darker edge, no washed hues.
+const ccMats=CC_PALETTE.map(c=>{
+ const cnv=document.createElement("canvas");cnv.width=cnv.height=256;
+ const g=cnv.getContext("2d"),hex="#"+c.hex.toString(16).padStart(6,"0");
+ g.fillStyle=hex;g.fillRect(0,0,256,256);
+ const shine=g.createLinearGradient(0,0,235,220);
+ shine.addColorStop(0,"rgba(255,255,255,.20)");
+ shine.addColorStop(.29,"rgba(255,255,255,.065)");
+ shine.addColorStop(.30,"rgba(255,255,255,.00)");
+ shine.addColorStop(.67,"rgba(0,0,0,.015)");
+ shine.addColorStop(1,"rgba(0,0,0,.22)");
+ g.fillStyle=shine;g.fillRect(0,0,256,256);
+ g.strokeStyle="rgba(255,255,255,.20)";g.lineWidth=8;
+ g.strokeRect(12,12,232,232);
+ g.strokeStyle="rgba(0,0,0,.21)";g.lineWidth=7;
+ g.beginPath();g.moveTo(10,245);g.lineTo(245,245);g.lineTo(245,10);g.stroke();
+ g.fillStyle="rgba(255,255,255,.14)";
+ g.beginPath();g.moveTo(16,17);g.lineTo(137,17);g.lineTo(16,132);g.closePath();g.fill();
+ const tex=new THREE.CanvasTexture(cnv);tex.colorSpace=THREE.SRGBColorSpace;
+ tex.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+ return {face:new THREE.MeshBasicMaterial({map:tex,color:0xffffff,toneMapped:false}),
+ edge:new THREE.MeshBasicMaterial({color:c.hex,toneMapped:false})};
+});
 const ccGlyphs=CC_PALETTE.map(c=>{
  const cv=document.createElement("canvas");cv.width=cv.height=256;
  const ctx=cv.getContext("2d");ctx.textAlign="center";ctx.textBaseline="middle";
@@ -1673,6 +1706,7 @@ function ccHUD(){
  $("ccSymbol").textContent=color.symbol;
  $("ccName").textContent=cc.status==="collapse"?"¡CUIDADO!":color.name;
  $("ccSeconds").textContent=cc.status==="choose"?cc.left.toFixed(1):"!";
+ $("colorCrashHUD").classList.toggle("critical",cc.status==="choose"&&cc.left<1.05);
  $("ccFill").style.width=(cc.status==="choose"?100*cc.left/cc.total:0).toFixed(1)+"%";
 }
 function ccNewRound(){
@@ -3992,7 +4026,7 @@ function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;
   if(visual)visual.scale.setScalar(v35MascotScale);
  }
  $("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
-if(mode==="preview"||mode==="camera"){const ownIndex=mp.active&&!mp.host?mp.slot:0,watchIndex=mp.active&&!mp.host&&!contestants.includes(ownIndex)?(contestants[0]??0):ownIndex,p=racers[watchIndex],follow=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=currentMode==="territory"&&follow?new THREE.Vector3(clamp(p.x*.72,-TERRITORY_HALF_X*.72,TERRITORY_HALF_X*.72),0,clamp(p.z*.70,-TERRITORY_HALF_Z*.70,TERRITORY_HALF_Z*.70)):new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,20.5,9.4):new THREE.Vector3(0,16.1,9.2)):currentMode==="territory"&&follow?(portrait?new THREE.Vector3(previewTarget.x,30,previewTarget.z+22):new THREE.Vector3(previewTarget.x+10.7,20.3,previewTarget.z+20.5)):currentMode==="colorcrash"&&follow?(portrait?new THREE.Vector3(0,21.5,15):new THREE.Vector3(7.1,16.7,16.6)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.5,11.6,12.4):new THREE.Vector3(8.2,10.7,11.9)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
+if(mode==="preview"||mode==="camera"){const ownIndex=mp.active&&!mp.host?mp.slot:0,watchIndex=mp.active&&!mp.host&&!contestants.includes(ownIndex)?(contestants[0]??0):ownIndex,p=racers[watchIndex],follow=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=currentMode==="territory"&&follow?new THREE.Vector3(clamp(p.x*.72,-TERRITORY_HALF_X*.72,TERRITORY_HALF_X*.72),0,clamp(p.z*.70,-TERRITORY_HALF_Z*.70,TERRITORY_HALF_Z*.70)):new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,20.5,9.4):new THREE.Vector3(0,16.1,9.2)):currentMode==="territory"&&follow?(portrait?new THREE.Vector3(previewTarget.x,30,previewTarget.z+22):new THREE.Vector3(previewTarget.x+10.7,20.3,previewTarget.z+20.5)):currentMode==="colorcrash"&&follow?(portrait?new THREE.Vector3(0,21.5,15):new THREE.Vector3(7.1,16.7,16.6)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.5,11.6,12.4):new THREE.Vector3(8.2,10.7,11.9)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:currentMode==="colorcrash"?1.20:0))}
 if(mode==="ar"&&frame&&session){if(!hitRequested&&performance.now()-arLastHitAttempt>2100){hitRequested=true;arLastHitAttempt=performance.now();const origin=session;session.requestReferenceSpace("viewer").then(viewer=>origin.requestHitTestSource({space:viewer})).then(source=>{if(session===origin)hitSource=source;else source?.cancel?.()}).catch(error=>{hitRequested=false;console.warn("XR hit-test",error);$("notice").textContent="No pude detectar superficies todavía. Reintentando…"})}if(hitSource&&!placed){const results=frame.getHitTestResults(hitSource);if(results.length){let pose=results[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;const m=new THREE.Matrix4().fromArray(pose.transform.matrix);reticle.position.setFromMatrixPosition(m);reticle.quaternion.setFromRotationMatrix(m);
  const normal=new THREE.Vector3(0,1,0).applyQuaternion(reticle.quaternion);
  reticle.visible=normal.y>.77;
