@@ -883,7 +883,7 @@ function v37InstallCharacter(index,gltf){
  const bounds=new THREE.Box3().setFromObject(model);
  const dimensions=bounds.getSize(new THREE.Vector3());
  if(!Number.isFinite(dimensions.y)||dimensions.y<.1)return false;
- const fit=2.13/dimensions.y;
+ const fit=2.27/dimensions.y;
  model.scale.setScalar(fit);
  model.position.set(-(bounds.min.x+bounds.max.x)*.5*fit,-bounds.min.y*fit,-(bounds.min.z+bounds.max.z)*.5*fit);
  // Every costume remains a proper 3D asset with its original textures/details.
@@ -2805,7 +2805,7 @@ function v35ApplyArt(){
  // V3.3 thin outer rails caused gigantic diagonal cyan lines in other modes.
  // Replaced with physically contiguous grandstands inside each mode's group.
  for(const kit of Object.values(visual33.kits))kit.visible=false;
- for(const [name,kit]of Object.entries(v35.kits))kit.visible=name==="race"?currentMode==="race":true;
+ for(const [name,kit]of Object.entries(v35.kits))kit.visible=name==="race"?currentMode==="race":name==="ballistix"?false:true; // V3.7 custom venue owns Ballistix
  v35.mode=currentMode;
 }
 window.__microcaosV37QA=()=>({version:"3.7",characterSource:v37CharacterState.source,loadedHeroes:v37CharacterState.loaded,arena:!!ballArena,impulseCooldown:1.95,impulseCharges:"infinite",sevenModes:Object.keys(MINI_MODES).length,arKept:!!renderer.xr.enabled});
