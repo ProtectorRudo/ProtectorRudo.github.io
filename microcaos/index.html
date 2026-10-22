@@ -9,6 +9,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
+.ball-restart{display:none;position:absolute;right:12px;top:224px;z-index:13;background:#07152ae6;border:1px solid #90dff270;color:#e4fff7;font:800 10px Outfit,sans-serif;border-radius:11px;padding:9px 10px;cursor:pointer}body.ballistix-mode .ball-restart{display:block}
+body.ballistix-mode .ball-scoreboard{top:126px!important;gap:6px}body.ballistix-mode .stagebanner{top:90px!important}body.ballistix-mode .mini-objective{top:188px!important}body.ballistix-mode .ball-score{min-width:0;padding:7px 4px 5px;gap:3px}body.ballistix-mode .ball-score strong{font-size:21px;line-height:1}
+.hp-track{height:4px;width:90%;background:#00112085;border-radius:5px;overflow:hidden}.hp-track span{height:100%;display:block;border-radius:5px;background:#72f6d9;transition:width .18s}.ball-score:not(.you) .hp-track span{background:#ffb891}
+@media(max-height:750px){body.ballistix-mode .stagebanner{top:82px!important}body.ballistix-mode .ball-scoreboard{top:108px!important}body.ballistix-mode .mini-objective{top:177px!important}body.ballistix-mode .ball-restart{top:208px}}
+
 
 .ball-practice{width:100%;margin-top:9px;padding:13px 12px;min-height:47px;border:1px solid #9beaff8f;border-radius:15px;color:#bffff2;background:#0d3449a6;font:900 13px Outfit,sans-serif;display:flex;align-items:center;justify-content:center;gap:14px;cursor:pointer}.ball-practice span{font-size:20px}.ball-practice:active{transform:scale(.985)}
 body.ballistix-mode .hud,body.ballistix-mode .pickupCounter,body.ballistix-mode .raceprogress,body.ballistix-mode .modebar{display:none!important}
@@ -58,7 +63,7 @@ html.xr-active,html.xr-active body,html.xr-active #scene{background:transparent!
 <div class="topright"><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
-<div class="speedtrails" id="speedtrails"></div><div class="stagebanner" id="stagebanner">RONDA SORPRESA</div><div id="miniObjective" class="mini-objective">¡PREPARADOS!</div><div id="ballScoreboard" class="ball-scoreboard" aria-live="off"></div><div class="raceprogress" id="progress"><div class="bar" id="progressBar"></div></div>
+<div class="speedtrails" id="speedtrails"></div><div class="stagebanner" id="stagebanner">RONDA SORPRESA</div><div id="miniObjective" class="mini-objective">¡PREPARADOS!</div><div id="ballScoreboard" class="ball-scoreboard" aria-live="off"></div><button id="ballRestart" type="button" class="ball-restart" aria-label="Reiniciar Ballistix">↻ REINICIAR</button><div class="raceprogress" id="progress"><div class="bar" id="progressBar"></div></div>
 <div class="toast" id="toast">¡PREPARADOS!</div><div id="skillToast" class="skilltoast"></div><div id="obstacleHint" class="obstacle-hint">↥ ¡SALTÁ AHORA!</div><div class="rushHud" id="rushHud">⚡ RITMO ×<span id="rushValue">1</span></div><div class="pickupCounter" id="pickupCounter">✦ <span id="pickupValue">0</span></div>
 <div id="notice"></div><button id="placeArena" class="primary ar-place" style="display:none">✓ COLOCAR PISTA AQUÍ</button><div id="arHelp" class="ar-help" style="display:none"><div class="ar-help-box"><div class="ar-help-icon">◈</div><h2 id="arHelpTitle">Realidad aumentada</h2><p id="arHelpText"></p><a class="primary ar-fallback" id="arHelpNative" href="ar.html">◈ ABRIR VISOR AR ANDROID ↗</a><button class="secondary ar-fallback2" id="arHelp3D">JUGAR EN 3D SIN CÁMARA</button><button class="ar-dismiss" id="arHelpClose">CERRAR</button></div></div>
 <div class="modalshade" id="intro">
@@ -512,7 +517,7 @@ for(let k=0;k<4;k++){
     h?[.9,.04,.16]:[.16,.04,.9],false);
  }
 }
-const ballShipPositions=Array(4).fill(null);
+const ballShipPositions=Array(4).fill(null),ballPulseShields=[];
 const ballShipGroups=Array.from({length:4},(_,k)=>{
  const grp=new THREE.Group();ballArena.add(grp);
  const shell=ballGoalMats[k];
@@ -526,6 +531,8 @@ const ballShipGroups=Array.from({length:4},(_,k)=>{
   soft(shell,grp,[x,.54,.02],[.27,.045,.42]);
  }
  soft(shell,grp,[0,.54,.36],[2.15,.18,.22]);
+ const shield=soft(BM.cyan,grp,[0,.56,-.20],[4.12,.16,.20]);
+ shield.visible=false;shield.castShadow=false;ballPulseShields[k]=shield;
  return grp;
 });
 const ballScoreLabels=["VOS","BOT","BOT","BOT"];
@@ -612,6 +619,7 @@ function ballShipUpdate(dt){
   const idx=ballSides[k],r=racers[idx],ship=ballShipGroups[k];
   if(!ballStatus[k]){ship.visible=false;r.root.visible=false;continue}
   ship.visible=true;r.root.visible=true;
+  ballPulseShields[k].visible=k===0&&ballPulseUntil>ballElapsed;
   ship.scale.y+=(1-ship.scale.y)*Math.min(1,dt*9);
   let target=0;
   if(k===0){
@@ -734,7 +742,7 @@ function updateBallScoreboard(){
  const target=$("ballScoreboard");
  target.innerHTML=ballSides.map((id,k)=>
   '<div class="ball-score'+(k===0?' you':'')+(!ballStatus[k]?' out':'')+'"><small><i style="background:#'+colors[id].toString(16).padStart(6,"0")+'"></i>'+
-  (k===0?'VOS':profiles[id].name)+'</small><strong>'+String(ballHealth[k]||0).padStart(2,"0")+'</strong></div>').join("");
+  (k===0?'VOS':profiles[id].name)+'</small><strong>'+String(ballHealth[k]||0).padStart(2,"0")+'</strong><span class="hp-track"><span style="width:'+(ballHealth[k]/8*100)+'%"></span></span></div>').join("");
 }
 function completeBallistix(){
  if(phase!=="race")return;
@@ -901,6 +909,8 @@ function renderModeLabel(){
  moodLights.forEach(obj=>obj.visible=currentMode==="race");
  for(const k of Object.keys(miniStages))miniStages[k].visible=k===currentMode;
  document.body.classList.toggle("ballistix-mode",currentMode==="ballistix");
+ renderer.shadowMap.enabled=currentMode!=="ballistix";
+ renderer.setPixelRatio(Math.min(devicePixelRatio||1,currentMode==="ballistix"?1.18:1.45));
  if(mode==="preview"){
   previewTable.visible=currentMode!=="ballistix";
   scene.background=new THREE.Color(currentMode==="ballistix"?0x071426:0x172b4a);
@@ -1552,6 +1562,7 @@ function placeArena(){
 $("placeArena").onclick=placeArena;
 renderer.domElement.addEventListener("pointerup",placeArena);
 $("play").onclick=begin;
+$("ballRestart").onclick=()=>{if(currentMode==="ballistix")resetRound()};
 $("tryBallistix").onclick=()=>{
   if(mode==="ar"&&!placed){announce("PRIMERO COLOCÁ LA ARENA",900);return}
   roundIndex=1;contestants=[0,1,2,3];nextQualifiers=[];playerQualified=false;tournamentStars=0;
