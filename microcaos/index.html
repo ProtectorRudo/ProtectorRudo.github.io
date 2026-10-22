@@ -361,7 +361,7 @@ body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172a
  <button id="arRotate" type="button" aria-label="Girar arena">↻</button>
  </div>
  <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V4.3</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V4.4</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -800,6 +800,7 @@ function selectMascot(index){
  $("activeMascotName").textContent=mascotDisplayNames[index];
  saveGamePreferences();
   if(typeof v37BindCharacterAnims==="function")v37BindCharacterAnims();
+ if(typeof v44EnsureLocalAvatar==="function")v44EnsureLocalAvatar();
 }
 
 
@@ -942,24 +943,25 @@ function v37InstallCharacter(index,gltf){
  const dimensions=bounds.getSize(new THREE.Vector3());
  if(!Number.isFinite(dimensions.y)||dimensions.y<.1)return false;
  // V4.3 · 3D characters fit by full silhouette; uniform skin scaling to avoid deforming skeletons.
- const profiles43=[
-  {h:3.00,w:2.38,d:2.38}, // Bunny
-  {h:2.83,w:2.45,d:2.35}, // Dragon
-  {h:2.72,w:2.40,d:2.40}, // Slime
-  {h:2.86,w:2.38,d:2.38}, // Demon
-  {h:2.70,w:2.85,d:2.50}, // Bat: natural wings need additional room
-  {h:2.86,w:2.30,d:2.30}  // Skeleton
+ // V4.4 — compact, consistently sized characters (three hard axis limits).
+ const profiles44=[
+  {h:2.12,w:1.48,d:1.40}, // Conejo
+  {h:1.86,w:1.40,d:1.33}, // Dragon
+  {h:1.64,w:1.14,d:1.16}, // Slime: no oversized sphere
+  {h:1.86,w:1.35,d:1.32}, // Demon
+  {h:1.76,w:1.50,d:1.33}, // Bat
+  {h:1.90,w:1.31,d:1.30}  // Skeleton
  ];
- const spec=profiles43[index]||profiles43[0];
- const byHeight=spec.h/Math.max(dimensions.y,.001);
- const byWidth=spec.w/Math.max(dimensions.x,.001);
- const byDepth=spec.d/Math.max(dimensions.z,.001);
- // Never shrink a creature below 80% of target height merely due to wings or whiskers.
- const fit=Math.max(byHeight*.80,Math.min(byHeight,byWidth,byDepth));
+ const spec=profiles44[index]||profiles44[0];
+ const fit=Math.min(
+  spec.h/Math.max(dimensions.y,.001),
+  spec.w/Math.max(dimensions.x,.001),
+  spec.d/Math.max(dimensions.z,.001)
+ );
  const visualWidth=dimensions.x*fit,visualDepth=dimensions.z*fit,visualHeight=dimensions.y*fit;
- const bodyRadius=Math.min(.96,Math.max(.50,Math.max(visualWidth,visualDepth)*.41+.11));
+ const bodyRadius=Math.max(.40,Math.min(.64,Math.max(visualWidth,visualDepth)*.40+.065));
  model.scale.setScalar(fit);
- model.position.set(-(bounds.min.x+bounds.max.x)*.5*fit,-bounds.min.y*fit,-(bounds.min.z+bounds.max.z)*.5*fit);
+ model.position.set(-(bounds.min.x+bounds.max.x)*.5*fit,-bounds.min.y*fit+(index===0?.17:.06),-(bounds.min.z+bounds.max.z)*.5*fit);
  // Preserve original Quaternius texture colors and authored rigs.
  model.traverse(o=>{
   if(!o.isMesh)return;
@@ -997,6 +999,7 @@ async function v37LoadCharacters(){
   catch(error){state.failed++;state.errors.push(V37_HERO_ASSETS[index]+": "+String(error?.message||error))}
  }
  v37BindCharacterAnims();state.ready=true;modelLoaded=state.loaded===6;
+ v44EnsureLocalAvatar();
  $("modelstatus").textContent=modelLoaded?"✓ 6 MONSTRUOS 3D · QUATERNIUS":"⚠ MONSTRUOS "+state.loaded+"/6";
  $("gamehint").textContent=modelLoaded?"6 monstruos únicos · CC0 · 7 modos":"Problema al cargar "+state.failed+" monstruos. Hay personajes de reserva.";
  if(state.failed){
@@ -1005,7 +1008,7 @@ async function v37LoadCharacters(){
   $("notice").classList.add("show");
  }
  window.__microcaosVisibilityQA=()=>({
- version:"4.3",mode:currentMode,
+ version:"4.4",mode:currentMode,
  renderer:renderer.info.render.calls,
  playerVisible:racers[0].root.visible&&racers[0].rig.visible,
  playerPremiumVisible:!!racers[0].rig.userData.premiumCharacter?.model.visible,
@@ -1014,9 +1017,35 @@ async function v37LoadCharacters(){
  cameraPosition:camera.position.toArray(),
  figureCount:racers.filter(r=>r.root.visible).length
 });
-window.__microcaosHeroQA=()=>({version:"4.3",ready:state.ready,loaded:state.loaded,failed:state.failed,errors:state.errors,source:state.source,assets:V37_HERO_ASSETS,characters:racers.map(r=>{const q=r.rig?.userData?.premiumCharacter;return q?{index:q.index,radius:q.bodyRadius,width:q.visualWidth,depth:q.visualDepth,clips:q.clips}:null})});
+window.__microcaosHeroQA=()=>({version:"4.4",ready:state.ready,loaded:state.loaded,failed:state.failed,errors:state.errors,source:state.source,assets:V37_HERO_ASSETS,characters:racers.map(r=>{const q=r.rig?.userData?.premiumCharacter;return q?{index:q.index,radius:q.bodyRadius,width:q.visualWidth,depth:q.visualDepth,clips:q.clips}:null})});
 }
  v37LoadCharacters().catch(error=>{console.warn("Premium characters unavailable",error)});
+
+
+function v44TouchRadius(a,b){
+ const ar=a.rig?.userData?.premiumCharacter?.bodyRadius??.49;
+ const br=b.rig?.userData?.premiumCharacter?.bodyRadius??.49;
+ return ar+br+.32;
+}
+function v44EnsureLocalAvatar(){
+ const slot=typeof mp!=="undefined"&&mp.active?mp.slot:0;
+ for(const r of racers){
+  const entry=r.rig?.userData?.premiumCharacter;if(!entry)continue;
+  const front=r.index===slot&&mode!=="ar";
+  if(entry._front===front)continue;
+  entry._front=front;
+  r.rig.visible=true;entry.model.visible=true;
+  entry.model.traverse(o=>{
+   if(!o.isMesh)return;
+   o.frustumCulled=false;o.renderOrder=front?90:0;
+   for(const material of (Array.isArray(o.material)?o.material:[o.material])){
+    if(!material)continue;
+    material.depthTest=!front;material.depthWrite=!front;
+    material.side=THREE.DoubleSide;material.needsUpdate=true;
+   }
+  });
+ }
+}
 
 const v38Beacon=new THREE.Group();v38Beacon.name="LOCAL PLAYER VOS MARKER";stage.add(v38Beacon);
 const v38Glow=new THREE.MeshBasicMaterial({color:0x16ffff,toneMapped:false,depthTest:false,depthWrite:false});
@@ -2762,7 +2791,7 @@ function v34AnimateFaces(t,dt){
 // MICROCAOS CINEMATIC ARENA V3.5 — large, unmistakable stage architecture.
 // Compact geometry + one instanced crowd and one instanced LED row per mode.
 // All details sit OUTSIDE playable cells; rules, hitboxes and AR anchoring unchanged.
-const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"4.3"};
+const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"4.4"};
 const v35Ink=new THREE.MeshStandardMaterial({color:0x09132d,metalness:.42,roughness:.36,clearcoat:1});
 const v35Alloy=new THREE.MeshStandardMaterial({color:0x294665,metalness:.72,roughness:.24,clearcoat:.72});
 const v35SeatMaterial=new THREE.MeshStandardMaterial({color:0xffffff,metalness:.12,roughness:.35,clearcoat:.6});
@@ -2945,8 +2974,8 @@ function v35ApplyArt(){
  for(const [name,kit]of Object.entries(v35.kits))kit.visible=name==="race"?currentMode==="race":name==="ballistix"?false:true; // V3.7 custom venue owns Ballistix
  v35.mode=currentMode;
 }
-window.__microcaosV38QA=()=>({version:"4.3",uniqueModels:new Set(V37_HERO_ASSETS).size,modelCount:V37_HERO_ASSETS.length,loaded:v37CharacterState.loaded,beaconReady:!!v38Beacon,localSlot:typeof mp!=="undefined"&&mp.active?mp.slot:0,mode:currentMode,ar:renderer.xr.enabled});
-window.__microcaosStartQA=()=>({version:"4.3",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
+window.__microcaosV38QA=()=>({version:"4.4",uniqueModels:new Set(V37_HERO_ASSETS).size,modelCount:V37_HERO_ASSETS.length,loaded:v37CharacterState.loaded,beaconReady:!!v38Beacon,localSlot:typeof mp!=="undefined"&&mp.active?mp.slot:0,mode:currentMode,ar:renderer.xr.enabled});
+window.__microcaosStartQA=()=>({version:"4.4",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
 window.__microcaosV37QA=()=>({version:"3.7",characterSource:v37CharacterState.source,loadedHeroes:v37CharacterState.loaded,arena:!!ballArena,impulseCooldown:1.95,impulseCharges:"infinite",sevenModes:Object.keys(MINI_MODES).length,arKept:!!renderer.xr.enabled});
 window.__microcaosDirectorQA=()=>({raceFloorIsolated:currentMode==="race"||!raceFloor.visible,version:"3.7",venues:Object.keys(v36Venues),sevenScenes:Object.keys(v36Venues).length===7,mode:currentMode,webxr:renderer.xr.isPresenting,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,unchangedARScale:true});
 window.__microcaosCinematicQA=()=>({
@@ -3108,12 +3137,12 @@ function miniTag(dt){
   if(miniChallengeElapsed-miniLastTouch>.85){
    for(const other of living){
     if(other.index===weightHolder||other.y>.8||h.y>.8||other.tagGraceUntil>miniChallengeElapsed)continue;
-    if(Math.hypot(other.x-h.x,other.z-h.z)<1.18){
+    if(Math.hypot(other.x-h.x,other.z-h.z)<=v44TouchRadius(h,other)){
      const prev=weightHolder;weightHolder=other.index;
      racers[prev].tagGraceUntil=miniChallengeElapsed+2.1;
      miniScores[prev]++;tagTransfers++;miniLastTouch=miniChallengeElapsed;
      puff(other.x,other.z,0xffc5d5,10);
-     if(prev===0||other.index===0){tactile(34);skillMessage(prev===0?"¡PESA PASADA!":"¡TENÉS LA PESA!",670)}
+     if(prev===0||other.index===0){tactile(34);skillMessage(prev===0?"✅ ¡PESA PASADA!":"⚖ ¡TE PASARON LA PESA!",900)}
      cue(760,.11);break;
     }
    }
@@ -3368,8 +3397,8 @@ function moveMiniGame(dt,t){
   const rate=r.index===0?20:14,vel=(currentMode==="territory"?(r.index===0?6.65:5.9*difficultyScale()):(r.index===0?5.75:5.03*difficultyScale()))*sprint;
   r.vx+=(dx*vel-r.vx)*(1-Math.exp(-rate*dt));
   r.vz=(r.vz||0)+(-dz*vel-(r.vz||0))*(1-Math.exp(-rate*dt));
-  r.x=clamp(r.x+r.vx*dt,currentMode==="territory"?-TERRITORY_HALF_X:currentMode==="colorcrash"?-CC_HALF_X+.38:-4.25,currentMode==="territory"?TERRITORY_HALF_X:currentMode==="colorcrash"?CC_HALF_X-.38:4.25);
-  r.z=clamp(r.z+r.vz*dt,currentMode==="territory"?-TERRITORY_HALF_Z:currentMode==="colorcrash"?-CC_HALF_Z+.40:-5.85,currentMode==="territory"?TERRITORY_HALF_Z:currentMode==="colorcrash"?CC_HALF_Z-.40:5.85);
+  r.x=clamp(r.x+r.vx*dt,currentMode==="territory"?-TERRITORY_HALF_X:currentMode==="colorcrash"?-CC_HALF_X+.55:-3.90,currentMode==="territory"?TERRITORY_HALF_X:currentMode==="colorcrash"?CC_HALF_X-.55:3.90);
+  r.z=clamp(r.z+r.vz*dt,currentMode==="territory"?-TERRITORY_HALF_Z:currentMode==="colorcrash"?-CC_HALF_Z+.55:-5.45,currentMode==="territory"?TERRITORY_HALF_Z:currentMode==="colorcrash"?CC_HALF_Z-.55:5.45);
   // Preserve the familiar jumping animation from races, including double jump.
   const airborne=r.y>.01||r.vy>0;
   if(airborne){r.vy-=18.5*dt;r.y=Math.max(0,r.y+r.vy*dt)}
@@ -3732,8 +3761,8 @@ function separateRacers(dt){
  if(currentMode==="ballistix")return;
  const modeRadiusFactor=currentMode==="race"?.93:currentMode==="territory"?.92:1;
  const active=activeRacers().filter(r=>!r.finished&&r.root.visible&&r.y<.62);
- const maxX=currentMode==="territory"?TERRITORY_HALF_X:currentMode==="colorcrash"?CC_HALF_X-.38:currentMode==="race"?3.38:4.25;
- const maxZ=currentMode==="territory"?TERRITORY_HALF_Z:currentMode==="colorcrash"?CC_HALF_Z-.40:currentMode==="race"?13.08:5.85;
+ const maxX=currentMode==="territory"?TERRITORY_HALF_X:currentMode==="colorcrash"?CC_HALF_X-.38:currentMode==="race"?3.38:3.90;
+ const maxZ=currentMode==="territory"?TERRITORY_HALF_Z:currentMode==="colorcrash"?CC_HALF_Z-.40:currentMode==="race"?13.08:5.45;
  for(let pass=0;pass<5;pass++){
   for(let i=0;i<active.length;i++)for(let j=i+1;j<active.length;j++){
    const a=active[i],b=active[j];
@@ -3868,13 +3897,14 @@ function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;
   r.rig.rotation.x+=(Math.max(-.09,Math.min(.09,(r.vz||0)*.012))*active-r.rig.rotation.x)*blend;
  }
  v40UpdateAnimations(t,dt);
+ v44EnsureLocalAvatar();
  // V4.3 · visibility guarantee in top-down modes, applied after gait/squash animation.
  for(const runner of racers){
   const entry=runner.rig?.userData?.premiumCharacter;
   if(!entry||!runner.root.visible)continue;
   runner.rig.visible=true;entry.model.visible=true;
   const colorMode=currentMode==="colorcrash";
-  const factor=colorMode?(runner.index===0?1.36:1.21):(runner.index===0?1.10:1.045);
+  const factor=colorMode?(runner.index===0?1.22:1.12):(runner.index===0?1.12:1.06);
   runner.rig.scale.multiplyScalar(factor);
   if(colorMode&&!runner.finished&&phase==="race")
     runner.rig.position.y=Math.max(runner.rig.position.y,.48);
