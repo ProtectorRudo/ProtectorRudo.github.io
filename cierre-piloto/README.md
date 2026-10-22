@@ -1,15 +1,15 @@
-# CIERRE — Piloto 0.3
+# CIERRE — Piloto 0.4
 
-Estado: el radar 0.2 y el monitor 0.3 están guardados en GitHub. El receptor para webhooks oficiales de WhatsApp existe en código, pero todavía no está desplegado ni conectado al número del corralón.
+Estado: el radar 0.2 y el monitor 0.4 están guardados en GitHub. El receptor para webhooks oficiales de WhatsApp existe en código, pero todavía no está desplegado ni conectado al número del corralón.
 
 - Radar de prueba: index.html
 - Panel de conexión/monitor: live.html
 - Backend de webhooks, base de datos y configuración: backend/
 - Instrucciones de despliegue seguro: backend/README.md
 
-Modo sombra obligatorio: CIERRE todavía no envía mensajes de WhatsApp.
+Modo sombra obligatorio: CIERRE todavía no envía mensajes de WhatsApp. El backend espera autorización y despliegue en Cloudflare, más habilitar coexistencia oficial de WhatsApp Business.
 
-Motor probado con 21 tests unitarios simulados. La conexión real con Meta/D1 aún no está validada; no utilizar con clientes sin autorización.
+Motor probado con 39 tests sintéticos (28 unitarios y 11 de integración con base simulada). La conexión real con Meta/D1 aún no está validada; no utilizar con clientes sin autorización.
 
 ---
 # CIERRE — piloto 0.2 (modo sombra)
