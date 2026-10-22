@@ -528,7 +528,7 @@ function startBallistix(){
  ballPulseUntil=0;ballPulseCd=0;ballBalls.forEach(b=>ballArena.remove(b.g));ballBalls.length=0;
  for(let k=0;k<4;k++){
   ballScoreLabels[k]=profiles[ballSides[k]].name;
-  ballShipPositions[k]=0;ballShipGroups[k].visible=true;
+  ballShipPositions[k]=0;ballShipGroups[k].visible=true;ballShipGroups[k].scale.set(1,1,1);
  }
  ballCreateBall();
  updateBallScoreboard();ballShipUpdate(0);
@@ -547,6 +547,7 @@ function ballShipUpdate(dt){
   const idx=ballSides[k],r=racers[idx],ship=ballShipGroups[k];
   if(!ballStatus[k]){ship.visible=false;r.root.visible=false;continue}
   ship.visible=true;r.root.visible=true;
+  ship.scale.y+=(1-ship.scale.y)*Math.min(1,dt*9);
   let target=0;
   if(k===0){
    if(dragSteeringActive)target=(dragTargetX-ballShipPositions[k])*2.1;
