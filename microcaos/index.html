@@ -917,6 +917,262 @@ for(const modeName of ["tag","gems","survival"]){
  }
  // 3D title removed: the compact HUD already identifies the game.
 }
+
+// CONQUISTA DE TERRITORIO · original Paper.io-inspired minigame.
+// Ownership is discrete and deterministic. All cells share one instanced mesh.
+const TERRITORY_X=32,TERRITORY_Z=42,TERRITORY_SIZE=TERRITORY_X*TERRITORY_Z;
+const TERRITORY_DX=8.50/TERRITORY_X,TERRITORY_DZ=11.70/TERRITORY_Z;
+const territoryOwners=new Int8Array(TERRITORY_SIZE).fill(-1);
+const territoryTrails=new Int8Array(TERRITORY_SIZE).fill(-1);
+const territoryCount=new Int32Array(6),territoryPalette=colors.map(c=>new THREE.Color(c));
+const territoryDark=new THREE.Color(0x0c2754),territoryScratch=new THREE.Object3D();
+const territoryArea=new THREE.Group();territoryArea.visible=false;stage.add(territoryArea);
+miniStages.territory=territoryArea;
+const territoryBase=mat(0x0c1640,.09,.48,{emissive:0x051128,emissiveIntensity:.2});
+soft(territoryBase,territoryArea,[0,-.57,0],[11.2,.99,16.2]);
+soft(mat(0x2d6caa,.11,.43),territoryArea,[0,-.09,0],[10.1,.18,14.8]);
+soft(mat(0x050b26,.05,.53),territoryArea,[0,.025,0],[9.0,.16,12.2]);
+const territoryBorder=mat(0x32ebcb,.11,.27,{emissive:0x079d7d,emissiveIntensity:.29});
+for(const x of [-4.6,4.6])soft(territoryBorder,territoryArea,[x,.22,0],[.14,.36,12.6]);
+for(const z of [-6.1,6.1])soft(territoryBorder,territoryArea,[0,.22,z],[9.3,.36,.14]);
+const territoryTileGeo=new THREE.BoxGeometry(TERRITORY_DX*.965,.048,TERRITORY_DZ*.965);
+const territoryPaintMaterial=new THREE.MeshBasicMaterial({color:0xffffff});
+const territoryTiles=new THREE.InstancedMesh(territoryTileGeo,territoryPaintMaterial,TERRITORY_SIZE);
+territoryTiles.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+territoryTiles.frustumCulled=false;territoryTiles.castShadow=false;
+territoryArea.add(territoryTiles);
+const territoryTrailGeo=new THREE.BoxGeometry(TERRITORY_DX*.75,.065,TERRITORY_DZ*.75);
+const territoryTrailMat=new THREE.MeshBasicMaterial({color:0xffffff});
+const territoryTrailMesh=new THREE.InstancedMesh(territoryTrailGeo,territoryTrailMat,TERRITORY_SIZE);
+territoryTrailMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+territoryTrailMesh.frustumCulled=false;territoryTrailMesh.castShadow=false;
+territoryTrailMesh.count=0;territoryArea.add(territoryTrailMesh);
+function territoryIdx(x,z){
+ const col=Math.floor((x+4.25)/TERRITORY_DX),row=Math.floor((z+5.85)/TERRITORY_DZ);
+ return col>=0&&col<TERRITORY_X&&row>=0&&row<TERRITORY_Z?row*TERRITORY_X+col:-1;
+}
+function territoryPos(idx){return {x:-4.25+((idx%TERRITORY_X)+.5)*TERRITORY_DX,z:-5.85+(Math.floor(idx/TERRITORY_X)+.5)*TERRITORY_DZ}}
+for(let idx=0;idx<TERRITORY_SIZE;idx++){
+ const pt=territoryPos(idx);
+ territoryScratch.position.set(pt.x,.17,pt.z);
+ territoryScratch.rotation.set(0,0,0);territoryScratch.scale.set(1,1,1);territoryScratch.updateMatrix();
+ territoryTiles.setMatrixAt(idx,territoryScratch.matrix);
+ territoryTiles.setColorAt(idx,territoryDark);
+}
+territoryTiles.instanceColor.needsUpdate=true;
+let territoryUpdatedAt=-1,territoryChanged=true,territoryLastMessageAt=-10,territoryLeaderboardSignature="";
+function territorySetCell(idx,owner){
+ if(idx<0||idx>=TERRITORY_SIZE||territoryOwners[idx]===owner)return;
+ const previous=territoryOwners[idx];if(previous>=0)territoryCount[previous]--;
+ territoryOwners[idx]=owner;if(owner>=0)territoryCount[owner]++;
+ territoryTiles.setColorAt(idx,owner<0?territoryDark:territoryPalette[owner]);
+ territoryChanged=true;
+}
+function territoryFlushTiles(){
+ if(territoryChanged){territoryTiles.instanceColor.needsUpdate=true;territoryChanged=false}
+}
+function territoryUpdateTrails(){
+ let n=0;
+ for(const r of activeRacers()){
+  if(!r.territoryTrail)continue;
+  for(const idx of r.territoryTrail){
+   if(n>=TERRITORY_SIZE)break;
+   const pos=territoryPos(idx);
+   territoryScratch.position.set(pos.x,.245,pos.z);
+   territoryScratch.rotation.set(0,0,0);territoryScratch.scale.set(1,1,1);
+   territoryScratch.updateMatrix();
+   territoryTrailMesh.setMatrixAt(n,territoryScratch.matrix);
+   territoryTrailMesh.setColorAt(n,territoryPalette[r.index]);
+   n++;
+  }
+ }
+ territoryTrailMesh.count=n;
+ territoryTrailMesh.instanceMatrix.needsUpdate=true;
+ if(territoryTrailMesh.instanceColor)territoryTrailMesh.instanceColor.needsUpdate=true;
+}
+function territoryClearTrail(r){
+ for(const idx of r.territoryTrail)if(territoryTrails[idx]===r.index)territoryTrails[idx]=-1;
+ r.territoryTrail.length=0;territoryUpdateTrails();
+}
+function territoryClaim(r){
+ // Seal the trail, then flood from all outer edges; unreachable cells are enclosed.
+ const shield=new Uint8Array(TERRITORY_SIZE),queue=new Uint16Array(TERRITORY_SIZE);
+ let head=0,tail=0;
+ const blocked=i=>territoryOwners[i]===r.index||territoryTrails[i]===r.index;
+ function visit(i){if(!shield[i]&&!blocked(i)){shield[i]=1;queue[tail++]=i}}
+ for(let x=0;x<TERRITORY_X;x++){visit(x);visit((TERRITORY_Z-1)*TERRITORY_X+x)}
+ for(let z=1;z<TERRITORY_Z-1;z++){visit(z*TERRITORY_X);visit(z*TERRITORY_X+TERRITORY_X-1)}
+ while(head<tail){
+  const idx=queue[head++],x=idx%TERRITORY_X,z=(idx/TERRITORY_X)|0;
+  if(x>0)visit(idx-1);if(x<TERRITORY_X-1)visit(idx+1);
+  if(z>0)visit(idx-TERRITORY_X);if(z<TERRITORY_Z-1)visit(idx+TERRITORY_X);
+ }
+ const before=territoryCount[r.index];
+ for(let idx=0;idx<TERRITORY_SIZE;idx++)if(!shield[idx])territorySetCell(idx,r.index);
+ territoryClearTrail(r);
+ r.territoryAiPlan=null;
+ const gain=territoryCount[r.index]-before;
+ if(gain>0){
+  puff(r.x,r.z,runnerColor(r.index),Math.min(24,6+Math.round(gain/5)));
+  if(r.index===0){cue(750,.10);tactile(25);skillMessage("+"+(gain*100/TERRITORY_SIZE).toFixed(1)+"% TERRITORIO",750)}
+ }
+ territoryUpdateBoard(true);
+}
+function territoryBreak(victim,attacker){
+ if(!victim.territoryTrail.length||miniChallengeElapsed<victim.territoryStunnedUntil)return;
+ if(miniChallengeElapsed<(victim.territoryShieldUntil||0)){
+  if(victim.index===0)skillMessage("🛡 ESCUDO SALVÓ TU RASTRO",520);
+  return;
+ }
+ territoryClearTrail(victim);
+ victim.territoryStunnedUntil=miniChallengeElapsed+1.0;
+ victim.territoryShieldUntil=miniChallengeElapsed+2.2;
+ victim.x=victim.territoryHomeX;victim.z=victim.territoryHomeZ;
+ victim.vx=0;victim.vz=0;
+ victim.root.position.set(victim.x,0,victim.z);
+ victim.territoryAiPlan=null;
+ // Lose a fraction of claimed tiles, but keep your base for a fair comeback.
+ let kept=0;
+ for(let i=0;i<TERRITORY_SIZE;i++){
+  if(territoryOwners[i]!==victim.index)continue;
+  const pos=territoryPos(i);
+  if(Math.hypot(pos.x-victim.territoryHomeX,pos.z-victim.territoryHomeZ)<.85)continue;
+  if((i+Math.round(miniChallengeElapsed*10))%3===0){territorySetCell(i,-1);kept++}
+ }
+ if(victim.index===0){tactile(70);cue(235,.24);skillMessage("💥 ¡TE CORTARON EL RASTRO!",1100)}
+ else if(attacker?.index===0){tactile(24);cue(950,.14);skillMessage("✂️ ¡CORTASTE A "+profiles[victim.index].name+"!",950)}
+ territoryUpdateBoard(true);
+}
+function territoryStepCell(r,idx){
+ if(idx<0||miniChallengeElapsed<r.territoryStunnedUntil)return;
+ const enemyTrail=territoryTrails[idx];
+ if(enemyTrail>=0&&enemyTrail!==r.index){
+  territoryBreak(racers[enemyTrail],r);
+ }
+ if(territoryOwners[idx]===r.index){
+  if(r.territoryTrail.length)territoryClaim(r);
+  return;
+ }
+ if(territoryTrails[idx]===r.index){
+  // Do not allow a player to cross their own unclosed trail.
+  if(r.territoryTrail.length>2)territoryBreak(r,r);
+  return;
+ }
+ territoryTrails[idx]=r.index;
+ r.territoryTrail.push(idx);
+ if(r.territoryTrail.length>145){territoryBreak(r,r);return}
+ territoryUpdateTrails();
+}
+function territoryMovePath(r){
+ if(miniChallengeElapsed<r.territoryStunnedUntil)return;
+ const dx=r.x-r.territoryLastX,dz=r.z-r.territoryLastZ;
+ const n=Math.max(1,Math.min(16,Math.ceil(Math.hypot(dx,dz)/Math.min(TERRITORY_DX,TERRITORY_DZ)*1.5)));
+ let prior=-1;
+ for(let step=1;step<=n;step++){
+  const t=step/n,idx=territoryIdx(r.territoryLastX+dx*t,r.territoryLastZ+dz*t);
+  if(idx<0||idx===prior)continue;
+  territoryStepCell(r,idx);prior=idx;
+  if(miniChallengeElapsed<r.territoryStunnedUntil)break;
+ }
+ r.territoryLastX=r.x;r.territoryLastZ=r.z;
+}
+function territoryStart(){
+ territoryOwners.fill(-1);territoryTrails.fill(-1);territoryCount.fill(0);
+ territoryTrailMesh.count=0;territoryUpdatedAt=-1;territoryLeaderboardSignature="";
+ for(let idx=0;idx<TERRITORY_SIZE;idx++)territoryTiles.setColorAt(idx,territoryDark);
+ territoryTiles.instanceColor.needsUpdate=true;territoryChanged=false;
+ for(const r of activeRacers()){
+  r.territoryTrail=[];r.territoryAiPlan=null;r.territoryAiStep=0;
+  r.territoryShieldCd=0;r.territoryShieldUntil=0;r.territoryStunnedUntil=0;
+  r.territoryHomeX=r.x;r.territoryHomeZ=r.z;
+  r.territoryLastX=r.x;r.territoryLastZ=r.z;
+  // Distinct nonoverlapping, recognizable home areas for six players.
+  for(let idx=0;idx<TERRITORY_SIZE;idx++){
+   const pos=territoryPos(idx);
+   if(Math.abs(pos.x-r.x)<.57&&Math.abs(pos.z-r.z)<.63)territorySetCell(idx,r.index);
+  }
+ }
+ territoryFlushTiles();territoryUpdateTrails();territoryUpdateBoard(true);
+}
+function territoryBotDirection(r,t){
+ if(!r.territoryAiPlan||r.territoryAiStep>=r.territoryAiPlan.length){
+  const a=r.phase+t*.24+Math.random()*Math.PI*.9;
+  let dx=Math.cos(a),dz=Math.sin(a);
+  // Point inward when near walls, otherwise some bots freeze against a boundary.
+  if(r.x>2.2)dx=-Math.abs(dx);if(r.x< -2.2)dx=Math.abs(dx);
+  if(r.z>3.5)dz=-Math.abs(dz);if(r.z< -3.5)dz=Math.abs(dz);
+  const homeX=r.x,homeZ=r.z;
+  const size=2.3+Math.random()*.9*(r.skill||.7);
+  const p1={x:clamp(homeX+dx*size,-3.83,3.83),z:clamp(homeZ+dz*size,-5.15,5.15)};
+  const p2={x:clamp(p1.x-dz*(1.4+Math.random()),-3.83,3.83),z:clamp(p1.z+dx*(1.4+Math.random()),-5.15,5.15)};
+  r.territoryAiPlan=[p1,p2,{x:homeX,z:homeZ}];
+  r.territoryAiStep=0;
+ }
+ let goal=r.territoryAiPlan[r.territoryAiStep];
+ if(Math.hypot(goal.x-r.x,goal.z-r.z)<.42){
+  r.territoryAiStep++;
+  goal=r.territoryAiPlan[r.territoryAiStep];
+ }
+ if(!goal){r.territoryAiPlan=null;return[0,0]}
+ // Enemy trails are vulnerable: occasionally opportunistically cut one nearby.
+ if(r.territoryTrail.length===0&&r.skill>.60&&t>(r.territoryHuntAt||0)){
+  r.territoryHuntAt=t+.7;
+  let hunt=null,best=2.2;
+  for(const target of activeRacers()){
+   if(target.index===r.index||!target.territoryTrail.length)continue;
+   for(let i=0;i<target.territoryTrail.length;i+=3){
+    const pos=territoryPos(target.territoryTrail[i]);
+    const d=Math.hypot(pos.x-r.x,pos.z-r.z);
+    if(d<best){best=d;hunt=pos}
+   }
+  }
+  if(hunt&&Math.random()<r.skill*.68){r.territoryAiPlan=[hunt,{x:r.territoryHomeX,z:r.territoryHomeZ}];r.territoryAiStep=0;goal=hunt}
+ }
+ if(r.territoryTrail.length>58)goal={x:r.territoryHomeX,z:r.territoryHomeZ};
+ const ddx=goal.x-r.x,ddz=goal.z-r.z,dist=Math.hypot(ddx,ddz)||1;
+ return[ddx/dist,-ddz/dist];
+}
+function territoryUpdateBoard(force=false){
+ if(currentMode!=="territory")return;
+ const order=contestants.map(index=>({index,cells:territoryCount[index]}))
+  .sort((a,b)=>b.cells-a.cells||a.index-b.index);
+ const quota=gameType==="individual"?1:roundRule().qualify;
+ const signature=quota+":"+order.map(x=>x.index+"-"+x.cells).join(",");
+ if(!force&&territoryLeaderboardSignature===signature)return;
+ territoryLeaderboardSignature=signature;
+ $("territoryQualification").textContent=gameType==="individual"?"1º GANA":"PASAN "+quota;
+ $("territoryLeaderboardRows").innerHTML=order.map((o,i)=>
+  '<div class="gem-lb-row'+(o.index===0?' you':'')+(i===quota-1&&quota<order.length?' cutoff':'')+'" style="--team:#'+
+  runnerColor(o.index).toString(16).padStart(6,'0')+'"><span class="gem-lb-pos">'+
+  (i===0?'★':(i+1)+'°')+'</span><span class="gem-lb-chip"></span><span class="gem-lb-name">'+
+  (o.index===0?'VOS':profiles[o.index].name)+'</span><span class="gem-lb-count">'+
+  (o.cells*100/TERRITORY_SIZE).toFixed(1)+'%</span></div>').join("");
+ const rank=order.findIndex(o=>o.index===0)+1;
+ $("territoryLeaderboardFooter").textContent=rank<=quota?
+  "✓ "+rank+"º · ZONA DE CLASIFICACIÓN":"↑ "+rank+"º · CONQUISTÁ PARA SUBIR";
+}
+function showFinalTerritoryLeaderboard(){
+ const box=$("finalTerritoryLeaderboard");
+ if(currentMode!=="territory"){box.classList.remove("on");box.innerHTML="";return}
+ box.classList.add("on");
+ const order=contestants.map(index=>({index,cells:territoryCount[index]}))
+   .sort((a,b)=>b.cells-a.cells||a.index-b.index);
+ box.innerHTML='<div class="final-gem-title">🟩 TERRITORIO FINAL · SUPERFICIE CONTROLADA</div><div class="final-gem-rows">'+
+  order.map((o,i)=>'<div class="final-gem-row'+(o.index===0?' you':'')+'"><span class="gplayer">'+
+   (i+1)+'º <span style="color:#'+runnerColor(o.index).toString(16).padStart(6,'0')+'">●</span> '+
+   (o.index===0?'VOS':profiles[o.index].name)+'</span><strong class="gems">'+
+   (o.cells*100/TERRITORY_SIZE).toFixed(1)+'%</strong></div>').join("")+'</div>';
+}
+function territoryTick(dt){
+ miniClock-=dt;
+ for(const r of activeRacers())territoryMovePath(r);
+ territoryFlushTiles();
+ if(miniChallengeElapsed-territoryUpdatedAt>.22){
+  territoryUpdatedAt=miniChallengeElapsed;territoryUpdateBoard();
+ }
+ if(miniClock<=0)miniCloseRound();
+}
+
 const tagWeight=new THREE.Group();
 const tagMetal=mat(0x64798b,.62,.26),tagWarn=mat(0xffb1c7,.12,.25,{emissive:0xd03b56,emissiveIntensity:.28});
 ball(tagMetal,tagWeight,[0,.12,0],[.42,.35,.42]);
