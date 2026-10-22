@@ -155,6 +155,13 @@ body.ballistix-mode .ball-score.out{filter:saturate(.25)!important;opacity:.38!i
 .auto-round{min-height:19px;color:#92ffec;font:800 11px Outfit;text-align:center;margin-top:9px}
 @media(max-height:780px){.premium-menu{padding:17px!important}.menu-description{margin-bottom:10px}.menu-tabs{margin-bottom:9px}.menu-feature{padding:13px}.menu-title{font-size:35px}}
 
+
+.pause-backdrop{position:absolute;inset:0;z-index:100;background:#020915c9;display:none;align-items:center;justify-content:center;padding:25px;backdrop-filter:blur(13px);pointer-events:auto}
+.pause-backdrop.on{display:flex}.pause-panel{width:min(100%,390px);padding:27px 22px;text-align:center;background:linear-gradient(135deg,#163866f7,#10163cf8);border:1px solid #72ece98a;border-radius:23px;box-shadow:0 20px 75px #0008}
+.pause-icon{font:900 33px Outfit;color:#2bf7df;margin-bottom:9px}.pause-title{font:900 27px Outfit;color:white;letter-spacing:-.03em}.pause-panel p{font-size:13px;color:#a9cbe2;line-height:1.4;margin:10px 0 18px}
+.pause-panel button{display:block;width:100%;margin:8px 0;border-radius:12px;min-height:47px;font:900 12px Outfit;cursor:pointer}
+.pause-panel .pause-alt{background:#132b54;border:1px solid #84bcf072;color:#e9f8ff}
+
 </style>
 </head>
 <body>
@@ -241,6 +248,15 @@ body.ballistix-mode .ball-score.out{filter:saturate(.25)!important;opacity:.38!i
 <button class="primary mainprimary" id="retry">→ CONTINUAR</button><button class="result-menu-btn" id="resultMenu">☰ VOLVER AL MENÚ</button><div class="auto-round" id="autoRound" aria-live="polite"></div>
 <div class="more"><button class="secondary" id="share">↗ COMPARTIR RESULTADO</button></div>
 </div></div>
+<div class="pause-backdrop" id="pauseOverlay">
+ <div class="pause-panel">
+  <div class="pause-icon">Ⅱ</div><div class="pause-title">PARTIDA EN PAUSA</div>
+  <p>Podés seguir donde estabas, reiniciar esta prueba o salir al menú.</p>
+  <button class="primary mainprimary" id="pauseResume">▶ CONTINUAR</button>
+  <button class="pause-alt" id="pauseRestart">↻ REINICIAR PRUEBA</button>
+  <button class="pause-alt" id="pauseMenu">☰ MENÚ PRINCIPAL</button>
+ </div>
+</div>
 <div class="modebar" id="modebar">PREVIEW 3D · PC Y CELULAR</div>
 </div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}</script>
@@ -541,7 +557,7 @@ const ROUND_RULES=[
 ];
 let roundIndex=0,contestants=[0,1,2,3,4,5],nextQualifiers=[],playerQualified=false,tournamentStars=0;
 
-let gameType="tournament",chosenSoloMode="race",raceEndAfterPlayer=0,roundTransitionTimer=null,runSequence=0;
+let gameType="tournament",chosenSoloMode="race",raceEndAfterPlayer=0,roundTransitionTimer=null,runSequence=0,phaseBeforePause="race";
 let gameSettings={sound:true,haptics:true,quality:"auto",difficulty:"normal"};
 const settingsStoreKey="microcaos_settings_v2";
 try{
@@ -581,6 +597,7 @@ function showMenuPage(page){
 }
 function returnToMenu(){
  cancelAutoAdvance();
+ $("pauseOverlay").classList.remove("on");
  phase="intro";dragSteeringActive=false;raceEndAfterPlayer=0;
  for(const id of ["hud","progress","controls","stagebanner","ballScoreboard","miniObjective","pickupCounter"])$(id).classList.remove("on");
  $("finish").classList.remove("show");$("intro").classList.remove("hidden");
@@ -588,6 +605,17 @@ function returnToMenu(){
  document.body.classList.remove("ballistix-mode");
  $("notice").classList.remove("show");
  showMenuPage("home");
+}
+function toggleGamePause(){
+ if(phase==="paused"&&$("pauseOverlay").classList.contains("on")){
+  $("pauseOverlay").classList.remove("on");
+  phase=phaseBeforePause;physicsAccumulator=0;last=performance.now();
+  return;
+ }
+ if(phase==="race"||phase==="countdown"){
+  phaseBeforePause=phase;phase="paused";physicsAccumulator=0;
+  $("pauseOverlay").classList.add("on");
+ }else if(phase==="finished"||phase==="intro"){returnToMenu()}
 }
 function startSolo(modeName){
  if(!Object.prototype.hasOwnProperty.call(MINI_MODES,modeName))return;
@@ -1467,6 +1495,7 @@ function showRoundTheme(){moodLights.forEach(m=>m.material=moodMat[roundIndex]);
 function resetRound(){
  currentMode=modePlaylist[roundIndex]||"race";
  raceEndAfterPlayer=0;
+ $("pauseOverlay").classList.remove("on");
  phase="countdown";elapsed=0;countdown=2.75;checkpoint=-1;
  physicsAccumulator=0;physicsTime=0;dragSteeringActive=false;dragPointerId=null;steer=0;steerZ=0;
  $("intro").classList.add("hidden");$("finish").classList.remove("show");
@@ -1809,7 +1838,7 @@ function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;
  $("notice").textContent="Error al simular la partida. Tocá REINICIAR para volver a jugar. "+window.__microcaosError;
  $("notice").classList.add("show");
 }for(let r of racers)if(r.mixer)r.mixer.update(dt);$("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
-if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,22.3,9.5):new THREE.Vector3(0,18.0,9.7)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.7,11.6,12.5):new THREE.Vector3(9.7,11.8,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
+if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,22.3,9.5):new THREE.Vector3(0,18.0,9.7)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.7,11.6,12.5):new THREE.Vector3(9.7,11.8,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
 if(mode==="ar"&&frame&&session){if(!hitRequested){hitRequested=true;session.requestReferenceSpace("viewer").then(viewer=>session.requestHitTestSource({space:viewer})).then(s=>hitSource=s).catch(()=>{})}if(hitSource&&!placed){const results=frame.getHitTestResults(hitSource);if(results.length){let pose=results[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;const m=new THREE.Matrix4().fromArray(pose.transform.matrix);reticle.position.setFromMatrixPosition(m);reticle.quaternion.setFromRotationMatrix(m);$("placeArena").style.display="inline-flex";$("notice").textContent="¡Ya veo la superficie! Tocá COLOCAR PISTA para anclar la arena."}}else{reticle.visible=false;$("placeArena").style.display="none"}}}
 if(performance.now()>lastToast)$("toast").classList.remove("show");if(performance.now()>skillToastUntil)$("skillToast").classList.remove("on");renderer.render(scene,camera)}
 const reticle=new THREE.Mesh(new THREE.RingGeometry(.20,.23,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x71ffdf,side:THREE.DoubleSide,depthWrite:false}));reticle.visible=false;scene.add(reticle);
@@ -1926,7 +1955,10 @@ $("singleStart").onclick=()=>startSolo(chosenSoloMode);
 $("tryBallistix").onclick=()=>startSolo("ballistix");
 $("retry").onclick=roundAdvance;
 $("resultMenu").onclick=returnToMenu;
-$("menuToggle").onclick=returnToMenu;
+$("menuToggle").onclick=toggleGamePause;
+$("pauseResume").onclick=toggleGamePause;
+$("pauseRestart").onclick=()=>{cancelAutoAdvance();resetRound()};
+$("pauseMenu").onclick=returnToMenu;
 $("ballRestart").onclick=()=>{if(currentMode==="ballistix")resetRound()};
 document.querySelectorAll("[data-menu-tab]").forEach(button=>{
  button.addEventListener("click",()=>showMenuPage(button.dataset.menuTab));
