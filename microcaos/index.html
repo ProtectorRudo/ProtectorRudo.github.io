@@ -945,6 +945,10 @@ territoryArea.add(territoryTiles);
 const territoryTrailGeo=new THREE.BoxGeometry(TERRITORY_DX*.75,.065,TERRITORY_DZ*.75);
 const territoryTrailMat=new THREE.MeshBasicMaterial({color:0xffffff});
 const territoryTrailMesh=new THREE.InstancedMesh(territoryTrailGeo,territoryTrailMat,TERRITORY_SIZE);
+const territoryShieldVisual=mesh(new THREE.TorusGeometry(.86,.045,9,44),
+ new THREE.MeshBasicMaterial({color:0x8bfff2,transparent:true,opacity:.82,depthWrite:false}),
+ territoryArea,[0,.34,0],[1,1,1],false);
+territoryShieldVisual.rotation.x=Math.PI/2;territoryShieldVisual.visible=false;
 territoryTrailMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 territoryTrailMesh.frustumCulled=false;territoryTrailMesh.castShadow=false;
 territoryTrailMesh.count=0;territoryArea.add(territoryTrailMesh);
@@ -1079,7 +1083,7 @@ function territoryMovePath(r){
 }
 function territoryStart(){
  territoryOwners.fill(-1);territoryTrails.fill(-1);territoryBaseCells.fill(-1);territoryCount.fill(0);
- territoryTrailMesh.count=0;territoryUpdatedAt=-1;territoryLeaderboardSignature="";
+ territoryTrailMesh.count=0;territoryShieldVisual.visible=false;territoryUpdatedAt=-1;territoryLeaderboardSignature="";
  for(let idx=0;idx<TERRITORY_SIZE;idx++)territoryTiles.setColorAt(idx,territoryDark);
  territoryTiles.instanceColor.needsUpdate=true;territoryChanged=false;
  for(const r of activeRacers()){
@@ -1177,6 +1181,12 @@ function showFinalTerritoryLeaderboard(){
 }
 function territoryTick(dt){
  miniClock-=dt;
+ const player=racers[0],shielded=miniChallengeElapsed<(player.territoryShieldUntil||0);
+ territoryShieldVisual.visible=shielded;
+ if(shielded){
+  territoryShieldVisual.position.set(player.x,.34,player.z);
+  territoryShieldVisual.scale.setScalar(1+Math.sin(miniChallengeElapsed*11)*.08);
+ }
  for(const r of activeRacers())territoryMovePath(r);
  territoryFlushTiles();
  if(miniChallengeElapsed-territoryUpdatedAt>.22){
@@ -2129,7 +2139,7 @@ function moveMiniGame(dt,t){
   let dx=0,dz=0;
   if(r.index!==0){[dx,dz]=currentMode==="territory"?territoryBotDirection(r,t):miniBotDirection(r,t)}
   else if(dragSteeringActive){
-   dx=clamp((dragTargetX-r.x)*1.45,-1,1);dz=clamp((dragTargetZ-r.z)*1.28,-1,1);
+   dx=clamp((dragTargetX-r.x)*1.45,-1,1);dz=(currentMode==="territory"?-1:1)*clamp((dragTargetZ-r.z)*1.28,-1,1);
   }else{dx=steer;dz=steerZ}
   const norm=Math.max(1,Math.hypot(dx,dz));dx/=norm;dz/=norm;
   const sprint=(r.dash>0?1.68:1)*(currentMode==="tag"&&r.index===weightHolder?1.16:1);
