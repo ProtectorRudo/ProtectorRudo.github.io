@@ -3508,8 +3508,8 @@ playSurface.addEventListener("pointerdown",e=>{
  if(currentMode==="ballistix"){
   const rect=playSurface.getBoundingClientRect();
   dragTargetX=clamp((((e.clientX-rect.left)/rect.width)-.5)*8.1,-ballMaxMove,ballMaxMove);
- }else dragTargetX=racers[0].x;
- dragTargetZ=racers[0].z;
+ }else dragTargetX=racers[mp.active&&!mp.host?mp.slot:0].x;
+ dragTargetZ=racers[mp.active&&!mp.host?mp.slot:0].z;
  try{playSurface.setPointerCapture(e.pointerId)}catch(error){}
  e.preventDefault();
 });
