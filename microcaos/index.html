@@ -404,7 +404,7 @@ function move(dt,t){
    }else if(o.kind==="pad"&&Math.abs(r.x-o.x)<.86&&r.y<.14){
     if(r.padCooldown!==o){
      r.padCooldown=o;performJump(r,true);
-     r.vy=8.2;r.jumpCount=1;
+     r.padCooldown=o;r.vy=8.2;r.jumpCount=1;
      r.speedBonus=1.5;
      if(i===0){skillMessage("¡SUPER REBOTE!",750);tactile(24);cue(820,.22)}
     }
@@ -602,7 +602,19 @@ function placeArena(){
 }
 $("placeArena").onclick=placeArena;
 renderer.domElement.addEventListener("pointerup",placeArena);
-$("play").onclick=begin;$("retry").onclick=begin;$("jump").onclick=jump;$("dash").onclick=turbo;$("sound").onclick=()=>{soundOn=!soundOn;$("sound").textContent=soundOn?"♫":"♪";if(soundOn)cue(650,.08)};
+$("play").onclick=begin;$("retry").onclick=begin;
+function bindFastAction(id,fn){
+ const button=$(id);let pointerAt=-99999;
+ button.style.touchAction="manipulation";
+ button.addEventListener("pointerdown",e=>{
+  if(e.pointerType==="touch"||e.pointerType==="pen"){
+   pointerAt=performance.now();fn();e.preventDefault();
+  }
+ });
+ button.addEventListener("click",()=>{if(performance.now()-pointerAt>400)fn()});
+}
+bindFastAction("jump",jump);bindFastAction("dash",turbo);
+$("sound").onclick=()=>{soundOn=!soundOn;$("sound").textContent=soundOn?"♫":"♪";if(soundOn)cue(650,.08)};
 $("share").onclick=async()=>{let text=window.resultText||"¡Probé MICROCAOS Party Rush!";try{if(navigator.share)await navigator.share({title:"MICROCAOS",text,url:location.href});else if(navigator.clipboard){await navigator.clipboard.writeText(text+" "+location.href);announce("RESULTADO COPIADO",1500)}}catch(e){}};
 const joy=$("joy"),stick=$("stick");function updateJoy(e){const b=joy.getBoundingClientRect(),cx=b.left+b.width/2,dx=clamp(e.clientX-cx,-43,43);steer=clamp(dx/37,-1,1);stick.style.transform="translateX("+dx+"px)"}joy.addEventListener("pointerdown",e=>{joy.setPointerCapture(e.pointerId);moveTouch=true;updateJoy(e)});joy.addEventListener("pointermove",e=>{if(moveTouch)updateJoy(e)});function endJoy(){moveTouch=false;steer=0;stick.style.transform="translateX(0px)"}joy.addEventListener("pointerup",endJoy);joy.addEventListener("pointercancel",endJoy);
 const keys=new Set();addEventListener("keydown",e=>{keys.add(e.code);if(["Space","ArrowLeft","ArrowRight","ShiftLeft","KeyA","KeyD"].includes(e.code))e.preventDefault();if(e.code==="Space"&&!e.repeat)jump();if(e.code==="ShiftLeft"&&!e.repeat)turbo();if(e.code==="Enter"&&phase==="intro")begin()});addEventListener("keyup",e=>keys.delete(e.code));setInterval(()=>{if(!moveTouch){steer=((keys.has("KeyD")||keys.has("ArrowRight"))?1:0)-((keys.has("KeyA")||keys.has("ArrowLeft"))?1:0);stick.style.transform="translateX("+(steer*32)+"px)"}},30);
