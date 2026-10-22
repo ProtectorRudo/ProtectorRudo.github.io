@@ -676,77 +676,65 @@ function moveMiniGame(dt,t){
  $("jumpCount").textContent=racers[0].jumpCount?"×1":"×2";
 }
 
-function showRoundTheme(){
- const q=roundRule();
- $("stagebanner").textContent="RONDA "+(roundIndex+1)+"/3 · "+q.name+" · "+(roundIndex===2?"¡PRIMERO GANA!":"PASAN "+q.qualify);
- $("rankLabel").textContent="POSICIÓN · "+(roundIndex===2?"FINAL":q.qualify+" PASAN");
- $("modebar").textContent="MICROCAOS · "+q.name+" · "+contestants.length+" CORREDORES";
- moodLights.forEach(m=>m.material=moodMat[roundIndex]);
- for(const o of obstacles){
-   o.enabled=roundIndex===2||o.kind==="pad"||(roundIndex===1?
-     (o.kind==="spin"||o.kind==="slide"||o.kind==="piston"):
-     (o.kind==="spin"&&o.z>0)||(o.kind==="slide"&&o.z>0));
-   const group=o.kind==="spin"||o.kind==="piston"?o.part.parent:o.part;
-   group.visible=o.enabled;
-   if(o.kind==="spin")o.roundSpeed=o.speed*q.spin;
-   if(o.kind==="slide")o.roundSpeed=o.speed*q.slide;
-   if(o.kind==="piston")o.roundSpeed=2.4*q.piston;
- }
-}
+function showRoundTheme(){moodLights.forEach(m=>m.material=moodMat[roundIndex]);renderModeLabel()}
 function resetRound(){
+ currentMode=modePlaylist[roundIndex]||"race";
  phase="countdown";elapsed=0;countdown=2.75;checkpoint=-1;
- physicsAccumulator=0;physicsTime=0;dragSteeringActive=false;dragPointerId=null;
+ physicsAccumulator=0;physicsTime=0;dragSteeringActive=false;dragPointerId=null;steer=0;steerZ=0;
  $("intro").classList.add("hidden");$("finish").classList.remove("show");
- $("hud").classList.add("on");$("progress").classList.add("on");$("stagebanner").classList.add("on");
- $("controls").classList.add("on");$("obstacleHint").classList.remove("on");
- $("pickupCounter").classList.add("on");$("rushHud").classList.remove("on");
- $("skillToast").classList.remove("on");$("speedtrails").classList.remove("active");
+ for(const id of ["hud","progress","stagebanner","controls","pickupCounter"])$(id).classList.add("on");
+ for(const id of ["obstacleHint","rushHud","skillToast"])$(id).classList.remove("on");
+ $("speedtrails").classList.remove("active");
  $("jumpCount").textContent="×2";$("dash").textContent="TURBO";
  $("progressBar").style.width="0%";$("pickupValue").textContent=tournamentStars;
- for(const x of stars){x.used=false;x.g.visible=true}
+ for(const item of stars){item.used=false;item.g.visible=currentMode==="race"}
+ for(const fall of fallingWeights)stage.remove(fall.mesh);fallingWeights.length=0;
  const count=contestants.length;
  racers.forEach((r,i)=>{
-   const lane=contestants.indexOf(i);r.root.visible=lane>=0;
-   r.finished=false;r.finishTime=0;r.cool=0;r.stumbles=0;r.stars=0;r.invuln=0;
-   r.animationName="";r.jumpCount=0;r.jumpBuffer=0;r.padCooldown=null;r.vx=0;r.lean=0;r.animDistance=0;
-   r.coyote=0;r.airTime=0;r.jumpFlash=0;r.landing=0;r.combo=0;r.speedBonus=0;
-   r.stun=0;r.dash=0;r.dashCd=0;r.y=0;r.vy=0;r.nearMisses=new Set();
-   if(lane>=0){r.x=(lane-(count-1)/2)*(count>=5?1.29:1.75);r.z=11.6+(lane%2)*.90}
-   r.root.position.set(r.x,0,r.z);r.root.rotation.set(0,0,0);r.rig.scale.set(1,1,1);
-   if(r.mixer)r.mixer.stopAllAction();useAnimation(r,"Idle");
+  const lane=contestants.indexOf(i);r.root.visible=lane>=0;r.root.scale.set(1,1,1);
+  r.finished=false;r.finishTime=0;r.eliminatedAt=0;r.cool=0;r.stumbles=0;r.stars=0;r.invuln=0;
+  r.animationName="";r.jumpCount=0;r.jumpBuffer=0;r.padCooldown=null;r.vx=0;r.vz=0;r.lean=0;r.animDistance=0;
+  r.coyote=0;r.airTime=0;r.jumpFlash=0;r.landing=0;r.combo=0;r.speedBonus=0;
+  r.stun=0;r.dash=0;r.dashCd=0;r.y=0;r.vy=0;r.nearMisses=new Set();
+  if(lane>=0){
+   if(currentMode==="race"){r.x=(lane-(count-1)/2)*(count>=5?1.29:1.75);r.z=11.6+(lane%2)*.90}
+   else{const a=lane/Math.max(1,count)*Math.PI*2+Math.PI/2;r.x=Math.cos(a)*2.3;r.z=Math.sin(a)*2.8}
+  }
+  r.root.position.set(r.x,0,r.z);r.root.rotation.set(0,0,0);r.rig.scale.set(1,1,1);
+  if(r.mixer)r.mixer.stopAllAction();useAnimation(r,"Idle");
  });
- showRoundTheme();cue(510,.12);announce("RONDA "+(roundIndex+1)+" · "+roundRule().name,1300);
+ startMiniChallenge();showRoundTheme();cue(510,.12);announce("¡"+MINI_MODES[currentMode].title+"!",1400);
 }
-function startTournament(){roundIndex=0;contestants=[0,1,2,3,4,5];nextQualifiers=[];playerQualified=false;tournamentStars=0;resetRound()}
+function startTournament(){roundIndex=0;contestants=[0,1,2,3,4,5];nextQualifiers=[];playerQualified=false;tournamentStars=0;modePlaylist=choosePlaylist();resetRound()}
 function concludeRound(){
  if(phase!=="race")return;
- phase="finished";dragSteeringActive=false;
- for(let id of ["controls","obstacleHint","hud","progress","stagebanner","pickupCounter","speedtrails"]){
-  $(id).classList.remove(id==="controls"?"on":id==="speedtrails"?"active":id==="obstacleHint"?"on":"on");
- }
- const order=scoreOrder(),quota=roundRule().qualify;
- nextQualifiers=order.filter(r=>r.finished).slice(0,quota).map(r=>r.index);
+ phase="finished";dragSteeringActive=false;tagWeight.visible=false;
+ for(let id of ["controls","obstacleHint","hud","progress","stagebanner","pickupCounter","miniObjective"])
+   $(id).classList.remove("on");
+ $("speedtrails").classList.remove("active");$("miniObjective").classList.remove("danger");
+ const order=currentMode==="race"?scoreOrder():miniOrder(),quota=roundRule().qualify;
+ nextQualifiers=(currentMode==="race"?order.filter(r=>r.finished):order).slice(0,quota).map(r=>r.index);
  playerQualified=nextQualifiers.includes(0);
- const place=order.findIndex(r=>r.index===0)+1;
- const final=roundIndex===2,won=final&&nextQualifiers[0]===0;
- $("qualifiedGrid").innerHTML=nextQualifiers.map((i,n)=>
-  '<div class="qualified-card'+(i===0?' you':'')+'"><span class="ord">'+(n+1)+'º</span>'+
-  '<span class="chip" style="background:#'+colors[i].toString(16).padStart(6,"0")+'"></span>'+
-  (i===0?"VOS":profiles[i].name)+'</div>').join("");
- $("stageEyebrow").textContent=final?"RESULTADO · GRAN FINAL":"RONDA "+(roundIndex+1)+" · CLASIFICADOS";
+ const place=order.findIndex(r=>r.index===0)+1,final=roundIndex===2,won=final&&nextQualifiers[0]===0;
+ $("qualifiedGrid").innerHTML=nextQualifiers.map((id,n)=>
+  '<div class="qualified-card'+(id===0?' you':'')+'"><span class="ord">'+(n+1)+'º</span>'+
+  '<span class="chip" style="background:#'+colors[id].toString(16).padStart(6,"0")+'"></span>'+
+  (id===0?"VOS":profiles[id].name)+'</div>').join("");
+ $("stageEyebrow").textContent=MINI_MODES[currentMode].emoji+" "+MINI_MODES[currentMode].title+" · RESULTADO";
  $("medal").textContent=won?"🏆":playerQualified?"🏅":"🎖️";
  $("finaltitle").textContent=won?"¡SOS CAMPEÓN!":final?"¡TERMINÓ LA FINAL!":playerQualified?"¡CLASIFICASTE!":"¡ELIMINADO!";
- $("finaltext").textContent=won?"Ganaste el torneo de tres niveles. ¡Increíble!":
-  final?"Solo el primero se lleva la copa. Terminaste "+place+"º.":
-  playerQualified?"¡Estás entre los "+quota+" mejores! La siguiente carrera tiene obstáculos más difíciles.":
-  "Quedaste "+place+"º. Solo pasaban los primeros "+quota+". ¡Revancha!";
+ $("finaltext").textContent=won?"¡Ganaste el torneo sorpresa de MICROCAOS!":
+ final?"Solo uno puede ganar. Quedaste "+place+"º.":
+ playerQualified?"¡Seguís en competencia! La próxima prueba es "+MINI_MODES[modePlaylist[roundIndex+1]].title+".":
+ "Quedaste "+place+"º. Solo pasaban "+quota+". ¡Probá otro torneo de pruebas aleatorias!";
  $("finalpos").textContent=place+"º";$("finaltime").textContent=formatTime(elapsed);
- $("finalstars").textContent=tournamentStars;
- $("retry").textContent=playerQualified&&!final?"→ SIGUIENTE: "+ROUND_RULES[roundIndex+1].name:"↻ NUEVO TORNEO";
- $("finish").classList.add("show");cue(won?990:playerQualified?780:320,.21);
- if(won){for(let i=0;i<4;i++)setTimeout(()=>puff(rand(-2,2),-12.5,colors[i],17),i*160)}
- window.resultText=won?"¡Soy campeón del torneo MICROCAOS! 🏆":
-  "¡Jugué MICROCAOS, llegué a "+roundRule().name+" y terminé "+place+"º!";
+ $("finalstars").textContent=currentMode==="gems"?miniScores[0]:tournamentStars;
+ $("retry").textContent=playerQualified&&!final?
+  "→ "+MINI_MODES[modePlaylist[roundIndex+1]].emoji+" SIGUIENTE: "+MINI_MODES[modePlaylist[roundIndex+1]].title:
+  "↻ NUEVO TORNEO SORPRESA";
+ $("finish").classList.add("show");cue(won?990:playerQualified?790:320,.21);
+ if(won)for(let i=0;i<4;i++)setTimeout(()=>puff(rand(-2,2),-3,colors[i],17),i*160);
+ window.resultText=won?"¡Soy campeón de MICROCAOS Party Rush! 🏆":"¡Jugué "+MINI_MODES[currentMode].title+" y terminé "+place+"º en MICROCAOS!";
 }
 function roundAdvance(){if(playerQualified&&roundIndex<2){roundIndex++;contestants=[...nextQualifiers];resetRound()}else startTournament()}
 
@@ -770,11 +758,12 @@ function move(dt,t){
  if(phase==="countdown"){
    countdown-=dt;
    if(countdown>0){const now=Math.ceil(countdown);if(Math.ceil(countdown+dt)!==now&&now<=3){announce(""+now,560);cue(380+now*80,.075)}}
-   else{phase="race";announce("¡A CORRER!",680);cue(960,.24,"triangle",.1);tactile(30)}
+   else{phase="race";announce(MINI_MODES[currentMode].objective,800);cue(960,.24,"triangle",.1);tactile(30)}
    return;
  }
  if(phase!=="race")return;
  elapsed+=dt;
+ if(currentMode!=="race"){moveMiniGame(dt,t);return}
  if(elapsed>53){concludeRound();return}
  for(let i=0;i<racers.length;i++){
   const r=racers[i];if(r.finished||!contestants.includes(i))continue;const bot=i!==0;
@@ -968,7 +957,7 @@ function animateObstacles(t){for(let o of obstacles){if(o.kind==="spin")o.part.r
 function animateParticles(dt){for(let i=puffs.length-1;i>=0;i--){let q=puffs[i];q.life-=dt;if(q.life<=0){stage.remove(q.mesh);q.mesh.material.dispose();puffs.splice(i,1);continue}q.vy-=dt*4;q.mesh.position.x+=q.vx*dt;q.mesh.position.y+=q.vy*dt;q.mesh.position.z+=q.vz*dt;q.mesh.scale.multiplyScalar(.97);q.mesh.material.opacity=clamp(q.life/q.max,0,1)}}
 let previewTarget=new THREE.Vector3();let camStarted=false;let cameraShake=0;
 let physicsAccumulator=0,physicsTime=0;
-let dragPointerId=null,dragSteeringActive=false,dragLastX=0,dragTargetX=0;
+let dragPointerId=null,dragSteeringActive=false,dragLastX=0,dragLastY=0,dragTargetX=0,dragTargetZ=0,steerZ=0;
 const FIXED_DT=1/60;
 function smoothFactor(rate,seconds){return 1-Math.exp(-rate*seconds)}
 function physicsTick(frameDt){
@@ -980,8 +969,8 @@ function physicsTick(frameDt){
   for(let n=0;n<count;n++){physicsTime+=FIXED_DT;move(FIXED_DT,physicsTime);physicsAccumulator-=FIXED_DT}
   if(count===6&&physicsAccumulator>FIXED_DT)physicsAccumulator=0;
 }
-function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;const sec=t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);physicsTick(dt);for(let r of racers)if(r.mixer)r.mixer.update(dt);$("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
-if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished";let zz=follow?clamp(p.z-1.6,-11.9,9):0;let target=new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow?Math.min(.25,p.y*.15):0,previewTarget.z-(follow?1.9:2.8))}
+function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;const sec=t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);animateFallingWeights(dt);physicsTick(dt);for(let r of racers)if(r.mixer)r.mixer.update(dt);$("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
+if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode!=="race"&&follow?(portrait?new THREE.Vector3(9.6,14.2,14.7):new THREE.Vector3(9.7,12.7,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
 if(mode==="ar"&&frame&&session){if(!hitRequested){hitRequested=true;session.requestReferenceSpace("viewer").then(viewer=>session.requestHitTestSource({space:viewer})).then(s=>hitSource=s).catch(()=>{})}if(hitSource&&!placed){const results=frame.getHitTestResults(hitSource);if(results.length){let pose=results[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;const m=new THREE.Matrix4().fromArray(pose.transform.matrix);reticle.position.setFromMatrixPosition(m);reticle.quaternion.setFromRotationMatrix(m);$("placeArena").style.display="inline-flex";$("notice").textContent="¡Ya veo la superficie! Tocá COLOCAR PISTA para anclar la arena."}}else{reticle.visible=false;$("placeArena").style.display="none"}}}
 if(performance.now()>lastToast)$("toast").classList.remove("show");if(performance.now()>skillToastUntil)$("skillToast").classList.remove("on");renderer.render(scene,camera)}
 const reticle=new THREE.Mesh(new THREE.RingGeometry(.20,.23,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x71ffdf,side:THREE.DoubleSide,depthWrite:false}));reticle.visible=false;scene.add(reticle);
@@ -1112,16 +1101,17 @@ playSurface.style.touchAction="none";
 playSurface.addEventListener("pointerdown",e=>{
  if(mode!=="preview"||phase!=="race"||dragSteeringActive)return;
  if(e.pointerType==="mouse"&&e.button!==0)return;
- dragSteeringActive=true;dragPointerId=e.pointerId;dragLastX=e.clientX;
- dragTargetX=racers[0].x;
+ dragSteeringActive=true;dragPointerId=e.pointerId;dragLastX=e.clientX;dragLastY=e.clientY;
+ dragTargetX=racers[0].x;dragTargetZ=racers[0].z;
  try{playSurface.setPointerCapture(e.pointerId)}catch(error){}
  e.preventDefault();
 });
 playSurface.addEventListener("pointermove",e=>{
  if(!dragSteeringActive||e.pointerId!==dragPointerId)return;
- const dx=clamp(e.clientX-dragLastX,-120,120);
- dragTargetX=clamp(dragTargetX+(dx/Math.max(320,innerWidth))*8.6,-3.38,3.38);
- dragLastX=e.clientX;
+ const dx=clamp(e.clientX-dragLastX,-120,120),dy=clamp(e.clientY-dragLastY,-120,120);
+ dragTargetX=clamp(dragTargetX+(dx/Math.max(320,innerWidth))*8.6,-4.25,4.25);
+ if(currentMode!=="race")dragTargetZ=clamp(dragTargetZ+(dy/Math.max(400,innerHeight))*14,-5.75,5.75);
+ dragLastX=e.clientX;dragLastY=e.clientY;
  e.preventDefault();
 });
 function endDragSteer(e){
@@ -1131,8 +1121,12 @@ function endDragSteer(e){
 playSurface.addEventListener("pointerup",endDragSteer);
 playSurface.addEventListener("pointercancel",endDragSteer);
 
-const joy=$("joy"),stick=$("stick");function updateJoy(e){const b=joy.getBoundingClientRect(),cx=b.left+b.width/2,dx=clamp(e.clientX-cx,-43,43);steer=clamp(dx/37,-1,1);stick.style.transform="translateX("+dx+"px)"}joy.addEventListener("pointerdown",e=>{joy.setPointerCapture(e.pointerId);moveTouch=true;updateJoy(e)});joy.addEventListener("pointermove",e=>{if(moveTouch)updateJoy(e)});function endJoy(){moveTouch=false;steer=0;stick.style.transform="translateX(0px)"}joy.addEventListener("pointerup",endJoy);joy.addEventListener("pointercancel",endJoy);
-const keys=new Set();addEventListener("keydown",e=>{keys.add(e.code);if(["Space","ArrowLeft","ArrowRight","ShiftLeft","KeyA","KeyD"].includes(e.code))e.preventDefault();if(e.code==="Space"&&!e.repeat)jump();if(e.code==="ShiftLeft"&&!e.repeat)turbo();if(e.code==="Enter"&&phase==="intro")begin();if(e.code==="Enter"&&phase==="finished")roundAdvance()});addEventListener("keyup",e=>keys.delete(e.code));setInterval(()=>{if(!moveTouch){steer=((keys.has("KeyD")||keys.has("ArrowRight"))?1:0)-((keys.has("KeyA")||keys.has("ArrowLeft"))?1:0);stick.style.transform="translateX("+(steer*32)+"px)"}},30);
+const joy=$("joy"),stick=$("stick");function updateJoy(e){const b=joy.getBoundingClientRect(),cx=b.left+b.width/2,cy=b.top+b.height/2,dx=clamp(e.clientX-cx,-43,43),dy=clamp(e.clientY-cy,-43,43);
+ steer=clamp(dx/37,-1,1);steerZ=currentMode==="race"?0:clamp(-dy/37,-1,1);
+ stick.style.transform="translate("+dx+"px,"+(currentMode==="race"?0:dy)+"px)"}joy.addEventListener("pointerdown",e=>{joy.setPointerCapture(e.pointerId);moveTouch=true;updateJoy(e)});joy.addEventListener("pointermove",e=>{if(moveTouch)updateJoy(e)});function endJoy(){moveTouch=false;steer=0;steerZ=0;stick.style.transform="translate(0px,0px)"}joy.addEventListener("pointerup",endJoy);joy.addEventListener("pointercancel",endJoy);
+const keys=new Set();addEventListener("keydown",e=>{keys.add(e.code);if(["Space","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","ShiftLeft","KeyA","KeyD","KeyW","KeyS"].includes(e.code))e.preventDefault();if(e.code==="Space"&&!e.repeat)jump();if(e.code==="ShiftLeft"&&!e.repeat)turbo();if(e.code==="Enter"&&phase==="intro")begin();if(e.code==="Enter"&&phase==="finished")roundAdvance()});addEventListener("keyup",e=>keys.delete(e.code));setInterval(()=>{if(!moveTouch){steer=((keys.has("KeyD")||keys.has("ArrowRight"))?1:0)-((keys.has("KeyA")||keys.has("ArrowLeft"))?1:0);
+ steerZ=currentMode==="race"?0:(((keys.has("KeyW")||keys.has("ArrowUp"))?1:0)-((keys.has("KeyS")||keys.has("ArrowDown"))?1:0));
+ stick.style.transform="translate("+(steer*32)+"px,"+(-steerZ*32)+"px)"}},30);
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&phase==="race"){physicsAccumulator=0;phase="paused";$("notice").textContent="Partida en pausa. Tocá para continuar.";$("notice").classList.add("show")}});
 $("notice").addEventListener("click",()=>{if(phase==="paused"){phase="race";$("notice").classList.remove("show")}});
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();$("notice").textContent="Se perdió el contexto gráfico. Actualizá la página para recuperar el juego.";$("notice").classList.add("show")});
