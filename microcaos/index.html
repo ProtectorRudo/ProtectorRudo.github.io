@@ -502,7 +502,7 @@ function createCharacter(col,index){
   ball(toyChocolate,rig,[0,1.12,-.567],[.075,.051,.035]);
  }
  const label=textSprite(profiles[index].name,42,index===0?"#75ffe4":"#ffffff");
- label.position.set(0,2.20,0);label.scale.set(1.70,.44,1);root.add(label);
+ label.position.set(0,2.53,0);label.scale.set(1.70,.44,1);root.add(label);
  // A small ground-level speed ring instead of a giant transparent halo.
  const sheen=mesh(new THREE.TorusGeometry(.55,.023,6,28),
   mat(col,0,.52,{transparent:true,opacity:.07,depthWrite:false,emissive:col,emissiveIntensity:.48}),
@@ -545,7 +545,7 @@ function selectMascot(index){
    if(r.label.material?.dispose)r.label.material.dispose();
   }
   r.label=textSprite(display,45,i===0?"#8dffec":"#ffffff");
-  r.label.position.set(0,2.05,0);r.label.scale.set(1.85,.48,1);r.root.add(r.label);
+  r.label.position.set(0,2.53,0);r.label.scale.set(1.75,.44,1);r.root.add(r.label);
  }
  document.querySelectorAll("[data-mascot]").forEach(el=>el.classList.toggle("selected",Number(el.dataset.mascot)===index));
  $("mascotDescription").textContent="Elegiste a "+mascotDisplayNames[index]+". ¡Listo para competir!";
@@ -1441,7 +1441,7 @@ function miniTag(dt){
  if(weightHolder>=0){
   const h=racers[weightHolder];
   tagWeight.visible=true;
-  tagWeight.position.set(h.x,h.y+2.70+Math.sin(miniChallengeElapsed*7)*.12,h.z);
+  tagWeight.position.set(h.x,h.y+3.13+Math.sin(miniChallengeElapsed*7)*.12,h.z);
    tagDangerRing.visible=true;tagDangerRing.position.set(h.x,.17,h.z);
    tagDangerRing.scale.setScalar(1+Math.sin(miniChallengeElapsed*7)*.13);
    tagDangerMat.opacity=.55+Math.sin(miniChallengeElapsed*7)*.25;
@@ -1523,7 +1523,7 @@ function miniBotDirection(r,t){
   if(r.index===weightHolder){
    // Hunting intelligence: choose a reachable opponent, intercept their
    // current velocity, and commit briefly so the pursuer doesn't oscillate.
-   if(!r.aiFocus || !others.some(q=>q.index===r.aiFocus) || t>r.aiFocusUntil){
+   if(r.aiFocus==null || !others.some(q=>q.index===r.aiFocus) || t>r.aiFocusUntil){
     let best=null,bestScore=Infinity;
     for(const q of others){
      const d=Math.hypot(q.x-r.x,q.z-r.z);
