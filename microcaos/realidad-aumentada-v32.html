@@ -1129,7 +1129,7 @@ function ccCollapse(){
  for(const r of ok){
   r.ccScore=(r.ccScore||0)+1;
   ccRipple(r.x,r.z,color.hex);
-  if(r.index===0){tactile(18);skillMessage("¡TE SALVASTE! ✨",650)}
+  if(r.index===0){tactile(18);skillMessage("¡TE SALVASTE! ✨",650);v33Burst(r.x,r.z,12,color.hex)}
  }
  for(const r of out){r.ccFall=miniChallengeElapsed;knockoutRunner(r,null)}
  for(const tile of ccTiles)tile.fall=tile.color!==cc.target;
@@ -2892,6 +2892,7 @@ function begin(){if(mode==="ar"&&!placed){announce("TOCÁ UNA SUPERFICIE",1400);
 function hit(r,power=1){
  if(r.invuln>0||r.y>.75||r.dash>.10)return;
  r.stun=.21;r.invuln=1.05;r.speedBonus=0;r.combo=0;
+ v33Burst(r.x,r.z,10,0xffd868);
  // Do not teleport the character when hit; collisions only change lateral momentum.
  r.vx=(r.vx||0)+(r.x>=0?.9:-.9)*power;
  r.stumbles++;useAnimation(r,"Hit");puff(r.x,r.z,0xffd578,12);
@@ -3134,7 +3135,25 @@ function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;
  phase="paused";physicsAccumulator=0;window.__microcaosError=error?.message||String(error);
  $("notice").textContent="Error al simular la partida. Tocá REINICIAR para volver a jugar. "+window.__microcaosError;
  $("notice").classList.add("show");
-}for(let r of racers)if(r.mixer)r.mixer.update(dt);$("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
+}// Elastic vinyl-toy acting: subtle stride compression, idle breathing and recovery.
+ // Per-entity transforms only: no extra draw calls, works in WebXR and PC.
+ for(const r of racers){
+  if(r.mixer)r.mixer.update(dt);
+  if(!r.rig)continue;
+  const speed=Math.min(1,Math.hypot(r.vx||0,r.vz||0)/7);
+  const moving=phase==="race"&&!r.finished&&currentMode!=="ballistix";
+  const active=moving?speed:0;
+  const gait=Math.sin((r.animDistance||0)*1.75+(r.phase||0));
+  const breath=Math.sin(t*.0021+(r.phase||0))*.016;
+  const squash=1-active*.055+gait*active*.030+breath;
+  const bounce=1+active*.025-gait*active*.016;
+  const blend=1-Math.exp(-10*dt);
+  r.rig.scale.y+=(squash-r.rig.scale.y)*blend;
+  r.rig.scale.x+=(bounce-r.rig.scale.x)*blend;
+  r.rig.scale.z+=(bounce-r.rig.scale.z)*blend;
+  // Small torso tilt communicates direction but never distorts world physics.
+  r.rig.rotation.x+=(Math.max(-.09,Math.min(.09,(r.vz||0)*.012))*active-r.rig.rotation.x)*blend;
+ }$("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
 if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=currentMode==="territory"&&follow?new THREE.Vector3(clamp(p.x*.72,-TERRITORY_HALF_X*.72,TERRITORY_HALF_X*.72),0,clamp(p.z*.70,-TERRITORY_HALF_Z*.70,TERRITORY_HALF_Z*.70)):new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,22.3,9.5):new THREE.Vector3(0,18.0,9.7)):currentMode==="territory"&&follow?(portrait?new THREE.Vector3(previewTarget.x,32,previewTarget.z+22):new THREE.Vector3(previewTarget.x+11.8,21,previewTarget.z+22)):currentMode==="colorcrash"&&follow?(portrait?new THREE.Vector3(0,23,16):new THREE.Vector3(8.5,20.3,19.4)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.7,11.6,12.5):new THREE.Vector3(9.7,11.8,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
 if(mode==="ar"&&frame&&session){if(!hitRequested&&performance.now()-arLastHitAttempt>2100){hitRequested=true;arLastHitAttempt=performance.now();const origin=session;session.requestReferenceSpace("viewer").then(viewer=>origin.requestHitTestSource({space:viewer})).then(source=>{if(session===origin)hitSource=source;else source?.cancel?.()}).catch(error=>{hitRequested=false;console.warn("XR hit-test",error);$("notice").textContent="No pude detectar superficies todavía. Reintentando…"})}if(hitSource&&!placed){const results=frame.getHitTestResults(hitSource);if(results.length){let pose=results[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;const m=new THREE.Matrix4().fromArray(pose.transform.matrix);reticle.position.setFromMatrixPosition(m);reticle.quaternion.setFromRotationMatrix(m);
  const normal=new THREE.Vector3(0,1,0).applyQuaternion(reticle.quaternion);
