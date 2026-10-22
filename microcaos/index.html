@@ -162,6 +162,37 @@ body.ballistix-mode .ball-score.out{filter:saturate(.25)!important;opacity:.38!i
 .pause-panel button{display:block;width:100%;margin:8px 0;border-radius:12px;min-height:47px;font:900 12px Outfit;cursor:pointer}
 .pause-panel .pause-alt{background:#132b54;border:1px solid #84bcf072;color:#e9f8ff}
 
+
+/* Gem Rush: fully visible live ranking for all participants, mobile-first. */
+.gem-leaderboard{position:absolute;top:228px;right:14px;z-index:10;width:min(40vw,185px);max-width:185px;box-sizing:border-box;display:none;padding:10px 9px 8px;border:1px solid #51eff6a1;border-radius:16px;background:linear-gradient(158deg,#102b50ee,#101536f2);box-shadow:0 12px 32px #0308248a,0 0 22px #14dada25;backdrop-filter:blur(10px);pointer-events:none;overflow:hidden}
+.gem-leaderboard.on{display:block}
+.gem-lb-heading{display:flex;align-items:center;justify-content:space-between;gap:2px;margin-bottom:8px}
+.gem-lb-heading>div{display:flex;gap:4px;align-items:center}
+.gem-lb-heading strong{font:900 11px Outfit,sans-serif;letter-spacing:.035em;color:#ecffff}
+.gem-lb-heading small{font:900 9px Outfit,sans-serif;color:#ffdb6a;white-space:nowrap}
+.gem-lb-rows{display:flex;flex-direction:column;gap:4px}
+.gem-lb-row{display:grid;grid-template-columns:20px 9px minmax(0,1fr) 25px;align-items:center;gap:4px;height:28px;border-radius:8px;background:#1e365c79;border:1px solid transparent;padding:0 5px;position:relative}
+.gem-lb-row.you{background:#0c625787;border-color:#43ffdeaa;box-shadow:inset 0 0 8px #38f9d524}
+.gem-lb-row.cutoff{margin-bottom:7px}
+.gem-lb-row.cutoff:after{content:"LÍNEA DE CLASIFICACIÓN";position:absolute;bottom:-9px;right:0;left:0;text-align:center;color:#ffd76b;font:900 7px Outfit,sans-serif;letter-spacing:.015em}
+.gem-lb-pos{font:900 13px Outfit,sans-serif;color:#bfcfee;text-align:center}
+.gem-lb-row:first-child .gem-lb-pos{color:#ffda52}
+.gem-lb-chip{width:9px;height:9px;box-shadow:0 0 6px var(--team);border-radius:50%;background:var(--team)}
+.gem-lb-name{font:800 11px Outfit,sans-serif;color:#f6fcff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gem-lb-row.you .gem-lb-name{color:#91ffec}
+.gem-lb-count{font:900 15px Outfit,sans-serif;color:#fff1bc;text-align:right;font-variant-numeric:tabular-nums}
+.gem-lb-footer{color:#9fbfdd;font:750 9px Outfit,sans-serif;text-align:center;margin-top:8px;min-height:10px}
+.final-gem-leaderboard{display:none;margin:7px 0 12px;padding:12px;background:#10234cba;border:1px solid #52dfefa1;border-radius:14px}
+.final-gem-leaderboard.on{display:block}
+.final-gem-title{font:900 12px Outfit,sans-serif;color:#80fff1;letter-spacing:.06em;margin-bottom:8px}
+.final-gem-rows{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.final-gem-row{display:flex;justify-content:space-between;align-items:center;gap:4px;min-width:0;padding:7px;background:#1b356c88;border-radius:8px;border:1px solid #6a8bd24b;font:900 11px Outfit,sans-serif;color:#eafbff}
+.final-gem-row.you{border-color:#44ffdf;background:#1660607d}
+.final-gem-row .gplayer{display:flex;align-items:center;gap:4px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.final-gem-row .gems{font-size:13px;color:#ffe071;white-space:nowrap;font-variant-numeric:tabular-nums}
+@media(max-width:520px){.gem-leaderboard{right:8px;top:230px;width:145px;padding:7px 6px;border-radius:13px}.gem-lb-heading strong{font-size:10px}.gem-lb-heading small{font-size:8px}.gem-lb-row{grid-template-columns:16px 7px minmax(0,1fr) 22px;height:25px;gap:3px;padding:0 3px}.gem-lb-row.cutoff:after{font-size:6px}.gem-lb-pos{font-size:11px}.gem-lb-name{font-size:10px}.gem-lb-chip{width:7px;height:7px}.gem-lb-count{font-size:13px}.gem-lb-footer{font-size:8px}}
+@media(max-height:750px){.gem-leaderboard{top:210px}}
+
 </style>
 </head>
 <body>
@@ -173,7 +204,12 @@ body.ballistix-mode .ball-score.out{filter:saturate(.25)!important;opacity:.38!i
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
-<div class="speedtrails" id="speedtrails"></div><div class="stagebanner" id="stagebanner">RONDA SORPRESA</div><div id="miniObjective" class="mini-objective">¡PREPARADOS!</div><div id="ballScoreboard" class="ball-scoreboard" aria-live="off"></div><button id="ballRestart" type="button" class="ball-restart" aria-label="Reiniciar Ballistix" title="Reiniciar Ballistix">↻</button><div class="raceprogress" id="progress"><div class="bar" id="progressBar"></div></div>
+<div class="speedtrails" id="speedtrails"></div><div class="stagebanner" id="stagebanner">RONDA SORPRESA</div><div id="miniObjective" class="mini-objective">¡PREPARADOS!</div>
+<section id="gemLeaderboard" class="gem-leaderboard" aria-label="Ranking de gemas en vivo">
+  <div class="gem-lb-heading"><div><span>💎</span><strong>RANKING</strong></div><small id="gemQualification">PASAN 4</small></div>
+  <div id="gemLeaderboardRows" class="gem-lb-rows"></div>
+  <div class="gem-lb-footer" id="gemLeaderboardFooter">JUNTÁ GEMAS PARA SUBIR</div>
+</section><div id="ballScoreboard" class="ball-scoreboard" aria-live="off"></div><button id="ballRestart" type="button" class="ball-restart" aria-label="Reiniciar Ballistix" title="Reiniciar Ballistix">↻</button><div class="raceprogress" id="progress"><div class="bar" id="progressBar"></div></div>
 <div class="toast" id="toast">¡PREPARADOS!</div><div id="skillToast" class="skilltoast"></div><div id="obstacleHint" class="obstacle-hint">↥ ¡SALTÁ AHORA!</div><div class="rushHud" id="rushHud">⚡ RITMO ×<span id="rushValue">1</span></div><div class="pickupCounter" id="pickupCounter">✦ <span id="pickupValue">0</span></div>
 <div id="notice"></div><button id="placeArena" class="primary ar-place" style="display:none">✓ COLOCAR PISTA AQUÍ</button><div id="arHelp" class="ar-help" style="display:none"><div class="ar-help-box"><div class="ar-help-icon">◈</div><h2 id="arHelpTitle">Realidad aumentada</h2><p id="arHelpText"></p><a class="primary ar-fallback" id="arHelpNative" href="ar.html">◈ ABRIR VISOR AR ANDROID ↗</a><button class="secondary ar-fallback2" id="arHelp3D">JUGAR EN 3D SIN CÁMARA</button><button class="ar-dismiss" id="arHelpClose">CERRAR</button></div></div>
 <div class="modalshade" id="intro">
@@ -243,7 +279,9 @@ body.ballistix-mode .ball-score.out{filter:saturate(.25)!important;opacity:.38!i
 </div>
 <div class="finish" id="finish"><div class="finishcard">
 <div class="eyebrow"><i></i> <span id="stageEyebrow">RONDA TERMINADA</span></div>
-<div class="medal" id="medal">🏆</div><div class="finaltitle" id="finaltitle">¡QUÉ CARRERA!</div><div class="finaltext" id="finaltext"></div><div id="qualifiedGrid" class="qualified-grid"></div>
+<div class="medal" id="medal">🏆</div><div class="finaltitle" id="finaltitle">¡QUÉ CARRERA!</div><div class="finaltext" id="finaltext"></div>
+<div id="finalGemLeaderboard" class="final-gem-leaderboard"></div>
+<div id="qualifiedGrid" class="qualified-grid"></div>
 <div class="stats"><div><div class="statnum" id="finalpos">1º</div><div class="statlabel">POSICIÓN</div></div><div><div class="statnum" id="finaltime">00:30</div><div class="statlabel">TIEMPO</div></div><div><div class="statnum" id="finalstars">0</div><div class="statlabel">ESTRELLAS</div></div></div>
 <button class="primary mainprimary" id="retry">→ CONTINUAR</button><button class="result-menu-btn" id="resultMenu">☰ VOLVER AL MENÚ</button><div class="auto-round" id="autoRound" aria-live="polite"></div>
 <div class="more"><button class="secondary" id="share">↗ COMPARTIR RESULTADO</button></div>
@@ -689,7 +727,7 @@ function returnToMenu(){
  cancelAutoAdvance();
  $("pauseOverlay").classList.remove("on");
  phase="intro";dragSteeringActive=false;raceEndAfterPlayer=0;
- for(const id of ["hud","progress","controls","stagebanner","ballScoreboard","miniObjective","pickupCounter"])$(id).classList.remove("on");
+ for(const id of ["hud","progress","controls","stagebanner","ballScoreboard","miniObjective","pickupCounter","gemLeaderboard"])$(id).classList.remove("on");
  $("finish").classList.remove("show");$("intro").classList.remove("hidden");
  $("speedtrails").classList.remove("active");
  document.body.classList.remove("ballistix-mode");
@@ -1347,6 +1385,7 @@ function renderModeLabel(){
  moodLights.forEach(obj=>obj.visible=currentMode==="race");
  for(const k of Object.keys(miniStages))miniStages[k].visible=k===currentMode;
  document.body.classList.toggle("ballistix-mode",currentMode==="ballistix");
+ $("gemLeaderboard").classList.toggle("on",currentMode==="gems");
  renderer.shadowMap.enabled=currentMode!=="ballistix";
  applyGraphicsQuality();
  if(mode==="preview"){
@@ -1381,7 +1420,7 @@ function spawnGem(gem){
  gem.g.position.set(gem.x,1.02,gem.z);gem.g.visible=true;
 }
 function startMiniChallenge(){
- miniScores=Array(6).fill(0);miniChallengeElapsed=0;miniPhase=0;tagTransfers=0;
+ miniScores=Array(6).fill(0);gemRankingSignature="";miniChallengeElapsed=0;miniPhase=0;tagTransfers=0;
  miniLastTouch=0;weightHolder=-1;
  for(const gem of gemItems){spawnGem(gem)}
  if(currentMode==="tag"){
@@ -1390,6 +1429,7 @@ function startMiniChallenge(){
   weightHolder=alive[Math.floor(Math.random()*alive.length)];
  }else if(currentMode==="gems"){
   miniClock=MINI_MODES.gems.time-2+roundIndex*2;
+  updateGemLeaderboard(true);
  }else if(currentMode==="ballistix"){
   miniClock=0;startBallistix();
  }else if(currentMode==="survival"){
@@ -1481,6 +1521,49 @@ function animateFallingWeights(dt){
   if(f.life<=0){stage.remove(f.mesh);fallingWeights.splice(i,1)}
  }
 }
+
+// Live Gem Rush scoreboard. Rebuild only when the actual scores or roster change.
+let gemRankingSignature="";
+function gemLeaderboardOrder(){
+ return contestants.map(index=>({index,score:miniScores[index]}))
+  .sort((a,b)=>b.score-a.score||a.index-b.index);
+}
+function updateGemLeaderboard(force=false){
+ if(currentMode!=="gems")return;
+ const order=gemLeaderboardOrder();
+ const quota=gameType==="individual"?1:roundRule().qualify;
+ const sig=quota+"|"+order.map(r=>r.index+":"+r.score).join(",");
+ if(!force&&sig===gemRankingSignature)return;
+ gemRankingSignature=sig;
+ $("gemQualification").textContent=gameType==="individual"?"1° GANA":"PASAN "+quota;
+ $("gemLeaderboardRows").innerHTML=order.map((r,i)=>{
+  const name=r.index===0?"VOS":profiles[r.index].name;
+  return '<div class="gem-lb-row'+(r.index===0?" you":"")+
+   (i===quota-1&&quota<order.length?" cutoff":"")+'" style="--team:#'+
+   runnerColor(r.index).toString(16).padStart(6,"0")+'">'+
+   '<span class="gem-lb-pos">'+(i===0?"★":(i+1)+"°")+'</span>'+
+   '<span class="gem-lb-chip"></span>'+
+   '<span class="gem-lb-name">'+name+'</span>'+
+   '<span class="gem-lb-count">'+r.score+'</span></div>';
+ }).join("");
+ const myRank=order.findIndex(r=>r.index===0)+1;
+ $("gemLeaderboardFooter").textContent=myRank<=quota?
+  "✓ "+myRank+"° · ZONA DE CLASIFICACIÓN":
+  "↑ "+myRank+"° · ¡SUBÍ AL TOP "+quota+"!";
+}
+function showFinalGemLeaderboard(){
+ const container=$("finalGemLeaderboard");
+ if(currentMode!=="gems"){container.classList.remove("on");container.innerHTML="";return}
+ const ranked=gemLeaderboardOrder();
+ container.classList.add("on");
+ container.innerHTML='<div class="final-gem-title">💎 CLASIFICACIÓN FINAL · GEMAS</div><div class="final-gem-rows">'+
+ ranked.map((r,i)=>
+  '<div class="final-gem-row'+(r.index===0?' you':'')+'"><span class="gplayer">'+
+  (i+1)+'° <span style="color:#'+runnerColor(r.index).toString(16).padStart(6,'0')+'">●</span> '+
+  (r.index===0?"VOS":profiles[r.index].name)+'</span><strong class="gems">'+r.score+' 💎</strong></div>'
+ ).join('')+'</div>';
+}
+
 function miniGems(dt,t){
  miniClock-=dt;
  for(const item of gemItems){
@@ -1488,7 +1571,7 @@ function miniGems(dt,t){
   item.g.rotation.y+=dt*1.6;
   for(const r of liveRacers()){
    if(Math.hypot(r.x-item.x,r.z-item.z)<.78){
-    miniScores[r.index]++;puff(item.x,item.z,0xffe5a4,8);
+    miniScores[r.index]++;updateGemLeaderboard();puff(item.x,item.z,0xffe5a4,8);
     if(r.index===0){tactile(12);cue(880,.08);skillMessage("💎 "+miniScores[0]+" GEMAS",450)}
     spawnGem(item);break;
    }
@@ -1682,9 +1765,10 @@ function startTournament(){cancelAutoAdvance();gameType="tournament";raceEndAfte
 function concludeRound(){
  if(phase!=="race")return;
  phase="finished";dragSteeringActive=false;tagWeight.visible=false;tagDangerRing.visible=false;
- for(const id of ["controls","obstacleHint","hud","progress","stagebanner","pickupCounter","miniObjective"])$(id).classList.remove("on");
+ for(const id of ["controls","obstacleHint","hud","progress","stagebanner","pickupCounter","miniObjective","gemLeaderboard"])$(id).classList.remove("on");
  $("speedtrails").classList.remove("active");$("miniObjective").classList.remove("danger");
  $("ballScoreboard").classList.remove("on");
+ showFinalGemLeaderboard();
  const ordered=currentMode==="race"?scoreOrder():miniOrder();
  const quota=roundRule().qualify,final=gameType==="tournament"&&roundIndex===2;
  // A timed-out race must rank all participants by progress, not discard runners
