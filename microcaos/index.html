@@ -1920,14 +1920,45 @@ function placeArena(){
 }
 $("placeArena").onclick=placeArena;
 renderer.domElement.addEventListener("pointerup",placeArena);
+// Premium game navigation – every menu control changes real gameplay state.
 $("play").onclick=begin;
-$("ballRestart").onclick=()=>{if(currentMode==="ballistix")resetRound()};
-$("tryBallistix").onclick=()=>{
-  if(mode==="ar"&&!placed){announce("PRIMERO COLOCÁ LA ARENA",900);return}
-  roundIndex=1;contestants=[0,1,2,3];nextQualifiers=[];playerQualified=false;tournamentStars=0;
-  modePlaylist=["tag","ballistix","survival"];resetRound();
-};
+$("singleStart").onclick=()=>startSolo(chosenSoloMode);
+$("tryBallistix").onclick=()=>startSolo("ballistix");
 $("retry").onclick=roundAdvance;
+$("resultMenu").onclick=returnToMenu;
+$("menuToggle").onclick=returnToMenu;
+$("ballRestart").onclick=()=>{if(currentMode==="ballistix")resetRound()};
+document.querySelectorAll("[data-menu-tab]").forEach(button=>{
+ button.addEventListener("click",()=>showMenuPage(button.dataset.menuTab));
+});
+document.querySelectorAll("[data-open-page]").forEach(button=>{
+ button.addEventListener("click",()=>showMenuPage(button.dataset.openPage));
+});
+document.querySelectorAll("[data-mode]").forEach(button=>{
+ button.addEventListener("click",()=>{
+  chosenSoloMode=button.dataset.mode;
+  document.querySelectorAll("[data-mode]").forEach(el=>el.classList.toggle("selected",el===button));
+ });
+});
+document.querySelectorAll("[data-mascot]").forEach(button=>{
+ button.addEventListener("click",()=>selectMascot(Number(button.dataset.mascot)));
+});
+function syncSettingsUI(){
+ $("settingSound").checked=gameSettings.sound;
+ $("settingHaptics").checked=gameSettings.haptics;
+ $("settingQuality").value=gameSettings.quality;
+ $("settingDifficulty").value=gameSettings.difficulty;
+ soundOn=gameSettings.sound;
+ $("sound").textContent=soundOn?"♫":"♪";
+ applyGraphicsQuality();
+}
+$("settingSound").onchange=()=>{gameSettings.sound=$("settingSound").checked;syncSettingsUI();saveGamePreferences()};
+$("settingHaptics").onchange=()=>{gameSettings.haptics=$("settingHaptics").checked;saveGamePreferences()};
+$("settingQuality").onchange=()=>{gameSettings.quality=$("settingQuality").value;applyGraphicsQuality();saveGamePreferences()};
+$("settingDifficulty").onchange=()=>{gameSettings.difficulty=$("settingDifficulty").value;saveGamePreferences()};
+syncSettingsUI();
+selectMascot(selectedMascot);
+showMenuPage("home");
 function bindFastAction(id,fn){
  const button=$(id);let pointerAt=-99999;
  button.style.touchAction="manipulation";
@@ -1939,7 +1970,7 @@ function bindFastAction(id,fn){
  button.addEventListener("click",()=>{if(performance.now()-pointerAt>400)fn()});
 }
 bindFastAction("jump",jump);bindFastAction("dash",turbo);
-$("sound").onclick=()=>{soundOn=!soundOn;$("sound").textContent=soundOn?"♫":"♪";if(soundOn)cue(650,.08)};
+$("sound").onclick=()=>{soundOn=!soundOn;gameSettings.sound=soundOn;$("settingSound").checked=soundOn;$("sound").textContent=soundOn?"♫":"♪";saveGamePreferences();if(soundOn)cue(650,.08)};
 $("share").onclick=async()=>{let text=window.resultText||"¡Probé MICROCAOS Party Rush!";try{if(navigator.share)await navigator.share({title:"MICROCAOS",text,url:location.href});else if(navigator.clipboard){await navigator.clipboard.writeText(text+" "+location.href);announce("RESULTADO COPIADO",1500)}}catch(e){}};
 
 const playSurface=renderer.domElement;
