@@ -73,8 +73,9 @@ export function transition(current,event){
    }else if(signal==="ambiguous"||signal==="unknown"){
      result.status="review";result.reason="Respuesta ambigua o sin clasificar";
    }else if(signal==="ack"){
-     if(!prior || prior.status!=="waiting"){result.status="candidate";result.reason="Acuse de recibo sin señal de cierre";}
-     else {result.status="waiting";result.reason="Una consulta anterior sigue sin respuesta";}
+     // A simple thanks must NEVER clear a previous hold or ambiguous statement.
+     if(prior?.status==="candidate"){result.status="candidate";result.reason="Acuse de recibo; propuesta aún sin cierre confirmado";}
+     else {result.status=prior?.status??"review";result.reason=prior?.reason??"Acuse de recibo sin contexto suficiente";}
    }
  }else if(event.direction==="out"){
    if(signal==="human_followup"){result.status="blocked";result.reason="Seguimiento del vendedor";}
