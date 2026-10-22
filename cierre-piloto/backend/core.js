@@ -1,5 +1,5 @@
 // CIERRE shadow-mode core. Pure functions; no network, storage or message sending.
-export const VERSION = "0.3.0";
+export const VERSION = "0.4.0";
 export const STATES = Object.freeze({
   candidate:"candidate", waiting:"waiting", review:"review",
   blocked:"blocked", superseded:"superseded"
@@ -20,6 +20,27 @@ export function classifyText(text,direction){
  if(/^(?:gracias|muchas gracias|mil gracias|te agradezco|muchisimas gracias)(?:[!. ]|🙏|👍)*$/.test(v))return "ack";
  return "unknown";
 }
+
+/**
+ * A signal is persisted instead of full message text.
+ * Out-of-order and concurrent delivery must NEVER silently re-open a blocked case.
+ */
+export function extractEventSignal(event){
+ if(event.direction==="out" && event.kind==="document"){
+  if(event.filename && isQuoteFilename(event.filename))return "quote_pdf";
+  return "unverified_document"; // includes invoices, receipts and unnamed attachments
+ }
+ if(event.kind!=="text")return "non_text";
+ return classifyText(event.text,event.direction);
+}
+export function shouldForceSafetyHold(signal){
+ return ["optout","rejected","purchased","human_followup","question","ambiguous","non_text","unverified_document"].includes(signal);
+}
+export function safetyStateForLateSignal(signal){
+ if(["optout","rejected","purchased","human_followup"].includes(signal))return "blocked";
+ return "review";
+}
+
 export function isQuoteFilename(filename){
  const v=normalise(filename);
  return /\.pdf$/.test(v) && /(?:presup|cotiza|proforma|quote|budget|oferta)/.test(v);
