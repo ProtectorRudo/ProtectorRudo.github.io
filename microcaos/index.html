@@ -361,7 +361,7 @@ body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172a
  <button id="arRotate" type="button" aria-label="Girar arena">↻</button>
  </div>
  <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V4.7</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V4.8</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -398,7 +398,7 @@ body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172a
    <div class="feature-stages"><span>6 PARTICIPANTES</span><b>→</b><span>4</span><b>→</b><span>3</span><b>→</b><span>🏆</span></div>
    <button id="play" class="primary mainprimary">COMENZAR TORNEO <span>↗</span></button>
   </div>
-  <a class="menu-secondary-link" href="multijugador-monsters-v42.html" style="display:flex;text-decoration:none;color:#d6fff9;border:1px solid #48e9dba1;background:linear-gradient(110deg,#16485aa9,#102e54b8);font-weight:900">🌐 MULTIJUGADOR ONLINE · 2, 3 O 4 AMIGOS <span>↗</span></a>
+  <a class="menu-secondary-link" href="multijugador.html" style="display:flex;text-decoration:none;color:#d6fff9;border:1px solid #48e9dba1;background:linear-gradient(110deg,#16485aa9,#102e54b8);font-weight:900">🌐 MULTIJUGADOR ONLINE · 2, 3 O 4 AMIGOS <span>↗</span></a>
   <button class="menu-secondary-link" data-open-page="modes">🎮 ELEGÍ UNA DE LAS 7 PRUEBAS <span>→</span></button>
   <p class="menu-muted" style="font-size:11px;margin-top:10px">◈ PARA JUGAR EN AR: elegí la prueba en MODOS, tocá «INICIAR AR JUGABLE» y colocá la arena sobre una mesa o en el piso. Compatible con celulares Android que admitan WebXR.</p>
   <button class="menu-secondary-link" data-open-page="characters">✨ Elegir personaje <span id="activeMascotName">VOS</span></button>
@@ -440,7 +440,7 @@ body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172a
   <div class="setting-line"><div><b>Dificultad</b><small>Modifica la velocidad y reacción de los rivales</small></div><select id="settingDifficulty"><option value="easy">Tranquila</option><option value="normal">Normal</option><option value="hard">Difícil</option></select></div>
   <button class="primary mainprimary" data-open-page="home">GUARDAR Y VOLVER ✓</button>
  </section>
- <div class="menu-footer"><a id="nativeAR" href="ar.html">◈ VISOR 3D · SIN JUEGO</a><button id="ar">◈ INICIAR AR JUGABLE</button><button id="cam" style="display:none" aria-hidden="true">DEMO CÁMARA</button></div>
+ <div class="menu-footer"><a id="nativeAR" href="ar.html">◈ VER MAQUETA AR · SIN JUEGO</a><button id="ar">◈ INICIAR AR JUGABLE</button><button id="cam" style="display:none" aria-hidden="true">DEMO CÁMARA</button></div>
  <div id="arDevice" class="ar-device">Comprobando compatibilidad AR...</div>
  <div class="hint" id="gamehint">SIETE JUEGOS JUGABLES · SEIS MASCOTAS · AR CON WEBXR</div>
 </div></div>
@@ -3964,7 +3964,13 @@ function showARHelp(title,body){
 }
 $("arHelpClose").onclick=()=>{$("arHelp").style.display="none";$("intro").classList.remove("hidden")};
 $("arHelp3D").onclick=()=>{$("arHelp").style.display="none";begin()};
-function checkARSupport(){
+// Launcher links can guide users here, but a WebXR session must start on a user tap.
+ if(new URLSearchParams(location.search).has("ar")){
+   $("ar").style.outline="3px solid #67f9d5";
+   $("ar").style.outlineOffset="3px";
+   $("ar").textContent="📷 TOCÁ AQUÍ PARA JUGAR EN AR";
+ }
+ function checkARSupport(){
   const label=$("arDevice");
   if(iosPlatform){label.textContent="En iPhone podés jugar en 3D. Para AR jugable completa falta una app compatible con ARKit.";return}
   if(!androidPlatform){label.textContent="La AR jugable es experimental y necesita Android, Chrome y WebXR.";return}
@@ -4009,7 +4015,8 @@ async function setupAR(){
   $("ar").disabled=true;$("ar").textContent="INICIANDO AR…";
   let started=null;
   try{
-    if(!navigator.xr?.requestSession)throw new DOMException("WebXR no está disponible","NotSupportedError");
+    if(!navigator.xr?.requestSession)throw new DOMException(
+      "Abrí este enlace directamente en Chrome para Android (no desde el navegador de WhatsApp o ChatGPT). WebXR no está habilitado en este navegador.","NotSupportedError");
     // Some browsers support immersive-ar but reject a session requiring both hit-test and dom-overlay.
     // Request overlay optionally, then verify it exists before promising touch controls.
     started=await navigator.xr.requestSession("immersive-ar",{
