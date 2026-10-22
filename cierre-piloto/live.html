@@ -3,7 +3,7 @@
 :root{color-scheme:dark;--bg:#0b141c;--surface:#14232e;--line:#2c4150;--muted:#96afb9;--green:#42deb0}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:#eff7f7;font:14px/1.5 system-ui,Arial,sans-serif}main{max-width:1100px;margin:auto;padding:26px 19px 65px}header,.top,.casehead,.actions{display:flex;align-items:center;justify-content:space-between;gap:12px}header{margin-bottom:34px}.brand{font-size:25px;font-weight:900;letter-spacing:-1px}.brand small{display:block;font-size:10px;color:var(--muted);letter-spacing:2px}a{color:var(--green);text-decoration:none}h1{font-size:36px;margin:5px 0;letter-spacing:-1.1px}h2{font-size:17px;margin:0}p{color:var(--muted);margin:7px 0 15px}.tag{border:1px solid #255a49;color:var(--green);background:#123629;border-radius:24px;padding:7px 11px;font-size:11px;font-weight:700;white-space:nowrap}.note{border:1px solid #42694c;background:#1b322b;border-radius:13px;padding:14px;margin:22px 0;color:#b9e9d1}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{border:1px solid var(--line);border-radius:16px;background:var(--surface);overflow:hidden}.head{padding:18px 20px;border-bottom:1px solid var(--line)}.body{padding:20px}.head p{font-size:11px;margin:4px 0 0}.input{display:block;width:100%;padding:12px;background:#0c1a23;border:1px solid #385363;border-radius:9px;color:white;font:inherit;outline:none}.input:focus{border-color:var(--green)}label{display:block;font-size:12px;font-weight:750;margin:17px 0 7px}button{background:var(--green);color:#08291d;font:inherit;font-weight:800;border:0;border-radius:9px;padding:11px 13px;cursor:pointer}button.secondary{background:#263d4a;color:#f3f7f8;border:1px solid #426071}button:disabled{opacity:.45;cursor:not-allowed}.actions{justify-content:flex-start;flex-wrap:wrap;margin-top:15px}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:10px 0 20px}.metric{background:#172f33;border:1px solid #325249;border-radius:11px;padding:12px}.metric span{display:block;color:#a4c5ba;font-size:11px}.metric strong{display:block;font-size:30px;color:var(--green)}.tiny{font-size:11px;color:var(--muted)}.case{padding:16px 20px;border-bottom:1px solid var(--line)}.case:last-child{border-bottom:0}.casehead b{font-size:14px}.state{border:1px solid #7a6c48;color:#efd19b;padding:4px 8px;border-radius:20px;font-size:11px;white-space:nowrap}.state.blocked,.state.superseded{border-color:#784b50;color:#f4a8a8}.state.candidate{border-color:#326a56;color:#83e6bf}.warning{background:#352b22;border:1px solid #6a5240;padding:10px 12px;border-radius:10px;font-size:11px;color:#e6cb9a;margin-top:12px}footer{margin-top:25px;color:var(--muted);font-size:12px}@media(max-width:760px){.grid{grid-template-columns:1fr}h1{font-size:28px}.metrics{grid-template-columns:repeat(3,1fr)}header{align-items:flex-start}}
 </style></head>
-<body><main><header><div class="brand">CIERRE <small>INTEGRACIÓN · 0.3</small></div><a href="./index.html">← Volver al radar</a></header>
+<body><main><header><div class="brand">CIERRE <small>INTEGRACIÓN · 0.4</small></div><a href="./index.html">← Volver al radar</a></header>
 <div class="top"><div><h1>Monitor de WhatsApp</h1><p>Observá presupuestos y señales comerciales desde la conexión oficial, cuando esté configurada.</p></div><span id="status" class="tag">Desconectado</span></div>
 <div class="note"><b>Modo sombra permanente.</b> Este panel no puede enviar mensajes ni responde a los clientes. Un presupuesto detectado no es autorización para un seguimiento.</div>
 <div class="grid"><section class="card"><div class="head"><h2>Conectar el receptor</h2></div><div class="body"><p class="tiny">Primero hay que desplegar el backend con D1 y vincular oficialmente el WhatsApp Business del comercio. Este formulario solamente permite consultar ese receptor.</p>
@@ -13,9 +13,9 @@
 <div class="warning">Nunca cargues aquí el token de Meta, contraseña de WhatsApp ni datos de un cliente.</div></div></section>
 <section class="card"><div class="head"><div class="top"><h2>Recepción de eventos</h2><button id="refresh" class="secondary" disabled>↻ Actualizar</button></div></div><div class="body">
 <div class="metrics"><div class="metric"><span>Eventos únicos</span><strong id="events">—</strong></div><div class="metric"><span>Presupuestos</span><strong id="count">—</strong></div><div class="metric"><span>Envíos de CIERRE</span><strong>0</strong></div></div>
-<p class="tiny" id="coverage">Aún no hay un backend conectado.</p></div></section></div>
+<p class="tiny" id="coverage">Aún no hay un backend conectado.</p><div class="warning" id="readiness">Faltan comprobar mensajes entrantes y salientes desde los dispositivos reales. No es seguro automatizar seguimientos.</div></div></section></div>
 <section class="card" style="margin-top:19px"><div class="head"><h2>Presupuestos observados</h2><p>Identificadores anónimos, estado comercial y fecha de última interacción.</p></div><div id="cases" class="body"><p>Los casos aparecerán cuando el receptor esté desplegado y reciba webhooks firmados de Meta.</p></div></section>
-<footer>CIERRE 0.3 · Solo monitoreo. No lee el contenido de los PDF y no puede verificar ventas realizadas fuera de WhatsApp.</footer></main>
+<footer>CIERRE 0.4 · Solo monitoreo. No lee el contenido de los PDF y no puede verificar ventas realizadas fuera de WhatsApp.</footer></main>
 <script>
 (function(){"use strict";
 var base="",key="",active=false;
@@ -37,8 +37,16 @@ async function refresh(){
   var summary=results[0], cases=results[1];
   if(summary.mode!=="shadow" || cases.can_send!==false)throw Error("El receptor no confirmó que los envíos estén desactivados");
   el("events").textContent=fmt(summary.events);
-  el("count").textContent=fmt((cases.items||[]).length);
-  el("coverage").textContent=(summary.coverage||[]).filter(function(c){return c.field==="smb_message_echoes"||c.field==="messages"||c.field==="history"}).map(function(c){return c.field+": "+fmt(c.count)}).join(" · ")||"No se recibieron aún eventos de mensajes";
+  el("count").textContent=fmt((summary.statuses||[]).reduce(function(sum,r){return sum+Number(r.count||0)},0));
+  var coverage=(summary.coverage||[]).filter(function(c){return c.field==="smb_message_echoes"||c.field==="messages"||c.field==="history"});
+  el("coverage").textContent=coverage.map(function(c){return c.field+": "+fmt(c.count)}).join(" · ")||"No se recibieron aún eventos de mensajes";
+  var incoming=coverage.some(function(c){return c.field==="messages"&&Number(c.count)>0});
+  var outgoing=coverage.some(function(c){return c.field==="smb_message_echoes"&&Number(c.count)>0});
+  var note=!incoming&&!outgoing?"Sin eventos de WhatsApp: verificá el callback de Meta y suscripciones."
+    :!outgoing?"No llegaron mensajes salientes de los empleados. Probá el WhatsApp Business y los dispositivos reales."
+    :!incoming?"No llegaron mensajes del cliente. Probá una respuesta desde un teléfono de prueba."
+    :"Hay eventos entrantes y salientes. Falta verificar cobertura completa y lectura de PDF; todavía NO activar envíos.";
+  el("readiness").textContent=note;
   el("cases").innerHTML=(cases.items||[]).length?(cases.items||[]).map(function(c){
     return '<div class="case"><div class="casehead"><b>Contacto anónimo '+escapeHtml(c.contact_ref)+'</b><span class="state '+escapeHtml(c.status)+'">'+escapeHtml(label(c.status))+'</span></div><p>'+escapeHtml(c.reason)+'</p><p class="tiny">Última actividad: '+new Date(c.last_activity_at).toLocaleString("es-AR")+' · PDF: '+(c.pdf_detected?"identificado":"requiere revisión")+'</p>'+
     (c.status==="blocked"||c.status==="superseded"?"":'<div class="actions"><button class="secondary blockCase" data-id="'+escapeHtml(c.quote_id)+'">Registrar cierre o bloqueo</button></div>')+'</div>';
