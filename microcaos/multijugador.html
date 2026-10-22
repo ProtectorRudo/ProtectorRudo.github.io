@@ -277,6 +277,14 @@ body.ballistix-mode #ui .jump.ballistix-pulse-ready{animation:ballPulseReady 1.1
 @media(max-width:600px){.territory-board{right:8px;top:215px;width:143px}}
 
 /* COLOR CRASH — restrained premium HUD, leaves the action unobstructed. */
+/* V4.2: make playfield and small contestants readable. */
+body.colorcrash-mode .stagebanner{display:none!important}
+body.colorcrash-mode .color-crash-hud{top:64px;width:min(288px,75vw);padding:7px 10px 8px;border-radius:14px}
+body.colorcrash-mode .cc-symbol{width:35px;height:35px;font-size:21px}
+body.colorcrash-mode .cc-call strong{font-size:21px}
+body.colorcrash-mode #ccSeconds{font-size:21px}
+@media(max-width:600px){body.colorcrash-mode .color-crash-hud{top:84px!important;width:min(276px,82vw)!important}}
+
 .color-crash-hud{--cc:#ff526c;display:none;position:absolute;top:123px;left:50%;transform:translateX(-50%);z-index:11;width:min(356px,81vw);padding:11px 13px 12px;border-radius:19px;border:1px solid #ffffff45;background:linear-gradient(145deg,#08152bf2,#10213df2);box-shadow:0 12px 34px #000b,inset 0 1px 0 #ffffff24;backdrop-filter:blur(15px);color:#f8fbff;font-family:Outfit,sans-serif;pointer-events:none}
 .color-crash-hud.on{display:block}
 .cc-top{display:flex;justify-content:space-between;align-items:center;color:#bacde4;font-size:9px;letter-spacing:.12em;font-weight:850;margin-bottom:7px}
@@ -343,6 +351,8 @@ body.colorcrash-mode .hud,body.colorcrash-mode .raceprogress,body.colorcrash-mod
 .mp-shell input,.mp-shell select{font-size:16px}
 .mp-shell .mp-btn.primary:disabled{opacity:.48}
 
+body.colorcrash-mode .color-crash-hud{top:64px!important}
+@media(max-width:600px){body.colorcrash-mode .color-crash-hud{top:84px!important}}
 /* World-anchored AR needs compact overlay controls, not immersive menus over the arena. */
 .ar-tools{position:absolute;top:max(92px,calc(env(safe-area-inset-top) + 85px));right:11px;z-index:24;
  display:flex;gap:5px;align-items:center;padding:6px;background:#061a32d9;border:1px solid #7afee6b0;
@@ -431,7 +441,7 @@ body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172a
 </div></section>
 <div class="mp-live" id="mpLive"></div>
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V4.1</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V4.2</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -1009,13 +1019,16 @@ function v37InstallCharacter(index,gltf){
  const dimensions=bounds.getSize(new THREE.Vector3());
  if(!Number.isFinite(dimensions.y)||dimensions.y<.1)return false;
  // Physically normalize by height, width AND depth.
- const fit=Math.min(1.70/Math.max(dimensions.y,.001),
-                    1.03/Math.max(dimensions.x,.001),
-                    1.03/Math.max(dimensions.z,.001));
- const visualWidth=dimensions.x*fit,visualDepth=dimensions.z*fit;
- const bodyRadius=Math.min(.64,Math.max(.45,Math.max(visualWidth,visualDepth)*.5+.12));
- model.scale.setScalar(fit);
- model.position.set(-(bounds.min.x+bounds.max.x)*.5*fit,-bounds.min.y*fit,-(bounds.min.z+bounds.max.z)*.5*fit);
+ const heightScale=2.22/Math.max(dimensions.y,.001);
+ // Normalize horizontal dimensions independently; wide wings never make the whole
+ // character nearly invisible on crowded Color Crash tiles.
+ const widthScale=Math.min(heightScale,1.74/Math.max(dimensions.x,.001));
+ const depthScale=Math.min(heightScale,1.74/Math.max(dimensions.z,.001));
+ const visualWidth=dimensions.x*widthScale,visualDepth=dimensions.z*depthScale;
+ const visualHeight=dimensions.y*heightScale;
+ const bodyRadius=Math.min(.72,Math.max(.47,Math.max(visualWidth,visualDepth)*.34+.16));
+ model.scale.set(widthScale,heightScale,depthScale);
+ model.position.set(-(bounds.min.x+bounds.max.x)*.5*widthScale,-bounds.min.y*heightScale,-(bounds.min.z+bounds.max.z)*.5*depthScale);
  // Preserve original Quaternius texture colors and authored rigs.
  model.traverse(o=>{
   if(!o.isMesh)return;
@@ -1031,7 +1044,7 @@ function v37InstallCharacter(index,gltf){
  rig.add(model);
  const hidden=rig.userData.v35Body;
  if(hidden)hidden.visible=false;
- rig.userData.premiumCharacter={model,mixer,actions,clips:clips.map(c=>c.name),index,bodyRadius,visualWidth,visualDepth,
+ rig.userData.premiumCharacter={model,mixer,actions,clips:clips.map(c=>c.name),index,bodyRadius,visualWidth,visualDepth,visualHeight,
    bones:{
     legLeft:model.getObjectByName("UpperLeg.L"),
     legRight:model.getObjectByName("UpperLeg.R"),
@@ -1060,7 +1073,7 @@ async function v37LoadCharacters(){
   $("notice").textContent="⚠ No cargaron todos los monstruos. Actualizá la página para reintentar.";
   $("notice").classList.add("show");
  }
- window.__microcaosHeroQA=()=>({version:"4.1",ready:state.ready,loaded:state.loaded,failed:state.failed,errors:state.errors,source:state.source,assets:V37_HERO_ASSETS,characters:racers.map(r=>{const q=r.rig?.userData?.premiumCharacter;return q?{index:q.index,radius:q.bodyRadius,width:q.visualWidth,depth:q.visualDepth,clips:q.clips}:null})});
+ window.__microcaosHeroQA=()=>({version:"4.2",ready:state.ready,loaded:state.loaded,failed:state.failed,errors:state.errors,source:state.source,assets:V37_HERO_ASSETS,characters:racers.map(r=>{const q=r.rig?.userData?.premiumCharacter;return q?{index:q.index,radius:q.bodyRadius,width:q.visualWidth,depth:q.visualDepth,clips:q.clips}:null})});
 }
  v37LoadCharacters().catch(error=>{console.warn("Premium characters unavailable",error)});
 
@@ -1092,8 +1105,9 @@ function v38UpdateBeacon(t){
  v38Beacon.position.copy(me.root.position);
  v38Halo.rotation.z=t*.00064;
  v38Halo.scale.setScalar(1+Math.sin(t*.0048)*.085);
- v38Pointer.position.y=2.93+Math.sin(t*.0045)*.10;
- v38Caption.position.y=3.52+Math.sin(t*.0045)*.12;
+ const height=Math.max(1.8,Math.min(2.6,me.rig?.userData?.premiumCharacter?.visualHeight??2));
+ v38Pointer.position.y=height+.53+Math.sin(t*.0045)*.10;
+ v38Caption.position.y=height+1.03+Math.sin(t*.0045)*.10;
 }
 
 
@@ -1172,7 +1186,7 @@ function returnToMenu(){
  if(mp.active&&mp.started){
   if(mp.host&&!confirm("Si salís, la sala se cierra para todos. ¿Querés salir?"))return;
   mp.closing=true;mpForget();
-  mpAPI("leave",{code:mp.code,token:mp.token}).catch(()=>{}).finally(()=>{location.href="./multijugador-monsters-v41.html"});
+  mpAPI("leave",{code:mp.code,token:mp.token}).catch(()=>{}).finally(()=>{location.href="./multijugador-monsters-v42.html"});
   return;
  }
  cancelAutoAdvance();
@@ -1309,7 +1323,7 @@ function mpRemember(){
 }
 function mpForget(){try{sessionStorage.removeItem(MP_SESSION_KEY)}catch(e){}}
 function mpSaveName(){try{localStorage.setItem(MP_NAME_KEY,$("mpName").value.trim().slice(0,18))}catch(e){}}
-function mpLink(){const url=new URL("multijugador-monsters-v41.html",location.href);url.search="?room="+mp.code;return url.href}
+function mpLink(){const url=new URL("multijugador-monsters-v42.html",location.href);url.search="?room="+mp.code;return url.href}
 function mpIsHuman(slot){return mp.active&&mp.host&&mp.players.some(p=>p.slot===slot&&p.online)}
 function mpReadyStatus(ready){mp.ready=!!ready;$("mpReadyText").textContent=ready?(mp.useAR?"✓ Arena RA lista para jugar":"✓ Listo para jugar en 3D"):"◈ Preparando arena en realidad aumentada…";$("mpReadyText").classList.toggle("not-ready",!ready)}
 async function mpSetReady(ready){
@@ -1740,7 +1754,7 @@ $("mpLeave").onclick=async()=>{
  if(!confirm(mp.host?"¿Cerrar la sala para todos?":"¿Salir de la sala?"))return;
  mp.closing=true;mpForget();
  try{await mpAPI("leave",{code:mp.code,token:mp.token})}catch(e){}
- location.href="./multijugador-monsters-v41.html";
+ location.href="./multijugador-monsters-v42.html";
 };
 document.querySelectorAll(".mp-cap-option").forEach(btn=>{
  btn.onclick=()=>{
@@ -3281,7 +3295,7 @@ function v34AnimateFaces(t,dt){
 // MICROCAOS CINEMATIC ARENA V3.5 — large, unmistakable stage architecture.
 // Compact geometry + one instanced crowd and one instanced LED row per mode.
 // All details sit OUTSIDE playable cells; rules, hitboxes and AR anchoring unchanged.
-const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"4.1"};
+const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"4.2"};
 const v35Ink=new THREE.MeshStandardMaterial({color:0x09132d,metalness:.42,roughness:.36,clearcoat:1});
 const v35Alloy=new THREE.MeshStandardMaterial({color:0x294665,metalness:.72,roughness:.24,clearcoat:.72});
 const v35SeatMaterial=new THREE.MeshStandardMaterial({color:0xffffff,metalness:.12,roughness:.35,clearcoat:.6});
@@ -3463,8 +3477,8 @@ function v35ApplyArt(){
  for(const [name,kit]of Object.entries(v35.kits))kit.visible=name==="race"?currentMode==="race":name==="ballistix"?false:true; // V3.7 custom venue owns Ballistix
  v35.mode=currentMode;
 }
-window.__microcaosV38QA=()=>({version:"4.1",uniqueModels:new Set(V37_HERO_ASSETS).size,modelCount:V37_HERO_ASSETS.length,loaded:v37CharacterState.loaded,beaconReady:!!v38Beacon,localSlot:typeof mp!=="undefined"&&mp.active?mp.slot:0,mode:currentMode,ar:renderer.xr.enabled});
-window.__microcaosStartQA=()=>({version:"4.1",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
+window.__microcaosV38QA=()=>({version:"4.2",uniqueModels:new Set(V37_HERO_ASSETS).size,modelCount:V37_HERO_ASSETS.length,loaded:v37CharacterState.loaded,beaconReady:!!v38Beacon,localSlot:typeof mp!=="undefined"&&mp.active?mp.slot:0,mode:currentMode,ar:renderer.xr.enabled});
+window.__microcaosStartQA=()=>({version:"4.2",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
 window.__microcaosV37QA=()=>({version:"3.7",characterSource:v37CharacterState.source,loadedHeroes:v37CharacterState.loaded,arena:!!ballArena,impulseCooldown:1.95,impulseCharges:"infinite",sevenModes:Object.keys(MINI_MODES).length,arKept:!!renderer.xr.enabled});
 window.__microcaosDirectorQA=()=>({raceFloorIsolated:currentMode==="race"||!raceFloor.visible,version:"3.7",venues:Object.keys(v36Venues),sevenScenes:Object.keys(v36Venues).length===7,mode:currentMode,webxr:renderer.xr.isPresenting,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,unchangedARScale:true});
 window.__microcaosCinematicQA=()=>({
@@ -3898,7 +3912,7 @@ function moveMiniGame(dt,t){
   r.root.position.set(r.x,r.y,r.z);
   const angle= Math.atan2(-r.vx,-r.vz||-.001);
   r.root.rotation.y+=Math.atan2(Math.sin(angle-r.root.rotation.y),Math.cos(angle-r.root.rotation.y))*Math.min(1,dt*12);
-  r.rig.position.y=Math.sin(r.animDistance+r.phase)*.035;
+  r.rig.position.y=(currentMode==="colorcrash"?.34:currentMode==="territory"?.20:.13)+Math.sin(r.animDistance+r.phase)*.027;
   r.rig.rotation.z=Math.sin(r.animDistance+r.phase)*.035;
   r.arms.forEach((arm,j)=>arm.rotation.x=Math.sin(r.animDistance+r.phase+j*Math.PI)*.55);
   r.feet.forEach((foot,j)=>foot.rotation.x=Math.sin(r.animDistance+r.phase+j*Math.PI)*.50);
@@ -4337,7 +4351,7 @@ function v36UpdateCamera(dt){
    gems:portrait?[7.9,12.5,16.8]:[7.7,11.65,16.0],
    survival:portrait?[7.9,12.5,16.8]:[7.7,11.65,16.0],
    territory:portrait?[0,26.5,18.1]:[9.0,18.7,19.0],
-   colorcrash:portrait?[1.2,22.0,16.3]:[6.1,17.6,16.8],
+   colorcrash:portrait?[1.3,19.7,14.9]:[5.6,15.3,15.2],
    ballistix:portrait?[0,22.1,12.3]:[0,17.3,11.8]
  };
  const o=table[currentMode]||table.race;
