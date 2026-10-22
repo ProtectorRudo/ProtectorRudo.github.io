@@ -360,7 +360,7 @@ body.colorcrash-mode .hud,body.colorcrash-mode .raceprogress,body.colorcrash-mod
   <div><label for="mpGameType">ELEGÍ CÓMO JUGAR</label><select id="mpGameType"><option value="individual">Una prueba</option><option value="tournament">Torneo (3 pruebas)</option></select></div></div>
   <label for="mpMode">MINIJUEGO</label>
   <select id="mpMode"><option value="colorcrash">🎨 Color Crash</option><option value="gems">💎 Fiebre de Gemas</option><option value="survival">🌀 El Piso se Hunde</option><option value="tag">⚖ La Mancha</option><option value="territory">🟩 Territorios (beta)</option><option value="race">🏁 Carrera Loca</option></select>
-  </details><div class="mp-actions"><button id="mpCreate" class="mp-btn primary">✦ CREAR SALA Y COMPARTIR</button></div>
+  </details><div class="mp-actions"><button id="mpCreate" class="mp-btn primary">✦ CREAR SALA</button></div>
   <div class="mp-division">O SUMATE A UNA SALA</div>
   <label for="mpJoinCode">CÓDIGO DE INVITACIÓN</label><input id="mpJoinCode" maxlength="6" placeholder="ABC234" autocapitalize="characters">
   <div class="mp-actions"><button id="mpJoin" class="mp-btn">↗ ENTRAR A LA SALA</button></div>
@@ -1190,12 +1190,14 @@ async function mpConnectRoom(result){
  }catch(error){mpError("No se pudo abrir la conexión en vivo: "+error.message)}
 }
 async function mpCreate(){
+ if(!$("mpName").value.trim()){$("mpName").focus();mpError("Escribí tu nombre para crear la sala.");return}
  $("mpCreate").disabled=true;mpError("Creando sala…");
  try{mpSaveName();const data=await mpAPI("create",{name:$("mpName").value,maxPlayers:Number($("mpCapacity").value),gameType:$("mpGameType").value,mode:$("mpMode").value});
   await mpConnectRoom(data);
  }catch(e){mpError(e.message)}finally{$("mpCreate").disabled=false}
 }
 async function mpJoin(){
+ if(!$("mpName").value.trim()){$("mpName").focus();mpError("Escribí tu nombre para entrar a jugar.");return}
  const code=$("mpJoinCode").value.trim().toUpperCase();
  if(!/^[A-Z2-9]{6}$/.test(code)){mpError("Ingresá un código de 6 caracteres");return}
  $("mpJoin").disabled=true;mpError("Entrando a la sala…");
@@ -1402,6 +1404,8 @@ function mpAutoAR(){
 $("mpCreate").onclick=mpCreate;
 $("mpJoin").onclick=mpJoin;
 $("mpLaunch").onclick=mpLaunch;
+$("mpName").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();if($("mpJoinCode").value.length===6)mpJoin();else mpCreate()}});
+$("mpJoinCode").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();mpJoin()}});
 $("mpCopy").onclick=async()=>{
  try{await navigator.clipboard.writeText(mpLink());mpError("✓ Enlace copiado. Enviáselo a tus amigos.")}
  catch(e){mpError("Compartí el código "+mp.code+" o el enlace "+mpLink())}
