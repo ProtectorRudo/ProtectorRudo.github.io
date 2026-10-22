@@ -841,11 +841,12 @@ const tagDangerMat=new THREE.MeshBasicMaterial({color:0xff2e8c,transparent:true,
 const tagDangerRing=mesh(new THREE.TorusGeometry(.77,.048,8,40),tagDangerMat,stage,[0,.20,0],[1,1,1],false);
 tagDangerRing.rotation.x=Math.PI/2;tagDangerRing.visible=false;
 const gemItems=[];
-for(let k=0;k<12;k++){
+// Fewer gems on the field make every pick-up meaningful, without instant farming.
+for(let k=0;k<8;k++){
  const g=new THREE.Group();miniStages.gems.add(g);
  const gem=mesh(new THREE.OctahedronGeometry(.30,0),k%3===0?miniAccent.gems:k%3===1?teal:pink,g,[0,0,0]);
  const rim=mesh(new THREE.TorusGeometry(.4,.025,8,20),gold,g,[0,0,0]);rim.rotation.x=Math.PI/2;
- gemItems.push({g,x:0,z:0,phase:k*1.3});
+ gemItems.push({g,x:0,z:0,phase:k*1.3,readyAt:0,lastCollector:-1});
 }
 const safeRing=new THREE.Mesh(
  new THREE.RingGeometry(.98,1.03,72),
@@ -1415,13 +1416,34 @@ function renderModeLabel(){
  for(const star of stars)star.g.visible=currentMode==="race"&&!star.used;
  tagWeight.visible=currentMode==="tag"&&weightHolder>=0;tagDangerRing.visible=false;
 }
-function spawnGem(gem){
- gem.x=(Math.random()-.5)*7.2;gem.z=(Math.random()-.5)*11.0;
- gem.g.position.set(gem.x,1.02,gem.z);gem.g.visible=true;
+function spawnGem(gem,collector=null){
+ // Never pop a gem directly back under the mascot that just picked it up.
+ // Pick an uncrowded location, avoiding overlap with live racers AND other gems.
+ let bestX=0,bestZ=0,bestScore=-Infinity;
+ for(let attempt=0;attempt<22;attempt++){
+  const x=(Math.random()-.5)*7.1,z=(Math.random()-.5)*10.6;
+  let spacing=100;
+  if(collector)spacing=Math.min(spacing,Math.hypot(x-collector.x,z-collector.z)*1.55);
+  for(const rival of activeRacers()){
+   if(rival.finished)continue;
+   spacing=Math.min(spacing,Math.hypot(x-rival.x,z-rival.z));
+  }
+  for(const other of gemItems){
+   if(other===gem||!other.g.visible)continue;
+   spacing=Math.min(spacing,Math.hypot(x-other.x,z-other.z)*1.25);
+  }
+  if(spacing>bestScore){bestScore=spacing;bestX=x;bestZ=z}
+  if(spacing>=2.05)break;
+ }
+ gem.x=bestX;gem.z=bestZ;gem.readyAt=0;
+ gem.g.position.set(gem.x,1.02,gem.z);
+ gem.g.visible=true;
 }
 function startMiniChallenge(){
  miniScores=Array(6).fill(0);gemRankingSignature="";miniChallengeElapsed=0;miniPhase=0;tagTransfers=0;
+ for(const racer of racers){racer.gemPickupReadyAt=0;racer.gemThinkAt=0;racer.gemTargetIndex=-1}
  miniLastTouch=0;weightHolder=-1;
+ for(const gem of gemItems){gem.g.visible=false;gem.readyAt=0}
  for(const gem of gemItems){spawnGem(gem)}
  if(currentMode==="tag"){
   miniClock=MINI_MODES.tag.time-1+roundIndex;
@@ -1567,13 +1589,27 @@ function showFinalGemLeaderboard(){
 function miniGems(dt,t){
  miniClock-=dt;
  for(const item of gemItems){
+  if(!item.g.visible){
+   if(miniChallengeElapsed>=item.readyAt)spawnGem(item, racers[item.lastCollector]||null);
+   else continue;
+  }
   item.g.position.y=1.02+Math.sin(t*3+item.phase)*.2;
   item.g.rotation.y+=dt*1.6;
   for(const r of liveRacers()){
-   if(Math.hypot(r.x-item.x,r.z-item.z)<.78){
-    miniScores[r.index]++;updateGemLeaderboard();puff(item.x,item.z,0xffe5a4,8);
+   if(miniChallengeElapsed<(r.gemPickupReadyAt||0))continue;
+   const pickupRadius=r.index===0?.99:.68;
+   if(Math.hypot(r.x-item.x,r.z-item.z)<pickupRadius){
+    miniScores[r.index]++;
+    // A mascot may collect only one gem per short interval. Gems stay off
+    // the board briefly before respawning somewhere away from the collector.
+    r.gemPickupReadyAt=miniChallengeElapsed+(r.index===0?.18:.46);
+    item.readyAt=miniChallengeElapsed+.65+Math.random()*.35;
+    item.lastCollector=r.index;
+    item.g.visible=false;
+    if(r.index!==0){r.gemThinkAt=0;r.gemTargetIndex=-1}
+    updateGemLeaderboard();puff(item.x,item.z,0xffe5a4,8);
     if(r.index===0){tactile(12);cue(880,.08);skillMessage("💎 "+miniScores[0]+" GEMAS",450)}
-    spawnGem(item);break;
+    break;
    }
   }
  }
@@ -1649,18 +1685,28 @@ function miniBotDirection(r,t){
    }
   }
  }else if(currentMode==="gems"){
-  // Target a free gem rather than blindly chasing the same one as every bot.
-  let min=Infinity,target=null;
-  for(const item of gemItems){
-   let score=Math.hypot(item.x-r.x,item.z-r.z);
-   for(const other of liveRacers()){
-    if(other.index===r.index)continue;
-    const theirs=Math.hypot(item.x-other.x,item.z-other.z);
-    if(theirs<score*.78)score+=1.35;
+  // Bots must spot and commit to a gem; no frame-perfect omniscient retargeting.
+  const target=gemItems[r.gemTargetIndex];
+  if(!target?.g.visible||t>=r.gemThinkAt){
+   let bestIndex=-1,bestScore=Infinity;
+   for(let i=0;i<gemItems.length;i++){
+    const item=gemItems[i];
+    if(!item.g.visible)continue;
+    let cost=Math.hypot(item.x-r.x,item.z-r.z);
+    // Distribute competitors across the arena, avoiding gem pile-ups.
+    for(const opponent of liveRacers()){
+     if(opponent.index===r.index)continue;
+     if(opponent.gemTargetIndex===i)cost+=1.2;
+     if(Math.hypot(item.x-opponent.x,item.z-opponent.z)<cost*.63)cost+=.70;
+    }
+    if(cost<bestScore){bestScore=cost;bestIndex=i}
    }
-   if(score<min){min=score;target=item}
+   r.gemTargetIndex=bestIndex;
+   r.gemThinkAt=t+.48+(1-r.skill)*.48;
   }
-  if(target){tx=target.x;tz=target.z}
+  const chosen=gemItems[r.gemTargetIndex];
+  if(chosen?.g.visible){tx=chosen.x;tz=chosen.z}
+  else{tx=r.x;tz=r.z}
  }else{
   tx=miniSafe.x+Math.sin(r.phase+roundIndex)*.38;
   tz=miniSafe.z+Math.cos(r.phase+roundIndex)*.38;
@@ -1719,7 +1765,10 @@ function moveMiniGame(dt,t){
   $("miniObjective").textContent=weightHolder===0?"⚖ ¡TENÉS LA PESA! · "+Math.ceil(miniClock)+" s":
     "⚖ "+profiles[weightHolder]?.name+" TIENE LA PESA · "+Math.ceil(miniClock)+" s";
  }else if(currentMode==="gems"){
-  $("miniObjective").textContent="💎 VOS "+miniScores[0]+" · LÍDER "+Math.max(...contestants.map(i=>miniScores[i]))+" · "+Math.ceil(miniClock)+" s";
+  const ranking=gemLeaderboardOrder();
+  const targetRank=gameType==="individual"?1:Math.min(roundRule().qualify,ranking.length);
+  const qualificationScore=ranking[targetRank-1]?.score||0;
+  $("miniObjective").textContent="💎 VOS "+miniScores[0]+" · TOP "+targetRank+": "+qualificationScore+" · "+Math.ceil(miniClock)+" s";
  }else{
   $("miniObjective").textContent="🌀 ZONA SEGURA · "+Math.ceil(miniClock)+" s";
  }
