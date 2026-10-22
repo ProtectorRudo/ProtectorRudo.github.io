@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#070f28">
-<title>MICROCAOS — Multijugador online V3.1</title>
+<title>MICROCAOS — Multijugador Director V3.6 · Realidad aumentada</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -342,13 +342,65 @@ body.colorcrash-mode .hud,body.colorcrash-mode .raceprogress,body.colorcrash-mod
 .mp-fields{grid-template-columns:1fr}
 .mp-shell input,.mp-shell select{font-size:16px}
 .mp-shell .mp-btn.primary:disabled{opacity:.48}
+
+/* World-anchored AR needs compact overlay controls, not immersive menus over the arena. */
+.ar-tools{position:absolute;top:max(92px,calc(env(safe-area-inset-top) + 85px));right:11px;z-index:24;
+ display:flex;gap:5px;align-items:center;padding:6px;background:#061a32d9;border:1px solid #7afee6b0;
+ border-radius:15px;backdrop-filter:blur(9px);pointer-events:auto!important;box-shadow:0 5px 19px #0008}
+.ar-tools button{display:grid;place-items:center;width:35px;height:35px;border-radius:10px;
+ border:1px solid #ffffff3b;background:#245277;color:#eaffff;font:900 21px Outfit,sans-serif;
+ pointer-events:auto!important}
+.ar-tools span{font:800 10px Outfit,sans-serif;color:#b7fff7;min-width:39px;text-align:center;white-space:nowrap}
+html.xr-active #ui .ar-tools{display:flex}
+html.xr-active #ui .ar-tools[style*="display:none"]{display:none}
+html.xr-active .modalshade:not(.hidden),html.xr-active .mp-lobby:not([hidden]){background:#06132de8}
+@media(max-width:650px){.ar-tools{top:max(86px,calc(env(safe-area-inset-top) + 77px));right:7px;padding:4px;gap:3px}
+.ar-tools button{width:30px;height:30px;font-size:18px}.ar-tools span{font-size:9px;min-width:33px}}
+
+/* Broadcast UI designed to keep the arena readable, never hide the game behind glass cards. */
+:root{--arena-accent:#55ffe6}
+body:not(.colorcrash-mode) .stagebanner{border-color:var(--arena-accent)!important;box-shadow:0 2px 17px #01091b69,0 0 14px color-mix(in srgb,var(--arena-accent) 27%,transparent)}
+body .rankLabel,body .scorelabel{letter-spacing:.09em}
+body:not(.colorcrash-mode) #miniObjective.on{border-left:3px solid var(--arena-accent)!important}
+#scene:after{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
+ background:radial-gradient(ellipse 73% 65% at 50% 50%,transparent 55%,#020b2380 100%);
+ opacity:.65}
+html.xr-active #scene:after{display:none!important}
+@media(max-width:600px){#scene:after{opacity:.38}}
+
+
+/* V3.4 — broadcast identity, tactile depth and easier mascot selection */
+:root{--v34-premium:#82ffe4}
+.menu-feature{background:linear-gradient(145deg,#172d52f2,#091731f5 64%,#102746f3)!important;border:1px solid #7cebe478!important;box-shadow:inset 0 1px 0 #ffffff26,0 18px 60px #0007!important}
+.menu-feature .feature-title{letter-spacing:-.035em;text-shadow:0 4px 22px #0006}
+.mascot-option{border-radius:17px!important;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease!important;box-shadow:inset 0 1px 0 #ffffff15,0 7px 20px #0003}
+.mascot-option.selected{box-shadow:inset 0 1px 0 #ffffff37,0 0 22px #50ffe65c!important;transform:translateY(-2px)}
+.mascot-option span{filter:drop-shadow(0 3px 7px #0007)}
+@media(hover:hover){.mascot-option:hover{transform:translateY(-3px)}}
+html.xr-active .menu-feature{box-shadow:none!important}
+
+/* V3.5: theatrical broadcast graphics, with no opaque panels over gameplay. */
+body.colorcrash-mode .color-crash-hud{border:1px solid color-mix(in srgb,var(--cc) 72%,white)!important;
+ box-shadow:0 15px 42px #000c,0 0 30px color-mix(in srgb,var(--cc) 22%,transparent),inset 0 1px 0 #ffffff32!important;
+ width:min(400px,88vw)!important}
+body.colorcrash-mode .cc-call strong{font-size:clamp(25px,5vw,33px);letter-spacing:-.02em}
+body.colorcrash-mode .cc-symbol{width:50px;height:50px;border-radius:14px}
+body.colorcrash-mode .color-crash-hud.critical{animation:v35Pulse .29s linear infinite alternate}
+@keyframes v35Pulse{to{filter:brightness(1.15);border-color:#fff!important}}
+body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172aef,#153555e8,#09172aef)}
+#scene{background:radial-gradient(ellipse 62% 72% at 50% 45%,#17325a 0%,#06142c 64%,#040918 100%)!important}
+
 </style>
 </head>
 <body>
 <video id="cameraVideo" muted playsinline autoplay></video>
 <div id="scene"></div>
 <div id="ui">
-<section id="mpLobby" class="mp-lobby" aria-label="Sala multijugador"><div class="mp-shell">
+<div class="ar-tools" id="arTools" style="display:none" role="group" aria-label="Ajustar arena en realidad aumentada">
+ <button id="arSmaller" type="button" aria-label="Achicar arena">−</button><span id="arSizeLabel">76 cm</span><button id="arBigger" type="button" aria-label="Agrandar arena">+</button>
+ <button id="arRotate" type="button" aria-label="Girar arena">↻</button>
+ </div>
+ <section id="mpLobby" class="mp-lobby" aria-label="Sala multijugador"><div class="mp-shell">
  <div class="mp-kicker">✦ MICROCAOS · ONLINE</div>
  <h2>Jugá con tus amigos en 3 pasos.</h2>
  <p class="mp-muted" id="mpSubtitle">1. Creá una sala. 2. Compartí el enlace. 3. ¡Jueguen juntos! Sin cuentas ni descargas.</p>
@@ -359,7 +411,7 @@ body.colorcrash-mode .hud,body.colorcrash-mode .raceprogress,body.colorcrash-mod
  <details class="mp-advanced"><summary>⚙️ Opciones de partida · Color Crash por defecto</summary><div class="mp-fields"><div class="mp-hidden-control"><label for="mpCapacity">PARTICIPANTES REALES</label><select id="mpCapacity"><option value="2">2 jugadores</option><option value="3">3 jugadores</option><option value="4" selected>4 jugadores</option></select></div>
   <div><label for="mpGameType">ELEGÍ CÓMO JUGAR</label><select id="mpGameType"><option value="individual">Una prueba</option><option value="tournament">Torneo (3 pruebas)</option></select></div></div>
   <label for="mpMode">MINIJUEGO</label>
-  <select id="mpMode"><option value="colorcrash">🎨 Color Crash</option><option value="gems">💎 Fiebre de Gemas</option><option value="survival">🌀 El Piso se Hunde</option><option value="tag">⚖ La Mancha</option><option value="territory">🟩 Territorios (beta)</option><option value="race">🏁 Carrera Loca</option></select>
+  <select id="mpMode"><option value="colorcrash">🎨 Color Crash</option><option value="gems">💎 Fiebre de Gemas</option><option value="survival">🌀 El Piso se Hunde</option><option value="tag">⚖ La Mancha</option><option value="territory">🟩 Territorios (beta)</option><option value="race">🏁 Carrera Loca</option><option value="ballistix">⚽ Ballistix · 4 defensas</option></select>
   </details><div class="mp-actions"><button id="mpCreate" class="mp-btn primary">✦ CREAR SALA</button></div>
   <div class="mp-division">O SUMATE A UNA SALA</div>
   <label for="mpJoinCode">CÓDIGO DE INVITACIÓN</label><input id="mpJoinCode" maxlength="6" placeholder="ABC234" autocapitalize="characters">
@@ -379,7 +431,7 @@ body.colorcrash-mode .hud,body.colorcrash-mode .raceprogress,body.colorcrash-mod
 </div></section>
 <div class="mp-live" id="mpLive"></div>
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MULTIJUGADOR ONLINE V3.1</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MULTIJUGADOR CINEMÁTICO V3.5</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -396,7 +448,7 @@ body.colorcrash-mode .hud,body.colorcrash-mode .raceprogress,body.colorcrash-mod
   <div class="gem-lb-footer" id="gemLeaderboardFooter">JUNTÁ GEMAS PARA SUBIR</div>
 </section><div id="ballScoreboard" class="ball-scoreboard" aria-live="off"></div><button id="ballRestart" type="button" class="ball-restart" aria-label="Reiniciar Ballistix" title="Reiniciar Ballistix">↻</button><div class="raceprogress" id="progress"><div class="bar" id="progressBar"></div></div>
 <div class="toast" id="toast">¡PREPARADOS!</div><div id="skillToast" class="skilltoast"></div><div id="obstacleHint" class="obstacle-hint">↥ ¡SALTÁ AHORA!</div><div class="rushHud" id="rushHud">⚡ RITMO ×<span id="rushValue">1</span></div><div class="pickupCounter" id="pickupCounter">✦ <span id="pickupValue">0</span></div>
-<div id="notice"></div><button id="placeArena" class="primary ar-place" style="display:none">✓ COLOCAR PISTA AQUÍ</button><div id="arHelp" class="ar-help" style="display:none"><div class="ar-help-box"><div class="ar-help-icon">◈</div><h2 id="arHelpTitle">Realidad aumentada</h2><p id="arHelpText"></p><a class="primary ar-fallback" id="arHelpNative" href="ar.html">◈ ABRIR VISOR AR ANDROID ↗</a><button class="secondary ar-fallback2" id="arHelp3D">JUGAR EN 3D SIN CÁMARA</button><button class="ar-dismiss" id="arHelpClose">CERRAR</button></div></div>
+<div id="notice"></div><button id="placeArena" class="primary ar-place" style="display:none">✓ COLOCAR PISTA AQUÍ</button><div id="arHelp" class="ar-help" style="display:none"><div class="ar-help-box"><div class="ar-help-icon">◈</div><h2 id="arHelpTitle">Realidad aumentada</h2><p id="arHelpText"></p><a class="primary ar-fallback" id="arHelpNative" href="ar.html">◈ VER MODELO AR · NO JUGABLE ↗</a><button class="secondary ar-fallback2" id="arHelp3D">JUGAR EN 3D SIN CÁMARA</button><button class="ar-dismiss" id="arHelpClose">CERRAR</button></div></div>
 <div class="modalshade" id="intro">
 <div class="sheet premium-menu">
  <div class="menu-eyebrow">✦ MICROCAOS PARTY GAMES</div>
@@ -456,9 +508,9 @@ body.colorcrash-mode .hud,body.colorcrash-mode .raceprogress,body.colorcrash-mod
   <div class="setting-line"><div><b>Dificultad</b><small>Modifica la velocidad y reacción de los rivales</small></div><select id="settingDifficulty"><option value="easy">Tranquila</option><option value="normal">Normal</option><option value="hard">Difícil</option></select></div>
   <button class="primary mainprimary" data-open-page="home">GUARDAR Y VOLVER ✓</button>
  </section>
- <div class="menu-footer"><a id="nativeAR" href="ar.html">◈ VISOR AR</a><button id="ar">AR JUGABLE · BETA</button><button id="cam" style="display:none" aria-hidden="true">DEMO CÁMARA</button></div>
+ <div class="menu-footer"><a id="nativeAR" href="ar.html">◈ VISOR 3D · SIN JUEGO</a><button id="ar">◈ INICIAR AR JUGABLE</button><button id="cam" style="display:none" aria-hidden="true">DEMO CÁMARA</button></div>
  <div id="arDevice" class="ar-device">Comprobando compatibilidad AR...</div>
- <div class="hint" id="gamehint">UN TORNEO DIFERENTE EN CADA PARTIDA · 6 MASCOTAS · 6 MODOS</div>
+ <div class="hint" id="gamehint">JUGÁ ONLINE CON AMIGOS · SIETE MODOS · WEBXR</div>
 </div></div>
 <div class="controls" id="controls">
 <div class="joyarea" id="joy" aria-label="Control de dirección"><div class="joyrim"></div><div class="joycenter" id="stick">↔</div></div>
@@ -496,13 +548,13 @@ const clock=new THREE.Clock(),scene=new THREE.Scene();scene.fog=new THREE.FogExp
 scene.background=new THREE.Color(0x172b4a);
 const camera=new THREE.PerspectiveCamera(innerWidth/innerHeight<.68?58:42,innerWidth/innerHeight,.01,250);camera.position.set(14,17,26);camera.lookAt(0,0,0);
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:"high-performance"});
-renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.45));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.04;renderer.xr.enabled=true;
+renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.45));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.01;renderer.xr.enabled=true;
 try{const pmrem=new THREE.PMREMGenerator(renderer);const env=new RoomEnvironment();scene.environment=pmrem.fromScene(env,.04).texture;pmrem.dispose();if(env.dispose)env.dispose()}catch(e){console.warn("Studio light fallback",e)}
 $("scene").appendChild(renderer.domElement);
-const hemi=new THREE.HemisphereLight(0xdeffff,0x344574,1.8);scene.add(hemi);
-const key=new THREE.DirectionalLight(0xffffff,2.9);key.position.set(-9,19,12);key.castShadow=true;key.shadow.mapSize.set(innerWidth<700?1024:2048,innerWidth<700?1024:2048);key.shadow.camera.left=-24;key.shadow.camera.right=24;key.shadow.camera.top=24;key.shadow.camera.bottom=-24;key.shadow.camera.near=1;key.shadow.camera.far=70;key.shadow.bias=-.00025;scene.add(key);
-const rim=new THREE.DirectionalLight(0x6dc9ff,3);rim.position.set(12,6,-17);scene.add(rim);
-const fill=new THREE.PointLight(0xffab71,70,55);fill.position.set(-9,7,4);scene.add(fill);
+const hemi=new THREE.HemisphereLight(0xdeffff,0x344574,1.13);scene.add(hemi);
+const key=new THREE.DirectionalLight(0xffffff,2.45);key.position.set(-9,19,12);key.castShadow=true;key.shadow.mapSize.set(innerWidth<700?1024:2048,innerWidth<700?1024:2048);key.shadow.camera.left=-24;key.shadow.camera.right=24;key.shadow.camera.top=24;key.shadow.camera.bottom=-24;key.shadow.camera.near=1;key.shadow.camera.far=70;key.shadow.bias=-.00025;scene.add(key);
+const rim=new THREE.DirectionalLight(0x6dc9ff,1.50);rim.position.set(12,6,-17);scene.add(rim);
+const fill=new THREE.PointLight(0xffab71,37,47);fill.position.set(-9,7,4);scene.add(fill);
 const world=new THREE.Group();scene.add(world);const stage=new THREE.Group();world.add(stage);const atmosphere=new THREE.Group();stage.add(atmosphere);
 const mat=(hex,metal=0,rough=.42,extra={})=>new THREE.MeshPhysicalMaterial({color:hex,metalness:metal,roughness:rough,clearcoat:.38,clearcoatRoughness:.19,...extra});
 const navy=mat(0x132a62,.12,.37),ivory=mat(0xdbeeff,.03,.43),teal=mat(0x25f5e5,.05,.29,{emissive:0x07786d,emissiveIntensity:.22}),gold=mat(0xffd436,.20,.30,{emissive:0xa66e05,emissiveIntensity:.10}),rubber=mat(0x143e78,.08,.50),pink=mat(0xff3d9c,.07,.31),white=mat(0xffffff,.02,.33),glass=mat(0x111c42,.11,.25,{clearcoat:1}),chrome=mat(0x72a9d2,.25,.37,{clearcoat:.7}),carbon=mat(0x09152f,.13,.59),candy=mat(0xffcf35,.25,.28,{emissive:0x864809,emissiveIntensity:.18});
@@ -608,20 +660,40 @@ const racers=[];
 // Six original premium toy mascots. One clean silhouette per species.
 // No duplicated armor, helmets or stacked costume geometry.
 const toyMatCache=new Map();
+// MICROCAOS SIGNATURE MASCOTS V3.4: satin polymer, stitched details and animated face.
+// All geometry is local to the original six character rigs; no external 3D download.
+const v34BadgeGold=new THREE.MeshPhysicalMaterial({color:0xffd674,metalness:.48,roughness:.27,clearcoat:.87,clearcoatRoughness:.10});
+const v34Seam=new THREE.MeshStandardMaterial({color:0xd7ebf9,metalness:0,roughness:.58});
+const v34Gem=new THREE.MeshPhysicalMaterial({color:0x7fffe4,metalness:.08,roughness:.23,clearcoat:1});
+const v34BadgeGeo=new THREE.OctahedronGeometry(.104,0);
+const v34StitchGeo=new THREE.TorusGeometry(.28,.011,6,36);
 function toyMat(hex,rough=.33){
  const key=hex+":"+rough;
- if(!toyMatCache.has(key))toyMatCache.set(key,mat(hex,.04,rough,{clearcoat:.52,clearcoatRoughness:.19}));
+ if(!toyMatCache.has(key))toyMatCache.set(key,mat(hex,.03,rough+.055,{clearcoat:.68,clearcoatRoughness:.16,sheen:.42,sheenColor:0xfff9ed,sheenRoughness:.58}));
  return toyMatCache.get(key);
 }
 const toyIvory=toyMat(0xfff8ed),toyInk=toyMat(0x112044,.25),
  toyBlack=toyMat(0x090e29,.20),toySparkle=new THREE.MeshBasicMaterial({color:0xffffff}),
  toyPink=toyMat(0xff629d),toyPeach=toyMat(0xffd1aa),
  toyAzure=toyMat(0x42dfff),toyGold=toyMat(0xffd64c),toyChocolate=toyMat(0x3b2c51);
+// Soft shared contact shadows anchor the figures to the stage, including AR.
+const v33ShadowCanvas=document.createElement("canvas");
+v33ShadowCanvas.width=v33ShadowCanvas.height=128;
+const v33ShadowContext=v33ShadowCanvas.getContext("2d");
+const v33ShadowGradient=v33ShadowContext.createRadialGradient(64,64,6,64,64,62);
+v33ShadowGradient.addColorStop(0,"rgba(0,7,20,.60)");
+v33ShadowGradient.addColorStop(.38,"rgba(0,8,22,.43)");
+v33ShadowGradient.addColorStop(.78,"rgba(0,7,24,.11)");
+v33ShadowGradient.addColorStop(1,"rgba(0,7,24,0)");
+v33ShadowContext.fillStyle=v33ShadowGradient;v33ShadowContext.fillRect(0,0,128,128);
+const v33ShadowTexture=new THREE.CanvasTexture(v33ShadowCanvas);
+v33ShadowTexture.colorSpace=THREE.SRGBColorSpace;
+const v33ShadowMaterial=new THREE.MeshBasicMaterial({map:v33ShadowTexture,transparent:true,opacity:.60,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});
 function createCharacter(col,index){
  const root=new THREE.Group();stage.add(root);
- const shade=new THREE.Mesh(new THREE.CircleGeometry(.56,24),
-   new THREE.MeshBasicMaterial({color:0x030f28,transparent:true,opacity:.28,depthWrite:false}));
- shade.rotation.x=-Math.PI/2;shade.position.y=.04;root.add(shade);
+ const shade=new THREE.Mesh(new THREE.PlaneGeometry(1.75,1.75),v33ShadowMaterial);
+ shade.castShadow=false;shade.receiveShadow=false;shade.rotation.x=-Math.PI/2;
+ shade.position.y=.14;stage.add(shade);
  const rig=new THREE.Group();root.add(rig);
  const fur=toyMat([0x23dfd6,0xff665f,0x9b64fa,0x8dea48,0xffae40,0x85c4ff][index]);
  const light=toyMat([0xc4fff1,0xffdccb,0xdfb8ff,0xdaffb0,0xffe9c5,0xf5f8ff][index]);
@@ -647,7 +719,7 @@ function createCharacter(col,index){
   ball(light,foot,[0,-.035,-.235],[.15,.065,.095]);
   feet.push(foot);
  }
- const eyes=[];
+ const eyes=[],v34Lids=[],v34Brows=[],v34Ears=[];
  for(const side of [-1,1]){
   // Big sclera, black gleaming pupils, double eye shine.
   ball(toyIvory,rig,[side*.228,1.383,-.435],[.184,.211,.100]);
@@ -656,12 +728,17 @@ function createCharacter(col,index){
   ball(toySparkle,rig,[side*.220+.04,1.327,-.575],[.018,.021,.012]).castShadow=false;
   ball(toyPink,rig,[side*.415,1.172,-.374],[.105,.055,.027]);
   eyes.push(pupil);
+  // Rounded eyelids occlude the pupils only while blinking.
+  const lid=ball(fur,rig,[side*.228,1.383,-.593],[.170,.008,.046]);
+  lid.castShadow=false;v34Lids.push(lid);
+  const brow=ball(index===5?toyChocolate:accent,rig,[side*.228,1.615,-.42],[.150,.029,.031]);
+  brow.castShadow=false;v34Brows.push(brow);
  }
  // Mouth and nose are part of the same facial volume, not separate helmets.
  ball(index===4||index===5?toyChocolate:toyInk,rig,[0,1.102,-.556],[.075,.057,.039]);
  const smile=mesh(new THREE.TorusGeometry(.115,.018,6,18,Math.PI),toyChocolate,rig,[0,1.025,-.527],[1,1,.8],false);
  smile.rotation.z=Math.PI;
- let crown=null,prop=null;
+ let crown=null,prop=null,v34Tail=null;
  if(index===0){
   // Teal teddy bear with golden ears and little crown.
   for(const x of [-.427,.427]){
@@ -675,19 +752,19 @@ function createCharacter(col,index){
  }else if(index===1){
   // Rabbit, tall folded ears with a pink inner layer.
   for(const x of [-.255,.255]){
-   const ear=ball(fur,rig,[x,1.947,.012],[.166,.435,.128]);
-   ear.rotation.z=x<0?.19:-.16;
-   const inset=ball(toyPink,rig,[x,1.957,-.111],[.085,.32,.029]);
-   inset.rotation.z=x<0?.19:-.16;
+   const pivot=new THREE.Group();pivot.position.set(x,1.74,0);rig.add(pivot);v34Ears.push(pivot);
+   const ear=ball(fur,pivot,[0,.207,.012],[.166,.435,.128]);ear.rotation.z=x<0?.19:-.16;
+   const inset=ball(toyPink,pivot,[0,.217,-.111],[.085,.32,.029]);inset.rotation.z=x<0?.19:-.16;
   }
   for(const x of [-.08,.08])ball(toyIvory,rig,[x,.95,-.443],[.115,.08,.09]);
   ball(toyIvory,rig,[0,.48,.39],[.18,.18,.18]); // tail
  }else if(index===2){
   // Purple cat: angular upright ears and subtle whiskers.
   for(const x of [-.40,.40]){
-   const ear=mesh(new THREE.ConeGeometry(.225,.48,3),fur,rig,[x,1.767,0],[1,1,1],false);
+   const pivot=new THREE.Group();pivot.position.set(x,1.60,0);rig.add(pivot);v34Ears.push(pivot);
+   const ear=mesh(new THREE.ConeGeometry(.225,.48,3),fur,pivot,[0,.167,0],[1,1,1],false);
    ear.rotation.y=Math.PI/3;ear.rotation.z=x<0?.18:-.18;
-   ball(toyPink,rig,[x,1.682,-.116],[.095,.114,.038]);
+   ball(toyPink,pivot,[0,.082,-.116],[.095,.114,.038]);
   }
   for(const side of [-1,1])for(let j=0;j<2;j++){
    const whisk=soft(toyIvory,rig,[side*(.38+j*.07),1.068+j*.065,-.453],[.22,.019,.022],false);
@@ -702,16 +779,16 @@ function createCharacter(col,index){
   ball(light,rig,[0,1.125,-.43],[.355,.17,.20]);
   for(const x of [-.135,.135])ball(toyChocolate,rig,[x,1.108,-.615],[.030,.036,.023]);
   for(let k=0;k<4;k++)mesh(new THREE.ConeGeometry(.14,.27,7),toyGold,rig,[0,1.790-k*.30,.27+k*.085],[1,1,1],false);
-  const tail=ball(fur,rig,[0,.50,.39],[.22,.20,.45]);tail.rotation.x=.34;
+  v34Tail=new THREE.Group();v34Tail.position.set(0,.50,.36);rig.add(v34Tail);const tail=ball(fur,v34Tail,[0,0,.18],[.22,.20,.45]);tail.rotation.x=.34;
  }else if(index===4){
   // Orange floppy-eared pup.
   for(const x of [-.50,.50]){
-   const ear=ball(toyChocolate,rig,[x,1.49,.12],[.245,.40,.18]);
-   ear.rotation.z=x<0?-.29:.29;
+   const pivot=new THREE.Group();pivot.position.set(x,1.63,.12);rig.add(pivot);v34Ears.push(pivot);
+   const ear=ball(toyChocolate,pivot,[0,-.14,0],[.245,.40,.18]);ear.rotation.z=x<0?-.29:.29;
   }
   ball(toyPeach,rig,[0,1.062,-.485],[.335,.21,.160]);
   ball(toyChocolate,rig,[0,1.100,-.631],[.100,.072,.043]);
-  const tail=ball(fur,rig,[.34,.61,.35],[.16,.18,.30]);tail.rotation.z=-.45;
+  v34Tail=new THREE.Group();v34Tail.position.set(.34,.61,.35);rig.add(v34Tail);const tail=ball(fur,v34Tail,[0,0,.12],[.16,.18,.30]);tail.rotation.z=-.45;
  }else if(index===5){
   // Blue panda: round ears, dark patches framing the pupils.
   for(const x of [-.425,.425])ball(toyChocolate,rig,[x,1.716,.0],[.22,.245,.17]);
@@ -728,19 +805,31 @@ function createCharacter(col,index){
  }
  const label=textSprite(profiles[index].name,42,index===0?"#75ffe4":"#ffffff");
  label.position.set(0,2.53,0);label.scale.set(1.70,.44,1);root.add(label);
+ // Signature satin neck collar, metallic crest, embroidered body seam.
+ const collar=mesh(new THREE.TorusGeometry(.385,.027,8,32),v34BadgeGold,rig,[0,1.02,0],[1,1,.82],false);collar.rotation.x=Math.PI/2;
+ const shield=ball(v34BadgeGold,rig,[0,.73,-.399],[.151,.149,.067]);shield.castShadow=false;
+ const crest=new THREE.Group();crest.position.set(0,.747,-.467);rig.add(crest);
+ const gem=mesh(v34BadgeGeo,index===2||index===5?v34Gem:accent,crest,[0,0,-.004],[.7,1.0,.34],false);gem.rotation.z=Math.PI/4;
+ mesh(v34StitchGeo,v34Seam,rig,[0,.60,-.411],[1,1.24,.45],false);
  // A small ground-level speed ring instead of a giant transparent halo.
  const sheen=mesh(new THREE.TorusGeometry(.55,.023,6,28),
   mat(col,0,.52,{transparent:true,opacity:.07,depthWrite:false,emissive:col,emissiveIntensity:.48}),
   root,[0,.055,0],[1,1,1],false);
  sheen.rotation.x=Math.PI/2;
+ // Isolate the collectible silhouette from the animated rig: scale without
+ // touching motion animation, collision, blink coordinates or AR world size.
+ const v35Body=new THREE.Group();v35Body.name="CINEMATIC CHARACTER SILHOUETTE";
+ while(rig.children.length)v35Body.add(rig.children[0]);
+ rig.add(v35Body);rig.userData.v35Body=v35Body;
  return{root,rig,arms,feet,shade,label,sheen,crown,prop,index,
+  v34Face:{pupils:eyes,pupilBase:eyes.map(o=>({x:o.position.x,y:o.position.y})),lids:v34Lids,brows:v34Brows,ears:v34Ears,tail:v34Tail,crest},
  name:profiles[index].name,x:0,z:0,y:0,vy:0,stun:0,dash:0,dashCd:0,
  finished:false,finishTime:0,speed:profiles[index].speed,
  skill:profiles[index].skill,phase:rand(0,TAU),cool:0,stumbles:0};
 }
 for(let i=0;i<6;i++)racers.push(createCharacter(colors[i],i));
 const originalMascotParts=racers.map(r=>({
- rig:r.rig,arms:r.arms,feet:r.feet,crown:r.crown,prop:r.prop,sheen:r.sheen
+ rig:r.rig,arms:r.arms,feet:r.feet,crown:r.crown,prop:r.prop,sheen:r.sheen,v34Face:r.v34Face
 }));
 const mascotDisplayNames=["MOMO","POP","NIX","BOOM","KIWI","ZAP"];
 function visualCharacterId(runnerId){
@@ -759,7 +848,7 @@ function selectMascot(index){
   r.root.add(source.rig);
   if(source.sheen)r.root.add(source.sheen);
   r.rig=source.rig;r.arms=source.arms;r.feet=source.feet;
-  r.crown=source.crown;r.prop=source.prop;r.sheen=source.sheen;
+  r.crown=source.crown;r.prop=source.prop;r.sheen=source.sheen;r.v34Face=source.v34Face;
   // Runner ID remains unchanged; only the selected mascot's actual 3D outfit moves.
   const display=i===0?"VOS":i===index&&index!==0?"MOMO":mascotDisplayNames[i];
   profiles[i].name=display;
@@ -914,7 +1003,7 @@ function returnToMenu(){
  if(mp.active&&mp.started){
   if(mp.host&&!confirm("Si salís, la sala se cierra para todos. ¿Querés salir?"))return;
   mp.closing=true;mpForget();
-  mpAPI("leave",{code:mp.code,token:mp.token}).catch(()=>{}).finally(()=>{location.href="./multijugador-v31.html"});
+  mpAPI("leave",{code:mp.code,token:mp.token}).catch(()=>{}).finally(()=>{location.href="./multijugador-director-v36.html"});
   return;
  }
  cancelAutoAdvance();
@@ -1034,10 +1123,10 @@ for(const modeName of ["tag","gems","survival"]){
 const MP_SUPA_URL="https://bwsgxpttnrctklrcjmjs.supabase.co";
 const MP_PUBLIC_KEY="sb_publishable_2wOSRn_o7M6OqRSikERXUg_2RGQWkFW";
 const MP_ENDPOINT=MP_SUPA_URL+"/functions/v1/microcaos-rooms";
-const MP_SESSION_KEY="microcaos_multiplayer_session_v31";
+const MP_SESSION_KEY="microcaos_multiplayer_session_v35";
 const MP_NAME_KEY="microcaos_multiplayer_name";
 const mp={active:false,host:false,slot:0,code:"",token:"",topic:"",maxPlayers:4,players:[],
- channel:null,client:null,connected:false,ready:true,useAR:false,inputs:{},seq:0,lastSeq:-1,roundId:0,lastResult:null,resultShown:false,
+ channel:null,client:null,connected:false,ready:true,useAR:false,inputs:{},seq:0,lastSeq:-1,renderClock:0,roundId:0,lastResult:null,resultShown:false,
  currentRound:"",reconnectAt:0,lastStateAt:0,lastInputAt:0,lastSnapshotAt:0,lastRosterAt:0,
  poller:null,started:false,closing:false,gameType:"individual",chosenMode:"colorcrash"};
 function mpError(txt){$("mpError").textContent=txt}
@@ -1047,7 +1136,7 @@ function mpRemember(){
 }
 function mpForget(){try{sessionStorage.removeItem(MP_SESSION_KEY)}catch(e){}}
 function mpSaveName(){try{localStorage.setItem(MP_NAME_KEY,$("mpName").value.trim().slice(0,18))}catch(e){}}
-function mpLink(){const url=new URL("multijugador-v31.html",location.href);url.search="?room="+mp.code;return url.href}
+function mpLink(){const url=new URL("multijugador-director-v36.html",location.href);url.search="?room="+mp.code;return url.href}
 function mpIsHuman(slot){return mp.active&&mp.host&&mp.players.some(p=>p.slot===slot&&p.online)}
 function mpReadyStatus(ready){mp.ready=!!ready;$("mpReadyText").textContent=ready?(mp.useAR?"✓ Arena RA lista para jugar":"✓ Listo para jugar en 3D"):"◈ Preparando arena en realidad aumentada…";$("mpReadyText").classList.toggle("not-ready",!ready)}
 async function mpSetReady(ready){
@@ -1219,6 +1308,27 @@ function mpOnAction(p){
  const r=racers[slot];if(!r||r.finished)return;
  if(p.button==="turbo"&&r.dashCd<=0){r.dash=1.05;r.dashCd=4.1}
  if(p.button==="jump"){
+  if(currentMode==="ballistix"){
+   const side=ballSides.indexOf(slot);
+   if(side>0&&(r.ballPulseCd||0)<=0){
+    r.ballPulseCd=1.7;
+    const pos=ballSidePosition(side,ballShipPositions[side]);
+    let nearest=null,dist=3.0;
+    for(const b of ballBalls){
+     const d=Math.hypot(b.x-pos.x,b.z-pos.z);
+     if(d<dist){nearest=b;dist=d}
+    }
+    if(nearest){
+     const speed=12.0;
+     if(side===1){nearest.vz=Math.abs(speed);nearest.vx=clamp(nearest.x-pos.x,-2.2,2.2)}
+     if(side===2){nearest.vx=Math.abs(speed);nearest.vz=clamp(nearest.z-pos.z,-2.2,2.2)}
+     if(side===3){nearest.vx=-Math.abs(speed);nearest.vz=clamp(nearest.z-pos.z,-2.2,2.2)}
+     nearest.immunity=.20;
+     puff(nearest.x,nearest.z,runnerColor(slot),15);
+    }else puff(pos.x,pos.z,runnerColor(slot),7);
+   }
+   return;
+  }
   if(currentMode==="territory"){
    if((r.territoryShieldCd||0)<=0){r.territoryShieldCd=10;r.territoryShieldUntil=miniChallengeElapsed+2}
   }else if(r.y<.1&&r.jumpCount===0)performJump(r,false);
@@ -1226,12 +1336,12 @@ function mpOnAction(p){
  }
 }
 function mpPack(){
- const state={seq:++mp.seq,phase,mode:currentMode,gameType,roundId:mp.roundId,contestants:[...contestants],playlist:[...modePlaylist],result:mp.lastResult,roundIndex,elapsed,miniClock,
+ const state={seq:++mp.seq,clock:mp.renderClock,phase,mode:currentMode,gameType,roundId:mp.roundId,contestants:[...contestants],playlist:[...modePlaylist],result:mp.lastResult,roundIndex,elapsed,miniClock,
   racers:racers.map(r=>({x:r.x,y:r.y,z:r.z,vx:r.vx,vz:r.vz,rot:r.root.rotation.y,finished:r.finished,eliminatedAt:r.eliminatedAt,ccFall:r.ccFall,ccScore:r.ccScore||0})),
   scores:miniScores,weightHolder,miniSafe:{...miniSafe},territoryCount:Array.from(territoryCount),
   cc:{status:cc.status,round:cc.round,target:cc.target,left:cc.left,total:cc.total,gap:cc.gap,colors:ccTiles.map(t=>t.color),fall:ccTiles.map(t=>t.fall?1:0)},
   gems:gemItems.map(g=>({x:g.x,z:g.z,visible:g.g.visible})),
-  ball:{status:[...ballStatus],health:[...ballHealth],ship:[...ballShipPositions]},
+  ball:{status:[...ballStatus],health:[...ballHealth],ship:[...ballShipPositions],elapsed:ballElapsed,pulses:ballSides.map(i=>racers[i]?.ballPulseCd||0),balls:ballBalls.map(b=>({x:b.x,z:b.z,vx:b.vx,vz:b.vz}))},
   ts:Date.now()};
  if(currentMode==="territory"&&mp.seq%8===0){
   state.land=btoa(Array.from(territoryOwners,v=>String.fromCharCode(v+1)).join(""));
@@ -1265,6 +1375,7 @@ function mpRound(p){
 function mpState(p){
  if(!mp.active||mp.host||!p||p.seq<=mp.lastSeq)return;
  mp.lastSeq=p.seq;mp.lastStateAt=performance.now();
+ if(Number.isFinite(p.clock))mp.renderClock=p.clock;
  if(!mp.started||p.roundId!==mp.roundId||p.roundIndex!==roundIndex||currentMode!==p.mode){
   mpRound({roundId:p.roundId,roundIndex:p.roundIndex,mode:p.mode,gameType:p.gameType,contestants:p.contestants||[0,1,2,3,4,5],playlist:p.playlist||modePlaylist});
  }
@@ -1275,7 +1386,7 @@ function mpState(p){
   r.x=v.x;r.y=v.y;r.z=v.z;r.vx=v.vx;r.vz=v.vz;
   r.finished=v.finished;r.eliminatedAt=v.eliminatedAt;r.ccFall=v.ccFall;r.ccScore=v.ccScore;
   if(!r.netTarget)r.root.position.set(v.x,v.y,v.z);
-  r.netTarget={x:v.x,y:v.y,z:v.z,rot:v.rot};
+  r.netTarget=currentMode==="ballistix"?null:{x:v.x,y:v.y,z:v.z,rot:v.rot};
   r.root.visible=contestants.includes(i)&&(!r.finished||currentMode==="race");
   r.root.scale.y=1;
  }
@@ -1289,6 +1400,39 @@ function mpState(p){
    t.fall=!!p.cc.fall[i];
   }
   ccHUD();
+ }
+ 
+ if(currentMode==="ballistix"&&p.ball){
+  const v=p.ball;
+  ballElapsed=v.elapsed||0;
+  for(let k=0;k<4;k++){
+   if(v.status[k]===undefined)continue;
+   ballStatus[k]=!!v.status[k];
+   ballHealth[k]=v.health[k];
+   ballShipPositions[k]=v.ship[k];
+   if(racers[ballSides[k]])racers[ballSides[k]].ballPulseCd=v.pulses?.[k]||0;
+   const pos=ballSidePosition(k,v.ship[k]);
+   const ship=ballShipGroups[k],r=racers[ballSides[k]];
+   ship.visible=ballStatus[k];
+   ship.position.set(pos.x,.03,pos.z);
+   ship.rotation.y=k===0?0:k===1?Math.PI:k===2?-Math.PI/2:Math.PI/2;
+   if(r){
+    r.netTarget=null;r.root.position.set(pos.x,.55,pos.z);
+    r.root.visible=ballStatus[k];r.root.rotation.y=ship.rotation.y;r.root.scale.setScalar(.77);
+   }
+  }
+  for(let i=0;i<(v.balls||[]).length;i++){
+   if(!ballBalls[i])ballCreateBall();
+   const b=ballBalls[i],from=v.balls[i];
+   b.x=from.x;b.z=from.z;b.vx=from.vx;b.vz=from.vz;
+   b.g.position.set(from.x,0,from.z);b.g.visible=true;
+   if(b.trails)b.trails.forEach(t=>t.visible=false);
+  }
+  while(ballBalls.length>(v.balls||[]).length){
+   const b=ballBalls.pop();b.g.visible=false;if(b.trails)b.trails.forEach(t=>t.visible=false);
+  }
+  updateBallScoreboard();
+  ballUIUpdate();
  }
  if(currentMode==="gems"&&p.gems){
   for(let i=0;i<gemItems.length;i++){const v=p.gems[i],g=gemItems[i];if(!v)continue;g.x=v.x;g.z=v.z;g.g.position.x=v.x;g.g.position.z=v.z;g.g.visible=v.visible}
@@ -1381,6 +1525,7 @@ function mpAnimateNetwork(time){
      const r=racers[mp.slot];dx=clamp((dragTargetX-r.x)*1.45,-1,1);
      dz=((currentMode==="territory"||currentMode==="colorcrash")?-1:1)*clamp((dragTargetZ-r.z)*1.28,-1,1);
     }
+    if(mode==="ar"){const a=arCameraSteer(dx,dz);dx=a.dx;dz=a.dz}
     mpTell("input",{slot:mp.slot,dx,dz,seq:Math.round(time)});
   }
   if(time-mp.lastStateAt>6000){
@@ -1422,7 +1567,7 @@ $("mpLeave").onclick=async()=>{
  if(!confirm(mp.host?"¿Cerrar la sala para todos?":"¿Salir de la sala?"))return;
  mp.closing=true;mpForget();
  try{await mpAPI("leave",{code:mp.code,token:mp.token})}catch(e){}
- location.href="./multijugador-v31.html";
+ location.href="./multijugador-director-v36.html";
 };
 document.querySelectorAll(".mp-cap-option").forEach(btn=>{
  btn.onclick=()=>{
@@ -1477,10 +1622,31 @@ for(const x of [-(CC_HALF_X+.50),CC_HALF_X+.50])for(const z of [-(CC_HALF_Z+.50)
 // Gameplay color accuracy: intense studio lights and ACES were washing
 // physical tile materials into pastels. Render color-critical faces with
 // exact sRGB pigments; the glossy surrounding stadium remains physically lit.
-const ccMats=CC_PALETTE.map(c=>({
- face:new THREE.MeshBasicMaterial({color:c.hex,toneMapped:false}),
- edge:new THREE.MeshBasicMaterial({color:c.hex,toneMapped:false})
-}));
+
+// Retain exact vivid sRGB colors while giving the floor the surface language
+// of premium game-show glass: controlled highlights, darker edge, no washed hues.
+const ccMats=CC_PALETTE.map(c=>{
+ const cnv=document.createElement("canvas");cnv.width=cnv.height=256;
+ const g=cnv.getContext("2d"),hex="#"+c.hex.toString(16).padStart(6,"0");
+ g.fillStyle=hex;g.fillRect(0,0,256,256);
+ const shine=g.createLinearGradient(0,0,235,220);
+ shine.addColorStop(0,"rgba(255,255,255,.20)");
+ shine.addColorStop(.29,"rgba(255,255,255,.065)");
+ shine.addColorStop(.30,"rgba(255,255,255,.00)");
+ shine.addColorStop(.67,"rgba(0,0,0,.015)");
+ shine.addColorStop(1,"rgba(0,0,0,.22)");
+ g.fillStyle=shine;g.fillRect(0,0,256,256);
+ g.strokeStyle="rgba(255,255,255,.20)";g.lineWidth=8;
+ g.strokeRect(12,12,232,232);
+ g.strokeStyle="rgba(0,0,0,.21)";g.lineWidth=7;
+ g.beginPath();g.moveTo(10,245);g.lineTo(245,245);g.lineTo(245,10);g.stroke();
+ g.fillStyle="rgba(255,255,255,.14)";
+ g.beginPath();g.moveTo(16,17);g.lineTo(137,17);g.lineTo(16,132);g.closePath();g.fill();
+ const tex=new THREE.CanvasTexture(cnv);tex.colorSpace=THREE.SRGBColorSpace;
+ tex.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+ return {face:new THREE.MeshBasicMaterial({map:tex,color:0xffffff,toneMapped:false}),
+ edge:new THREE.MeshBasicMaterial({color:c.hex,toneMapped:false})};
+});
 const ccGlyphs=CC_PALETTE.map(c=>{
  const cv=document.createElement("canvas");cv.width=cv.height=256;
  const ctx=cv.getContext("2d");ctx.textAlign="center";ctx.textBaseline="middle";
@@ -1540,6 +1706,7 @@ function ccHUD(){
  $("ccSymbol").textContent=color.symbol;
  $("ccName").textContent=cc.status==="collapse"?"¡CUIDADO!":color.name;
  $("ccSeconds").textContent=cc.status==="choose"?cc.left.toFixed(1):"!";
+ $("colorCrashHUD").classList.toggle("critical",cc.status==="choose"&&cc.left<1.05);
  $("ccFill").style.width=(cc.status==="choose"?100*cc.left/cc.total:0).toFixed(1)+"%";
 }
 function ccNewRound(){
@@ -1600,7 +1767,7 @@ function ccCollapse(){
  for(const r of ok){
   r.ccScore=(r.ccScore||0)+1;
   ccRipple(r.x,r.z,color.hex);
-  if(r.index===0){tactile(18);skillMessage("¡TE SALVASTE! ✨",650)}
+  if(r.index===0){tactile(18);skillMessage("¡TE SALVASTE! ✨",650);v33Burst(r.x,r.z,12,color.hex)}
  }
  for(const r of out){r.ccFall=miniChallengeElapsed;knockoutRunner(r,null)}
  for(const tile of ccTiles)tile.fall=tile.color!==cc.target;
@@ -2393,7 +2560,7 @@ function ballShipUpdate(dt){
    target=clamp((delayedSeek-ballShipPositions[k])*(1.15+accuracy*.9),-1,1);
    if(ballElapsed<4&&k===3)target*=.8;
   }
-  const baseSpeed=k===0?(racers[0].dash>0?13.0:10.8):onlineInput?10.8:(3.85+(r.skill||.7)*1.45)*difficultyScale();
+  const baseSpeed=k===0?(racers[0].dash>0?13.0:10.8):onlineInput?(r.dash>0?13.5:10.8):(3.85+(r.skill||.7)*1.45)*difficultyScale();
   ballShipPositions[k]=clamp(ballShipPositions[k]+target*baseSpeed*dt,-ballMaxMove,ballMaxMove);
   const pos=ballSidePosition(k,ballShipPositions[k]);
   const rotation=k===0?0:k===1?Math.PI:k===2?-Math.PI/2:Math.PI/2;
@@ -2535,8 +2702,8 @@ function ballGoal(b,k){
 function updateBallScoreboard(){
  const target=$("ballScoreboard");
  target.innerHTML=ballSides.map((id,k)=>
-  '<div class="ball-score'+(k===0?' you':'')+(!ballStatus[k]?' out':'')+'" style="--team:#'+runnerColor(id).toString(16).padStart(6,"0")+'"><small><i style="background:var(--team)"></i>'+
-  (k===0?'VOS':profiles[id].name)+'</small><strong>'+String(ballHealth[k]||0).padStart(2,"0")+'</strong><span class="hp-track"><span style="width:'+(ballHealth[k]/(k===0?10:7)*100)+'%"></span></span></div>').join("");
+  '<div class="ball-score'+(ballSides[k]===(mp.active&&!mp.host?mp.slot:0)?' you':'')+(!ballStatus[k]?' out':'')+'" style="--team:#'+runnerColor(id).toString(16).padStart(6,"0")+'"><small><i style="background:var(--team)"></i>'+
+  (id===(mp.active&&!mp.host?mp.slot:0)?'VOS':profiles[id].name)+'</small><strong>'+String(ballHealth[k]||0).padStart(2,"0")+'</strong><span class="hp-track"><span style="width:'+(ballHealth[k]/(k===0?10:7)*100)+'%"></span></span></div>').join("");
 }
 function completeBallistix(){
  if(phase!=="race")return;
@@ -2627,18 +2794,21 @@ function ballTrailUpdate(b,dt){
 function ballUIUpdate(){
  if(ballElapsed-ballLastHudAt<.12)return;
  ballLastHudAt=ballElapsed;
- const p=racers[0];
- $("miniObjective").textContent=ballStatus[0]?ballPulseUntil>ballElapsed?"🛡 PULSO ARMADO":ballElapsed<6?"DEFENDÉ TU ARCO":ballElapsed>=BALL_SUDDEN_DEATH?"⚡ ÚLTIMOS SEGUNDOS":"⚽ "+ballBalls.length+" PELOTA"+(ballBalls.length===1?"":"S"):"ELIMINADO";
- $("miniObjective").classList.toggle("danger",ballHealth[0]<=2||ballElapsed>=BALL_SUDDEN_DEATH);
+ const own=mp.active&&!mp.host?Math.max(0,ballSides.indexOf(mp.slot)):0;
+ const p=racers[ballSides[own]];
+ const cooldown=own===0?ballPulseCd:(p?.ballPulseCd||0);
+ $("miniObjective").textContent=ballStatus[own]?(own===0&&ballPulseUntil>ballElapsed?"🛡 PULSO ARMADO":ballElapsed<6?"DEFENDÉ TU ARCO":ballElapsed>=BALL_SUDDEN_DEATH?"⚡ ÚLTIMOS SEGUNDOS":"⚽ "+ballBalls.length+" PELOTA"+(ballBalls.length===1?"":"S")):"ELIMINADO";
+ $("miniObjective").classList.toggle("danger",ballHealth[own]<=2||ballElapsed>=BALL_SUDDEN_DEATH);
  $("timer").textContent=""+Math.max(0,Math.ceil(BALL_MAX_SECONDS-ballElapsed));
- $("place").innerHTML=ballHealth[0]+"<em> / 10</em>";
- $("jumpCount").textContent=ballPulseUntil>ballElapsed?"ARMADO":ballPulseCd>0?ballPulseCd.toFixed(1)+"s":"LISTO";
- $("jump").classList.toggle("ballistix-pulse-ready",ballPulseCd===0);
- $("jump").classList.toggle("ballistix-pulse-cool",ballPulseCd>0);
- $("dash").textContent=p.dashCd>0?Math.ceil(p.dashCd)+"s":"RÁPIDO";
+ $("place").innerHTML=ballHealth[own]+"<em> / "+(own===0?10:7)+"</em>";
+ $("jumpCount").textContent=own===0&&ballPulseUntil>ballElapsed?"ARMADO":cooldown>0?cooldown.toFixed(1)+"s":"LISTO";
+ $("jump").classList.toggle("ballistix-pulse-ready",cooldown<=0);
+ $("jump").classList.toggle("ballistix-pulse-cool",cooldown>0);
+ $("dash").textContent=p?.dashCd>0?Math.ceil(p.dashCd)+"s":"RÁPIDO";
 }
 function ballTick(dt){
  ballElapsed+=dt;
+ if(mp.active)for(const r of activeRacers()){r.ballPulseCd=Math.max(0,(r.ballPulseCd||0)-dt);if(r.index>0){r.dash=Math.max(0,(r.dash||0)-dt);r.dashCd=Math.max(0,(r.dashCd||0)-dt)}}
  ballCenterMedallion.rotation.y=ballElapsed*.24;
  for(let k=0;k<4;k++){
   if(ballGoalFlash[k]>.005){
@@ -2693,6 +2863,423 @@ function ballTick(dt){
  }
  ballUIUpdate();
 }
+
+// MICROCAOS VISUAL SYSTEM V3.3 — Stadium design shared by all seven games.
+// Visual-only: adds no colliders and never changes network/AR game coordinates.
+const V33_PRESETS={
+ race:{color:0x55ffe6,x:5.8,z:16.30,tag:"CARRERA LOCA"},
+ tag:{color:0xff438d,x:5.92,z:8.43,tag:"LA MANCHA"},
+ gems:{color:0xffd543,x:5.92,z:8.43,tag:"FIEBRE DE GEMAS"},
+ survival:{color:0xac7dff,x:5.92,z:8.43,tag:"EL PISO SE HUNDE"},
+ territory:{color:0x2af5dc,x:TERRITORY_HALF_X+1.24,z:TERRITORY_HALF_Z+1.36,tag:"TERRITORIOS"},
+ colorcrash:{color:0xff68b7,x:CC_HALF_X+.86,z:CC_HALF_Z+.91,tag:"COLOR CRASH"},
+ ballistix:{color:0x33d9ff,x:7.12,z:7.12,tag:"BALLISTIX"}
+};
+const visual33={kits:{},frameCount:0,quality:"auto",bursts:0,debug:{}};
+const v33Metal=new THREE.MeshStandardMaterial({color:0x0a1838,metalness:.45,roughness:.30});
+const v33Ink=new THREE.MeshStandardMaterial({color:0x111f42,metalness:.21,roughness:.37});
+const v33Chrome=new THREE.MeshStandardMaterial({color:0x87a6c8,metalness:.67,roughness:.24});
+const v33RingGeo=new THREE.TorusGeometry(.23,.037,7,24);
+const v33PostGeo=new THREE.CylinderGeometry(.14,.17,.66,12);
+const v33OrbGeo=new THREE.IcosahedronGeometry(.14,1);
+const v33PlateGeo=new RoundedBoxGeometry(2.2,.13,.49,2,.09);
+function v33Mat(color){return new THREE.MeshBasicMaterial({color,toneMapped:false})}
+for(const [name,meta] of Object.entries(V33_PRESETS)){
+ const base=name==="race"?stage:name==="ballistix"?ballArena:miniStages[name];
+ if(!base)continue;
+ const parent=new THREE.Group();parent.name="ART DIRECTION · "+meta.tag;base.add(parent);
+ if(name==="race")raceDecor.push(parent);
+ visual33.kits[name]=parent;
+ const luminous=v33Mat(meta.color);
+ const sideA=v33Mat(0xffffff);
+ const accentLine=new THREE.MeshBasicMaterial({color:meta.color,transparent:true,opacity:.82,depthWrite:false,toneMapped:false});
+ // Edge inlays follow each arena, placed OUTSIDE the occupied playing surface.
+ const x=meta.x,z=meta.z;
+ for(const sx of [-1,1]){
+  const line=box(accentLine,parent,[sx*x,-.01,0],[.065,.048,z*1.87]);line.castShadow=false;
+ }
+ for(const sz of [-1,1]){
+  const line=box(accentLine,parent,[0,-.01,sz*z],[x*1.87,.048,.065]);line.castShadow=false;
+ }
+ // Four corner miniature floodlights with metallic feet and faceted lenses.
+ const holder=new THREE.InstancedMesh(v33PostGeo,v33Metal,4);
+ holder.castShadow=false;holder.receiveShadow=false;parent.add(holder);
+ const discs=new THREE.InstancedMesh(v33OrbGeo,luminous,4);
+ discs.castShadow=false;discs.receiveShadow=false;parent.add(discs);
+ const mat4=new THREE.Matrix4();
+ let ii=0;
+ for(const sx of [-1,1])for(const sz of [-1,1]){
+  mat4.makeTranslation(sx*x,.16,sz*z);holder.setMatrixAt(ii,mat4);
+  mat4.makeTranslation(sx*x,.59,sz*z);discs.setMatrixAt(ii,mat4);ii++;
+ }
+ holder.instanceMatrix.needsUpdate=true;discs.instanceMatrix.needsUpdate=true;
+ const accentPylons=new THREE.Group();parent.add(accentPylons);
+ for(const sx of [-1,1]){
+  const t=new THREE.Mesh(v33PlateGeo,v33Ink);t.position.set(sx*(x+.30),.02,0);t.rotation.y=Math.PI/2;
+  t.castShadow=false;accentPylons.add(t);
+ }
+ // Vinyl sports-event decals use one 2D canvas shared as a texture, no file downloads.
+ const cv=document.createElement("canvas");cv.width=512;cv.height=128;
+ const ctx=cv.getContext("2d");
+ ctx.clearRect(0,0,512,128);ctx.fillStyle="#071426";ctx.fillRect(0,0,512,128);
+ ctx.strokeStyle="#"+meta.color.toString(16).padStart(6,"0");
+ ctx.lineWidth=6;ctx.strokeRect(6,6,500,116);
+ ctx.fillStyle="#ffffff";ctx.font="900 48px Outfit,Arial";
+ ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(meta.tag,256,64,482);
+ const tex=new THREE.CanvasTexture(cv);tex.colorSpace=THREE.SRGBColorSpace;
+ const label=new THREE.Mesh(new THREE.PlaneGeometry(2.9,.72),new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}));
+ label.rotation.x=-Math.PI/2;label.position.set(0,.073,z+.48);parent.add(label);
+ // Three contrasting architectural bands, rather than procedural noise everywhere.
+ for(const sx of [-1,1])for(const sz of [-1,1]){
+  const cap=new THREE.Mesh(new THREE.CylinderGeometry(.24,.30,.08,16),v33Chrome);
+  cap.position.set(sx*x,.40,sz*z);cap.castShadow=false;parent.add(cap);
+ }
+}
+const v33BurstGeo=new THREE.PlaneGeometry(.18,.11);
+const v33BurstMat=new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide,transparent:true,depthWrite:false,toneMapped:false});
+const v33BurstMesh=new THREE.InstancedMesh(v33BurstGeo,v33BurstMat,92);
+v33BurstMesh.name="Reused arcade confetti · 1 draw call";
+v33BurstMesh.frustumCulled=false;v33BurstMesh.castShadow=false;
+v33BurstMesh.count=0;stage.add(v33BurstMesh);
+const v33ParticlePool=Array.from({length:92},()=>({life:0,max:1,x:0,y:0,z:0,vx:0,vy:0,vz:0,rot:0,spin:0,scale:1}));
+const v33ParticleTransform=new THREE.Object3D();let v33ParticleCursor=0;
+const v33Colors=[0x5cffe4,0xffd45d,0xff538f,0x7c78ff,0xfff9e8,0x34b6ff];
+function v33Burst(x,z,intensity=18,mainColor=0x55ffe6){
+ if(gameSettings.quality==="low")intensity=Math.min(10,intensity);
+ visual33.bursts++;
+ const count=Math.max(3,Math.min(60,intensity));
+ for(let j=0;j<count;j++){
+  const k=v33ParticleCursor++%v33ParticlePool.length,p=v33ParticlePool[k];
+  const a=Math.random()*Math.PI*2,velocity=.9+Math.random()*3.5;
+  p.life=p.max=.48+Math.random()*.6;p.x=x;p.z=z;p.y=.28+Math.random()*.3;
+  p.vx=Math.cos(a)*velocity;p.vy=2+Math.random()*4;p.vz=Math.sin(a)*velocity;
+  p.rot=Math.random()*Math.PI*2;p.spin=(Math.random()-.5)*12;p.scale=.6+Math.random()*1.2;
+  v33BurstMesh.setColorAt(k,new THREE.Color(j%4===0?mainColor:v33Colors[(j+k)%v33Colors.length]));
+ }
+ if(v33BurstMesh.instanceColor)v33BurstMesh.instanceColor.needsUpdate=true;
+}
+function v33UpdateFX(dt){
+ let visible=0;
+ for(const p of v33ParticlePool){
+  if(p.life<=0)continue;
+  p.life-=dt;if(p.life<=0)continue;
+  p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;p.vy-=11*dt;
+  p.rot+=p.spin*dt;
+  v33ParticleTransform.position.set(p.x,p.y,p.z);
+  v33ParticleTransform.rotation.set(p.rot*.5,p.rot*.35,p.rot);
+  v33ParticleTransform.scale.setScalar(Math.max(.01,p.scale*Math.min(1,p.life*5)));
+  v33ParticleTransform.updateMatrix();
+  v33BurstMesh.setMatrixAt(visible,v33ParticleTransform.matrix);
+  // Color follows particle identity and is stored in the fixed pool.
+  v33BurstMesh.setColorAt(visible,new THREE.Color(v33Colors[(visible+Math.floor(p.scale*10))%v33Colors.length]));
+  visible++;
+ }
+ v33BurstMesh.count=visible;
+ if(visible){v33BurstMesh.instanceMatrix.needsUpdate=true;if(v33BurstMesh.instanceColor)v33BurstMesh.instanceColor.needsUpdate=true}
+}
+function v33ModeArt(){
+ for(const [name,kit]of Object.entries(visual33.kits))kit.visible=gameSettings.quality!=="low";
+ const tint=V33_PRESETS[currentMode]?.color||0x55ffe6;
+ document.documentElement.style.setProperty("--arena-accent","#"+tint.toString(16).padStart(6,"0"));
+}
+window.__microcaosVisualQA=()=>{
+ const report={version:"3.4",signatureMascots:6,animatedEyes:true,stadiumLedModes:7,mode:currentMode,renderer:renderer.info.render,activeFX:v33BurstMesh.count,
+  customArenas:Object.keys(visual33.kits),quality:gameSettings.quality,pixelRatio:renderer.getPixelRatio(),
+  xr:renderer.xr.isPresenting};
+ return report;
+};
+
+
+// MICROCAOS SIGNATURE V3.4 · graphic stadium lighting, no expensive real-time lights.
+const v34LedGeo=new THREE.IcosahedronGeometry(.075,0);
+const v34LedMaterial=new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false});
+const v34Chasers={},v34Matrix=new THREE.Matrix4();
+for(const [name,config]of Object.entries(V33_PRESETS)){
+ const kit=visual33.kits[name];if(!kit)continue;
+ const strip=new THREE.InstancedMesh(v34LedGeo,v34LedMaterial,32);
+ strip.name="stadium chasing LED";strip.castShadow=false;strip.frustumCulled=false;kit.add(strip);
+ v34Chasers[name]=strip;
+ let k=0;
+ for(let i=0;i<8;i++){
+  const f=(i-3.5)/4;
+  for(const [x,z]of [[f*config.x,-config.z],[f*config.x,config.z],[-config.x,f*config.z],[config.x,f*config.z]]){
+   v34Matrix.makeTranslation(x,.31,z);strip.setMatrixAt(k++,v34Matrix);
+  }
+ }
+ strip.instanceMatrix.needsUpdate=true;
+}
+const v34ChampionRing=new THREE.Mesh(new THREE.RingGeometry(.63,.77,40),
+ new THREE.MeshBasicMaterial({color:0xffda63,transparent:true,opacity:.64,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));
+v34ChampionRing.rotation.x=-Math.PI/2;v34ChampionRing.castShadow=false;v34ChampionRing.visible=false;
+stage.add(v34ChampionRing);
+let v34LastLedTick=-1;
+function v34UpdateArena(t){
+ const now=Math.floor(t/120);
+ if(now!==v34LastLedTick){
+  v34LastLedTick=now;
+  const strip=v34Chasers[currentMode];
+  if(strip&&gameSettings.quality!=="low"){
+   const baseColor=new THREE.Color(V33_PRESETS[currentMode].color);
+   for(let k=0;k<32;k++){
+    const d=(k+32-now%32)%32,brightness=d<4?1.0:d<10?.36:.10;
+    strip.setColorAt(k,baseColor.clone().multiplyScalar(brightness));
+   }
+   if(strip.instanceColor)strip.instanceColor.needsUpdate=true;
+  }
+ }
+ const winner=phase==="finished"&&nextQualifiers.length?racers[nextQualifiers[0]]:null;
+ v34ChampionRing.visible=!!winner&&gameSettings.quality!=="low"&&currentMode!=="race";
+ if(v34ChampionRing.visible){
+  v34ChampionRing.position.set(winner.root.position.x,.26,winner.root.position.z);
+  v34ChampionRing.scale.setScalar(1+Math.sin(t*.003)*.10);
+  v34ChampionRing.material.opacity=.46+Math.sin(t*.005)*.20;
+  v34ChampionRing.rotation.z=t*.00043;
+ }
+}
+function v34AnimateFaces(t,dt){
+ const k=1-Math.exp(-12*dt),time=t*.001;
+ for(const r of racers){
+  if(!r.rig?.visible||!r.v34Face)continue;
+  const face=r.v34Face;
+  const speed=Math.min(1,Math.hypot(r.vx||0,r.vz||0)/7);
+  const victory=phase==="finished"&&nextQualifiers[0]===r.index;
+  const defeated=phase==="race"&&r.finished&&currentMode!=="race";
+  const underPressure=phase==="race"&&currentMode==="tag"&&weightHolder===r.index;
+  const period=(time+r.index*.77)%(2.85+r.index*.23);
+  const blink=period<.17?Math.sin(period/.17*Math.PI):0;
+  face.lids.forEach(lid=>{
+   lid.scale.y=.008+blink*.205;
+   lid.position.y=1.385+blink*.03;
+  });
+  face.pupils.forEach((eye,i)=>{
+   const origin=face.pupilBase[i];
+   eye.position.x=origin.x+Math.sin(time*.86+r.index*1.7)*.020;
+   eye.position.y=origin.y+(victory?.026:defeated?-.026:underPressure?.021:Math.sin(time*.65+r.index)*.009);
+  });
+  face.brows.forEach((b,i)=>{
+   const target=1.615+(victory?.07:underPressure?.064:defeated?-.052:0);
+   b.position.y+=(target-b.position.y)*k;
+   const angle=victory?(i===0?-.18:.18):underPressure?(i===0?.16:-.16):0;
+   b.rotation.z+=(angle-b.rotation.z)*k;
+  });
+  face.ears.forEach((ear,i)=>{
+   const target=(i===0?-1:1)*Math.sin(time*(victory?8.5:3.9)+r.index)*(.035+speed*.095+(victory?.13:0));
+   ear.rotation.z+=(target-ear.rotation.z)*k;
+  });
+  if(face.tail){
+   const target=Math.sin(time*(victory?12:4.5)+r.index)*(.15+speed*.20+(victory?.22:0));
+   face.tail.rotation.y+=(target-face.tail.rotation.y)*k;
+  }
+  if(face.crest)face.crest.rotation.z=Math.sin(time*2.6+r.index)*.030;
+  if(victory){
+   r.arms.forEach((a,i)=>{
+    a.rotation.x+=(-2.1+Math.sin(time*9+i*Math.PI)*.16-a.rotation.x)*k;
+    const armAngle=i===0?.35:-.35;
+    a.rotation.z+=(armAngle-a.rotation.z)*k;
+   });
+   r.rig.position.y=Math.max(r.rig.position.y,Math.abs(Math.sin(time*5.3+r.phase))*.065);
+  }else if(defeated){
+   r.arms.forEach((a,i)=>{const angle=i===0?-.22:.22;a.rotation.z+=(angle-a.rotation.z)*k});
+  }else{
+   r.arms.forEach(a=>a.rotation.z+=(0-a.rotation.z)*k);
+  }
+ }
+}
+
+
+// MICROCAOS CINEMATIC ARENA V3.5 — large, unmistakable stage architecture.
+// Compact geometry + one instanced crowd and one instanced LED row per mode.
+// All details sit OUTSIDE playable cells; rules, hitboxes and AR anchoring unchanged.
+const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"3.6"};
+const v35Ink=new THREE.MeshStandardMaterial({color:0x09132d,metalness:.42,roughness:.36,clearcoat:1});
+const v35Alloy=new THREE.MeshStandardMaterial({color:0x294665,metalness:.72,roughness:.24,clearcoat:.72});
+const v35SeatMaterial=new THREE.MeshStandardMaterial({color:0xffffff,metalness:.12,roughness:.35,clearcoat:.6});
+const v35SeatGeo=new RoundedBoxGeometry(.55,.42,.49,2,.11);
+const v35LightGeo=new THREE.IcosahedronGeometry(.12,1);
+const v35LightMat=new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false});
+const v35Temp=new THREE.Object3D();
+for(const [name,meta] of Object.entries(V33_PRESETS)){
+ const base=name==="race"?stage:name==="ballistix"?ballArena:miniStages[name];
+ if(!base)continue;
+ const set=new THREE.Group();set.name="V3.5 CINEMATIC "+name;base.add(set);
+ if(name==="race")raceDecor.push(set);
+ v35.kits[name]=set;
+ const width=meta.x*1.91,back=-meta.z-.84;
+ const primary=new THREE.MeshBasicMaterial({color:meta.color,toneMapped:false});
+ const rimMetal=new THREE.MeshStandardMaterial({color:0x163453,metalness:.65,roughness:.28});
+ // Long modular broadcast grandstand, clearly readable at gameplay camera distances.
+ soft(v35Ink,set,[0,-.33,back],[width+.95,.55,1.90]);
+ soft(rimMetal,set,[0,.03,back+.52],[width+.98,.22,.32]);
+ soft(primary,set,[0,.16,back+.56],[width+.97,.095,.12],false);
+ const audienceCount=30;
+ const seats=new THREE.InstancedMesh(v35SeatGeo,v35SeatMaterial,audienceCount);
+ seats.castShadow=false;seats.receiveShadow=false;set.add(seats);v35.seats[name]=seats;
+ const lamps=new THREE.InstancedMesh(v35LightGeo,v35LightMat,audienceCount);
+ lamps.castShadow=false;lamps.receiveShadow=false;set.add(lamps);v35.lights[name]=lamps;
+ const palette=[0xffcf6d,0x7ffff0,0xff76b4,0x8887ff,0xbfff78,0xffffff];
+ for(let k=0;k<audienceCount;k++){
+   const lane=k%15,row=Math.floor(k/15);
+   const x=(lane-7)/7*meta.x*.85,z=back-.40-row*.60;
+   v35Temp.position.set(x,.54+row*.32,z);
+   v35Temp.rotation.set(0,0,0);v35Temp.scale.set(1,1,1);v35Temp.updateMatrix();
+   seats.setMatrixAt(k,v35Temp.matrix);
+   seats.setColorAt(k,new THREE.Color(palette[(k*5+row*3)%palette.length]));
+   v35Temp.position.set(x,.94+row*.32,z);v35Temp.scale.set(.95,.95,.95);v35Temp.updateMatrix();
+   lamps.setMatrixAt(k,v35Temp.matrix);
+   lamps.setColorAt(k,new THREE.Color(palette[(k*3+row*5)%palette.length]));
+ }
+ seats.instanceMatrix.needsUpdate=true;seats.instanceColor.needsUpdate=true;
+ lamps.instanceMatrix.needsUpdate=true;lamps.instanceColor.needsUpdate=true;
+ // Broadcast scoreboard: crisp, vertical, with real typographic hierarchy.
+ const sign=document.createElement("canvas");sign.width=1024;sign.height=256;
+ const g=sign.getContext("2d");
+ g.fillStyle="#07152c";g.fillRect(0,0,1024,256);
+ const grad=g.createLinearGradient(0,0,1024,0);
+ grad.addColorStop(0,"#07152c");grad.addColorStop(.55,"#102f4c");grad.addColorStop(1,"#07152c");
+ g.fillStyle=grad;g.fillRect(8,8,1008,240);
+ g.strokeStyle="#"+meta.color.toString(16).padStart(6,"0");g.lineWidth=9;g.strokeRect(12,12,1000,232);
+ g.textAlign="center";g.textBaseline="middle";
+ g.fillStyle="#8dfbef";g.font="900 42px Outfit,Arial";g.fillText("M I C R O C A O S   ·   L I V E",512,70);
+ g.fillStyle="#ffffff";g.font="900 88px Outfit,Arial";g.fillText(meta.tag,512,162,920);
+ const texture=new THREE.CanvasTexture(sign);texture.colorSpace=THREE.SRGBColorSpace;
+ texture.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+ const billboard=new THREE.Mesh(new THREE.PlaneGeometry(Math.min(9.4,width*.80),1.82),
+ new THREE.MeshBasicMaterial({map:texture,toneMapped:false,side:THREE.DoubleSide,depthWrite:false}));
+ billboard.position.set(0,2.18,back-.66);billboard.castShadow=false;set.add(billboard);
+ // A real raised nose on the platform, no flat floating plastic sheet.
+ soft(v35Ink,set,[0,-.49,meta.z+.56],[width+.52,.70,.64]);
+ soft(v35Alloy,set,[0,-.09,meta.z+.64],[width+.5,.11,.22]);
+ soft(primary,set,[0,.02,meta.z+.77],[width+.43,.057,.09],false);
+ for(const sx of [-1,1]){
+   // Two large angled broadcast pylons, but never projecting through the board.
+   const pylon=new THREE.Group();pylon.position.set(sx*(meta.x+.72),.04,back+.38);set.add(pylon);
+   soft(v35Alloy,pylon,[0,.93,0],[.37,1.80,.52]);
+   soft(primary,pylon,[0,1.80,.07],[.52,.24,.62],false);
+   const cap=ball(v35LightMat,pylon,[0,2.04,0],[.19,.19,.19]);cap.castShadow=false;
+ }
+}
+// V3.6 DIRECTOR ARENA: substantial modular 3D venue, entirely decorative.
+const v36Iron=new THREE.MeshStandardMaterial({color:0x13223d,metalness:.58,roughness:.37});
+const v36Metal=new THREE.MeshStandardMaterial({color:0x7087a5,metalness:.75,roughness:.30});
+const v36Black=new THREE.MeshStandardMaterial({color:0x080e22,metalness:.28,roughness:.48});
+const v36SpectatorMat=new THREE.MeshStandardMaterial({color:0xffffff,metalness:.04,roughness:.57});
+const v36SpectatorGeo=new THREE.CapsuleGeometry(.16,.29,3,7);
+const v36Venues={};
+for(const [name,meta] of Object.entries(V33_PRESETS)){
+ const parent=v35.kits[name];if(!parent)continue;
+ const venue=new THREE.Group();venue.name="V3.6 BROADCAST VENUE "+name;parent.add(venue);v36Venues[name]=venue;
+ const accent=new THREE.MeshBasicMaterial({color:meta.color,toneMapped:false});
+ const wide=meta.x*2+1.43,long=meta.z*2+1.54;
+ // Physical depth: weighty three-layer floor deck instead of a flat floating sheet.
+ soft(v36Black,venue,[0,-1.02,0],[wide,.34,long]);
+ soft(v36Iron,venue,[0,-.82,0],[wide-.18,.16,long-.18]);
+ soft(v36Metal,venue,[0,-.725,0],[wide-.38,.039,long-.38],false);
+ soft(v36Iron,venue,[0,-.69,0],[wide-.50,.05,long-.50],false);
+ for(const side of [-1,1]){
+   // Encased LED signage: short strips recessed in a solid wall, never transparent rails.
+   soft(v36Iron,venue,[side*(meta.x+.42),-.15,0],[.37,.82,meta.z*1.88]);
+   soft(v36Metal,venue,[side*(meta.x+.44),-.56,0],[.22,.07,meta.z*1.80],false);
+   const sections=name==="race"?9:5;
+   for(let n=0;n<sections;n++){
+      const z=(-.5+(n+.5)/sections)*meta.z*1.72;
+      soft(v36Black,venue,[side*(meta.x+.625),.03,z],[.08,.31,Math.max(.25,meta.z*1.64/sections-.18)],false);
+      soft(accent,venue,[side*(meta.x+.672),-.13,z],[.045,.058,Math.max(.16,meta.z*1.43/sections-.22)],false);
+   }
+   // Spectator terraces give a readable human scale; one instanced mesh per side.
+   soft(v36Iron,venue,[side*(meta.x+.88),.22,0],[.83,.25,meta.z*1.55]);
+   soft(v36Metal,venue,[side*(meta.x+.94),.39,0],[.80,.07,meta.z*1.52],false);
+   const number=name==="race"?24:12,group=new THREE.InstancedMesh(v36SpectatorGeo,v36SpectatorMat,number);
+   group.castShadow=false;group.receiveShadow=false;venue.add(group);
+   const walker=new THREE.Object3D(),palette=[0xffd36b,0x4cf5e1,0xff639f,0xab93ff,0xd7fcff];
+   for(let n=0;n<number;n++){
+      walker.position.set(side*(meta.x+.94),.77,-meta.z*.72+(n+.5)*meta.z*1.44/number);
+      walker.rotation.set(0,side*Math.PI/2,(n%3-1)*.08);
+      walker.scale.setScalar(.80+(n%4)*.05);walker.updateMatrix();
+      group.setMatrixAt(n,walker.matrix);
+      group.setColorAt(n,new THREE.Color(palette[(n+(side+1)*2)%palette.length]));
+   }
+   group.instanceMatrix.needsUpdate=true;group.instanceColor.needsUpdate=true;
+   // Studio pillars connect physically to the back wall (no floating neon beams).
+   const z=-meta.z-.91;
+   soft(v36Iron,venue,[side*(meta.x+.60),.74,z],[.57,1.54,.66]);
+   soft(accent,venue,[side*(meta.x+.60),1.53,z],[.62,.092,.72],false);
+   ball(v35LightMat,venue,[side*(meta.x+.60),1.76,z],[.16,.16,.16]).castShadow=false;
+ }
+ for(let tier=0;tier<3;tier++){
+   const z=-meta.z-1.55-tier*.50;
+   soft(v36Iron,venue,[0,.34+tier*.27,z],[meta.x*1.80,.26,.56]);
+   soft(v36Metal,venue,[0,.49+tier*.27,z+.06],[meta.x*1.78,.052,.41],false);
+ }
+}
+
+// Former exterior halos retired (not rendered).
+
+// Cinematic studio cyclorama: atmospheric focus without heavy postprocessing.
+const v35BackdropCanvas=document.createElement("canvas");
+v35BackdropCanvas.width=v35BackdropCanvas.height=1024;
+const v35BackdropCtx=v35BackdropCanvas.getContext("2d");
+v35BackdropCtx.fillStyle="#050c20";v35BackdropCtx.fillRect(0,0,1024,1024);
+const v35BgGlow=v35BackdropCtx.createRadialGradient(525,530,12,525,530,650);
+v35BgGlow.addColorStop(0,"#19395b");
+v35BgGlow.addColorStop(.35,"#0d2142");
+v35BgGlow.addColorStop(.72,"#070f26");
+v35BgGlow.addColorStop(1,"#040916");
+v35BackdropCtx.fillStyle=v35BgGlow;v35BackdropCtx.fillRect(0,0,1024,1024);
+const v35LeftLight=v35BackdropCtx.createLinearGradient(0,0,320,0);
+v35LeftLight.addColorStop(0,"rgba(39,119,155,.15)");
+v35LeftLight.addColorStop(1,"rgba(39,119,155,0)");
+v35BackdropCtx.fillStyle=v35LeftLight;v35BackdropCtx.fillRect(0,0,320,1024);
+const v35RightLight=v35BackdropCtx.createLinearGradient(704,0,1024,0);
+v35RightLight.addColorStop(0,"rgba(53,34,116,0)");
+v35RightLight.addColorStop(1,"rgba(53,34,116,.17)");
+v35BackdropCtx.fillStyle=v35RightLight;v35BackdropCtx.fillRect(704,0,320,1024);
+v35BackdropCtx.strokeStyle="rgba(105,206,246,.045)";
+v35BackdropCtx.lineWidth=1;
+for(let step=64;step<1024;step+=64){
+ v35BackdropCtx.beginPath();v35BackdropCtx.moveTo(step,0);v35BackdropCtx.lineTo(step,1024);v35BackdropCtx.stroke();
+ v35BackdropCtx.beginPath();v35BackdropCtx.moveTo(0,step);v35BackdropCtx.lineTo(1024,step);v35BackdropCtx.stroke();
+}
+const v35StudioBackground=new THREE.CanvasTexture(v35BackdropCanvas);
+v35StudioBackground.colorSpace=THREE.SRGBColorSpace;
+
+const v35Backdrop=new THREE.Group();scene.add(v35Backdrop);
+for(const radius of [10.5,15.5,22]){
+ const ring=new THREE.Mesh(new THREE.RingGeometry(radius,radius+.13,96),
+  new THREE.MeshBasicMaterial({color:radius===10.5?0x2c7893:0x174168,transparent:true,opacity:.18,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}));
+ ring.rotation.x=-Math.PI/2;ring.position.y=-2.0;v35Backdrop.add(ring);
+}
+function v35UpdateStage(t){
+ v35Backdrop.visible=false; // No detached exterior halos.
+ v35Backdrop.position.set(0,0,0);
+ const next=Math.floor(t/190);
+ if(v35.ledTick!==next){
+  v35.ledTick=next;
+  const strip=v35.lights[currentMode];
+  if(strip&&gameSettings.quality!=="low"){
+   const main=new THREE.Color(V33_PRESETS[currentMode].color);
+   for(let k=0;k<30;k++){
+    const pulse=(k+30-next%30)%30;
+    strip.setColorAt(k,pulse<5?main:new THREE.Color(pulse%3===0?0x93d1f0:0x324b69));
+   }
+   strip.instanceColor.needsUpdate=true;
+  }
+ }
+}
+function v35ApplyArt(){
+ // V3.3 thin outer rails caused gigantic diagonal cyan lines in other modes.
+ // Replaced with physically contiguous grandstands inside each mode's group.
+ for(const kit of Object.values(visual33.kits))kit.visible=false;
+ for(const [name,kit]of Object.entries(v35.kits))kit.visible=name==="race"?currentMode==="race":true;
+ v35.mode=currentMode;
+}
+window.__microcaosDirectorQA=()=>({version:"3.6",venues:Object.keys(v36Venues),sevenScenes:Object.keys(v36Venues).length===7,mode:currentMode,webxr:renderer.xr.isPresenting,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,unchangedARScale:true});
+window.__microcaosCinematicQA=()=>({
+ version:"3.6",mode:currentMode,studio:!!v35Backdrop.visible,
+ arenas:Object.keys(v35.kits),onScreenArenaZoom:v35.zoom,
+ audienceModels:30,signatureMascots:6,webxr:renderer.xr.isPresenting,
+ sceneDrawCalls:renderer.info.render.calls,sceneTriangles:renderer.info.render.triangles
+});
+
 function renderModeLabel(){
  const tag=MINI_MODES[currentMode];
  $("stagebanner").textContent=(gameType==="individual"?"PARTIDA INDIVIDUAL":"RONDA "+(roundIndex+1)+"/3")+" · "+tag.emoji+" · "+(gameType==="individual"?"1º GANA":"PASAN "+ROUND_RULES[roundIndex].qualify);
@@ -2712,10 +3299,12 @@ function renderModeLabel(){
  $("gemLeaderboard").classList.toggle("on",currentMode==="gems");
  $("territoryLeaderboard").classList.toggle("on",currentMode==="territory");
  renderer.shadowMap.enabled=currentMode!=="ballistix";
+ v33ModeArt();v35ApplyArt();
  applyGraphicsQuality();
+ if(mode==="ar"&&placed)arUpdateScale();
  if(mode==="preview"){
   previewTable.visible=currentMode==="race";
-  scene.background=new THREE.Color(currentMode==="race"?0x172b4a:currentMode==="tag"?0x180d35:0x0c1736);
+  scene.background=v35StudioBackground;
   scene.fog.color.setHex(currentMode==="race"?0x142542:0x0c1030);
  }
  camera.fov=currentMode==="ballistix"?(camera.aspect<.68?64:48):currentMode==="territory"?(camera.aspect<.68?63:46):currentMode==="colorcrash"?(camera.aspect<.68?65:48):(camera.aspect<.68?58:42);
@@ -2799,6 +3388,7 @@ function liveRacers(){return activeRacers().filter(r=>!r.finished)}
 function knockoutRunner(r,message){
  if(r.finished)return;
  r.finished=true;r.eliminatedAt=miniChallengeElapsed;
+ v33Burst(r.x,r.z,18,runnerColor(r.index));
  r.root.scale.y=.19;
  puff(r.x,r.z,0xff8eb0,16);
  if(r.index===0){tactile(100);skillMessage("¡ELIMINADO!",1100)}
@@ -2937,7 +3527,7 @@ function miniGems(dt,t){
     item.lastCollector=r.index;
     item.g.visible=false;
     if(r.index!==0){r.gemThinkAt=0;r.gemTargetIndex=-1}
-    updateGemLeaderboard();puff(item.x,item.z,0xffe5a4,8);
+    updateGemLeaderboard();puff(item.x,item.z,0xffe5a4,8);v33Burst(item.x,item.z,8,0xffd549);
     if(r.index===0){tactile(12);cue(880,.08);skillMessage("💎 "+miniScores[0]+" GEMAS",450)}
     break;
    }
@@ -3066,7 +3656,7 @@ function moveMiniGame(dt,t){
   else if(r.index!==0){[dx,dz]=currentMode==="territory"?territoryBotDirection(r,t):miniBotDirection(r,t)}
   else if(dragSteeringActive){
    dx=clamp((dragTargetX-r.x)*1.45,-1,1);dz=((currentMode==="territory"||currentMode==="colorcrash")?-1:1)*clamp((dragTargetZ-r.z)*1.28,-1,1);
-  }else{dx=steer;dz=steerZ}
+  }else{{const a=arCameraSteer(steer,steerZ);dx=a.dx;dz=a.dz}}
   const norm=Math.max(1,Math.hypot(dx,dz));dx/=norm;dz/=norm;
   const sprint=(r.dash>0?1.68:1)*(currentMode==="tag"&&r.index===weightHolder?1.16:1);
   const rate=r.index===0?20:14,vel=(currentMode==="territory"?(r.index===0?6.65:5.9*difficultyScale()):(r.index===0?5.75:5.03*difficultyScale()))*sprint;
@@ -3128,6 +3718,7 @@ function showRoundTheme(){moodLights.forEach(m=>m.material=moodMat[roundIndex]);
 function resetRound(){
  currentMode=modePlaylist[roundIndex]||"race";
  raceEndAfterPlayer=0;
+ v33BurstMesh.count=0;for(const p of v33ParticlePool)p.life=0;
  $("pauseOverlay").classList.remove("on");
  phase="countdown";elapsed=0;countdown=2.75;checkpoint=-1;
  physicsAccumulator=0;physicsTime=0;dragSteeringActive=false;dragPointerId=null;steer=0;steerZ=0;
@@ -3166,6 +3757,7 @@ function concludeRound(){
  $("ballScoreboard").classList.remove("on");
  showFinalGemLeaderboard();showFinalTerritoryLeaderboard();
  const ordered=currentMode==="race"?scoreOrder():miniOrder();
+ if(ordered.length){v33Burst(ordered[0].x,ordered[0].z,50,V33_PRESETS[currentMode]?.color||0x55ffe6)}
  const quota=roundRule().qualify,final=gameType==="tournament"&&roundIndex===2;
  // A timed-out race must rank all participants by progress, not discard runners
  // who haven't crossed the line yet (which formerly left Ballistix short-handed).
@@ -3238,6 +3830,7 @@ function begin(){if(mode==="ar"&&!placed){announce("TOCÁ UNA SUPERFICIE",1400);
 function hit(r,power=1){
  if(r.invuln>0||r.y>.75||r.dash>.10)return;
  r.stun=.21;r.invuln=1.05;r.speedBonus=0;r.combo=0;
+ v33Burst(r.x,r.z,10,0xffd868);
  // Do not teleport the character when hit; collisions only change lateral momentum.
  r.vx=(r.vx||0)+(r.x>=0?.9:-.9)*power;
  r.stumbles++;useAnimation(r,"Hit");puff(r.x,r.z,0xffd578,12);
@@ -3469,6 +4062,47 @@ let physicsAccumulator=0,physicsTime=0;
 let dragPointerId=null,dragSteeringActive=false,dragLastX=0,dragLastY=0,dragTargetX=0,dragTargetZ=0,steerZ=0;
 const FIXED_DT=1/60;
 function smoothFactor(rate,seconds){return 1-Math.exp(-rate*seconds)}
+function v36UpdateCamera(dt){
+ const ownIndex=mp.active&&!mp.host?mp.slot:0;
+ const watchIndex=mp.active&&!mp.host&&!contestants.includes(ownIndex)?(contestants[0]??0):ownIndex;
+ const player=racers[watchIndex];
+ const active=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";
+ const portrait=innerHeight>innerWidth;
+ const aim=new THREE.Vector3();
+ if(active&&currentMode==="race"){
+   aim.x=clamp(player.x*.17,-.7,.7);
+   aim.z=clamp(player.z-2.35,-11,9.4);
+ }else if(active&&currentMode==="territory"){
+   aim.x=clamp(player.x*.77,-TERRITORY_HALF_X*.78,TERRITORY_HALF_X*.78);
+   aim.z=clamp(player.z*.75,-TERRITORY_HALF_Z*.78,TERRITORY_HALF_Z*.78);
+ }else if(active&&["tag","gems","survival"].includes(currentMode)){
+   aim.x=clamp(player.x*.36,-2.1,2.1);
+   aim.z=clamp(player.z*.38,-2.5,2.5);
+ }
+ previewTarget.lerp(aim,smoothFactor(7.6,dt));
+ const table={
+   race:portrait?[8.5,10.6,15.3]:[9.1,9.8,15.6],
+   tag:portrait?[6.5,9.6,11.7]:[6.2,8.5,10.7],
+   gems:portrait?[6.5,9.6,11.7]:[6.2,8.5,10.7],
+   survival:portrait?[6.5,9.6,11.7]:[6.2,8.5,10.7],
+   territory:portrait?[0,25.4,17.0]:[8.7,17.7,17.2],
+   colorcrash:portrait?[1.1,20.0,14.2]:[5.5,15.6,14.7],
+   ballistix:portrait?[0,20.0,10.5]:[0,15.6,9.6]
+ };
+ const o=table[currentMode]||table.race;
+ const spread=active?1:1.115;
+ const end=new THREE.Vector3(previewTarget.x+o[0]*spread,o[1]*spread,previewTarget.z+o[2]*spread);
+ camera.position.lerp(end,smoothFactor(7.7,dt));
+ if(cameraShake>.002){
+   cameraShake*=Math.max(0,1-dt*8);
+   camera.position.x+=(Math.random()-.5)*cameraShake;
+   camera.position.y+=(Math.random()-.5)*cameraShake;
+ }
+ camera.lookAt(previewTarget.x,currentMode==="race"&&active?Math.min(.24,player.y*.14):.12,
+    previewTarget.z-(currentMode==="race"&&active?1.45:currentMode==="colorcrash"?.3:0));
+ v35.zoom=Number((1/spread).toFixed(3));
+}
+
 function physicsTick(frameDt){
   if(mp.active&&!mp.host){physicsAccumulator=0;return}
   // Run deterministic fixed-size physics steps. Handles 30/60/90 fps consistently.
@@ -3479,18 +4113,54 @@ function physicsTick(frameDt){
   for(let n=0;n<count;n++){physicsTime+=FIXED_DT;move(FIXED_DT,physicsTime);physicsAccumulator-=FIXED_DT}
   if(count===6&&physicsAccumulator>FIXED_DT)physicsAccumulator=0;
 }
-function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;const sec=t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);animateFallingWeights(dt);animateTerritoryFX(dt);ccAnimate(dt);mpAnimateNetwork(t);try{physicsTick(dt)}catch(error){
+function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;if(mp.host)mp.renderClock=t/1000;const sec=mp.active&&!mp.host&&mp.started&&mp.renderClock?mp.renderClock:t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);v33UpdateFX(dt);v34UpdateArena(t);v35UpdateStage(t);animateFallingWeights(dt);animateTerritoryFX(dt);ccAnimate(dt);mpAnimateNetwork(t);try{physicsTick(dt)}catch(error){
  console.error("MICROCAOS physics error",error);
  phase="paused";physicsAccumulator=0;window.__microcaosError=error?.message||String(error);
  $("notice").textContent="Error al simular la partida. Tocá REINICIAR para volver a jugar. "+window.__microcaosError;
  $("notice").classList.add("show");
-}for(let r of racers)if(r.mixer)r.mixer.update(dt);$("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
-if(mode==="preview"||mode==="camera"){const ownIndex=mp.active&&!mp.host?mp.slot:0,watchIndex=mp.active&&!mp.host&&!contestants.includes(ownIndex)?(contestants[0]??0):ownIndex,p=racers[watchIndex],follow=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=currentMode==="territory"&&follow?new THREE.Vector3(clamp(p.x*.72,-TERRITORY_HALF_X*.72,TERRITORY_HALF_X*.72),0,clamp(p.z*.70,-TERRITORY_HALF_Z*.70,TERRITORY_HALF_Z*.70)):new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,22.3,9.5):new THREE.Vector3(0,18.0,9.7)):currentMode==="territory"&&follow?(portrait?new THREE.Vector3(previewTarget.x,32,previewTarget.z+22):new THREE.Vector3(previewTarget.x+11.8,21,previewTarget.z+22)):currentMode==="colorcrash"&&follow?(portrait?new THREE.Vector3(0,23,16):new THREE.Vector3(8.5,20.3,19.4)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.7,11.6,12.5):new THREE.Vector3(9.7,11.8,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
-if(mode==="ar"&&frame&&session){if(!hitRequested){hitRequested=true;session.requestReferenceSpace("viewer").then(viewer=>session.requestHitTestSource({space:viewer})).then(s=>hitSource=s).catch(()=>{})}if(hitSource&&!placed){const results=frame.getHitTestResults(hitSource);if(results.length){let pose=results[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;const m=new THREE.Matrix4().fromArray(pose.transform.matrix);reticle.position.setFromMatrixPosition(m);reticle.quaternion.setFromRotationMatrix(m);$("placeArena").style.display="inline-flex";$("notice").textContent="¡Ya veo la superficie! Tocá COLOCAR PISTA para anclar la arena."}}else{reticle.visible=false;$("placeArena").style.display="none"}}}
+}// Elastic vinyl-toy acting: subtle stride compression, idle breathing and recovery.
+ // Per-entity transforms only: no extra draw calls, works in WebXR and PC.
+ for(const r of racers){
+  if(r.mixer)r.mixer.update(dt);
+  if(r.shade){
+   r.shade.position.set(r.root.position.x,currentMode==="colorcrash"?.17:currentMode==="territory"?.18:currentMode==="race"?.09:.14,r.root.position.z);
+   const shadowScale=1+Math.max(0,r.y||0)*.12;
+   r.shade.scale.setScalar(shadowScale);
+   r.shade.visible=!r.finished&&currentMode!=="ballistix";
+  }
+  if(!r.rig)continue;
+  const speed=Math.min(1,Math.hypot(r.vx||0,r.vz||0)/7);
+  const moving=phase==="race"&&!r.finished&&currentMode!=="ballistix";
+  const active=moving?speed:0;
+  const gait=Math.sin((r.animDistance||0)*1.75+(r.phase||0));
+  const breath=Math.sin(t*.0021+(r.phase||0))*.016;
+  const squash=1-active*.055+gait*active*.030+breath;
+  const bounce=1+active*.025-gait*active*.016;
+  const blend=1-Math.exp(-10*dt);
+  r.rig.scale.y+=(squash-r.rig.scale.y)*blend;
+  r.rig.scale.x+=(bounce-r.rig.scale.x)*blend;
+  r.rig.scale.z+=(bounce-r.rig.scale.z)*blend;
+  // Small torso tilt communicates direction but never distorts world physics.
+  r.rig.rotation.x+=(Math.max(-.09,Math.min(.09,(r.vz||0)*.012))*active-r.rig.rotation.x)*blend;
+ }
+ v34AnimateFaces(t,dt);
+ // Art-only multiplier: larger readable characters; physics remain untouched.
+ const v35MascotScale=mode==="ar"?1.09:1.37;
+ for(const r of racers){
+  const visual=r.rig?.userData?.v35Body;
+  if(visual)visual.scale.setScalar(mode==="ar"?v35MascotScale:r.index===0?1.46:v35MascotScale);
+ }
+ $("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
+if(mode==="preview"||mode==="camera")v36UpdateCamera(dt);
+if(mode==="ar"&&frame&&session){if(!hitRequested&&performance.now()-arLastHitAttempt>2100){hitRequested=true;arLastHitAttempt=performance.now();const origin=session;session.requestReferenceSpace("viewer").then(viewer=>origin.requestHitTestSource({space:viewer})).then(source=>{if(session===origin)hitSource=source;else source?.cancel?.()}).catch(error=>{hitRequested=false;console.warn("XR hit-test",error);$("notice").textContent="No pude detectar superficies todavía. Reintentando…"})}if(hitSource&&!placed){const results=frame.getHitTestResults(hitSource);if(results.length){let pose=results[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;const m=new THREE.Matrix4().fromArray(pose.transform.matrix);reticle.position.setFromMatrixPosition(m);reticle.quaternion.setFromRotationMatrix(m);
+ const normal=new THREE.Vector3(0,1,0).applyQuaternion(reticle.quaternion);
+ reticle.visible=normal.y>.77;
+ $("placeArena").style.display=reticle.visible?"inline-flex":"none";
+ $("notice").textContent=reticle.visible?"¡Superficie detectada! Tocá COLOCAR PISTA.":"Buscá una superficie horizontal, como una mesa o el piso."}}else{reticle.visible=false;$("placeArena").style.display="none"}}}
 if(performance.now()>lastToast)$("toast").classList.remove("show");if(performance.now()>skillToastUntil)$("skillToast").classList.remove("on");renderer.render(scene,camera)}
 const reticle=new THREE.Mesh(new THREE.RingGeometry(.20,.23,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x71ffdf,side:THREE.DoubleSide,depthWrite:false}));reticle.visible=false;scene.add(reticle);
 renderer.setAnimationLoop(render);
-function resize(){camera.aspect=innerWidth/innerHeight;camera.fov=currentMode==="ballistix"?(camera.aspect<.68?64:48):currentMode==="territory"?(camera.aspect<.68?63:46):currentMode==="colorcrash"?(camera.aspect<.68?65:48):(camera.aspect<.68?58:42);camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}addEventListener("resize",resize);
+function resize(){camera.aspect=innerWidth/innerHeight;camera.fov=currentMode==="ballistix"?(camera.aspect<.68?64:48):currentMode==="territory"?(camera.aspect<.68?63:46):currentMode==="colorcrash"?(camera.aspect<.68?65:48):(camera.aspect<.68?58:42);camera.updateProjectionMatrix();if(!renderer.xr.isPresenting)renderer.setSize(innerWidth,innerHeight)}addEventListener("resize",resize);
 function leaveCamera(){if(videoStream){videoStream.getTracks().forEach(tr=>tr.stop());videoStream=null}$("cameraVideo").style.display="none";$("scene").classList.remove("camera");scene.background=new THREE.Color(0x172b4a);mode="preview";previewTable.visible=true;$("modebar").textContent="PREVIEW 3D · PC Y CELULAR";$("cam").textContent="◎ VER CON MI CÁMARA"}
 $("cam").onclick=async()=>{if(mode==="camera"){leaveCamera();return}if(!navigator.mediaDevices?.getUserMedia){announce("CÁMARA NO DISPONIBLE",1500);return}try{videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});$("cameraVideo").srcObject=videoStream;$("cameraVideo").style.display="block";await $("cameraVideo").play();$("scene").classList.add("camera");scene.background=null;mode="camera";$("cam").textContent="◉ CERRAR CÁMARA";$("modebar").textContent="CÁMARA DEMO · SIN ANCLAJE ESPACIAL"}catch(e){announce("SIN PERMISO DE CÁMARA",1500)}};
 
@@ -3498,7 +4168,7 @@ $("cam").onclick=async()=>{if(mode==="camera"){leaveCamera();return}if(!navigato
 const androidPlatform=/Android/i.test(navigator.userAgent);
 const iosPlatform=/iPhone|iPad|iPod/i.test(navigator.userAgent);
 const nativeLink=$("nativeAR");
-let arStarting=false,arPermissionStatus="unknown";
+let arStarting=false,arPermissionStatus="unknown",arLastHitAttempt=0;
 function showARHelp(title,body){
   $("arHelpTitle").textContent=title;$("arHelpText").textContent=body;
   $("arHelpNative").style.display=androidPlatform?"flex":"none";
@@ -3524,23 +4194,30 @@ if(location.search.includes("ar-error=1"))showARHelp("No se abrió el visor AR",
 function resetARView(){
   document.documentElement.classList.remove("xr-active");$("ui").classList.remove("xr-active");
   try{renderer.setClearAlpha(1)}catch(e){}
-  scene.background=new THREE.Color(0x172b4a);previewTable.visible=true;stage.visible=true;
+  scene.background=new THREE.Color(0x172b4a);previewTable.visible=currentMode==="race";stage.visible=true;
   stage.position.set(0,0,0);stage.quaternion.identity();stage.scale.setScalar(1);
   $("notice").classList.remove("show");$("placeArena").style.display="none";
-  reticle.visible=false;hitRequested=false;hitSource=null;placed=false;session=null;
+  reticle.visible=false;hitRequested=false;hitSource=null;placed=false;session=null;arLastHitAttempt=0;
+  $("arTools").style.display="none";
   mode="preview";$("modebar").textContent="PREVIEW 3D · PC Y CELULAR";
-  $("intro").classList.remove("hidden");phase="intro";
+  // Exiting XR must never erase a live match or an online room.
+  const activeMatch=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";
+  $("intro").classList.toggle("hidden",activeMatch);
+  if(!activeMatch)phase="intro";
+  if(typeof mp!=="undefined"&&mp.active&&!mp.started)$("mpLobby").hidden=false;
+  if(activeMatch)announce("AR CERRADA · SEGUÍ JUGANDO EN 3D",1600);
 }
 function xrErrorMessage(e){
   const name=e?.name||"Error",message=e?.message||"";
   if(name==="NotSupportedError")return "Tu navegador reconoce WebXR, pero no dispone de alguna función que requiere esta carrera, como seguimiento de superficies o controles táctiles sobre la cámara.";
   if(name==="NotAllowedError"||name==="SecurityError")return "La sesión fue bloqueada por permisos o por el navegador de la aplicación. Probá abrir el sitio directamente en Chrome.";
   if(name==="InvalidStateError")return "Ya hay una sesión de realidad aumentada abierta. Cerrala antes de volver a probar.";
-  return "El teléfono rechazó el inicio de la sesión AR ("+name+"). "+(message?message+" ":"")+"El visor AR nativo es la alternativa para colocar la pista.";
+  return "El teléfono rechazó el inicio de la sesión AR ("+name+"). "+(message?message+" ":"")+"El visor AR nativo solo muestra una maqueta 3D; para jugar con controles necesitás WebXR compatible.";
 }
 async function setupAR(){
   if(arStarting||mode==="ar")return;
   arStarting=true;
+  $("arTools").style.display="none";
   $("ar").disabled=true;$("ar").textContent="INICIANDO AR…";
   let started=null;
   try{
@@ -3548,7 +4225,7 @@ async function setupAR(){
     // Some browsers support immersive-ar but reject a session requiring both hit-test and dom-overlay.
     // Request overlay optionally, then verify it exists before promising touch controls.
     started=await navigator.xr.requestSession("immersive-ar",{
-      requiredFeatures:["hit-test"],optionalFeatures:["dom-overlay","local-floor"],
+       requiredFeatures:["hit-test","dom-overlay"],optionalFeatures:["local-floor"],
       domOverlay:{root:$("ui")}
     });
     if(!started.domOverlayState?.type){
@@ -3562,12 +4239,14 @@ async function setupAR(){
       if(hitSource){try{hitSource.cancel()}catch(e){}}
       if(session===active||mode==="ar")resetARView();
     },{once:true});
+    // Handheld AR consistently offers a local reference space; local-floor is optional.
+    renderer.xr.setReferenceSpaceType("local");
     await renderer.xr.setSession(started);
     if(typeof leaveCamera==="function"&&videoStream){leaveCamera()}
     session=started;mode="ar";
     document.documentElement.classList.add("xr-active");$("ui").classList.add("xr-active");
-    renderer.setClearColor(0x000000,0);scene.background=null;previewTable.visible=false;stage.visible=false;
-    placed=false;hitRequested=false;hitSource=null;
+    renderer.setClearColor(0x000000,0);scene.background=null;previewTable.visible=false;stage.visible=false;$("arTools").style.display="none";
+    placed=false;hitRequested=false;hitSource=null;arLastHitAttempt=0;
     $("modebar").textContent="AR ESPACIAL · BUSCANDO SUPERFICIE";
     $("intro").classList.add("hidden");$("arHelp").style.display="none";
     $("notice").classList.add("show");
@@ -3582,18 +4261,78 @@ async function setupAR(){
       mp.useAR=false;mpSetReady(true);
       $("arHelp").style.display="none";
       $("intro").classList.add("hidden");$("mpLobby").hidden=false;
-      mpError("La realidad aumentada no está disponible en este dispositivo. Podés jugar igualmente en 3D.");
+      mpError("Este dispositivo no admite la AR jugable por WebXR. Podés jugar igualmente en 3D.");
     }else showARHelp("Esta carrera AR no pudo iniciarse",xrErrorMessage(e)+"\n\nPodés abrir la pista en el visor nativo de Android o jugar una carrera 3D sin cámara.");
   }finally{
-    arStarting=false;$("ar").disabled=false;$("ar").textContent="PROBAR AR JUGABLE · BETA";
+    arStarting=false;$("ar").disabled=false;$("ar").textContent="PROBAR ◈ INICIAR AR JUGABLE";
   }
 }
 $("ar").onclick=setupAR;
+
+// MICROCAOS AR CORE — Seven mode-specific arena scales and spatially aware controls.
+// The physical span is measured in meters; internal stage meshes use game units.
+const AR_SPANS={race:[10,28],tag:[11.5,16.5],gems:[11.5,16.5],survival:[11.5,16.5],
+  territory:[TERRITORY_HALF_X*2,TERRITORY_HALF_Z*2],colorcrash:[CC_HALF_X*2,CC_HALF_Z*2],
+  ballistix:[14,14]};
+let arScaleMultiplier=1,arCurrentSpan=.76,arLastMode="";
+function arSceneMode(){
+ if(phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused")return currentMode;
+ if(typeof mp!=="undefined"&&mp.active)return mp.chosenMode||"colorcrash";
+ return chosenSoloMode||currentMode||"race";
+}
+function arScaleFor(modeName){
+ const dims=AR_SPANS[modeName]||AR_SPANS.race;
+ return .76/Math.max(dims[0],dims[1]);
+}
+function arUpdateScale(){
+ if(mode!=="ar"||!placed)return;
+ const which=arSceneMode(),scale=arScaleFor(which)*arScaleMultiplier;
+ stage.scale.setScalar(scale);
+ arLastMode=which;arCurrentSpan=.76*arScaleMultiplier;
+ $("arSizeLabel").textContent=Math.round(arCurrentSpan*100)+" cm";
+}
+function arCameraSteer(x,z){
+ if(mode!=="ar"||!placed||!session)return {dx:x,dz:z};
+ // Joystick always points relative to the viewer, even when walking around the table.
+ const xrCam=renderer.xr.getCamera(camera);
+ const forward=xrCam.getWorldDirection(new THREE.Vector3());forward.y=0;
+ if(forward.lengthSq()<.0001)return {dx:x,dz:z};
+ forward.normalize();
+ const right=new THREE.Vector3(-forward.z,0,forward.x);
+ const movement=right.multiplyScalar(x).addScaledVector(forward,z);
+ const inverse=stage.getWorldQuaternion(new THREE.Quaternion()).invert();
+ movement.applyQuaternion(inverse);
+ const mag=Math.max(1,Math.hypot(movement.x,movement.z));
+ return {dx:movement.x/mag,dz:-movement.z/mag};
+}
+function arAllModesAudit(){
+ const checks=Object.keys(MINI_MODES).map(k=>({mode:k,hasScene:k==="race"?!!raceDecor:k==="ballistix"?!!ballArena:!!miniStages[k],
+  scaledMeters:+(arScaleFor(k)*Math.max(...AR_SPANS[k])).toFixed(3),
+  positive:Number.isFinite(arScaleFor(k))&&arScaleFor(k)>.003&&arScaleFor(k)<.2}));
+ const result={supported:!!navigator.xr,renderXR:renderer.xr.enabled,overlay:!!$("ui"),
+  modes:checks,allPass:checks.length===7&&checks.every(c=>c.hasScene&&c.positive&&Math.abs(c.scaledMeters-.76)<.002)};
+ return result;
+}
+window.__microcaosARAudit=arAllModesAudit;
+$("arSmaller").onclick=()=>{arScaleMultiplier=Math.max(.60,Math.round((arScaleMultiplier-.20)*100)/100);arUpdateScale()};
+$("arBigger").onclick=()=>{arScaleMultiplier=Math.min(2.2,Math.round((arScaleMultiplier+.20)*100)/100);arUpdateScale()};
+$("arRotate").onclick=()=>{if(mode==="ar"&&placed)stage.rotation.y+=Math.PI/4};
+
 function placeArena(){
   if(mode!=="ar"||placed)return;
   if(!reticle.visible){$("notice").textContent="Todavía no detecté una superficie. Mové lentamente la cámara sobre una mesa bien iluminada.";return}
   stage.visible=true;stage.position.copy(reticle.position);stage.quaternion.copy(reticle.quaternion);stage.rotation.x=0;stage.rotation.z=0;
-  stage.scale.setScalar(.020);
+  arScaleMultiplier=1;
+  const selected=arSceneMode();
+  stage.scale.setScalar(arScaleFor(selected));
+  // Face the arena toward the phone at placement time; keep it anchored afterward.
+  const view=renderer.xr.getCamera(camera).getWorldPosition(new THREE.Vector3());
+  if(Number.isFinite(view.x)&&Number.isFinite(view.z)){
+    const distance=Math.hypot(view.x-stage.position.x,view.z-stage.position.z);
+    if(distance>.08)stage.rotation.y=Math.atan2(view.x-stage.position.x,view.z-stage.position.z);
+  }
+  arLastMode=selected;arCurrentSpan=.76;
+  $("arSizeLabel").textContent="76 cm";$("arTools").style.display="flex";
   reticle.visible=false;placed=true;
   $("notice").classList.remove("show");$("placeArena").style.display="none";
   $("intro").classList.remove("hidden");$("modebar").textContent="AR REAL · PISTA ANCLADA";
