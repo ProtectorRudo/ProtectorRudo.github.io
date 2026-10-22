@@ -62,38 +62,55 @@ function save(){try{sessionStorage.setItem(STORAGE,JSON.stringify(state))}catch(
 function parseDate(d,t,ap){var a=d.split("/").map(Number),p=t.split(":").map(Number);var year=a[2];if(year<100)year+=2000;if(ap){if(p[0]===12)p[0]=0;if(/^p/i.test(ap))p[0]+=12}var z=new Date(year,a[1]-1,a[0],p[0],p[1],p[2]||0);return isNaN(z.getTime())?null:z.getTime()}
 function lineParse(text){var lines=String(text||"").replace(/\r/g,"").split("\n"),out=[];var re=/^\[?(\d{1,2}\/\d{1,2}\/\d{2,4}),?\s*(\d{1,2}:\d{2}(?::\d{2})?)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\]?\s*(?:-|–)?\s*([^:]+?):\s*(.*)$/i;for(var i=0;i<lines.length;i++){var m=lines[i].match(re);if(m){var ts=parseDate(m[1],m[2],m[3]);if(ts!==null)out.push({at:ts,who:m[4].trim(),text:m[5].trim()});}else if(out.length&&lines[i].trim())out[out.length-1].text+="\n"+lines[i].trim()}return out.sort(function(a,b){return a.at-b.at})}
 function fingerprint(s){var h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
-function evaluate(c){var msgs=c.messages||[],aliases=(c.sellers||"Vendedor").split(",").map(plain).filter(Boolean);var isSeller=function(m){return aliases.indexOf(plain(m.who))!==-1};var customer=msgs.find(function(m){return !isSeller(m)});var name=customer?customer.who:"Cliente desconocido";var budgets=msgs.filter(function(m){return isSeller(m)&&/\.pdf\b/i.test(m.text)});var budget=budgets.length?budgets[budgets.length-1]:null;var after=budget?msgs.filter(function(m){return m.at>=budget.at && m!==budget}):[];var reasons=[],status="review",heading="Revisar";
-if(!msgs.length){reasons.push("El texto no tiene mensajes con fecha, remitente y contenido.")}else if(!customer){reasons.push("No podemos identificar al cliente. Revisá el nombre del vendedor.")}else if(!budget){reasons.push("No encontramos un archivo PDF enviado por el vendedor en esta conversación.")}else if(c.manual){status="block";reasons.push("Se registró un seguimiento realizado: no repetir.")}else if(c.sent){status="block";reasons.push("Seguimiento de CIERRE ya marcado como realizado.")}else{
- var stop=false,unclear=false,follow=false,question=false;var reasonsStop=[];
- after.forEach(function(m){var v=plain(m.text);
-  if(!isSeller(m)){
-   if(/no me (escrib|contact|mandes)|no (quiero|deseo) (mensajes|que me escriban)|borrame|dame de baja|no me interesa|no estoy interesado|compre en otro lado|lo compre en otro lado|ya compre|ya lo compre|ya compre todo|ya resolvi|lo resolvi|no lo voy a comprar/.test(v)){stop=true;reasonsStop.push("El cliente rechazó, compró por otra vía o pidió no recibir mensajes.")}
-   else if(/confirmo (la compra|el pedido)|te transferi|ya transferi|ya pague|lo pago hoy|manana paso a pagar|manana paso a retirar|paso a buscarlo|vamos adelante con el pedido/.test(v)){stop=true;reasonsStop.push("Hay una confirmación o acuerdo de compra.")}
-   else if(/te aviso|cualquier cosa|dejame pensarlo|lo estoy evaluando|despues te digo|lo voy a pensar|lo converso/.test(v)){unclear=true}
-  }else if(/pudiste (ver|revisar)|seguimos en pie|queria saber si (te|lo)|te consulto por (el|tu) presupuesto|te escribo para (saber|consultar)|alguna novedad (del|sobre) presupuesto|seguimiento (de|del) presupuesto/.test(v)){follow=true}
- });
- if(stop){status="block";reasons=reasonsStop}
- else if(follow){status="block";reasons.push("El vendedor ya hizo un seguimiento manual después del PDF.")}
+function evaluate(c){
+ var msgs=c.messages||[],aliases=(c.sellers||"Vendedor").split(",").map(plain).filter(Boolean);
+ var seller=function(m){return aliases.indexOf(plain(m.who))!==-1;};
+ var customer=msgs.find(function(m){return !seller(m);});
+ var pdfs=msgs.filter(function(m){return seller(m)&&/\.pdf\b/i.test(m.text);});
+ var pdf=pdfs.length?pdfs[pdfs.length-1]:null;
+ var after=pdf?msgs.filter(function(m){return m.at>=pdf.at&&m!==pdf;}):[];
+ var status="review",reasons=[],evidence=[],notes=[];
+ var override=c.override||(c.manual?"manual":"")||(c.sent?"sent":"");
+ if(!msgs.length)reasons.push("El historial no contiene mensajes legibles.");
+ else if(!customer)reasons.push("No se reconoció al cliente: revisá el nombre del vendedor.");
+ else if(!pdf)reasons.push("No aparece un PDF enviado por el vendedor.");
+ else if(override){status="block";reasons.push(({manual:"El vendedor ya hizo seguimiento",sold:"Venta confirmada manualmente",optout:"Cliente bloqueado",sent:"Seguimiento ya enviado",closed:"Oportunidad cerrada"}[override]||"Oportunidad bloqueada")+".");}
  else{
-  var last=after.length?after[after.length-1]:null;
-  if(last&&!isSeller(last)&&(/[?¿]/.test(last.text)||/^(cuanto|cuando|como|donde|podes|podrias|incluye|tienen|hacen|hay|se puede)\b/i.test(plain(last.text)))){status="wait";reasons.push("La última consulta del cliente sigue sin respuesta del vendedor.")}
-  else if(unclear){status="review";reasons.push("El cliente indicó que lo evaluará o avisará. No conviene asumir que desea un recordatorio.")}
-  else if(after.some(function(m){return !isSeller(m)&&/^(dale|listo|ok|perfecto|de acuerdo|joya|genial)[!. ]*$/i.test(plain(m.text))})&&!after.some(function(m){return !isSeller(m)&&/gracias/.test(plain(m.text))})){status="review";reasons.push("Hay una confirmación breve que podría significar un acuerdo. Revisión recomendada.")}
-  else{
-    var lastTime=msgs[msgs.length-1].at;var due=lastTime+(Number(state.settings.hours)||36)*3600000;
-    var delta=due-Date.now();
-    if(delta>0){status="wait";reasons.push("Conversación sin bloqueo, pero todavía faltan "+Math.ceil(delta/3600000)+" horas para el plazo configurado.")}
-    else{status="ready";reasons.push("Se detectó un PDF; no hay compra, rechazo, consulta abierta ni seguimiento humano evidentes en el texto.")}
-    if(after.length)reasons.push("El sistema revisó "+after.length+" mensaje(s) posteriores al presupuesto.");
-    else reasons.push("No hubo mensajes posteriores al archivo PDF en el historial cargado.");
-  }
+  var reject=false,purchase=false,optout=false,follow=false,pending=false,ambiguous=false;
+  after.forEach(function(m){
+   var v=plain(m.text);
+   if(seller(m)){
+    if(/pudiste (ver|revisar)|seguimos en pie|queria saber si (viste|pudiste|revisaste)|te escribo para (saber|consultar)|alguna novedad (del|sobre) presupuesto|te consulto por (el|tu) presupuesto|seguimiento (de|del) presupuesto|como venis con (el|tu) presupuesto/.test(v)){
+       follow=true;evidence.push("Seguimiento del empleado: "+m.text.slice(0,95));
+    }
+    pending=false;
+   }else{
+    if(/no me (escrib|contact|mand)|no (quiero|deseo) (mensajes|que me escriban)|borrame|sacame de la lista|dame de baja/.test(v)){
+      optout=true;evidence.push("Pedido de baja: "+m.text.slice(0,95));
+    }else if(/no me interesa|no estoy interesado|no lo voy a comprar|no voy a comprar|compre en otro lado|lo compre en otro lado|ya lo resolvi|ya resolvi/.test(v)){
+      reject=true;evidence.push("Rechazo: "+m.text.slice(0,95));
+    }else if(/confirmo (la compra|el pedido)|te transferi|ya transferi|ya pague|ya (lo )?compre|paso a (pagar|retirar|buscar)|lo pago (hoy|manana)|te confirmo (el pedido|la compra)|cerramos (el pedido|la compra)|listo,? lo llevo/.test(v)){
+      purchase=true;evidence.push("Posible compra/acuerdo: "+m.text.slice(0,95));
+    }else if(/te aviso|lo voy a pensar|dejame pensarlo|lo estoy evaluando|despues te digo|lo converso|cualquier cosa (te )?aviso|^(dale|listo|ok|perfecto|joya|genial|de acuerdo)[!. ]*$/.test(v)){
+      ambiguous=true;evidence.push("Respuesta ambigua: "+m.text.slice(0,95));
+    }
+    if(/[?¿]/.test(m.text)||/^(cuanto|cuando|como|donde|podes|podrias|incluye|tienen|hay|me confirmas)/.test(v))pending=true;
+   }
+  });
+  if(optout){status="block";reasons.push("El cliente pidió no recibir mensajes.");}
+  else if(reject){status="block";reasons.push("El cliente rechazó o resolvió la necesidad.");}
+  else if(purchase){status="block";reasons.push("Hay indicios de compra o acuerdo.");}
+  else if(follow){status="block";reasons.push("El vendedor ya hizo seguimiento.");}
+  else if(pending){status="wait";reasons.push("El cliente dejó una consulta sin respuesta posterior.");}
+  else if(ambiguous){status="review";reasons.push("Hay una respuesta ambigua: requiere revisión.");}
+  else if(msgs[msgs.length-1].at+(Number(state.settings.hours)||36)*3600000>Date.now()){
+    status="wait";reasons.push("Todavía no transcurrió el plazo configurado.");
+  }else{status="ready";reasons.push("Posible seguimiento: no hay señales explícitas de bloqueo en el historial.");}
+  if(pdfs.length>1)notes.push("Se detectaron varios PDF: se tomó el más reciente.");
  }
-}
-var budgetName=budget?(budget.text.match(/[\wáéíóúñÁÉÍÓÚÑ()\- .]+\.pdf\b/i)||["PDF detectado"])[0].trim():"Sin PDF";
-if(status==="ready")heading="Posible seguimiento";
-if(status==="wait")heading="Esperar";
-if(status==="block")heading="Bloqueado";
-return {status:status,heading:heading,reasons:reasons,name:name,budget:budgetName,after:after,all:msgs,latest:msgs.length?msgs[msgs.length-1].at:null};
+ notes.push("No verifica ventas presenciales, consentimiento ni mensajes que falten en el chat exportado.");
+ var pdfName=pdf?(pdf.text.match(/[\wáéíóúñÁÉÍÓÚÑ()\- .]+\.pdf\b/i)||["PDF detectado"])[0].trim():"Sin PDF";
+ return {status:status,heading:({ready:"Posible seguimiento",block:"Bloqueado",wait:"Esperar",review:"Revisar"})[status],reasons:reasons,evidence:evidence,notes:notes,name:customer?customer.who:"Desconocido",budget:pdfName,after:after,all:msgs,latest:msgs.length?msgs[msgs.length-1].at:null};
 }
 function analyzed(){return state.cases.map(function(c){return {c:c,e:evaluate(c)}})}
 function statusLabel(e){return '<span class="badge '+e.status+'">'+safe(e.heading)+'</span>'}
