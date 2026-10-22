@@ -638,9 +638,16 @@ const racers=[];
 // Six original premium toy mascots. One clean silhouette per species.
 // No duplicated armor, helmets or stacked costume geometry.
 const toyMatCache=new Map();
+// MICROCAOS SIGNATURE MASCOTS V3.4: satin polymer, stitched details and animated face.
+// All geometry is local to the original six character rigs; no external 3D download.
+const v34BadgeGold=new THREE.MeshPhysicalMaterial({color:0xffd674,metalness:.48,roughness:.27,clearcoat:.87,clearcoatRoughness:.10});
+const v34Seam=new THREE.MeshStandardMaterial({color:0xd7ebf9,metalness:0,roughness:.58});
+const v34Gem=new THREE.MeshPhysicalMaterial({color:0x7fffe4,metalness:.08,roughness:.23,clearcoat:1});
+const v34BadgeGeo=new THREE.OctahedronGeometry(.104,0);
+const v34StitchGeo=new THREE.TorusGeometry(.28,.011,6,36);
 function toyMat(hex,rough=.33){
  const key=hex+":"+rough;
- if(!toyMatCache.has(key))toyMatCache.set(key,mat(hex,.04,rough,{clearcoat:.52,clearcoatRoughness:.19}));
+ if(!toyMatCache.has(key))toyMatCache.set(key,mat(hex,.03,rough+.055,{clearcoat:.68,clearcoatRoughness:.16,sheen:.42,sheenColor:0xfff9ed,sheenRoughness:.58}));
  return toyMatCache.get(key);
 }
 const toyIvory=toyMat(0xfff8ed),toyInk=toyMat(0x112044,.25),
@@ -690,7 +697,7 @@ function createCharacter(col,index){
   ball(light,foot,[0,-.035,-.235],[.15,.065,.095]);
   feet.push(foot);
  }
- const eyes=[];
+ const eyes=[],v34Lids=[],v34Brows=[],v34Ears=[];
  for(const side of [-1,1]){
   // Big sclera, black gleaming pupils, double eye shine.
   ball(toyIvory,rig,[side*.228,1.383,-.435],[.184,.211,.100]);
@@ -699,12 +706,17 @@ function createCharacter(col,index){
   ball(toySparkle,rig,[side*.220+.04,1.327,-.575],[.018,.021,.012]).castShadow=false;
   ball(toyPink,rig,[side*.415,1.172,-.374],[.105,.055,.027]);
   eyes.push(pupil);
+  // Rounded eyelids occlude the pupils only while blinking.
+  const lid=ball(fur,rig,[side*.228,1.383,-.593],[.170,.008,.046]);
+  lid.castShadow=false;v34Lids.push(lid);
+  const brow=ball(index===5?toyChocolate:accent,rig,[side*.228,1.615,-.42],[.150,.029,.031]);
+  brow.castShadow=false;v34Brows.push(brow);
  }
  // Mouth and nose are part of the same facial volume, not separate helmets.
  ball(index===4||index===5?toyChocolate:toyInk,rig,[0,1.102,-.556],[.075,.057,.039]);
  const smile=mesh(new THREE.TorusGeometry(.115,.018,6,18,Math.PI),toyChocolate,rig,[0,1.025,-.527],[1,1,.8],false);
  smile.rotation.z=Math.PI;
- let crown=null,prop=null;
+ let crown=null,prop=null,v34Tail=null;
  if(index===0){
   // Teal teddy bear with golden ears and little crown.
   for(const x of [-.427,.427]){
@@ -718,19 +730,19 @@ function createCharacter(col,index){
  }else if(index===1){
   // Rabbit, tall folded ears with a pink inner layer.
   for(const x of [-.255,.255]){
-   const ear=ball(fur,rig,[x,1.947,.012],[.166,.435,.128]);
-   ear.rotation.z=x<0?.19:-.16;
-   const inset=ball(toyPink,rig,[x,1.957,-.111],[.085,.32,.029]);
-   inset.rotation.z=x<0?.19:-.16;
+   const pivot=new THREE.Group();pivot.position.set(x,1.74,0);rig.add(pivot);v34Ears.push(pivot);
+   const ear=ball(fur,pivot,[0,.207,.012],[.166,.435,.128]);ear.rotation.z=x<0?.19:-.16;
+   const inset=ball(toyPink,pivot,[0,.217,-.111],[.085,.32,.029]);inset.rotation.z=x<0?.19:-.16;
   }
   for(const x of [-.08,.08])ball(toyIvory,rig,[x,.95,-.443],[.115,.08,.09]);
   ball(toyIvory,rig,[0,.48,.39],[.18,.18,.18]); // tail
  }else if(index===2){
   // Purple cat: angular upright ears and subtle whiskers.
   for(const x of [-.40,.40]){
-   const ear=mesh(new THREE.ConeGeometry(.225,.48,3),fur,rig,[x,1.767,0],[1,1,1],false);
+   const pivot=new THREE.Group();pivot.position.set(x,1.60,0);rig.add(pivot);v34Ears.push(pivot);
+   const ear=mesh(new THREE.ConeGeometry(.225,.48,3),fur,pivot,[0,.167,0],[1,1,1],false);
    ear.rotation.y=Math.PI/3;ear.rotation.z=x<0?.18:-.18;
-   ball(toyPink,rig,[x,1.682,-.116],[.095,.114,.038]);
+   ball(toyPink,pivot,[0,.082,-.116],[.095,.114,.038]);
   }
   for(const side of [-1,1])for(let j=0;j<2;j++){
    const whisk=soft(toyIvory,rig,[side*(.38+j*.07),1.068+j*.065,-.453],[.22,.019,.022],false);
@@ -745,16 +757,16 @@ function createCharacter(col,index){
   ball(light,rig,[0,1.125,-.43],[.355,.17,.20]);
   for(const x of [-.135,.135])ball(toyChocolate,rig,[x,1.108,-.615],[.030,.036,.023]);
   for(let k=0;k<4;k++)mesh(new THREE.ConeGeometry(.14,.27,7),toyGold,rig,[0,1.790-k*.30,.27+k*.085],[1,1,1],false);
-  const tail=ball(fur,rig,[0,.50,.39],[.22,.20,.45]);tail.rotation.x=.34;
+  v34Tail=new THREE.Group();v34Tail.position.set(0,.50,.36);rig.add(v34Tail);const tail=ball(fur,v34Tail,[0,0,.18],[.22,.20,.45]);tail.rotation.x=.34;
  }else if(index===4){
   // Orange floppy-eared pup.
   for(const x of [-.50,.50]){
-   const ear=ball(toyChocolate,rig,[x,1.49,.12],[.245,.40,.18]);
-   ear.rotation.z=x<0?-.29:.29;
+   const pivot=new THREE.Group();pivot.position.set(x,1.63,.12);rig.add(pivot);v34Ears.push(pivot);
+   const ear=ball(toyChocolate,pivot,[0,-.14,0],[.245,.40,.18]);ear.rotation.z=x<0?-.29:.29;
   }
   ball(toyPeach,rig,[0,1.062,-.485],[.335,.21,.160]);
   ball(toyChocolate,rig,[0,1.100,-.631],[.100,.072,.043]);
-  const tail=ball(fur,rig,[.34,.61,.35],[.16,.18,.30]);tail.rotation.z=-.45;
+  v34Tail=new THREE.Group();v34Tail.position.set(.34,.61,.35);rig.add(v34Tail);const tail=ball(fur,v34Tail,[0,0,.12],[.16,.18,.30]);tail.rotation.z=-.45;
  }else if(index===5){
   // Blue panda: round ears, dark patches framing the pupils.
   for(const x of [-.425,.425])ball(toyChocolate,rig,[x,1.716,.0],[.22,.245,.17]);
@@ -771,19 +783,26 @@ function createCharacter(col,index){
  }
  const label=textSprite(profiles[index].name,42,index===0?"#75ffe4":"#ffffff");
  label.position.set(0,2.53,0);label.scale.set(1.70,.44,1);root.add(label);
+ // Signature satin neck collar, metallic crest, embroidered body seam.
+ const collar=mesh(new THREE.TorusGeometry(.385,.027,8,32),v34BadgeGold,rig,[0,1.02,0],[1,1,.82],false);collar.rotation.x=Math.PI/2;
+ const shield=ball(v34BadgeGold,rig,[0,.73,-.399],[.151,.149,.067]);shield.castShadow=false;
+ const crest=new THREE.Group();crest.position.set(0,.747,-.467);rig.add(crest);
+ const gem=mesh(v34BadgeGeo,index===2||index===5?v34Gem:accent,crest,[0,0,-.004],[.7,1.0,.34],false);gem.rotation.z=Math.PI/4;
+ mesh(v34StitchGeo,v34Seam,rig,[0,.60,-.411],[1,1.24,.45],false);
  // A small ground-level speed ring instead of a giant transparent halo.
  const sheen=mesh(new THREE.TorusGeometry(.55,.023,6,28),
   mat(col,0,.52,{transparent:true,opacity:.07,depthWrite:false,emissive:col,emissiveIntensity:.48}),
   root,[0,.055,0],[1,1,1],false);
  sheen.rotation.x=Math.PI/2;
  return{root,rig,arms,feet,shade,label,sheen,crown,prop,index,
+  v34Face:{pupils:eyes,pupilBase:eyes.map(o=>({x:o.position.x,y:o.position.y})),lids:v34Lids,brows:v34Brows,ears:v34Ears,tail:v34Tail,crest},
  name:profiles[index].name,x:0,z:0,y:0,vy:0,stun:0,dash:0,dashCd:0,
  finished:false,finishTime:0,speed:profiles[index].speed,
  skill:profiles[index].skill,phase:rand(0,TAU),cool:0,stumbles:0};
 }
 for(let i=0;i<6;i++)racers.push(createCharacter(colors[i],i));
 const originalMascotParts=racers.map(r=>({
- rig:r.rig,arms:r.arms,feet:r.feet,crown:r.crown,prop:r.prop,sheen:r.sheen
+ rig:r.rig,arms:r.arms,feet:r.feet,crown:r.crown,prop:r.prop,sheen:r.sheen,v34Face:r.v34Face
 }));
 const mascotDisplayNames=["MOMO","POP","NIX","BOOM","KIWI","ZAP"];
 function visualCharacterId(runnerId){
@@ -802,7 +821,7 @@ function selectMascot(index){
   r.root.add(source.rig);
   if(source.sheen)r.root.add(source.sheen);
   r.rig=source.rig;r.arms=source.arms;r.feet=source.feet;
-  r.crown=source.crown;r.prop=source.prop;r.sheen=source.sheen;
+  r.crown=source.crown;r.prop=source.prop;r.sheen=source.sheen;r.v34Face=source.v34Face;
   // Runner ID remains unchanged; only the selected mascot's actual 3D outfit moves.
   const display=i===0?"VOS":i===index&&index!==0?"MOMO":mascotDisplayNames[i];
   profiles[i].name=display;
