@@ -54,7 +54,7 @@ html.xr-active,html.xr-active body,html.xr-active #scene{background:transparent!
 <div id="scene"></div>
 <div id="ui">
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · BALLISTIX V1.3</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · BALLISTIX V1.4</div></div></div>
 <div class="topright"><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -530,7 +530,9 @@ const ballShipGroups=Array.from({length:4},(_,k)=>{
 });
 const ballScoreLabels=["VOS","BOT","BOT","BOT"];
 const ballFieldHalf=4.82,ballPaddleAt=4.13,ballPaddleHalf=1.10,ballMaxMove=3.55,ballGoalHalf=3.25;
-let ballSides=[],ballHealth=[],ballStatus=[],ballBalls=[],ballSpawnDelay=0,ballPulseUntil=0,ballPulseCd=0,ballElapsed=0,ballTimeSinceScore=0;
+let ballSides=[],ballHealth=[],ballStatus=[],ballBalls=[],ballPool=[],ballSpawnDelay=0,ballPulseUntil=0,ballPulseCd=0,ballElapsed=0,ballTimeSinceScore=0;
+const ballShipPrevPositions=[0,0,0,0],ballStats={hits:0,goals:0,corner:0,restarts:0,physicsErrors:0};
+const BALL_MAX_SECONDS=82,BALL_SUDDEN_DEATH=57;
 const ballBallMats=[
  mat(0xdcecfb,.55,.19,{emissive:0x1c6eab,emissiveIntensity:.25}),
  mat(0xffd79d,.43,.25,{emissive:0xaa691c,emissiveIntensity:.30}),
@@ -549,6 +551,18 @@ function ballNormalize(b,speed){
  b.vx=b.vx/len*speed;b.vz=b.vz/len*speed;
 }
 function ballCreateBall(){
+ // Reuse geometry and effects when restarting a round: no growing GPU allocations.
+ const recycled=ballPool[ballBalls.length];
+ if(recycled){
+  recycled.g.visible=true;recycled.historyCount=0;recycled.trailHead=0;
+  recycled.vx=1;recycled.vz=1;recycled.immunity=0;recycled.glow=0;
+  recycled.x=(Math.random()-.5)*1.4;recycled.z=(Math.random()-.5)*1.4;
+  const a=Math.random()*Math.PI*2,speed=5.4+Math.min(2,ballElapsed*.07);
+  recycled.vx=Math.cos(a)*speed;recycled.vz=Math.sin(a)*speed;
+  recycled.g.position.set(recycled.x,0,recycled.z);
+  recycled.trails.forEach(t=>t.visible=false);
+  ballBalls.push(recycled);return recycled;
+ }
  const g=new THREE.Group();ballArena.add(g);
  const kind=ballBalls.length%5;
  const orb=mesh(new THREE.IcosahedronGeometry(.40,2),ballBallMats[kind],g,[0,.50,0]);
@@ -565,15 +579,17 @@ function ballCreateBall(){
   tail.visible=false;trails.push(tail);
  }
  const theta=Math.random()*Math.PI*2,speed=5.3+Math.min(2.0,ballElapsed*.07);
- const b={g,orb,x:(Math.random()-.5)*1.7,z:(Math.random()-.5)*1.7,vx:Math.cos(theta)*speed,vz:Math.sin(theta)*speed,tag:kind,immunity:0,trails,history:[],glow:0};
- g.position.set(b.x,0,b.z);ballBalls.push(b);return b;
+ const b={g,orb,x:(Math.random()-.5)*1.7,z:(Math.random()-.5)*1.7,vx:Math.cos(theta)*speed,vz:Math.sin(theta)*speed,tag:kind,immunity:0,trails,historyCount:0,trailHead:0,trailCoords:new Float32Array(64),glow:0};
+ g.position.set(b.x,0,b.z);ballBalls.push(b);ballPool.push(b);return b;
 }
 function startBallistix(){
  ballElapsed=0;ballSpawnDelay=10;ballTimeSinceScore=0;
  ballSides=[0,...contestants.filter(i=>i!==0)];
  if(ballSides.length!==4)throw new Error("Ballistix requires exactly four contestants");
  ballHealth=Array(4).fill(8);ballStatus=Array(4).fill(true);
- ballPulseUntil=0;ballPulseCd=0;ballBalls.forEach(b=>{ballArena.remove(b.g);b.trails.forEach(t=>ballArena.remove(t))});ballBalls.length=0;
+ ballPulseUntil=0;ballPulseCd=0;
+ ballBalls.forEach(b=>{b.g.visible=false;b.trails.forEach(t=>t.visible=false)});
+ ballBalls.length=0;ballStats.restarts++;
  for(let k=0;k<4;k++){
   ballScoreLabels[k]=profiles[ballSides[k]].name;
   ballShipPositions[k]=0;ballShipGroups[k].visible=true;ballShipGroups[k].scale.set(1,1,1);
@@ -591,6 +607,7 @@ function ballSidePosition(k,position){
 }
 function ballShipUpdate(dt){
  const aim=ballBalls.length?ballBalls[0]:null;
+ for(let k=0;k<4;k++)ballShipPrevPositions[k]=ballShipPositions[k]||0;
  for(let k=0;k<4;k++){
   const idx=ballSides[k],r=racers[idx],ship=ballShipGroups[k];
   if(!ballStatus[k]){ship.visible=false;r.root.visible=false;continue}
@@ -711,7 +728,7 @@ function ballGoal(b,k){
  b.x=(Math.random()-.5)*1.6;b.z=(Math.random()-.5)*1.6;b.immunity=.4;
  const theta=Math.random()*6.2831853;const velocity=5.2+Math.min(4.5,ballElapsed*.055);
  b.vx=Math.cos(theta)*velocity;b.vz=Math.sin(theta)*velocity;
- b.g.position.set(b.x,0,b.z);b.history=[];b.trails.forEach(t=>t.visible=false);
+ b.g.position.set(b.x,0,b.z);b.historyCount=0;b.trailHead=0;b.trails.forEach(t=>t.visible=false);
 }
 function updateBallScoreboard(){
  const target=$("ballScoreboard");
