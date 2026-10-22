@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#070f28">
-<title>MICROCAOS — Multiplayer Premium V3.3 · Realidad aumentada</title>
+<title>MICROCAOS — Multiplayer Premium V3.4 · Realidad aumentada</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -368,6 +368,16 @@ body:not(.colorcrash-mode) #miniObjective.on{border-left:3px solid var(--arena-a
 html.xr-active #scene:after{display:none!important}
 @media(max-width:600px){#scene:after{opacity:.38}}
 
+
+/* V3.4 — broadcast identity, tactile depth and easier mascot selection */
+:root{--v34-premium:#82ffe4}
+.menu-feature{background:linear-gradient(145deg,#172d52f2,#091731f5 64%,#102746f3)!important;border:1px solid #7cebe478!important;box-shadow:inset 0 1px 0 #ffffff26,0 18px 60px #0007!important}
+.menu-feature .feature-title{letter-spacing:-.035em;text-shadow:0 4px 22px #0006}
+.mascot-option{border-radius:17px!important;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease!important;box-shadow:inset 0 1px 0 #ffffff15,0 7px 20px #0003}
+.mascot-option.selected{box-shadow:inset 0 1px 0 #ffffff37,0 0 22px #50ffe65c!important;transform:translateY(-2px)}
+.mascot-option span{filter:drop-shadow(0 3px 7px #0007)}
+@media(hover:hover){.mascot-option:hover{transform:translateY(-3px)}}
+html.xr-active .menu-feature{box-shadow:none!important}
 </style>
 </head>
 <body>
@@ -409,7 +419,7 @@ html.xr-active #scene:after{display:none!important}
 </div></section>
 <div class="mp-live" id="mpLive"></div>
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MULTIJUGADOR PREMIUM V3.3</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MULTIJUGADOR SIGNATURE V3.4</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -2934,7 +2944,7 @@ function v33ModeArt(){
  document.documentElement.style.setProperty("--arena-accent","#"+tint.toString(16).padStart(6,"0"));
 }
 window.__microcaosVisualQA=()=>{
- const report={version:"3.3",mode:currentMode,renderer:renderer.info.render,activeFX:v33BurstMesh.count,
+ const report={version:"3.4",signatureMascots:6,animatedEyes:true,stadiumLedModes:7,mode:currentMode,renderer:renderer.info.render,activeFX:v33BurstMesh.count,
   customArenas:Object.keys(visual33.kits),quality:gameSettings.quality,pixelRatio:renderer.getPixelRatio(),
   xr:renderer.xr.isPresenting};
  return report;
@@ -2999,7 +3009,7 @@ function v34AnimateFaces(t,dt){
   const period=(time+r.index*.77)%(2.85+r.index*.23);
   const blink=period<.17?Math.sin(period/.17*Math.PI):0;
   face.lids.forEach(lid=>{
-   lid.scale.y=.008+blink*.98;
+   lid.scale.y=.008+blink*.205;
    lid.position.y=1.385+blink*.03;
   });
   face.pupils.forEach((eye,i)=>{
