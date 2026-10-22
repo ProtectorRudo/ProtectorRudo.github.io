@@ -372,7 +372,7 @@ const ears=[];if(index%3===0){for(let x of [-.26,.26]){let ear=ball(bodyMat,rig,
 if(index===0){const badge=ball(gold,rig,[0,.77,-.44],[.18,.18,.045]);badge.material=gold}
 if(index===4){for(let x of [-.25,.25]){let horn=mesh(new THREE.ConeGeometry(.12,.34,12),white,rig,[x,1.72,0]);horn.rotation.z=x<0?.38:-.38}}
 let label=textSprite(profiles[index].name,45,index===0?"#b8fff1":"#ffffff");label.position.set(0,2.05,0);label.scale.set(1.85,.48,1);root.add(label);
-return{root,rig,arms,feet,shade,index,name:profiles[index].name,x:0,z:0,y:0,vy:0,stun:0,dash:0,dashCd:0,finished:false,finishTime:0,speed:profiles[index].speed,skill:profiles[index].skill,phase:rand(0,TAU),cool:0,stumbles:0}} 
+return{root,rig,arms,feet,shade,label,index,name:profiles[index].name,x:0,z:0,y:0,vy:0,stun:0,dash:0,dashCd:0,finished:false,finishTime:0,speed:profiles[index].speed,skill:profiles[index].skill,phase:rand(0,TAU),cool:0,stumbles:0}} 
 for(let i=0;i<6;i++)racers.push(createCharacter(colors[i],i));
 
 function detailCharacter(r,col,index){
@@ -398,6 +398,42 @@ function detailCharacter(r,col,index){
 }
 
 for(let i=0;i<racers.length;i++)detailCharacter(racers[i],colors[i],i);
+
+const originalMascotParts=racers.map(r=>({
+ rig:r.rig,arms:r.arms,feet:r.feet,crown:r.crown,prop:r.prop,sheen:r.sheen
+}));
+const mascotDisplayNames=["MOMO","POP","NIX","BOOM","KIWI","ZAP"];
+let selectedMascot=0;
+function selectMascot(index){
+ if(!Number.isInteger(index)||index<0||index>=6)return;
+ selectedMascot=index;
+ for(let i=0;i<racers.length;i++){
+  const r=racers[i],original=originalMascotParts[i];
+  const source=originalMascotParts[i===0?index:i===index?0:i];
+  if(r.rig.parent===r.root)r.root.remove(r.rig);
+  if(r.sheen&&r.sheen.parent===r.root)r.root.remove(r.sheen);
+  r.root.add(source.rig);
+  if(source.sheen)r.root.add(source.sheen);
+  r.rig=source.rig;r.arms=source.arms;r.feet=source.feet;
+  r.crown=source.crown;r.prop=source.prop;r.sheen=source.sheen;
+  // Runner ID remains unchanged; only the selected mascot's actual 3D outfit moves.
+  const display=i===0?"VOS":i===index&&index!==0?"MOMO":mascotDisplayNames[i];
+  profiles[i].name=display;
+  r.name=display;
+  if(r.label){
+   r.root.remove(r.label);
+   if(r.label.material?.map)r.label.material.map.dispose();
+   if(r.label.material?.dispose)r.label.material.dispose();
+  }
+  r.label=textSprite(display,45,i===0?"#8dffec":"#ffffff");
+  r.label.position.set(0,2.05,0);r.label.scale.set(1.85,.48,1);r.root.add(r.label);
+ }
+ document.querySelectorAll("[data-mascot]").forEach(el=>el.classList.toggle("selected",Number(el.dataset.mascot)===index));
+ $("mascotDescription").textContent="Elegiste a "+mascotDisplayNames[index]+". ¡Listo para competir!";
+ $("activeMascotName").textContent=mascotDisplayNames[index];
+ saveGamePreferences();
+}
+
 
 function addCollectorIdentity(r,i){
  const p=r.rig,matte=h=>mat(h,.065,.30,{clearcoat:.66}),cl=[0x27dccf,0xff795f,0x9b72ff,0xb0f65a,0xffa72e,0x458eff][i];
@@ -494,7 +530,7 @@ function collectStars(r){if(r.index!==0)return;for(let s of stars){
   cue(950,.11,"sine",.075);puff(r.x,r.z,0xffde8a,13);
   if(r.stars%3===0){r.dashCd=Math.max(0,(r.dashCd||0)-2.2);r.speedBonus=.9;announce("✦ ¡TURBO RECARGADO!",800);tactile(15)}
 }}
-function tactile(ms=20){try{if(navigator.vibrate)navigator.vibrate(ms)}catch(e){}}
+function tactile(ms=20){try{if(gameSettings.haptics&&navigator.vibrate)navigator.vibrate(ms)}catch(e){}}
 
 let bestTime=0;try{bestTime=Number(localStorage.getItem("microcaos_best_v2")||0)||0}catch(e){}
 
@@ -504,6 +540,67 @@ const ROUND_RULES=[
  {name:"GRAN FINAL",qualify:1,spin:1.53,slide:1.50,piston:1.56,color:0xffd279}
 ];
 let roundIndex=0,contestants=[0,1,2,3,4,5],nextQualifiers=[],playerQualified=false,tournamentStars=0;
+
+let gameType="tournament",chosenSoloMode="race",raceEndAfterPlayer=0,roundTransitionTimer=null,runSequence=0;
+let gameSettings={sound:true,haptics:true,quality:"auto",difficulty:"normal"};
+const settingsStoreKey="microcaos_settings_v2";
+try{
+ const stored=JSON.parse(localStorage.getItem(settingsStoreKey)||"{}");
+ if(stored&&typeof stored==="object"){
+  if(typeof stored.sound==="boolean")gameSettings.sound=stored.sound;
+  if(typeof stored.haptics==="boolean")gameSettings.haptics=stored.haptics;
+  if(["auto","low","high"].includes(stored.quality))gameSettings.quality=stored.quality;
+  if(["easy","normal","hard"].includes(stored.difficulty))gameSettings.difficulty=stored.difficulty;
+  if(Number.isInteger(stored.selectedMascot)&&stored.selectedMascot>=0&&stored.selectedMascot<6)
+    selectedMascot=stored.selectedMascot;
+ }
+}catch(error){console.warn("Local settings unavailable",error)}
+function saveGamePreferences(){
+ try{localStorage.setItem(settingsStoreKey,JSON.stringify({...gameSettings,selectedMascot}))}catch(error){}
+}
+function difficultyScale(){
+ return gameSettings.difficulty==="easy"?.82:gameSettings.difficulty==="hard"?1.13:1;
+}
+function applyGraphicsQuality(){
+ const base=gameSettings.quality==="low"?1:gameSettings.quality==="high"?1.65:1.45;
+ const limit=currentMode==="ballistix"?Math.min(base,1.23):base;
+ renderer.setPixelRatio(Math.min(devicePixelRatio||1,limit));
+}
+function cancelAutoAdvance(){
+ if(roundTransitionTimer!==null){clearTimeout(roundTransitionTimer);roundTransitionTimer=null}
+ runSequence++;
+}
+function showMenuPage(page){
+ const id=["home","modes","characters","settings"].includes(page)?page:"home";
+ document.querySelectorAll("[data-menu-page]").forEach(el=>{
+  const active=el.dataset.menuPage===id;
+  el.hidden=!active;el.classList.toggle("active",active);
+ });
+ document.querySelectorAll("[data-menu-tab]").forEach(el=>el.classList.toggle("active",el.dataset.menuTab===id));
+ const sheet=document.querySelector(".premium-menu");if(sheet)sheet.scrollTop=0;
+}
+function returnToMenu(){
+ cancelAutoAdvance();
+ phase="intro";dragSteeringActive=false;raceEndAfterPlayer=0;
+ for(const id of ["hud","progress","controls","stagebanner","ballScoreboard","miniObjective","pickupCounter"])$(id).classList.remove("on");
+ $("finish").classList.remove("show");$("intro").classList.remove("hidden");
+ $("speedtrails").classList.remove("active");
+ document.body.classList.remove("ballistix-mode");
+ $("notice").classList.remove("show");
+ showMenuPage("home");
+}
+function startSolo(modeName){
+ if(!Object.prototype.hasOwnProperty.call(MINI_MODES,modeName))return;
+ if(mode==="ar"&&!placed){announce("PRIMERO COLOCÁ LA ARENA",900);return}
+ cancelAutoAdvance();
+ gameType="individual";chosenSoloMode=modeName;
+ roundIndex=modeName==="ballistix"?1:0;
+ contestants=modeName==="ballistix"?[0,1,2,3]:[0,1,2,3,4,5];
+ nextQualifiers=[];playerQualified=false;tournamentStars=0;
+ modePlaylist=["race","ballistix","tag"];modePlaylist[roundIndex]=modeName;
+ resetRound();
+}
+
 let currentMode="race",modePlaylist=["race","tag","gems"],miniClock=0,miniPhase=0,miniScores=Array(6).fill(0),miniLastTouch=0,weightHolder=-1,tagTransfers=0,miniSafe={x:0,z:0,radius:3.6},miniChallengeElapsed=0;
 const activeRacers=()=>contestants.map(i=>racers[i]);
 const scoreOrder=()=>activeRacers().sort((a,b)=>a.finished&&b.finished?a.finishTime-b.finishTime:a.finished?-1:b.finished?1:a.z-b.z);
@@ -847,7 +944,7 @@ function ballShipUpdate(dt){
    target=clamp((delayedSeek-ballShipPositions[k])*(1.15+accuracy*.9),-1,1);
    if(ballElapsed<4&&k===3)target*=.8;
   }
-  const baseSpeed=k===0?(racers[0].dash>0?13.0:10.8):(3.85+(r.skill||.7)*1.45);
+  const baseSpeed=k===0?(racers[0].dash>0?13.0:10.8):(3.85+(r.skill||.7)*1.45)*difficultyScale();
   ballShipPositions[k]=clamp(ballShipPositions[k]+target*baseSpeed*dt,-ballMaxMove,ballMaxMove);
   const pos=ballSidePosition(k,ballShipPositions[k]);
   const rotation=k===0?0:k===1?Math.PI:k===2?-Math.PI/2:Math.PI/2;
@@ -1122,7 +1219,7 @@ function renderModeLabel(){
  for(const k of Object.keys(miniStages))miniStages[k].visible=k===currentMode;
  document.body.classList.toggle("ballistix-mode",currentMode==="ballistix");
  renderer.shadowMap.enabled=currentMode!=="ballistix";
- renderer.setPixelRatio(Math.min(devicePixelRatio||1,currentMode==="ballistix"?1.18:1.45));
+ applyGraphicsQuality();
  if(mode==="preview"){
   previewTable.visible=currentMode!=="ballistix";
   scene.background=new THREE.Color(currentMode==="ballistix"?0x071426:0x172b4a);
@@ -1322,7 +1419,7 @@ function moveMiniGame(dt,t){
    dx=clamp((dragTargetX-r.x)*1.45,-1,1);dz=clamp((dragTargetZ-r.z)*1.28,-1,1);
   }else{dx=steer;dz=steerZ}
   const norm=Math.max(1,Math.hypot(dx,dz));dx/=norm;dz/=norm;
-  const sprint=(r.dash>0?1.7:1)*(currentMode==="tag"&&r.index===weightHolder&&r.index!==0?1.26:1),rate=r.index===0?20:12,vel=(r.index===0?5.7:4.65)*sprint;
+  const sprint=(r.dash>0?1.7:1)*(currentMode==="tag"&&r.index===weightHolder&&r.index!==0?1.26:1),rate=r.index===0?20:12,vel=(r.index===0?5.7:4.65*difficultyScale())*sprint;
   r.vx+=(dx*vel-r.vx)*(1-Math.exp(-rate*dt));
   r.vz=(r.vz||0)+(-dz*vel-(r.vz||0))*(1-Math.exp(-rate*dt));
   r.x=clamp(r.x+r.vx*dt,-4.25,4.25);
@@ -1369,6 +1466,7 @@ function moveMiniGame(dt,t){
 function showRoundTheme(){moodLights.forEach(m=>m.material=moodMat[roundIndex]);renderModeLabel()}
 function resetRound(){
  currentMode=modePlaylist[roundIndex]||"race";
+ raceEndAfterPlayer=0;
  phase="countdown";elapsed=0;countdown=2.75;checkpoint=-1;
  physicsAccumulator=0;physicsTime=0;dragSteeringActive=false;dragPointerId=null;steer=0;steerZ=0;
  $("intro").classList.add("hidden");$("finish").classList.remove("show");
@@ -1396,7 +1494,7 @@ function resetRound(){
  });
  startMiniChallenge();showRoundTheme();cue(510,.12);announce("¡"+MINI_MODES[currentMode].title+"!",1400);
 }
-function startTournament(){roundIndex=0;contestants=[0,1,2,3,4,5];nextQualifiers=[];playerQualified=false;tournamentStars=0;modePlaylist=choosePlaylist();resetRound()}
+function startTournament(){cancelAutoAdvance();gameType="tournament";raceEndAfterPlayer=0;roundIndex=0;contestants=[0,1,2,3,4,5];nextQualifiers=[];playerQualified=false;tournamentStars=0;modePlaylist=choosePlaylist();resetRound()}
 function concludeRound(){
  if(phase!=="race")return;
  phase="finished";dragSteeringActive=false;tagWeight.visible=false;
@@ -1427,7 +1525,13 @@ function concludeRound(){
  if(won)for(let i=0;i<4;i++)setTimeout(()=>puff(rand(-2,2),-3,colors[i],17),i*160);
  window.resultText=won?"¡Soy campeón de MICROCAOS Party Rush! 🏆":"¡Jugué "+MINI_MODES[currentMode].title+" y terminé "+place+"º en MICROCAOS!";
 }
-function roundAdvance(){if(playerQualified&&roundIndex<2){roundIndex++;contestants=[...nextQualifiers];resetRound()}else startTournament()}
+function roundAdvance(){
+ cancelAutoAdvance();
+ if(gameType==="individual"){startSolo(chosenSoloMode);return}
+ if(playerQualified&&roundIndex<2){
+  roundIndex++;contestants=[...nextQualifiers];raceEndAfterPlayer=0;resetRound();
+ }else startTournament();
+}
 
 let mode="preview",session=null,hitSource=null,hitRequested=false,placed=false,videoStream=null,camEnabled=false,phase="intro",elapsed=0,countdown=0,steer=0,moveTouch=false,soundOn=true,audio=null,lastToast=0,last=0,finishAt=0,checkpoint=-1,stunMessage=0;let skillToastUntil=0,runParticles=0,zoomEase=0;
 function cue(f=440,d=.1,type="sine",volume=.06){if(!soundOn)return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();if(audio.state==="suspended")audio.resume();const o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.setValueAtTime(f,audio.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(100,f*.58),audio.currentTime+d);g.gain.setValueAtTime(volume,audio.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+d);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+d)}catch(e){}}
@@ -1506,7 +1610,7 @@ function move(dt,t){
   r.x=clamp(nextX,-3.38,3.38);
   if(nextX!==r.x)r.vx=0;
   r.lean=(r.lean||0)+(clamp(-r.vx*.055,-.22,.22)-(r.lean||0))*(1-Math.exp(-11*dt));
-  const forward=r.speed*(r.stun>0?.72:1)*(r.dash>0?1.72:1)*(r.speedBonus>0?1.16:1);
+  const forward=r.speed*(bot?difficultyScale():1)*(r.stun>0?.72:1)*(r.dash>0?1.72:1)*(r.speedBonus>0?1.16:1);
   r.z-=forward*dt;
   const airborne=r.y>.015||r.vy>0;
   if(airborne){r.vy-=18.5*dt;r.y=Math.max(0,r.y+r.vy*dt);r.airTime+=dt}else{r.y=0;r.vy=0}
