@@ -431,7 +431,7 @@ body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172a
 </div></section>
 <div class="mp-live" id="mpLive"></div>
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · V3.8.1 · MULTIJUGADOR</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V3.9</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -490,12 +490,12 @@ body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172a
   <div class="menu-section-title">TU PERSONAJE</div>
   <p class="menu-muted">Elegí quién te representa durante todas las pruebas del torneo.</p>
   <div class="mascot-picker" id="mascotPicker">
-   <button class="mascot-option selected" data-mascot="0"><span style="--c:#29f5df">🛡</span><b>MOMO</b><small>Caballero</small></button>
-   <button class="mascot-option" data-mascot="1"><span style="--c:#ff604d">🏹</span><b>POP</b><small>Arquera espectral</small></button>
-   <button class="mascot-option" data-mascot="2"><span style="--c:#8b59ff">🧙</span><b>NIX</b><small>Hechicero</small></button>
-   <button class="mascot-option" data-mascot="3"><span style="--c:#a4ff3f">⚔</span><b>BOOM</b><small>Guerrero espectral</small></button>
-   <button class="mascot-option" data-mascot="4"><span style="--c:#ffac26">🎯</span><b>KIWI</b><small>Explorador</small></button>
-   <button class="mascot-option" data-mascot="5"><span style="--c:#338bff">🔮</span><b>ZAP</b><small>Mago espectral</small></button>
+   <button class="mascot-option selected" data-mascot="0"><span style="--c:#29f5df">👻</span><b>MOMO</b><small>Fantasma</small></button>
+   <button class="mascot-option" data-mascot="1"><span style="--c:#ff604d">🐲</span><b>POP</b><small>Dragón</small></button>
+   <button class="mascot-option" data-mascot="2"><span style="--c:#8b59ff">🟢</span><b>NIX</b><small>Slime</small></button>
+   <button class="mascot-option" data-mascot="3"><span style="--c:#a4ff3f">😈</span><b>BOOM</b><small>Demonio</small></button>
+   <button class="mascot-option" data-mascot="4"><span style="--c:#ffac26">🦇</span><b>KIWI</b><small>Murciélago</small></button>
+   <button class="mascot-option" data-mascot="5"><span style="--c:#338bff">💀</span><b>ZAP</b><small>Esqueleto</small></button>
   </div>
   <p class="selected-character-note" id="mascotDescription">Elegiste a MOMO.</p>
   <button class="primary mainprimary" data-open-page="home">PERSONAJE LISTO ✓</button>
@@ -879,7 +879,7 @@ function useAnimation(r,name){
   if(!r?.mixer||!r?.actions)return;
   const candidates=name==="Run"?["Running","Walking","WalkJump","Idle"]:name==="Jump"?["Jump","WalkJump","Running"]:name==="Hit"?["No","Death","Idle"]:name==="Dance"?["Dance","ThumbsUp","Wave","Idle"]:["Idle","Standing","Walking"];
   let key=candidates.find(x=>r.actions[x]);
-   if(!key){const all=Object.keys(r.actions);const hints=name==="Run"?["run","walk","sprint","move"]:name==="Jump"?["jump","hop"]:name==="Hit"?["hit","hurt","damage","stagger"]:name==="Dance"?["dance","cheer","victory","wave"]:["idle","standing","breathe"];
+   if(!key){const all=Object.keys(r.actions);const hints=name==="Run"?["run","walk","sprint","move","fast_flying","flying"]:name==="Jump"?["jump","hop"]:name==="Hit"?["hit","hurt","damage","stagger"]:name==="Dance"?["dance","cheer","victory","wave"]:["idle","standing","breathe"];
      key=all.find(k=>hints.some(h=>k.toLowerCase().includes(h)))||all.find(k=>k.toLowerCase().includes("idle"))||all[0];}
    if(!key||key===r.animationName)return;
   const next=r.actions[key],prev=r.actions[r.animationName];next.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).play();
@@ -939,14 +939,14 @@ function initCharacterModels(){
 // Optimized CC0 KayKit adventurers (re-exported by tactical-slash).
 // Keep the procedural originals hidden as a resilient offline fallback.
 const V37_HERO_ASSETS=[
-  "https://cdn.jsdelivr.net/gh/sion-rgb/tactical-slash@8bf8d835cb7afa7cb3f4d893b0966c6b4e9b7727/assets/characters/player/player_swordsman.glb",
-  "https://cdn.jsdelivr.net/gh/sion-rgb/tactical-slash@8bf8d835cb7afa7cb3f4d893b0966c6b4e9b7727/assets/characters/enemy/enemy_archer.glb",
-  "https://cdn.jsdelivr.net/gh/sion-rgb/tactical-slash@8bf8d835cb7afa7cb3f4d893b0966c6b4e9b7727/assets/characters/player/player_priest.glb",
-  "https://cdn.jsdelivr.net/gh/sion-rgb/tactical-slash@8bf8d835cb7afa7cb3f4d893b0966c6b4e9b7727/assets/characters/enemy/enemy_swordsman.glb",
-  "https://cdn.jsdelivr.net/gh/sion-rgb/tactical-slash@8bf8d835cb7afa7cb3f4d893b0966c6b4e9b7727/assets/characters/player/player_archer.glb",
-  "https://cdn.jsdelivr.net/gh/sion-rgb/tactical-slash@8bf8d835cb7afa7cb3f4d893b0966c6b4e9b7727/assets/characters/enemy/enemy_priest.glb"
-];
-const v37CharacterState={loaded:0,total:6,failed:0,models:[],source:"KayKit CC0 · 6 distinct GLB"};
+ "assets/monsters/ghost.glb",
+ "assets/monsters/dragon.glb",
+ "assets/monsters/slime.glb",
+ "assets/monsters/demon.glb",
+ "assets/monsters/bat.glb",
+ "assets/monsters/skeleton.glb"
+ ];
+const v37CharacterState={loaded:0,total:6,failed:0,models:[],source:"Quaternius CC0 · six local GLBs"};
 function v37BindCharacterAnims(){
  for(const r of racers){
    const entry=r.rig.userData.premiumCharacter;
@@ -966,22 +966,12 @@ function v37InstallCharacter(index,gltf){
  const fit=2.12/dimensions.y;
  model.scale.setScalar(fit);
  model.position.set(-(bounds.min.x+bounds.max.x)*.5*fit,-bounds.min.y*fit,-(bounds.min.z+bounds.max.z)*.5*fit);
- // Every costume remains a proper 3D asset with its original textures/details.
- const paint=new THREE.Color(colors[index]);
+ // Preserve original Quaternius texture colors and authored rigs.
  model.traverse(o=>{
   if(!o.isMesh)return;
   o.castShadow=true;o.receiveShadow=true;
-  const recolor=m=>{
-    if(!m?.clone)return m;
-    const copy=m.clone();
-    const materialName=((m.name||"")+" "+(o.name||"")).toLowerCase();
-    if(copy.color&&!/skin|face|eye|teeth|mouth|hair|head/.test(materialName)){
-      copy.color.lerp(paint,index>=3?.16:.07);
-    }
-    copy.roughness=Math.min(.92,Math.max(.30,copy.roughness??.48));
-    return copy;
-  };
-  o.material=Array.isArray(o.material)?o.material.map(recolor):recolor(o.material);
+  const polish=m=>{if(!m?.clone)return m;const c=m.clone();if("roughness" in c)c.roughness=Math.min(.9,Math.max(.33,c.roughness??.5));return c};
+  o.material=Array.isArray(o.material)?o.material.map(polish):polish(o.material);
  });
  const clips=gltf.animations||[];
  const mixer=new THREE.AnimationMixer(model),actions={};
@@ -994,22 +984,27 @@ function v37InstallCharacter(index,gltf){
  return true;
 }
 async function v37LoadCharacters(){
- const loader=new GLTFLoader();
- const results=await Promise.allSettled(V37_HERO_ASSETS.map(url=>loader.loadAsync(url)));
+ const loader=new GLTFLoader(),state=v37CharacterState;
+ state.loaded=0;state.failed=0;state.ready=false;state.errors=[];
+ $("modelstatus").textContent="CARGANDO MONSTRUOS 3D · 0/6";
+ const loaded=await Promise.allSettled(V37_HERO_ASSETS.map(url=>loader.loadAsync(url)));
  for(let index=0;index<6;index++){
-   const res=results[index];
-   if(res.status!=="fulfilled"){v37CharacterState.failed++;continue}
-   try{
-     if(!v37InstallCharacter(index,res.value))v37CharacterState.failed++;
-   }catch(error){console.warn("Model character failed",index,error);v37CharacterState.failed++}
+  const res=loaded[index];
+  if(res.status!=="fulfilled"){state.failed++;state.errors.push(V37_HERO_ASSETS[index]+": "+String(res.reason?.message||res.reason));continue}
+  try{if(!v37InstallCharacter(index,res.value))throw new Error("modelo GLB inválido")}
+  catch(error){state.failed++;state.errors.push(V37_HERO_ASSETS[index]+": "+String(error?.message||error))}
  }
- v37BindCharacterAnims();
- modelLoaded=v37CharacterState.loaded>0;
- $("modelstatus").textContent=modelLoaded?"HÉROES 3D PREMIUM · "+v37CharacterState.loaded+"/6":"MODO RESPALDO 3D";
- $("gamehint").textContent=modelLoaded?"Personajes GLB animados · 7 pruebas · Impulso infinito":"7 pruebas · Personajes alternativos disponibles";
- window.__microcaosHeroQA=()=>({loaded:v37CharacterState.loaded,failed:v37CharacterState.failed,source:v37CharacterState.source,rigged:racers.map(r=>!!r.rig.userData.premiumCharacter)});
+ v37BindCharacterAnims();state.ready=true;modelLoaded=state.loaded===6;
+ $("modelstatus").textContent=modelLoaded?"✓ 6 MONSTRUOS 3D · QUATERNIUS":"⚠ MONSTRUOS "+state.loaded+"/6";
+ $("gamehint").textContent=modelLoaded?"6 monstruos únicos · CC0 · 7 modos":"Problema al cargar "+state.failed+" monstruos. Hay personajes de reserva.";
+ if(state.failed){
+  console.error("MICROCAOS V3.9 monster load failed",state.errors);
+  $("notice").textContent="⚠ No cargaron todos los monstruos. Actualizá la página para reintentar.";
+  $("notice").classList.add("show");
+ }
+ window.__microcaosHeroQA=()=>({version:"3.9",ready:state.ready,loaded:state.loaded,failed:state.failed,errors:state.errors,source:state.source,assets:V37_HERO_ASSETS,clips:racers.map(r=>r.rig.userData.premiumCharacter?.clips||[])});
 }
-v37LoadCharacters().catch(error=>{console.warn("Premium characters unavailable",error)});
+ v37LoadCharacters().catch(error=>{console.warn("Premium characters unavailable",error)});
 
 const v38Beacon=new THREE.Group();v38Beacon.name="LOCAL PLAYER VOS MARKER";stage.add(v38Beacon);
 const v38Glow=new THREE.MeshBasicMaterial({color:0x16ffff,toneMapped:false,depthTest:false,depthWrite:false});
@@ -1119,7 +1114,7 @@ function returnToMenu(){
  if(mp.active&&mp.started){
   if(mp.host&&!confirm("Si salís, la sala se cierra para todos. ¿Querés salir?"))return;
   mp.closing=true;mpForget();
-  mpAPI("leave",{code:mp.code,token:mp.token}).catch(()=>{}).finally(()=>{location.href="./multijugador-premium-v38.html"});
+  mpAPI("leave",{code:mp.code,token:mp.token}).catch(()=>{}).finally(()=>{location.href="./multijugador-monsters-v39.html"});
   return;
  }
  cancelAutoAdvance();
@@ -1256,7 +1251,7 @@ function mpRemember(){
 }
 function mpForget(){try{sessionStorage.removeItem(MP_SESSION_KEY)}catch(e){}}
 function mpSaveName(){try{localStorage.setItem(MP_NAME_KEY,$("mpName").value.trim().slice(0,18))}catch(e){}}
-function mpLink(){const url=new URL("multijugador-premium-v38.html",location.href);url.search="?room="+mp.code;return url.href}
+function mpLink(){const url=new URL("multijugador-monsters-v39.html",location.href);url.search="?room="+mp.code;return url.href}
 function mpIsHuman(slot){return mp.active&&mp.host&&mp.players.some(p=>p.slot===slot&&p.online)}
 function mpReadyStatus(ready){mp.ready=!!ready;$("mpReadyText").textContent=ready?(mp.useAR?"✓ Arena RA lista para jugar":"✓ Listo para jugar en 3D"):"◈ Preparando arena en realidad aumentada…";$("mpReadyText").classList.toggle("not-ready",!ready)}
 async function mpSetReady(ready){
@@ -1687,7 +1682,7 @@ $("mpLeave").onclick=async()=>{
  if(!confirm(mp.host?"¿Cerrar la sala para todos?":"¿Salir de la sala?"))return;
  mp.closing=true;mpForget();
  try{await mpAPI("leave",{code:mp.code,token:mp.token})}catch(e){}
- location.href="./multijugador-premium-v38.html";
+ location.href="./multijugador-monsters-v39.html";
 };
 document.querySelectorAll(".mp-cap-option").forEach(btn=>{
  btn.onclick=()=>{
@@ -3228,7 +3223,7 @@ function v34AnimateFaces(t,dt){
 // MICROCAOS CINEMATIC ARENA V3.5 — large, unmistakable stage architecture.
 // Compact geometry + one instanced crowd and one instanced LED row per mode.
 // All details sit OUTSIDE playable cells; rules, hitboxes and AR anchoring unchanged.
-const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"3.8.1"};
+const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"3.9"};
 const v35Ink=new THREE.MeshStandardMaterial({color:0x09132d,metalness:.42,roughness:.36,clearcoat:1});
 const v35Alloy=new THREE.MeshStandardMaterial({color:0x294665,metalness:.72,roughness:.24,clearcoat:.72});
 const v35SeatMaterial=new THREE.MeshStandardMaterial({color:0xffffff,metalness:.12,roughness:.35,clearcoat:.6});
@@ -3410,8 +3405,8 @@ function v35ApplyArt(){
  for(const [name,kit]of Object.entries(v35.kits))kit.visible=name==="race"?currentMode==="race":name==="ballistix"?false:true; // V3.7 custom venue owns Ballistix
  v35.mode=currentMode;
 }
-window.__microcaosV38QA=()=>({version:"3.8.1",uniqueModels:new Set(V37_HERO_ASSETS).size,modelCount:V37_HERO_ASSETS.length,loaded:v37CharacterState.loaded,beaconReady:!!v38Beacon,localSlot:typeof mp!=="undefined"&&mp.active?mp.slot:0,mode:currentMode,ar:renderer.xr.enabled});
-window.__microcaosStartQA=()=>({version:"3.8.1",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
+window.__microcaosV38QA=()=>({version:"3.9",uniqueModels:new Set(V37_HERO_ASSETS).size,modelCount:V37_HERO_ASSETS.length,loaded:v37CharacterState.loaded,beaconReady:!!v38Beacon,localSlot:typeof mp!=="undefined"&&mp.active?mp.slot:0,mode:currentMode,ar:renderer.xr.enabled});
+window.__microcaosStartQA=()=>({version:"3.9",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
 window.__microcaosV37QA=()=>({version:"3.7",characterSource:v37CharacterState.source,loadedHeroes:v37CharacterState.loaded,arena:!!ballArena,impulseCooldown:1.95,impulseCharges:"infinite",sevenModes:Object.keys(MINI_MODES).length,arKept:!!renderer.xr.enabled});
 window.__microcaosDirectorQA=()=>({raceFloorIsolated:currentMode==="race"||!raceFloor.visible,version:"3.7",venues:Object.keys(v36Venues),sevenScenes:Object.keys(v36Venues).length===7,mode:currentMode,webxr:renderer.xr.isPresenting,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,unchangedARScale:true});
 window.__microcaosCinematicQA=()=>({
