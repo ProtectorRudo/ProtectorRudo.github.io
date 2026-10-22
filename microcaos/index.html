@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
+.stagebanner{position:absolute;top:155px;left:50%;transform:translateX(-50%);background:#081d35e8;border:1px solid #84f6de78;border-radius:50px;padding:7px 12px;color:#d7fff8;white-space:nowrap;font:900 10px Outfit,sans-serif;letter-spacing:.08em;opacity:0;pointer-events:none;transition:opacity .25s}.stagebanner.on{opacity:1}.raceprogress{top:189px!important}.pickupCounter{top:191px!important}.rushHud{top:234px!important}.qualified-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0 18px}.qualified-card{display:flex;align-items:center;gap:8px;padding:8px;background:#dcfcff0f;border:1px solid #b5e7f746;border-radius:12px;font-size:12px;font-weight:800}.qualified-card.you{background:#73f3d721;border-color:#94ffeb8a}.qualified-card .chip{width:19px;height:19px;border-radius:7px;flex:none;border:1px solid #ffffff80}.qualified-card .ord{color:#adcadc;font:900 14px Outfit}.finishcard{max-width:440px}.finaltext{margin-bottom:14px!important}@media(max-height:690px){.stagebanner{top:119px}.raceprogress{top:154px!important}.qualified-card{padding:5px}.finishcard{padding:20px!important}}
+
 .obstacle-hint{position:absolute;top:33%;left:50%;transform:translateX(-50%) scale(.94);pointer-events:none;opacity:0;background:#133048d6;border:1px solid #ffde93a3;border-radius:50px;padding:8px 14px;font:900 12px Outfit,sans-serif;letter-spacing:.08em;color:#ffe3a4;white-space:nowrap;text-shadow:0 1px 5px #0004;transition:opacity .13s,transform .13s}.obstacle-hint.on{opacity:1;transform:translateX(-50%) scale(1)}
 
 .jump{position:relative;flex-direction:column;gap:0;font-size:12px}.jump-count{font-size:10px;line-height:1;color:#6d4a22;margin-top:4px;letter-spacing:.05em;min-height:10px}.jump.exhausted{filter:saturate(.45);opacity:.74}.dash{transition:filter .12s,transform .12s,opacity .12s}.dash:not(.cooldown){box-shadow:0 9px 30px #6bc9ff73,inset 0 2px 4px #ffffffd9}.skilltoast{position:absolute;top:39%;left:50%;transform:translate(-50%,-5px) scale(.85);opacity:0;pointer-events:none;white-space:nowrap;font:900 clamp(21px,6vw,33px) Outfit,sans-serif;color:#e5fff3;text-shadow:0 3px 22px #032a34;transition:opacity .15s,transform .15s}.skilltoast.on{opacity:1;transform:translate(-50%,0) scale(1)}.rushHud{position:absolute;top:203px;right:20px;font:900 13px Outfit,sans-serif;color:#a9fff0;background:#082535b5;border:1px solid #8dfadd75;border-radius:12px;padding:8px 11px;opacity:0;transition:opacity .15s}.rushHud.on{opacity:1}
@@ -29,11 +31,11 @@ html.xr-active,html.xr-active body,html.xr-active #scene{background:transparent!
 <div id="scene"></div>
 <div id="ui">
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MOVIMIENTO V0.9</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · TORNEO V1.0</div></div></div>
 <div class="topright"><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
-<div class="hud" id="hud"><div class="scorebox"><div class="scorelabel">POSICIÓN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
-<div class="speedtrails" id="speedtrails"></div><div class="raceprogress" id="progress"><div class="bar" id="progressBar"></div></div>
+<div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
+<div class="speedtrails" id="speedtrails"></div><div class="stagebanner" id="stagebanner">RONDA 1 · CLASIFICAN 4</div><div class="raceprogress" id="progress"><div class="bar" id="progressBar"></div></div>
 <div class="toast" id="toast">¡PREPARADOS!</div><div id="skillToast" class="skilltoast"></div><div id="obstacleHint" class="obstacle-hint">↥ ¡SALTÁ AHORA!</div><div class="rushHud" id="rushHud">⚡ RITMO ×<span id="rushValue">1</span></div><div class="pickupCounter" id="pickupCounter">✦ <span id="pickupValue">0</span></div>
 <div id="notice"></div><button id="placeArena" class="primary ar-place" style="display:none">✓ COLOCAR PISTA AQUÍ</button><div id="arHelp" class="ar-help" style="display:none"><div class="ar-help-box"><div class="ar-help-icon">◈</div><h2 id="arHelpTitle">Realidad aumentada</h2><p id="arHelpText"></p><a class="primary ar-fallback" id="arHelpNative" href="ar.html">◈ ABRIR VISOR AR ANDROID ↗</a><button class="secondary ar-fallback2" id="arHelp3D">JUGAR EN 3D SIN CÁMARA</button><button class="ar-dismiss" id="arHelpClose">CERRAR</button></div></div>
 <div class="modalshade" id="intro">
@@ -44,17 +46,17 @@ html.xr-active,html.xr-active body,html.xr-active #scene{background:transparent!
 <a id="nativeAR" class="primary mainprimary ar-native" href="ar.html">◈ VER ARENA EN MI MESA (AR) <span>↗</span></a>
 <div class="more"><button id="play" class="secondary">JUGAR EN 3D SIN CÁMARA</button><button id="ar" class="secondary">PROBAR AR JUGABLE · BETA</button><button id="cam" class="secondary" style="display:none" aria-hidden="true">◎ DEMO DE CÁMARA</button></div>
 <div id="arDevice" class="ar-device">Comprobando compatibilidad AR...</div>
-<div class="hint" id="gamehint">Deslizá el dedo sobre la pista para moverte · Doble salto · Turbo</div>
+<div class="hint" id="gamehint">TORNEO · 4 DE 6 PASAN · LUEGO 3 DE 4 · ¡FINAL!</div>
 </div></div>
 <div class="controls" id="controls">
 <div class="joyarea" id="joy" aria-label="Control de dirección"><div class="joyrim"></div><div class="joycenter" id="stick">↔</div></div>
 <div class="actionbar"><button id="dash" class="action dash">TURBO</button><button id="jump" class="action jump">SALTAR <span class="jump-count" id="jumpCount">×2</span></button></div>
 </div>
 <div class="finish" id="finish"><div class="finishcard">
-<div class="eyebrow"><i></i> CARRERA TERMINADA</div>
-<div class="medal" id="medal">🏆</div><div class="finaltitle" id="finaltitle">¡QUÉ CARRERA!</div><div class="finaltext" id="finaltext"></div>
+<div class="eyebrow"><i></i> <span id="stageEyebrow">RONDA TERMINADA</span></div>
+<div class="medal" id="medal">🏆</div><div class="finaltitle" id="finaltitle">¡QUÉ CARRERA!</div><div class="finaltext" id="finaltext"></div><div id="qualifiedGrid" class="qualified-grid"></div>
 <div class="stats"><div><div class="statnum" id="finalpos">1º</div><div class="statlabel">POSICIÓN</div></div><div><div class="statnum" id="finaltime">00:30</div><div class="statlabel">TIEMPO</div></div><div><div class="statnum" id="finalstars">0</div><div class="statlabel">ESTRELLAS</div></div></div>
-<button class="primary mainprimary" id="retry">↻ CORRER OTRA VEZ</button>
+<button class="primary mainprimary" id="retry">→ SIGUIENTE RONDA</button>
 <div class="more"><button class="secondary" id="share">↗ COMPARTIR RESULTADO</button></div>
 </div></div>
 <div class="modebar" id="modebar">PREVIEW 3D · PC Y CELULAR</div>
@@ -305,17 +307,107 @@ for(let o of [[9,0],[5,-2.8],[5,2.8],[.15,0],[-1.3,-2.8],[-1.3,2.8],[-5.4,0],[-7
 function animateStars(t){for(let s of stars){if(s.used)continue;s.g.position.y=.78+Math.sin(t*3+s.phase)*.15;s.g.rotation.y=t*1.4+s.phase}}
 function collectStars(r){if(r.index!==0)return;for(let s of stars){
   if(s.used||Math.abs(r.z-s.z)>1.1||Math.abs(r.x-s.x)>.85)continue;
-  s.used=true;s.g.visible=false;r.stars++;$("pickupValue").textContent=r.stars;
+  s.used=true;s.g.visible=false;r.stars++;tournamentStars++;$("pickupValue").textContent=tournamentStars;
   cue(950,.11,"sine",.075);puff(r.x,r.z,0xffde8a,13);
   if(r.stars%3===0){r.dashCd=Math.max(0,(r.dashCd||0)-2.2);r.speedBonus=.9;announce("✦ ¡TURBO RECARGADO!",800);tactile(15)}
 }}
 function tactile(ms=20){try{if(navigator.vibrate)navigator.vibrate(ms)}catch(e){}}
 
 let bestTime=0;try{bestTime=Number(localStorage.getItem("microcaos_best_v2")||0)||0}catch(e){}
+
+const ROUND_RULES=[
+ {name:"CLASIFICATORIA",qualify:4,spin:1,slide:1,piston:1,color:0x65f1d2},
+ {name:"SEMIFINAL",qualify:3,spin:1.25,slide:1.25,piston:1.25,color:0xfdb1dc},
+ {name:"GRAN FINAL",qualify:1,spin:1.53,slide:1.50,piston:1.56,color:0xffd279}
+];
+let roundIndex=0,contestants=[0,1,2,3,4,5],nextQualifiers=[],playerQualified=false,tournamentStars=0;
+const activeRacers=()=>contestants.map(i=>racers[i]);
+const scoreOrder=()=>activeRacers().sort((a,b)=>a.finished&&b.finished?a.finishTime-b.finishTime:a.finished?-1:b.finished?1:a.z-b.z);
+const roundRule=()=>ROUND_RULES[roundIndex];
+const moodMat=ROUND_RULES.map(c=>mat(c.color,.06,.36,{emissive:c.color,emissiveIntensity:.21}));
+const moodLights=[];
+for(let side of [-1,1]){
+ moodLights.push(soft(moodMat[0],stage,[side*4.37,.28,0],[.10,.10,29.8]));
+ for(let z of [-10,-3,4,11]){const light=ball(moodMat[0],stage,[side*5.8,2.18,z],[.20,.24,.18]);light.castShadow=false;moodLights.push(light)}
+}
+function showRoundTheme(){
+ const q=roundRule();
+ $("stagebanner").textContent="RONDA "+(roundIndex+1)+"/3 · "+q.name+" · "+(roundIndex===2?"¡PRIMERO GANA!":"PASAN "+q.qualify);
+ $("rankLabel").textContent="POSICIÓN · "+(roundIndex===2?"FINAL":q.qualify+" PASAN");
+ $("modebar").textContent="MICROCAOS · "+q.name+" · "+contestants.length+" CORREDORES";
+ moodLights.forEach(m=>m.material=moodMat[roundIndex]);
+ for(const o of obstacles){
+   o.enabled=roundIndex===2||o.kind==="pad"||(roundIndex===1?
+     (o.kind==="spin"||o.kind==="slide"||o.kind==="piston"):
+     (o.kind==="spin"&&o.z>0)||(o.kind==="slide"&&o.z>0));
+   const group=o.kind==="spin"||o.kind==="piston"?o.part.parent:o.part;
+   group.visible=o.enabled;
+   if(o.kind==="spin")o.roundSpeed=o.speed*q.spin;
+   if(o.kind==="slide")o.roundSpeed=o.speed*q.slide;
+   if(o.kind==="piston")o.roundSpeed=2.4*q.piston;
+ }
+}
+function resetRound(){
+ phase="countdown";elapsed=0;countdown=2.75;checkpoint=-1;
+ physicsAccumulator=0;physicsTime=0;dragSteeringActive=false;dragPointerId=null;
+ $("intro").classList.add("hidden");$("finish").classList.remove("show");
+ $("hud").classList.add("on");$("progress").classList.add("on");$("stagebanner").classList.add("on");
+ $("controls").classList.add("on");$("obstacleHint").classList.remove("on");
+ $("pickupCounter").classList.add("on");$("rushHud").classList.remove("on");
+ $("skillToast").classList.remove("on");$("speedtrails").classList.remove("active");
+ $("jumpCount").textContent="×2";$("dash").textContent="TURBO";
+ $("progressBar").style.width="0%";$("pickupValue").textContent=tournamentStars;
+ for(const x of stars){x.used=false;x.g.visible=true}
+ const count=contestants.length;
+ racers.forEach((r,i)=>{
+   const lane=contestants.indexOf(i);r.root.visible=lane>=0;
+   r.finished=false;r.finishTime=0;r.cool=0;r.stumbles=0;r.stars=0;r.invuln=0;
+   r.animationName="";r.jumpCount=0;r.jumpBuffer=0;r.padCooldown=null;r.vx=0;r.lean=0;r.animDistance=0;
+   r.coyote=0;r.airTime=0;r.jumpFlash=0;r.landing=0;r.combo=0;r.speedBonus=0;
+   r.stun=0;r.dash=0;r.dashCd=0;r.y=0;r.vy=0;r.nearMisses=new Set();
+   if(lane>=0){r.x=(lane-(count-1)/2)*(count>=5?1.29:1.75);r.z=11.6+(lane%2)*.90}
+   r.root.position.set(r.x,0,r.z);r.root.rotation.set(0,0,0);r.rig.scale.set(1,1,1);
+   if(r.mixer)r.mixer.stopAllAction();useAnimation(r,"Idle");
+ });
+ showRoundTheme();cue(510,.12);announce("RONDA "+(roundIndex+1)+" · "+roundRule().name,1300);
+}
+function startTournament(){roundIndex=0;contestants=[0,1,2,3,4,5];nextQualifiers=[];playerQualified=false;tournamentStars=0;resetRound()}
+function concludeRound(){
+ if(phase!=="race")return;
+ phase="finished";dragSteeringActive=false;
+ for(let id of ["controls","obstacleHint","hud","progress","stagebanner","pickupCounter","speedtrails"]){
+  $(id).classList.remove(id==="controls"?"on":id==="speedtrails"?"active":id==="obstacleHint"?"on":"on");
+ }
+ const order=scoreOrder(),quota=roundRule().qualify;
+ nextQualifiers=order.filter(r=>r.finished).slice(0,quota).map(r=>r.index);
+ playerQualified=nextQualifiers.includes(0);
+ const place=order.findIndex(r=>r.index===0)+1;
+ const final=roundIndex===2,won=final&&nextQualifiers[0]===0;
+ $("qualifiedGrid").innerHTML=nextQualifiers.map((i,n)=>
+  '<div class="qualified-card'+(i===0?' you':'')+'"><span class="ord">'+(n+1)+'º</span>'+
+  '<span class="chip" style="background:#'+colors[i].toString(16).padStart(6,"0")+'"></span>'+
+  (i===0?"VOS":profiles[i].name)+'</div>').join("");
+ $("stageEyebrow").textContent=final?"RESULTADO · GRAN FINAL":"RONDA "+(roundIndex+1)+" · CLASIFICADOS";
+ $("medal").textContent=won?"🏆":playerQualified?"🏅":"🎖️";
+ $("finaltitle").textContent=won?"¡SOS CAMPEÓN!":final?"¡TERMINÓ LA FINAL!":playerQualified?"¡CLASIFICASTE!":"¡ELIMINADO!";
+ $("finaltext").textContent=won?"Ganaste el torneo de tres niveles. ¡Increíble!":
+  final?"Solo el primero se lleva la copa. Terminaste "+place+"º.":
+  playerQualified?"¡Estás entre los "+quota+" mejores! La siguiente carrera tiene obstáculos más difíciles.":
+  "Quedaste "+place+"º. Solo pasaban los primeros "+quota+". ¡Revancha!";
+ $("finalpos").textContent=place+"º";$("finaltime").textContent=formatTime(elapsed);
+ $("finalstars").textContent=tournamentStars;
+ $("retry").textContent=playerQualified&&!final?"→ SIGUIENTE: "+ROUND_RULES[roundIndex+1].name:"↻ NUEVO TORNEO";
+ $("finish").classList.add("show");cue(won?990:playerQualified?780:320,.21);
+ if(won){for(let i=0;i<4;i++)setTimeout(()=>puff(rand(-2,2),-12.5,colors[i],17),i*160)}
+ window.resultText=won?"¡Soy campeón del torneo MICROCAOS! 🏆":
+  "¡Jugué MICROCAOS, llegué a "+roundRule().name+" y terminé "+place+"º!";
+}
+function roundAdvance(){if(playerQualified&&roundIndex<2){roundIndex++;contestants=[...nextQualifiers];resetRound()}else startTournament()}
+
 let mode="preview",session=null,hitSource=null,hitRequested=false,placed=false,videoStream=null,camEnabled=false,phase="intro",elapsed=0,countdown=0,steer=0,moveTouch=false,soundOn=true,audio=null,lastToast=0,last=0,finishAt=0,checkpoint=-1,stunMessage=0;let skillToastUntil=0,runParticles=0,zoomEase=0;
 function cue(f=440,d=.1,type="sine",volume=.06){if(!soundOn)return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();if(audio.state==="suspended")audio.resume();const o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.setValueAtTime(f,audio.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(100,f*.58),audio.currentTime+d);g.gain.setValueAtTime(volume,audio.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+d);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+d)}catch(e){}}
 function announce(s,ms=1100){$("toast").textContent=s;$("toast").classList.add("show");lastToast=performance.now()+ms}
-function begin(){if(mode==="ar"&&!placed){announce("TOCÁ UNA SUPERFICIE",1400);return}phase="countdown";elapsed=0;countdown=2.75;checkpoint=-1;physicsAccumulator=0;physicsTime=0;dragSteeringActive=false;dragPointerId=null;$("intro").classList.add("hidden");$("finish").classList.remove("show");$("hud").classList.add("on");$("progress").classList.add("on");$("controls").classList.add("on");racers.forEach((r,i)=>{r.x=(i-2.5)*1.29;r.z=12.2+(i%2)*1.0;r.y=0;r.vy=0;r.stun=0;r.dash=0;r.dashCd=0;r.finished=false;r.finishTime=0;r.cool=0;r.stumbles=0;r.stars=0;r.invuln=0;r.animationName="";r.jumpCount=0;r.jumpBuffer=0;r.padCooldown=null;r.vx=0;r.lean=0;r.animDistance=0;r.coyote=0;r.airTime=0;r.jumpFlash=0;r.landing=0;r.combo=0;r.speedBonus=0;r.nearMisses=new Set();r.root.position.set(r.x,0,r.z);if(r.mixer)r.mixer.stopAllAction();useAnimation(r,"Idle")});$("progressBar").style.width="0%";$("pickupValue").textContent="0";$("pickupCounter").classList.add("on");$("rushHud").classList.remove("on");$("skillToast").classList.remove("on");$("obstacleHint").classList.remove("on");$("jumpCount").textContent="×2";for(let s of stars){s.used=false;s.g.visible=true}cue(520,.13);announce("¡PREPARADOS!",1100)}
+function begin(){if(mode==="ar"&&!placed){announce("TOCÁ UNA SUPERFICIE",1400);return}startTournament()}
 function hit(r,power=1){
  if(r.invuln>0||r.y>.75||r.dash>.10)return;
  r.stun=.21;r.invuln=1.05;r.speedBonus=0;r.combo=0;
@@ -324,7 +416,7 @@ function hit(r,power=1){
  r.stumbles++;useAnimation(r,"Hit");puff(r.x,r.z,0xffd578,12);
  if(r.index===0){tactile(32);cameraShake=.16;cue(210,.13,"triangle",.075);skillMessage("¡REBOTE! SEGUÍ",650);}
 }
-function finishRace(){phase="finished";$("controls").classList.remove("on");$("obstacleHint").classList.remove("on");$("hud").classList.remove("on");$("progress").classList.remove("on");$("pickupCounter").classList.remove("on");$("speedtrails").classList.remove("active");const sorted=[...racers].sort((a,b)=>a.finished&&b.finished?a.finishTime-b.finishTime:a.finished?-1:b.finished?1:a.z-b.z);const place=sorted.findIndex(r=>r.index===0)+1;const t=formatTime(elapsed);const record=racers[0].finished&&(!bestTime||elapsed<bestTime);if(record){bestTime=elapsed;try{localStorage.setItem("microcaos_best_v2",bestTime.toFixed(2))}catch(e){}}$("medal").textContent=place===1?"🏆":place<=3?"🥈":"🎖️";$("finaltitle").textContent=place===1?"¡SOS IMPARABLE!":place<=3?"¡PODIO DE LOCURA!":"¡REVANCHA YA!";$("finaltext").textContent=!racers[0].finished?"Se acabó el tiempo. ¡Probá una revancha!":record?"¡NUEVO RÉCORD PERSONAL! Volvé a correr y defendé tu marca.":place===1?"La mesa tiene un nuevo campeón. ¿Podés repetirlo?":"Los rivales no perdonan. En la próxima podés llegar primero.";$("finalpos").textContent=place+"º";$("finaltime").textContent=t;$("finalstars").textContent=racers[0].stars||0;$("finish").classList.add("show");if(place===1){for(let j=0;j<4;j++)setTimeout(()=>puff(rand(-2,2),-12.7,colors[j],22),j*180)}cue(730,.2);setTimeout(()=>cue(930,.23),130);window.resultText="¡Salí "+place+"º en MICROCAOS Party Rush! Mi tiempo: "+t+". ¿Podés ganarme?";return place}
+function finishRace(){concludeRound()}
 function formatTime(s){const m=Math.floor(s/60),sec=Math.floor(s%60);return String(m).padStart(2,"0")+":"+String(sec).padStart(2,"0")}
 
 function move(dt,t){
@@ -337,9 +429,9 @@ function move(dt,t){
  }
  if(phase!=="race")return;
  elapsed+=dt;
- if(elapsed>53){finishRace();return}
+ if(elapsed>53){concludeRound();return}
  for(let i=0;i<racers.length;i++){
-  const r=racers[i];if(r.finished)continue;const bot=i!==0;
+  const r=racers[i];if(r.finished||!contestants.includes(i))continue;const bot=i!==0;
   r.stun=Math.max(0,r.stun-dt);r.invuln=Math.max(0,r.invuln-dt);
   r.dashCd=Math.max(0,r.dashCd-dt);r.dash=Math.max(0,r.dash-dt);
   r.speedBonus=Math.max(0,r.speedBonus-dt);r.jumpFlash=Math.max(0,r.jumpFlash-dt);
@@ -348,7 +440,7 @@ function move(dt,t){
   if(bot){
    const mood=i%5;
    let target=Math.sin(elapsed*(.4+mood*.13)+r.phase)*(0.8+.20*mood);
-   const near=obstacles.filter(o=>r.z-o.z>0&&r.z-o.z<3.6&&
+   const near=obstacles.filter(o=>o.enabled&&r.z-o.z>0&&r.z-o.z<3.6&&
       (o.kind!=="piston"||Math.abs(r.x-o.x)<1.3)).sort((a,b)=>a.z-b.z)[0];
    if(near){
     const gap=r.z-near.z;
@@ -400,7 +492,7 @@ function move(dt,t){
   if(r.jumpBuffer>0&&r.y===0&&r.jumpCount===0)performJump(r);
   collectStars(r);
   for(const o of obstacles){
-   if(Math.abs(r.z-o.z)>1.1)continue;
+   if(!o.enabled||Math.abs(r.z-o.z)>1.1)continue;
    // While airborne high enough, hazards are cleared. Dash temporarily protects runners.
    let danger=false;
    if(o.kind==="spin"){
@@ -427,7 +519,7 @@ function move(dt,t){
   if(r.z<=-12.6){
    r.finished=true;r.finishTime=elapsed;r.z=-13.08;
    puff(r.x,r.z,0xffd978,18);useAnimation(r,"Dance");
-   if(i===0){finishRace();break}
+   if(i===0){skillMessage("¡LLEGASTE! ESPERANDO A LOS DEMÁS",1350)}
   }
   r.animDistance=(r.animDistance||0)+dt*(r.stun>0?9:r.dash>0?22:15);const run=r.animDistance+r.phase;
   r.root.position.set(r.x,r.y,r.z);
@@ -445,12 +537,14 @@ function move(dt,t){
   if(r.crown)r.crown.rotation.y=Math.sin(t*1.3)*.17;
  }
  separateRacers(dt);
- const order=[...racers].sort((a,b)=>a.z-b.z),place=order.findIndex(r=>r.index===0)+1;
- $("place").innerHTML=place+"<em> / 6</em>";
+ if(activeRacers().filter(r=>r.finished).length>=roundRule().qualify){concludeRound();return}
+ const order=scoreOrder(),place=order.findIndex(r=>r.index===0)+1;
+ $("place").innerHTML=place+"<em> / "+contestants.length+"</em>";
  $("timer").textContent=formatTime(elapsed);
  $("progressBar").style.width=(clamp((12.3-p.z)/25,0,1)*100).toFixed(1)+"%";
  $("dash").classList.toggle("cooldown",p.dashCd>0);
  const threat=obstacles.find(o=>{
+  if(!o.enabled)return false;
   const gap=p.z-o.z;
   if(gap<.55||gap>2.15||p.jumpCount>0||p.y>.10||o.kind==="pad")return false;
   if(o.kind==="slide")return Math.abs(p.x-o.part.position.x)<1.7;
@@ -495,7 +589,7 @@ function separateRacers(dt){
  for(let i=0;i<racers.length;i++){
   for(let j=i+1;j<racers.length;j++){
    const a=racers[i],b=racers[j];
-   if(a.finished||b.finished||a.y>.55||b.y>.55)continue;
+   if(!contestants.includes(a.index)||!contestants.includes(b.index)||a.finished||b.finished||a.y>.55||b.y>.55)continue;
    const dx=b.x-a.x,dz=b.z-a.z;
    if(Math.abs(dx)<.68&&Math.abs(dz)<.55){
     const side=Math.abs(dx)>.04?Math.sign(dx):(a.index<b.index?1:-1);
@@ -524,7 +618,7 @@ function turbo(){
  p.dash=1.05;p.dashCd=3.9;p.stun=0;
  tactile(28);cue(890,.27,"sawtooth",.07);puff(p.x,p.z,0x8bf8e0,17);
 }
-function animateObstacles(t){for(let o of obstacles){if(o.kind==="spin")o.part.rotation.y=t*o.speed+o.rotation;else if(o.kind==="slide")o.part.position.x=Math.sin(t*o.speed+o.phase)*2.6;else if(o.kind==="piston"){const h=.85+Math.cos(t*2.4+o.phase)*.85;o.part.position.y=h;o.indicator.material.emissiveIntensity=h<.9?.9:.1;o.frame.material.emissiveIntensity=h<.9?.55:.08}else o.part.children[1].scale.y=1+Math.sin(t*5+o.z)*.045}}
+function animateObstacles(t){for(let o of obstacles){if(o.kind==="spin")o.part.rotation.y=t*(o.roundSpeed||o.speed)+o.rotation;else if(o.kind==="slide")o.part.position.x=Math.sin(t*(o.roundSpeed||o.speed)+o.phase)*2.6;else if(o.kind==="piston"){const h=.85+Math.cos(t*(o.roundSpeed||2.4)+o.phase)*.85;o.part.position.y=h;o.indicator.material.emissiveIntensity=h<.9?.9:.1;o.frame.material.emissiveIntensity=h<.9?.55:.08}else o.part.children[1].scale.y=1+Math.sin(t*5+o.z)*.045}}
 function animateParticles(dt){for(let i=puffs.length-1;i>=0;i--){let q=puffs[i];q.life-=dt;if(q.life<=0){stage.remove(q.mesh);q.mesh.material.dispose();puffs.splice(i,1);continue}q.vy-=dt*4;q.mesh.position.x+=q.vx*dt;q.mesh.position.y+=q.vy*dt;q.mesh.position.z+=q.vz*dt;q.mesh.scale.multiplyScalar(.97);q.mesh.material.opacity=clamp(q.life/q.max,0,1)}}
 let previewTarget=new THREE.Vector3();let camStarted=false;let cameraShake=0;
 let physicsAccumulator=0,physicsTime=0;
@@ -652,7 +746,7 @@ function placeArena(){
 }
 $("placeArena").onclick=placeArena;
 renderer.domElement.addEventListener("pointerup",placeArena);
-$("play").onclick=begin;$("retry").onclick=begin;
+$("play").onclick=begin;$("retry").onclick=roundAdvance;
 function bindFastAction(id,fn){
  const button=$(id);let pointerAt=-99999;
  button.style.touchAction="manipulation";
@@ -692,7 +786,7 @@ playSurface.addEventListener("pointerup",endDragSteer);
 playSurface.addEventListener("pointercancel",endDragSteer);
 
 const joy=$("joy"),stick=$("stick");function updateJoy(e){const b=joy.getBoundingClientRect(),cx=b.left+b.width/2,dx=clamp(e.clientX-cx,-43,43);steer=clamp(dx/37,-1,1);stick.style.transform="translateX("+dx+"px)"}joy.addEventListener("pointerdown",e=>{joy.setPointerCapture(e.pointerId);moveTouch=true;updateJoy(e)});joy.addEventListener("pointermove",e=>{if(moveTouch)updateJoy(e)});function endJoy(){moveTouch=false;steer=0;stick.style.transform="translateX(0px)"}joy.addEventListener("pointerup",endJoy);joy.addEventListener("pointercancel",endJoy);
-const keys=new Set();addEventListener("keydown",e=>{keys.add(e.code);if(["Space","ArrowLeft","ArrowRight","ShiftLeft","KeyA","KeyD"].includes(e.code))e.preventDefault();if(e.code==="Space"&&!e.repeat)jump();if(e.code==="ShiftLeft"&&!e.repeat)turbo();if(e.code==="Enter"&&phase==="intro")begin()});addEventListener("keyup",e=>keys.delete(e.code));setInterval(()=>{if(!moveTouch){steer=((keys.has("KeyD")||keys.has("ArrowRight"))?1:0)-((keys.has("KeyA")||keys.has("ArrowLeft"))?1:0);stick.style.transform="translateX("+(steer*32)+"px)"}},30);
+const keys=new Set();addEventListener("keydown",e=>{keys.add(e.code);if(["Space","ArrowLeft","ArrowRight","ShiftLeft","KeyA","KeyD"].includes(e.code))e.preventDefault();if(e.code==="Space"&&!e.repeat)jump();if(e.code==="ShiftLeft"&&!e.repeat)turbo();if(e.code==="Enter"&&phase==="intro")begin();if(e.code==="Enter"&&phase==="finished")roundAdvance()});addEventListener("keyup",e=>keys.delete(e.code));setInterval(()=>{if(!moveTouch){steer=((keys.has("KeyD")||keys.has("ArrowRight"))?1:0)-((keys.has("KeyA")||keys.has("ArrowLeft"))?1:0);stick.style.transform="translateX("+(steer*32)+"px)"}},30);
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&phase==="race"){physicsAccumulator=0;phase="paused";$("notice").textContent="Partida en pausa. Tocá para continuar.";$("notice").classList.add("show")}});
 $("notice").addEventListener("click",()=>{if(phase==="paused"){phase="race";$("notice").classList.remove("show")}});
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();$("notice").textContent="Se perdió el contexto gráfico. Actualizá la página para recuperar el juego.";$("notice").classList.add("show")});
