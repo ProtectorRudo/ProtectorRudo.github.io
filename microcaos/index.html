@@ -282,7 +282,7 @@ body.ballistix-mode #ui .jump.ballistix-pulse-ready{animation:ballPulseReady 1.1
 <div id="scene"></div>
 <div id="ui">
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · TERRITORIOS V2.4</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · TERRITORIOS V2.5</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -862,7 +862,7 @@ const MINI_MODES={
  tag:{title:"LA MANCHA DE LA PESA",emoji:"⚖",objective:"¡PASÁ LA PESA!",time:12.5,color:0xff438d},
  gems:{title:"FIEBRE DE GEMAS",emoji:"💎",objective:"¡JUNTÁ GEMAS!",time:25,color:0xffd13e},
  survival:{title:"EL PISO SE HUNDE",emoji:"🌀",objective:"¡ENTRÁ EN EL CÍRCULO!",time:26,color:0x835eff},
- territory:{title:"CONQUISTA DE TERRITORIO",emoji:"🟩",objective:"CERRÁ TU RASTRO PARA CONQUISTAR",time:55,color:0x4affb7},
+ territory:{title:"CONQUISTA DE TERRITORIO",emoji:"🟩",objective:"CERRÁ TU RASTRO PARA CONQUISTAR",time:65,color:0x4affb7},
  ballistix:{title:"BATALLA BALLISTIX",emoji:"⚽",objective:"¡DEFENDÉ TU ARCO!",time:0,color:0x87efff},
  race:{title:"CARRERA LOCA",emoji:"🏁",objective:"¡LLEGÁ A LA META!",time:53,color:0x80ffe5}
 };
@@ -920,8 +920,10 @@ for(const modeName of ["tag","gems","survival"]){
 
 // CONQUISTA DE TERRITORIO · original Paper.io-inspired minigame.
 // Ownership is discrete and deterministic. All cells share one instanced mesh.
-const TERRITORY_X=32,TERRITORY_Z=42,TERRITORY_SIZE=TERRITORY_X*TERRITORY_Z;
-const TERRITORY_DX=8.50/TERRITORY_X,TERRITORY_DZ=11.70/TERRITORY_Z;
+// Field v2.5: 50% wider and 50% longer = 2.25x more conquest space.
+const TERRITORY_X=48,TERRITORY_Z=63,TERRITORY_SIZE=TERRITORY_X*TERRITORY_Z;
+const TERRITORY_HALF_X=6.375,TERRITORY_HALF_Z=8.775;
+const TERRITORY_DX=(2*TERRITORY_HALF_X)/TERRITORY_X,TERRITORY_DZ=(2*TERRITORY_HALF_Z)/TERRITORY_Z;
 const territoryOwners=new Int8Array(TERRITORY_SIZE).fill(-1);
 const territoryTrails=new Int8Array(TERRITORY_SIZE).fill(-1);
 const territoryBaseCells=new Int8Array(TERRITORY_SIZE).fill(-1);
@@ -930,12 +932,12 @@ const territoryDark=new THREE.Color(0x0c2754),territoryScratch=new THREE.Object3
 const territoryArea=new THREE.Group();territoryArea.visible=false;stage.add(territoryArea);
 miniStages.territory=territoryArea;
 const territoryBase=mat(0x0c1640,.09,.48,{emissive:0x051128,emissiveIntensity:.2});
-soft(territoryBase,territoryArea,[0,-.57,0],[11.2,.99,16.2]);
-soft(mat(0x2d6caa,.11,.43),territoryArea,[0,-.09,0],[10.1,.18,14.8]);
-soft(mat(0x050b26,.05,.53),territoryArea,[0,.025,0],[9.0,.16,12.2]);
+soft(territoryBase,territoryArea,[0,-.57,0],[15.5,.99,20.6]);
+soft(mat(0x2d6caa,.11,.43),territoryArea,[0,-.09,0],[14.6,.18,19.9]);
+soft(mat(0x050b26,.05,.53),territoryArea,[0,.025,0],[13.25,.16,18.35]);
 const territoryBorder=mat(0x32ebcb,.11,.27,{emissive:0x079d7d,emissiveIntensity:.29});
-for(const x of [-4.6,4.6])soft(territoryBorder,territoryArea,[x,.22,0],[.14,.36,12.6]);
-for(const z of [-6.1,6.1])soft(territoryBorder,territoryArea,[0,.22,z],[9.3,.36,.14]);
+for(const x of [-6.78,6.78])soft(territoryBorder,territoryArea,[x,.22,0],[.15,.36,18.50]);
+for(const z of [-9.2,9.2])soft(territoryBorder,territoryArea,[0,.22,z],[13.7,.36,.16]);
 const territoryTileGeo=new THREE.BoxGeometry(TERRITORY_DX*.965,.048,TERRITORY_DZ*.965);
 const territoryPaintMaterial=new THREE.MeshBasicMaterial({color:0xffffff});
 const territoryTiles=new THREE.InstancedMesh(territoryTileGeo,territoryPaintMaterial,TERRITORY_SIZE);
@@ -953,10 +955,10 @@ territoryTrailMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 territoryTrailMesh.frustumCulled=false;territoryTrailMesh.castShadow=false;
 territoryTrailMesh.count=0;territoryArea.add(territoryTrailMesh);
 function territoryIdx(x,z){
- const col=Math.floor((x+4.25)/TERRITORY_DX),row=Math.floor((z+5.85)/TERRITORY_DZ);
+ const col=Math.floor((x+TERRITORY_HALF_X)/TERRITORY_DX),row=Math.floor((z+TERRITORY_HALF_Z)/TERRITORY_DZ);
  return col>=0&&col<TERRITORY_X&&row>=0&&row<TERRITORY_Z?row*TERRITORY_X+col:-1;
 }
-function territoryPos(idx){return {x:-4.25+((idx%TERRITORY_X)+.5)*TERRITORY_DX,z:-5.85+(Math.floor(idx/TERRITORY_X)+.5)*TERRITORY_DZ}}
+function territoryPos(idx){return {x:-TERRITORY_HALF_X+((idx%TERRITORY_X)+.5)*TERRITORY_DX,z:-TERRITORY_HALF_Z+(Math.floor(idx/TERRITORY_X)+.5)*TERRITORY_DZ}}
 for(let idx=0;idx<TERRITORY_SIZE;idx++){
  const pt=territoryPos(idx);
  territoryScratch.position.set(pt.x,.17,pt.z);
@@ -1065,7 +1067,7 @@ function territoryStepCell(r,idx){
  }
  territoryTrails[idx]=r.index;
  r.territoryTrail.push(idx);
- if(r.territoryTrail.length>145){territoryBreak(r,r);return}
+ if(r.territoryTrail.length>205){territoryBreak(r,r);return}
  territoryUpdateTrails();
 }
 function territoryMovePath(r){
@@ -1095,9 +1097,9 @@ function territoryStart(){
   // Distinct nonoverlapping, recognizable home areas for six players.
   for(let idx=0;idx<TERRITORY_SIZE;idx++){
    const pos=territoryPos(idx);
-   if(Math.abs(pos.x-r.x)<.72&&Math.abs(pos.z-r.z)<.79){
+   if(Math.abs(pos.x-r.x)<1.0&&Math.abs(pos.z-r.z)<1.12){
     territorySetCell(idx,r.index);
-    if(Math.abs(pos.x-r.x)<.36&&Math.abs(pos.z-r.z)<.40)territoryBaseCells[idx]=r.index;
+    if(Math.abs(pos.x-r.x)<.50&&Math.abs(pos.z-r.z)<.56)territoryBaseCells[idx]=r.index;
    }
   }
  }
@@ -1109,12 +1111,12 @@ function territoryBotDirection(r,t){
  // attack exposed enemy trails when they're already within reach.
  if(!r.territoryAiPlan||r.territoryAiStep>=r.territoryAiPlan.length){
   const x=r.x,z=r.z;
-  const sideX=x>1.5?-1:x< -1.5?1:r.index%2?1:-1;
-  const sideZ=z>2.3?-1:z< -2.3?1:r.index%3?1:-1;
-  const width=2.20+Math.random()*.75*(r.skill||.7);
-  const depth=2.05+Math.random()*.65*(r.skill||.7);
-  const x1=clamp(x+sideX*width,-3.82,3.82);
-  const z2=clamp(z+sideZ*depth,-5.12,5.12);
+  const sideX=x>3.1?-1:x< -3.1?1:r.index%2?1:-1;
+  const sideZ=z>4.8?-1:z< -4.8?1:r.index%3?1:-1;
+  const width=3.10+Math.random()*1.0*(r.skill||.7);
+  const depth=2.95+Math.random()*.95*(r.skill||.7);
+  const x1=clamp(x+sideX*width,-5.82,5.82);
+  const z2=clamp(z+sideZ*depth,-8.10,8.10);
   r.territoryAiPlan=[
    {x:x1,z},
    {x:x1,z:z2},
@@ -1145,7 +1147,7 @@ function territoryBotDirection(r,t){
    r.territoryAiStep=0;goal=hunt;
   }
  }
- if(r.territoryTrail.length>90)goal={x:r.territoryHomeX,z:r.territoryHomeZ};
+ if(r.territoryTrail.length>128)goal={x:r.territoryHomeX,z:r.territoryHomeZ};
  const dx=goal.x-r.x,dz=goal.z-r.z,dist=Math.hypot(dx,dz)||1;
  return[dx/dist,-dz/dist];
 }
@@ -1803,7 +1805,7 @@ function renderModeLabel(){
   scene.background=new THREE.Color(currentMode==="race"?0x172b4a:currentMode==="tag"?0x180d35:0x0c1736);
   scene.fog.color.setHex(currentMode==="race"?0x142542:0x0c1030);
  }
- camera.fov=currentMode==="ballistix"?(camera.aspect<.68?64:48):(camera.aspect<.68?58:42);
+ camera.fov=currentMode==="ballistix"?(camera.aspect<.68?64:48):currentMode==="territory"?(camera.aspect<.68?63:49):(camera.aspect<.68?58:42);
  camera.updateProjectionMatrix();
  ballArena.visible=currentMode==="ballistix";$("ballScoreboard").classList.toggle("on",currentMode==="ballistix");
  for(const o of obstacles){
@@ -2147,11 +2149,11 @@ function moveMiniGame(dt,t){
   }else{dx=steer;dz=steerZ}
   const norm=Math.max(1,Math.hypot(dx,dz));dx/=norm;dz/=norm;
   const sprint=(r.dash>0?1.68:1)*(currentMode==="tag"&&r.index===weightHolder?1.16:1);
-  const rate=r.index===0?20:14,vel=(r.index===0?5.75:5.03*difficultyScale())*sprint;
+  const rate=r.index===0?20:14,vel=(currentMode==="territory"?(r.index===0?6.65:5.9*difficultyScale()):(r.index===0?5.75:5.03*difficultyScale()))*sprint;
   r.vx+=(dx*vel-r.vx)*(1-Math.exp(-rate*dt));
   r.vz=(r.vz||0)+(-dz*vel-(r.vz||0))*(1-Math.exp(-rate*dt));
-  r.x=clamp(r.x+r.vx*dt,-4.25,4.25);
-  r.z=clamp(r.z+r.vz*dt,-5.85,5.85);
+  r.x=clamp(r.x+r.vx*dt,currentMode==="territory"?-TERRITORY_HALF_X:-4.25,currentMode==="territory"?TERRITORY_HALF_X:4.25);
+  r.z=clamp(r.z+r.vz*dt,currentMode==="territory"?-TERRITORY_HALF_Z:-5.85,currentMode==="territory"?TERRITORY_HALF_Z:5.85);
   // Preserve the familiar jumping animation from races, including double jump.
   const airborne=r.y>.01||r.vy>0;
   if(airborne){r.vy-=18.5*dt;r.y=Math.max(0,r.y+r.vy*dt)}
@@ -2193,7 +2195,7 @@ function moveMiniGame(dt,t){
  }else{
   $("miniObjective").textContent="🌀 ZONA SEGURA · "+Math.ceil(miniClock)+" s";
  }
- $("progressBar").style.width=(Math.min(100,100*miniChallengeElapsed/(currentMode==="territory"?55:currentMode==="gems"?25:currentMode==="survival"?27:26))).toFixed(1)+"%";
+ $("progressBar").style.width=(Math.min(100,100*miniChallengeElapsed/(currentMode==="territory"?MINI_MODES.territory.time:currentMode==="gems"?25:currentMode==="survival"?27:26))).toFixed(1)+"%";
  $("dash").classList.toggle("cooldown",racers[0].dashCd>0);
  $("dash").textContent=racers[0].dashCd>0?Math.ceil(racers[0].dashCd)+"s":"TURBO";
  $("jumpCount").textContent=currentMode==="territory"?(racers[0].territoryShieldCd>0?Math.ceil(racers[0].territoryShieldCd)+"s":"LISTO"):(racers[0].jumpCount?"×1":"×2");
@@ -2224,7 +2226,7 @@ function resetRound(){
   r.stun=0;r.dash=0;r.dashCd=0;r.tagGraceUntil=0;r.aiFocus=null;r.aiFocusUntil=0;r.y=0;r.vy=0;r.nearMisses=new Set();
   if(lane>=0){
    if(currentMode==="race"){r.x=(lane-(count-1)/2)*(count>=5?1.29:1.75);r.z=11.6+(lane%2)*.90}
-   else{const a=lane/Math.max(1,count)*Math.PI*2+Math.PI/2;r.x=Math.cos(a)*2.3;r.z=Math.sin(a)*2.8}
+   else{const a=lane/Math.max(1,count)*Math.PI*2+Math.PI/2;r.x=Math.cos(a)*(currentMode==="territory"?4.25:2.3);r.z=Math.sin(a)*(currentMode==="territory"?5.75:2.8)}
   }
   r.root.position.set(r.x,0,r.z);r.root.rotation.set(0,0,0);r.rig.scale.set(1,1,1);
   if(r.mixer)r.mixer.stopAllAction();useAnimation(r,"Idle");
@@ -2552,7 +2554,7 @@ function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;
  $("notice").textContent="Error al simular la partida. Tocá REINICIAR para volver a jugar. "+window.__microcaosError;
  $("notice").classList.add("show");
 }for(let r of racers)if(r.mixer)r.mixer.update(dt);$("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
-if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,22.3,9.5):new THREE.Vector3(0,18.0,9.7)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.7,11.6,12.5):new THREE.Vector3(9.7,11.8,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
+if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,22.3,9.5):new THREE.Vector3(0,18.0,9.7)):currentMode==="territory"&&follow?(portrait?new THREE.Vector3(18.3,27.8,29.2):new THREE.Vector3(17.0,23.8,25.5)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.7,11.6,12.5):new THREE.Vector3(9.7,11.8,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
 if(mode==="ar"&&frame&&session){if(!hitRequested){hitRequested=true;session.requestReferenceSpace("viewer").then(viewer=>session.requestHitTestSource({space:viewer})).then(s=>hitSource=s).catch(()=>{})}if(hitSource&&!placed){const results=frame.getHitTestResults(hitSource);if(results.length){let pose=results[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;const m=new THREE.Matrix4().fromArray(pose.transform.matrix);reticle.position.setFromMatrixPosition(m);reticle.quaternion.setFromRotationMatrix(m);$("placeArena").style.display="inline-flex";$("notice").textContent="¡Ya veo la superficie! Tocá COLOCAR PISTA para anclar la arena."}}else{reticle.visible=false;$("placeArena").style.display="none"}}}
 if(performance.now()>lastToast)$("toast").classList.remove("show");if(performance.now()>skillToastUntil)$("skillToast").classList.remove("on");renderer.render(scene,camera)}
 const reticle=new THREE.Mesh(new THREE.RingGeometry(.20,.23,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x71ffdf,side:THREE.DoubleSide,depthWrite:false}));reticle.visible=false;scene.add(reticle);
