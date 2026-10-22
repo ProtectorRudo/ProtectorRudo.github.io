@@ -673,8 +673,8 @@ function ballPulse(){
  ballPulseUntil=ballElapsed+.50;ballPulseCd=1.30;
  cue(870,.12,"sine",.10);tactile(21);
 }
-function ballContact(b,k){
- const p=ballShipPositions[k],v=k<2?b.x:b.z,d=Math.abs(v-p);
+function ballContact(b,k,projectedPosition=ballShipPositions[k]){
+ const p=projectedPosition,v=k<2?b.x:b.z,d=Math.abs(v-p);
  if(d>ballPaddleHalf+(k===0&&ballPulseUntil>ballElapsed?.85:.24))return false;
  const s=Math.min(13.0,Math.max(5.3,Math.hypot(b.vx,b.vz)*1.05));
  const offset=clamp((v-p)/(ballPaddleHalf+.12),-1,1);
@@ -688,7 +688,7 @@ function ballContact(b,k){
   b.vz=offset*1.60+ballShipVel(k);
   b.x=k===2?-ballPaddleAt+.43:ballPaddleAt-.43;
  }
- ballNormalize(b,Math.min(14.5,s*(hot?1.55:1.06)));b.glow=hot?1:.5;
+ ballNormalize(b,Math.min(14.5,s*(hot?1.55:1.06)));b.glow=hot?1:.5;ballStats.hits++;
  b.immunity=.11;
  if(hot){
   ballPulseUntil=0;ballPulseCd=.76;
@@ -743,74 +743,150 @@ function completeBallistix(){
  nextQualifiers=survivors; // source of truth for progression
  concludeRound();
 }
-function ballTick(dt){
- ballElapsed+=dt;
- const active=ballStatus.filter(Boolean).length;
- if(active<=3){completeBallistix();return}
- if(ballSpawnDelay<=0&&ballBalls.length<4){ballCreateBall();ballSpawnDelay=Math.max(5.0,11-ballElapsed*.027);cue(760,.10)}
- ballSpawnDelay-=dt;ballPulseCd=Math.max(0,ballPulseCd-dt);
- if(racers[0].dash>0)racers[0].dash=Math.max(0,racers[0].dash-dt);
- if(racers[0].dashCd>0)racers[0].dashCd=Math.max(0,racers[0].dashCd-dt);
- ballShipUpdate(dt);
- const balls=ballBalls;
- const cap=7.6+Math.min(4.8,ballElapsed*.052);
- for(const b of balls){
-  b.immunity=Math.max(0,b.immunity-dt);
-  b.x+=b.vx*dt;b.z+=b.vz*dt;
-  b.g.position.x=b.x;b.g.position.z=b.z;
-  b.history.unshift({x:b.x,z:b.z});
-  if(b.history.length>30)b.history.length=30;
-  b.glow=Math.max(0,(b.glow||0)-dt*1.5);
-  for(let j=0;j<b.trails.length;j++){
-   const prev=b.history[(j+1)*3],trail=b.trails[j];
-   trail.visible=!!prev;
-   if(prev){trail.position.set(prev.x,.45,prev.z);trail.scale.setScalar(1+b.glow*.4)}
-  }
-  b.orb.rotation.x+=dt*4.3;b.orb.rotation.y+=dt*2.7;
-  const speed=Math.hypot(b.vx,b.vz);
-  if(speed<cap&&speed>0)ballNormalize(b,speed+dt*.1);
-  const boundaries=[
-   {k:0,c:b.z,guard:b.vz>0,out:b.z>ballFieldHalf,near:b.z>ballPaddleAt-.3&&b.z<ballPaddleAt+.5},
-   {k:1,c:-b.z,guard:b.vz<0,out:b.z< -ballFieldHalf,near:b.z< -ballPaddleAt+.3&&b.z> -ballPaddleAt-.5},
-   {k:2,c:-b.x,guard:b.vx<0,out:b.x< -ballFieldHalf,near:b.x< -ballPaddleAt+.3&&b.x> -ballPaddleAt-.5},
-   {k:3,c:b.x,guard:b.vx>0,out:b.x>ballFieldHalf,near:b.x>ballPaddleAt-.3&&b.x<ballPaddleAt+.5}
-  ];
-  for(const edge of boundaries){
-   if(!edge.guard)continue;
-   const side=edge.k,parallel=side<2?Math.abs(b.x):Math.abs(b.z);
-   if(parallel>ballGoalHalf){
-    if(edge.c>ballFieldHalf-.30){
-     if(side<2)b.vz*=-1;else b.vx*=-1;
-     b.x=clamp(b.x,-4.55,4.55);b.z=clamp(b.z,-4.55,4.55);
-    }
-    break;
-   }
-   if(edge.near&&!b.immunity&&ballStatus[side]&&ballContact(b,side))break;
-   if(edge.out){ballGoal(b,side);break}
-  }
-  if(phase!=="race")return;
+
+let ballLastHudAt=-1;
+const BALL_CONTACT_PLANE=ballPaddleAt-.43;
+function ballSweepStep(b,dt){
+ if(!Number.isFinite(b.x+b.z+b.vx+b.vz)){
+  ballStats.physicsErrors++;
+  b.x=0;b.z=0;b.vx=4.1;b.vz=4.4;b.immunity=.25;
+  b.g.position.set(b.x,0,b.z);return;
  }
- for(let i=0;i<balls.length;i++)for(let j=i+1;j<balls.length;j++){
-  const a=balls[i],b=balls[j],dx=b.x-a.x,dz=b.z-a.z,dist=Math.hypot(dx,dz);
-  if(dist<.80&&dist>.001){
-   const nx=dx/dist,nz=dz/dist,rel=(a.vx-b.vx)*nx+(a.vz-b.vz)*nz;
-   if(rel>0){
-    a.vx-=rel*nx;b.vx+=rel*nx;a.vz-=rel*nz;b.vz+=rel*nz;
+ let remaining=dt,iterations=0;
+ while(remaining>0.00001&&iterations++<7&&phase==="race"){
+  const startX=b.x,startZ=b.z,endX=startX+b.vx*remaining,endZ=startZ+b.vz*remaining;
+  let crossing=null,earliest=1.00001;
+  // Swept projectile against both paddle faces and goal planes.
+  // Detect where the path intersects, not just where a frame happened to end.
+  for(let k=0;k<4;k++){
+   const side=k<2?"z":"x",sgn=k===0||k===3?1:-1;
+   const start=side==="z"?startZ:startX,end=side==="z"?endZ:endX;
+   if(sgn*(end-start)<=1e-10)continue;
+   for(let layer=0;layer<2;layer++){
+    const face=layer===0?BALL_CONTACT_PLANE:ballFieldHalf;
+    const from=sgn*start,to=sgn*end;
+    if(from>=face-0.00001||to<face)continue;
+    const u=(face-from)/(to-from);
+    if(u>=0&&u<earliest){earliest=u;crossing={k,layer,sgn}}
    }
-   const p=(.80-dist)*.5;a.x-=nx*p;a.z-=nz*p;b.x+=nx*p;b.z+=nz*p;
   }
+  if(!crossing){
+   b.x=endX;b.z=endZ;
+   break;
+  }
+  b.x=startX+(endX-startX)*earliest;
+  b.z=startZ+(endZ-startZ)*earliest;
+  const {k,layer,sgn}=crossing;
+  const along=k<2?b.x:b.z;
+  const after=Math.max(0,remaining*(1-earliest));
+  if(layer===0){
+   // Interpolate the moving paddle position at impact time.
+   const timeFrac=clamp((dt-remaining+remaining*earliest)/dt,0,1);
+   const paddle=ballShipPrevPositions[k]+(ballShipPositions[k]-ballShipPrevPositions[k])*timeFrac;
+   const pulse=k===0&&ballPulseUntil>ballElapsed;
+   const reach=ballPaddleHalf+(pulse?.85:.24);
+   if(ballStatus[k]&&Math.abs(along-paddle)<=reach&&Math.abs(along)<=ballGoalHalf+.3){
+    ballContact(b,k,paddle);
+    remaining=after;
+    continue;
+   }
+   // Miss: continue outward, past the contact plane, towards the actual goal.
+   b.x+=b.vx*.0001;b.z+=b.vz*.0001;
+   remaining=after;
+   continue;
+  }
+  if(Math.abs(along)<=ballGoalHalf){
+   ballStats.goals++;
+   ballGoal(b,k);
+   return;
+  }
+  // The solid corner rail bounces a ball back into the playfield.
+  ballStats.corner++;
+  if(k<2){b.vz*=-1;b.z=sgn*(ballFieldHalf-.015)}
+  else{b.vx*=-1;b.x=sgn*(ballFieldHalf-.015)}
+  remaining=after;
  }
- $("timer").textContent="∞";
- $("place").innerHTML=ballStatus[0]?ballHealth[0]+"<em> / 8</em>":"0<em> / 8</em>";
- $("miniObjective").textContent=ballStatus[0]?(ballElapsed<6?"⚽ DESLIZÁ PARA DEFENDER · PULSO AL REBOTAR":"⚽ DEFENDÉ TU ARCO · "+balls.length+" PELOTAS"):"⚽ ELIMINADO";
- $("miniObjective").classList.toggle("danger",ballHealth[0]<=2);
- $("progressBar").style.width=((1-active/4)*100)+"%";
- $("jumpCount").textContent=ballPulseCd>0?ballPulseCd.toFixed(1)+"s":"GOLPE";
+ b.g.position.set(b.x,0,b.z);
+}
+function ballTrailUpdate(b,dt){
+ const head=b.trailHead;
+ b.trailCoords[head*2]=b.x;b.trailCoords[head*2+1]=b.z;
+ b.trailHead=(head+1)%32;b.historyCount=Math.min(32,b.historyCount+1);
+ b.glow=Math.max(0,(b.glow||0)-dt*1.5);
+ for(let j=0;j<b.trails.length;j++){
+  const lag=(j+1)*3,t=b.trails[j];
+  t.visible=b.historyCount>lag;
+  if(!t.visible)continue;
+  const old=(head-lag+32)%32;
+  t.position.set(b.trailCoords[old*2],.47,b.trailCoords[old*2+1]);
+  t.scale.setScalar(1+b.glow*.4);
+ }
+}
+function ballUIUpdate(){
+ if(ballElapsed-ballLastHudAt<.12)return;
+ ballLastHudAt=ballElapsed;
+ const p=racers[0];
+ $("miniObjective").textContent=ballStatus[0]?
+  ballElapsed<6?"⚽ ARRASTRÁ PARA DEFENDER · PULSO AL REBOTAR":
+  ballElapsed>=BALL_SUDDEN_DEATH?"⚠ MUERTE SÚBITA · ¡DEFENDÉ TU ARCO!":
+  "⚽ "+ballBalls.length+" PELOTAS · "+Math.ceil(BALL_MAX_SECONDS-ballElapsed)+" s":
+  "⚽ ELIMINADO";
+ $("miniObjective").classList.toggle("danger",ballHealth[0]<=2||ballElapsed>=BALL_SUDDEN_DEATH);
+ $("timer").textContent=""+Math.max(0,Math.ceil(BALL_MAX_SECONDS-ballElapsed));
+ $("place").innerHTML=ballHealth[0]+"<em> / 8</em>";
+ $("jumpCount").textContent=ballPulseCd>0?ballPulseCd.toFixed(1)+"s":"LISTO";
  $("jump").classList.toggle("ballistix-pulse-ready",ballPulseCd===0);
  $("jump").classList.toggle("ballistix-pulse-cool",ballPulseCd>0);
- $("dash").textContent=racers[0].dashCd>0?Math.ceil(racers[0].dashCd)+"s":"RÁPIDO";
+ $("dash").textContent=p.dashCd>0?Math.ceil(p.dashCd)+"s":"RÁPIDO";
 }
-
+function ballTick(dt){
+ ballElapsed+=dt;
+ if(ballStatus.filter(Boolean).length<=3){completeBallistix();return}
+ if(ballElapsed>=BALL_MAX_SECONDS){
+  // A guaranteed ending: lowest surviving health is eliminated at the buzzer.
+  const losingSide=ballHealth.reduce((low,h,k)=>
+   ballStatus[k]&&(low<0||h<ballHealth[low])?k:low,-1);
+  if(losingSide>=0){
+   ballStatus[losingSide]=false;ballHealth[losingSide]=0;
+   racers[ballSides[losingSide]].finished=true;
+   racers[ballSides[losingSide]].eliminatedAt=ballElapsed;
+   updateBallScoreboard();
+   announce("¡TIEMPO! "+profiles[ballSides[losingSide]].name+" ELIMINADO",1100);
+  }
+  completeBallistix();return;
+ }
+ const maxBalls=innerWidth<700?3:4;
+ if(ballSpawnDelay<=0&&ballBalls.length<maxBalls){
+  ballCreateBall();ballSpawnDelay=Math.max(5.5,10-ballElapsed*.028);cue(760,.10);
+ }
+ ballSpawnDelay-=dt;ballPulseCd=Math.max(0,ballPulseCd-dt);
+ const p=racers[0];p.dash=Math.max(0,p.dash-dt);p.dashCd=Math.max(0,p.dashCd-dt);
+ ballShipUpdate(dt);
+ for(const b of ballBalls){
+  if(phase!=="race")return;
+  b.immunity=Math.max(0,b.immunity-dt);
+  ballSweepStep(b,dt);
+  b.orb.rotation.x+=dt*3.6;b.orb.rotation.y+=dt*2.5;
+  ballTrailUpdate(b,dt);
+ }
+ // Four balls maximum: resolve contacts in place, without allocating per-frame arrays.
+ for(let i=0;i<ballBalls.length;i++)for(let j=i+1;j<ballBalls.length;j++){
+  const a=ballBalls[i],b=ballBalls[j];
+  const dx=b.x-a.x,dz=b.z-a.z,d2=dx*dx+dz*dz;
+  if(d2>=.66*.66||d2<=.000001)continue;
+  const d=Math.sqrt(d2),nx=dx/d,nz=dz/d;
+  const approach=(a.vx-b.vx)*nx+(a.vz-b.vz)*nz;
+  if(approach>0){
+   a.vx-=approach*nx;a.vz-=approach*nz;
+   b.vx+=approach*nx;b.vz+=approach*nz;
+  }
+  const penetration=(.66-d)*.5;
+  a.x-=nx*penetration;a.z-=nz*penetration;
+  b.x+=nx*penetration;b.z+=nz*penetration;
+  a.g.position.set(a.x,0,a.z);b.g.position.set(b.x,0,b.z);
+ }
+ ballUIUpdate();
+}
 function renderModeLabel(){
  const tag=MINI_MODES[currentMode];
  $("stagebanner").textContent="RONDA "+(roundIndex+1)+"/3 · "+tag.emoji+" "+tag.title+" · PASAN "+ROUND_RULES[roundIndex].qualify;
