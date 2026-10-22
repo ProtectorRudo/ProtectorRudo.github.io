@@ -538,7 +538,7 @@ const ballShipGroups=Array.from({length:4},(_,k)=>{
 const ballScoreLabels=["VOS","BOT","BOT","BOT"];
 const ballFieldHalf=4.82,ballPaddleAt=4.13,ballPaddleHalf=1.10,ballMaxMove=3.55,ballGoalHalf=3.25;
 let ballSides=[],ballHealth=[],ballStatus=[],ballBalls=[],ballPool=[],ballSpawnDelay=0,ballPulseUntil=0,ballPulseCd=0,ballElapsed=0,ballTimeSinceScore=0;
-const ballShipPrevPositions=[0,0,0,0],ballStats={hits:0,goals:0,corner:0,restarts:0,physicsErrors:0};
+const ballShipPrevPositions=[0,0,0,0],ballSaves=[0,0,0,0],ballStats={hits:0,goals:0,corner:0,restarts:0,physicsErrors:0};
 const BALL_MAX_SECONDS=82,BALL_SUDDEN_DEATH=57;
 const ballBallMats=[
  mat(0xdcecfb,.55,.19,{emissive:0x1c6eab,emissiveIntensity:.25}),
@@ -593,7 +593,7 @@ function startBallistix(){
  ballElapsed=0;ballSpawnDelay=10;ballTimeSinceScore=0;ballLastHudAt=-1;
  ballSides=[0,...contestants.filter(i=>i!==0)];
  if(ballSides.length!==4)throw new Error("Ballistix requires exactly four contestants");
- ballHealth=Array(4).fill(8);ballStatus=Array(4).fill(true);
+ ballHealth=Array(4).fill(8);ballStatus=Array(4).fill(true);ballSaves.fill(0);
  ballPulseUntil=0;ballPulseCd=0;
  ballBalls.forEach(b=>{b.g.visible=false;b.trails.forEach(t=>t.visible=false)});
  ballBalls.length=0;ballStats.restarts++;
@@ -642,10 +642,14 @@ function ballShipUpdate(dt){
     const t=importance===Infinity?0:Math.min(1.4,importance/Math.max(2.0,Math.abs(k<2?chosen.vz:chosen.vx)));
     seek=(k<2?chosen.x+chosen.vx*t:chosen.z+chosen.vz*t);
    }
-   target=clamp((seek-ballShipPositions[k])*2.5,-1,1);
-   if(ballElapsed<4&&k===3)target*=.85;
+   // Each bot has imperfect anticipation, distinct reaction and occasional mistakes.
+   const accuracy=r.skill||.72;
+   const wobble=Math.sin(ballElapsed*(.85+k*.16)+r.phase)*(1-accuracy)*2.3;
+   const delayedSeek=seek+wobble;
+   target=clamp((delayedSeek-ballShipPositions[k])*(1.15+accuracy*.9),-1,1);
+   if(ballElapsed<4&&k===3)target*=.8;
   }
-  const baseSpeed=k===0?(racers[0].dash>0?12.4:9.2):5.8+roundIndex*.25;
+  const baseSpeed=k===0?(racers[0].dash>0?12.4:9.2):(4.2+(r.skill||.7)*1.6);
   ballShipPositions[k]=clamp(ballShipPositions[k]+target*baseSpeed*dt,-ballMaxMove,ballMaxMove);
   const pos=ballSidePosition(k,ballShipPositions[k]);
   const rotation=k===0?0:k===1?Math.PI:k===2?-Math.PI/2:Math.PI/2;
@@ -696,7 +700,7 @@ function ballContact(b,k,projectedPosition=ballShipPositions[k]){
   b.vz=offset*1.60+ballShipVel(k);
   b.x=k===2?-ballPaddleAt+.43:ballPaddleAt-.43;
  }
- ballNormalize(b,Math.min(14.5,s*(hot?1.55:1.06)));b.glow=hot?1:.5;ballStats.hits++;
+ ballNormalize(b,Math.min(14.5,s*(hot?1.55:1.06)));b.glow=hot?1:.5;ballStats.hits++;ballSaves[k]++;
  b.immunity=.11;
  if(hot){
   ballPulseUntil=0;ballPulseCd=.76;
@@ -853,7 +857,8 @@ function ballTick(dt){
  if(ballElapsed>=BALL_MAX_SECONDS){
   // A guaranteed ending: lowest surviving health is eliminated at the buzzer.
   const losingSide=ballHealth.reduce((low,h,k)=>
-   ballStatus[k]&&(low<0||h<ballHealth[low])?k:low,-1);
+   ballStatus[k]&&(low<0||h<ballHealth[low]||
+     (h===ballHealth[low]&&ballSaves[k]<ballSaves[low]))?k:low,-1);
   if(losingSide>=0){
    ballStatus[losingSide]=false;ballHealth[losingSide]=0;
    racers[ballSides[losingSide]].finished=true;
