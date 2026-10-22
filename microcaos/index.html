@@ -928,16 +928,55 @@ const territoryOwners=new Int8Array(TERRITORY_SIZE).fill(-1);
 const territoryTrails=new Int8Array(TERRITORY_SIZE).fill(-1);
 const territoryBaseCells=new Int8Array(TERRITORY_SIZE).fill(-1);
 const territoryCount=new Int32Array(6),territoryPalette=colors.map(c=>new THREE.Color(c));
-const territoryDark=new THREE.Color(0x0c2754),territoryScratch=new THREE.Object3D();
+const territoryDark=new THREE.Color(0x112c5b),territoryScratch=new THREE.Object3D();
 const territoryArea=new THREE.Group();territoryArea.visible=false;stage.add(territoryArea);
 miniStages.territory=territoryArea;
 const territoryBase=mat(0x0c1640,.09,.48,{emissive:0x051128,emissiveIntensity:.2});
 soft(territoryBase,territoryArea,[0,-.57,0],[15.5,.99,20.6]);
 soft(mat(0x2d6caa,.11,.43),territoryArea,[0,-.09,0],[14.6,.18,19.9]);
 soft(mat(0x050b26,.05,.53),territoryArea,[0,.025,0],[13.25,.16,18.35]);
+// Hand-drawn sci-fi floor grid with ambient gradients. One canvas texture,
+// generated once; no per-frame draw calls and no external image dependency.
+const territoryCanvas=document.createElement("canvas");
+territoryCanvas.width=1024;territoryCanvas.height=1024;
+const territoryCtx=territoryCanvas.getContext("2d");
+if(territoryCtx){
+ const c=territoryCtx;
+ c.fillStyle="#0a1935";c.fillRect(0,0,1024,1024);
+ for(const glow of [{x:85,y:130,hex:"64,244,232"},{x:900,y:880,hex:"178,78,255"},{x:960,y:85,hex:"25,144,246"}]){
+  const gr=c.createRadialGradient(glow.x,glow.y,4,glow.x,glow.y,380);
+  gr.addColorStop(0,"rgba("+glow.hex+",.20)");gr.addColorStop(1,"rgba("+glow.hex+",0)");
+  c.fillStyle=gr;c.fillRect(0,0,1024,1024);
+ }
+ c.strokeStyle="rgba(102,199,246,.19)";c.lineWidth=1;
+ for(let x=0;x<=1024;x+=32){c.beginPath();c.moveTo(x,0);c.lineTo(x,1024);c.stroke()}
+ for(let y=0;y<=1024;y+=32){c.beginPath();c.moveTo(0,y);c.lineTo(1024,y);c.stroke()}
+ c.strokeStyle="rgba(82,246,225,.10)";c.lineWidth=2;
+ for(let k=0;k<6;k++){c.strokeRect(25+k*9,25+k*9,974-k*18,974-k*18)}
+}
+const territoryGroundTexture=new THREE.CanvasTexture(territoryCanvas);
+territoryGroundTexture.colorSpace=THREE.SRGBColorSpace;
+const territoryGround=new THREE.Mesh(new THREE.PlaneGeometry(12.77,17.58),
+ new THREE.MeshBasicMaterial({map:territoryGroundTexture,depthWrite:false}));
+territoryGround.rotation.x=-Math.PI/2;territoryGround.position.y=.122;
+territoryArea.add(territoryGround);
 const territoryBorder=mat(0x32ebcb,.11,.27,{emissive:0x079d7d,emissiveIntensity:.29});
 for(const x of [-6.78,6.78])soft(territoryBorder,territoryArea,[x,.22,0],[.15,.36,18.50]);
 for(const z of [-9.2,9.2])soft(territoryBorder,territoryArea,[0,.22,z],[13.7,.36,.16]);
+// Inset perimeter LEDs and jewel-like corner beacons.
+const territoryLED=new THREE.MeshBasicMaterial({color:0x20ffe9});
+const territoryPinkLED=new THREE.MeshBasicMaterial({color:0xfb41e2});
+for(const x of [-6.67,6.67]){
+ soft(territoryLED,territoryArea,[x,.41,0],[.075,.055,17.95],false);
+ for(const z of [-6,-3,0,3,6])ball(territoryPinkLED,territoryArea,[x,.55,z],[.12,.11,.12]).castShadow=false;
+}
+for(const z of [-9.15,9.15])soft(territoryPinkLED,territoryArea,[0,.41,z],[13.35,.06,.075],false);
+for(const x of [-6.66,6.66])for(const z of [-9.1,9.1]){
+ cyl(territoryBorder,territoryArea,[x,.75,z],.15,.16,1.24);
+ ball(territoryLED,territoryArea,[x,1.46,z],[.27,.25,.27]).castShadow=false;
+ const shine=ball(new THREE.MeshBasicMaterial({color:0x24ffe4,transparent:true,opacity:.14,depthWrite:false,blending:THREE.AdditiveBlending}),
+ territoryArea,[x,1.46,z],[.49,.48,.49]);shine.castShadow=false;
+}
 const territoryTileGeo=new THREE.BoxGeometry(TERRITORY_DX*.965,.048,TERRITORY_DZ*.965);
 const territoryPaintMaterial=new THREE.MeshBasicMaterial({color:0xffffff});
 const territoryTiles=new THREE.InstancedMesh(territoryTileGeo,territoryPaintMaterial,TERRITORY_SIZE);
@@ -947,6 +986,12 @@ territoryArea.add(territoryTiles);
 const territoryTrailGeo=new THREE.BoxGeometry(TERRITORY_DX*.75,.065,TERRITORY_DZ*.75);
 const territoryTrailMat=new THREE.MeshBasicMaterial({color:0xffffff});
 const territoryTrailMesh=new THREE.InstancedMesh(territoryTrailGeo,territoryTrailMat,TERRITORY_SIZE);
+const territoryAuraGeo=new THREE.BoxGeometry(TERRITORY_DX*1.37,.030,TERRITORY_DZ*1.37);
+const territoryAuraMat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.27,depthWrite:false,blending:THREE.AdditiveBlending});
+const territoryAuraMesh=new THREE.InstancedMesh(territoryAuraGeo,territoryAuraMat,TERRITORY_SIZE);
+territoryAuraMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+territoryAuraMesh.frustumCulled=false;territoryAuraMesh.castShadow=false;
+territoryAuraMesh.count=0;territoryArea.add(territoryAuraMesh);
 const territoryShieldVisual=mesh(new THREE.TorusGeometry(.86,.045,9,44),
  new THREE.MeshBasicMaterial({color:0x8bfff2,transparent:true,opacity:.82,depthWrite:false}),
  territoryArea,[0,.34,0],[1,1,1],false);
@@ -992,12 +1037,17 @@ function territoryUpdateTrails(){
    territoryScratch.updateMatrix();
    territoryTrailMesh.setMatrixAt(n,territoryScratch.matrix);
    territoryTrailMesh.setColorAt(n,territoryPalette[r.index]);
+   territoryScratch.position.y=.215;territoryScratch.updateMatrix();
+   territoryAuraMesh.setMatrixAt(n,territoryScratch.matrix);
+   territoryAuraMesh.setColorAt(n,territoryPalette[r.index]);
    n++;
   }
  }
- territoryTrailMesh.count=n;
+ territoryTrailMesh.count=n;territoryAuraMesh.count=n;
  territoryTrailMesh.instanceMatrix.needsUpdate=true;
+ territoryAuraMesh.instanceMatrix.needsUpdate=true;
  if(territoryTrailMesh.instanceColor)territoryTrailMesh.instanceColor.needsUpdate=true;
+ if(territoryAuraMesh.instanceColor)territoryAuraMesh.instanceColor.needsUpdate=true;
 }
 function territoryClearTrail(r){
  for(const idx of r.territoryTrail)if(territoryTrails[idx]===r.index)territoryTrails[idx]=-1;
@@ -1086,7 +1136,7 @@ function territoryMovePath(r){
 }
 function territoryStart(){
  territoryOwners.fill(-1);territoryTrails.fill(-1);territoryBaseCells.fill(-1);territoryCount.fill(0);
- territoryTrailMesh.count=0;territoryShieldVisual.visible=false;territoryUpdatedAt=-1;territoryLeaderboardSignature="";
+ territoryTrailMesh.count=0;territoryAuraMesh.count=0;territoryShieldVisual.visible=false;territoryUpdatedAt=-1;territoryLeaderboardSignature="";
  for(let idx=0;idx<TERRITORY_SIZE;idx++)territoryTiles.setColorAt(idx,territoryDark);
  territoryTiles.instanceColor.needsUpdate=true;territoryChanged=false;
  for(const r of activeRacers()){
