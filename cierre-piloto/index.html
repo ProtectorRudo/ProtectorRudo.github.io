@@ -125,7 +125,33 @@ el("detail").innerHTML='<div class="row space">'+statusLabel(ev)+'<span class="p
 el("copySuggestion").addEventListener("click",function(){navigator.clipboard.writeText(sampleMessage(ev)).then(function(){el("copySuggestion").textContent="✓ Copiado"},function(){alert("No se pudo copiar desde este navegador.")})});
 function mark(v){cs.manual=false;cs.sent=false;cs.override=v;save();render()}el("markManual").addEventListener("click",function(){mark("manual")});el("markSold").addEventListener("click",function(){mark("sold")});el("markOptout").addEventListener("click",function(){mark("optout")});el("markSent").addEventListener("click",function(){mark("sent")});el("markReset").addEventListener("click",function(){mark("")});
 }
-function addCase(text,sellers){var messages=lineParse(text);if(!messages.length)return {error:"No pude leer las fechas y remitentes del texto. Usá el formato de la exportación de WhatsApp."};var sell=(sellers||"Vendedor").split(",").map(plain);var client=messages.find(function(m){return sell.indexOf(plain(m.who))===-1});var pdf=messages.filter(function(m){return sell.indexOf(plain(m.who))!==-1&&/\.pdf\b/i.test(m.text)}).pop();var key=fingerprint(plain((client&&client.who)||"?")+"|"+plain((pdf&&pdf.text)||"sinpdf")+"|"+String(pdf&&pdf.at||messages[0].at));if(state.cases.some(function(c){return c.id===key}))return {error:"Esta misma oportunidad ya fue cargada: duplicado bloqueado."};state.cases.unshift({id:key,messages:messages,sellers:sellers||"Vendedor",manual:false,sent:false});state.selected=key;save();render();return {ok:true}}
+function addCase(text,sellers){
+ var messages=lineParse(text);
+ if(!messages.length)return {error:"No pude leer fechas y remitentes. Usá el TXT exportado de WhatsApp."};
+ var sell=(sellers||"Vendedor").split(",").map(plain);
+ var client=messages.find(function(m){return sell.indexOf(plain(m.who))===-1});
+ var budgets=messages.filter(function(m){return sell.indexOf(plain(m.who))!==-1&&/\.pdf\b/i.test(m.text)});
+ var pdf=budgets.length?budgets[budgets.length-1]:null;
+ var key=fingerprint(plain((client&&client.who)||"?")+"|"+plain((pdf&&pdf.text)||"sinpdf")+"|"+String(pdf&&pdf.at||messages[0].at));
+ var existing=state.cases.find(function(c){return c.id===key});
+ if(existing){
+  if(JSON.stringify(existing.messages)===JSON.stringify(messages))return {error:"Esta misma conversación ya está cargada y no tiene novedades."};
+  if(messages.length<existing.messages.length)return {error:"El historial importado es más corto que el anterior. No reemplazamos información sin revisar."};
+  existing.messages=messages;
+  existing.sellers=sellers||"Vendedor";
+  state.selected=key;save();render();return {ok:true,updated:true};
+ }
+ // Si aparece un PDF nuevo en un historial existente, conservamos la versión previa,
+ // pero la bloqueamos como propuesta anterior para evitar un seguimiento duplicado.
+ if(client&&budgets.length>1){
+  var oldIds=budgets.slice(0,-1).map(function(prev){
+   return fingerprint(plain(client.who)+"|"+plain(prev.text)+"|"+String(prev.at));
+  });
+  state.cases.forEach(function(c){if(oldIds.indexOf(c.id)!==-1&&!c.override&&!c.manual)c.override="closed";});
+ }
+ state.cases.unshift({id:key,messages:messages,sellers:sellers||"Vendedor",manual:false,sent:false,override:""});
+ state.selected=key;save();render();return {ok:true,updated:false};
+}
 function formatDate(hours){var d=new Date(Date.now()-hours*3600000);return String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+String(d.getFullYear()).slice(-2)+", "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
 function demoLine(h,who,text){return formatDate(h)+" - "+who+": "+text}
 var examples=[
@@ -174,7 +200,7 @@ el("toLab").addEventListener("click",function(){showTab("lab")});el("radarFilter
 el("addSamples").addEventListener("click",function(){var added=0;examples.forEach(function(a){if(addCase(a.join("\n"),"Vendedor").ok)added++});showTab("radar");if(!added)alert("Las simulaciones ya estaban cargadas.")});
 el("pasteSample").addEventListener("click",function(){el("chatText").value=examples[0].join("\n");el("business").value="Vendedor";el("labMsg").textContent="Conversación ficticia cargada. Apretá Analizar y guardar."});
 el("chatFile").addEventListener("change",function(){var file=this.files&&this.files[0];if(!file)return;if(file.size>2000000){el("labMsg").textContent="Archivo demasiado grande. Máximo 2 MB.";return}var reader=new FileReader();reader.onload=function(){el("chatText").value=String(reader.result||"");el("labMsg").textContent="TXT leído solamente en este navegador. Ahora podés analizarlo."};reader.readAsText(file,"UTF-8")});
-el("analyzeBtn").addEventListener("click",function(){var result=addCase(el("chatText").value,el("business").value);if(result.ok){el("labMsg").textContent="✓ Conversación procesada y añadida al radar.";showTab("radar")}else el("labMsg").textContent=result.error});
+el("analyzeBtn").addEventListener("click",function(){var result=addCase(el("chatText").value,el("business").value);if(result.ok){el("labMsg").textContent=result.updated?"✓ Historial actualizado. Conservamos los bloqueos anteriores.":"✓ Conversación procesada y añadida al radar.";showTab("radar")}else el("labMsg").textContent=result.error});
 el("saveSettings").addEventListener("click",function(){state.settings={hours:Number(el("hours").value),shop:el("shop").value.trim()||"el corralón",template:el("template").value.trim()||state.settings.template};save();render();el("settingsMsg").textContent="✓ Guardado en esta sesión."});
 el("exportBtn").addEventListener("click",function(){var data=JSON.stringify({generated_at:new Date().toISOString(),mode:"shadow",settings:state.settings,opportunities:analyzed().map(function(z){return {cliente:z.e.name,pdf:z.e.budget,decision:z.e.heading,razones:z.e.reasons,ultima_interaccion:z.e.latest?new Date(z.e.latest).toISOString():null}})},null,2);var a=document.createElement("a"),url=URL.createObjectURL(new Blob([data],{type:"application/json"}));a.href=url;a.download="cierre-piloto-reporte.json";a.click();setTimeout(function(){URL.revokeObjectURL(url)},1000)});
 el("csvBtn").addEventListener("click",function(){
