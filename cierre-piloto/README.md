@@ -1,36 +1,45 @@
-# CIERRE — piloto de decisión comercial (v0.1)
+# CIERRE — piloto 0.2 (modo sombra)
 
-Prototipo gratuito en **modo sombra**: no envía WhatsApps ni se conecta a cuentas reales.
+Prototipo funcional y gratuito, orientado a validar el seguimiento de presupuestos de un corralón sin conectar WhatsApp ni enviar mensajes a clientes.
 
-## Uso
+## Funciones verificadas
 
-1. Abrí `cierre-piloto/index.html` en un navegador moderno o accedé a GitHub Pages si está habilitado.
-2. Pulsá **Probar 7 ejemplos**. Revisá por qué recomienda seguimiento, espera, cancelación o revisión.
-3. En **Laboratorio**, importá un chat exportado desde WhatsApp como `.txt` o pegá una conversación con fechas y remitentes.
-4. Indicá los nombres del vendedor tal como figuran en el TXT.
-5. Observá el diagnóstico; en **Configuración** podés modificar el plazo y el texto fijo.
-6. Exportá el reporte JSON antes de cerrar la sesión si necesitás conservar las conclusiones.
+- Radar de oportunidades con filtros: posible seguimiento, esperar, revisar, bloqueado.
+- Carga de historiales TXT exportados desde WhatsApp en el propio navegador.
+- Identificación de archivos PDF por nombre en el historial (NO lee el contenido interno del PDF).
+- Motor de clasificación local para agradecimientos, consultas sin responder, rechazo, intención de compra, baja y seguimiento previo del empleado.
+- Decisiones explicables: motivos, frases decisivas y límites del diagnóstico.
+- Marcado manual de venta cerrada, baja, mensaje ya enviado o seguimiento humano. Se puede restablecer.
+- Evita duplicar la importación de un mismo presupuesto e incorpora mensajes nuevos al reimportar el TXT. Cuando aparecen versiones posteriores del PDF, bloquea propuestas anteriores detectadas.
+- Configuración de demora y único mensaje fijo; nunca envía ese mensaje.
+- 12 conversaciones ficticias precargadas, 16 pruebas automáticas en la sección «Pruebas».
+- Exportación local de un reporte JSON o CSV.
 
-## Privacidad y alcance
+## Instrucciones
 
-- El análisis ocurre en el navegador: sin servidores, APIs ni telemetría añadida por el prototipo.
-- Usa `sessionStorage` temporal. No publiques en GitHub archivos TXT o reportes con conversaciones de clientes.
-- El prototipo **no abre ni extrae el contenido de los PDF**. Solo detecta referencias a nombres terminados en `.pdf` en los mensajes del vendedor.
-- Las decisiones se generan con **reglas** y no con un modelo de IA.
-- No verifica consentimientos, compras fuera de WhatsApp, estado real del pedido ni que los mensajes exportados estén completos.
-- Está **prohibido usar estas decisiones directamente para envíos automáticos reales** sin integrar la API oficial, la base de datos transaccional, permisos de mensajería y los controles de sincronización.
+1. Abrí `index.html` en navegador moderno o GitHub Pages si está habilitado para el repositorio.
+2. Pulsá **Cargar 12 ejemplos**, luego inspeccioná distintos presupuestos.
+3. En **Pruebas**, ejecutá la batería automática: el objetivo es 16/16.
+4. En **Laboratorio**, pegá una conversación ficticia o un TXT autorizado, con remitentes y fechas; ingresá los nombres de los vendedores que aparecen en el chat.
+5. Evaluá las propuestas y registrá manualmente ventas o bajas en el radar. Volvé a importar el chat si hubo mensajes nuevos.
+6. Exportá resultados antes de cerrar la sesión.
 
-## Casos de prueba
+## Seguridad y limitaciones
 
-- Cliente: «gracias» → posible seguimiento luego del plazo.
-- Rechazo claro → bloqueo.
-- Seguimiento manual del vendedor → bloqueo.
-- Pregunta pendiente del cliente → espera.
-- Compra acordada → bloqueo.
-- Interacción reciente → espera.
-- «Lo voy a pensar» → revisión conservadora.
-- Reimportación del mismo chat → bloquea duplicado.
+- Solo análisis en navegador, con datos conservados temporalmente en `sessionStorage`. No hay APIs externas, base de datos ni telemetría propia.
+- **No se envía ningún WhatsApp real**. Copiar un texto de ejemplo no constituye consentimiento ni autorización.
+- Las decisiones vienen de **reglas locales**, no de un modelo de IA. No alcanzan para seguir clientes automáticamente.
+- Los TXT exportados pueden omitir contenidos multimedia o nombres de documentos, y pueden no reflejar mensajes recientes o enviados desde ciertos dispositivos.
+- No se detectan compras presenciales, transacciones del sistema de ventas, consentimientos ni mensajes que no estén en el TXT. Una recomendación positiva no garantiza que un contacto deba recibir seguimiento.
+- No subas conversaciones privadas, teléfonos ni datos reales de clientes al repositorio público. Para cargar datos reales en el navegador, obtené antes autorización del responsable y usá el mínimo necesario.
+- Los reportes JSON y CSV incluyen identificadores del chat; manejarlos como información confidencial.
 
-## Próxima etapa
+## Próximos hitos (no implementados)
 
-Integración de eventos oficiales de WhatsApp Business en modo sombra, previa autorización del titular, y verificación de recepción de mensajes salientes desde los dispositivos reales del corralón. Recién después evaluar envíos usando plantillas aprobadas, consentimiento y límites por presupuesto y contacto.
+1. Aprobación del comercio y prueba técnica de coexistencia oficial de WhatsApp Business con su configuración real de dispositivos.
+2. Webhook verificado, sincronización de eventos, almacenamiento cifrado y aislamiento por comercio.
+3. Evaluación del motor de clasificación con casos reales anonimizados; reglas de bloqueo y consultas abiertas.
+4. Plantilla aprobada por Meta, consentimiento, base de datos transaccional para un solo envío e informes de entrega.
+5. Medición real de costo por comercio y rentabilidad de ventas recuperadas.
+
+**Estado:** v0.2 validada mediante simulaciones. No apta todavía para actuar automáticamente sobre clientes.
