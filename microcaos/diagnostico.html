@@ -1,45 +1,5 @@
-<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#091827"><title>Diagnóstico de cámara AR · MICROCAOS</title><style>
-*{box-sizing:border-box}html,body{margin:0;min-height:100dvh;background:#091827;color:#eafbf7;font:15px/1.5 system-ui,-apple-system,sans-serif}main{max-width:540px;margin:0 auto;padding:24px 19px 40px}h1{font-size:27px;letter-spacing:-.04em;margin:7px 0 11px}p{color:#b9cad8}.card{border:1px solid #ffffff30;background:#172c42;border-radius:18px;padding:16px;margin-top:16px}button,.link{display:block;width:100%;border:0;border-radius:13px;padding:14px 15px;margin-top:10px;background:#8cf2d6;color:#072d2e;font-size:14px;font-weight:900;text-align:center;text-decoration:none}button:disabled{opacity:.6}.link{background:#ffffff19;color:#dcfff3;border:1px solid #ffffff36}.tip{font-size:12px;color:#a6c3d0}.kv{display:flex;justify-content:space-between;gap:15px;border-bottom:1px solid #ffffff22;padding:7px 0;font-size:13px}.kv strong{text-align:right}video{width:100%;display:none;margin-top:14px;border-radius:14px;aspect-ratio:3/4;object-fit:cover;background:#070f20}#log{white-space:pre-line;font-size:12px;color:#d3e5ed;word-break:break-word}#xrCanvas{display:none}mark{background:#467460;color:#f0ffe8;padding:2px 6px;border-radius:5px}</style></head><body><main>
-<div style="font-size:11px;color:#86eacc;font-weight:900;letter-spacing:.13em">MICROCAOS · DIAGNÓSTICO AR</div>
-<h1>¿Por qué no abre la cámara?</h1><p>Dos pruebas independientes. Esto <strong>no es el juego ni una cámara falsa</strong>: sirve para identificar si falla el permiso o si tu navegador bloquea la realidad aumentada.</p>
-<div class="card"><strong>Estado del teléfono</strong><div class="kv"><span>Conexión segura</span><strong id="secure">...</strong></div><div class="kv"><span>Acceso a cámara</span><strong id="media">...</strong></div><div class="kv"><span>WebXR disponible</span><strong id="webxr">...</strong></div><div class="kv"><span>AR inmersiva</span><strong id="immersive">Verificando...</strong></div><div class="kv"><span>Navegador</span><strong id="browser">...</strong></div></div>
-<div class="card"><strong>1. Verificar cámara física</strong><p class="tip">Esta prueba abre la cámara de verdad mediante el navegador, pero no coloca objetos.</p><button id="testCam">PROBAR CÁMARA</button><video id="camera" autoplay playsinline muted></video><button id="stopCam" style="display:none;background:#ffffff1a;color:white">CERRAR CÁMARA</button></div>
-<div class="card"><strong>2. Verificar cámara AR real</strong><p class="tip">Solo funciona en Chrome para Android con ARCore. Si entra a AR, la cámara debería mostrar tu entorno. Usá el botón Atrás del teléfono para salir.</p><button id="testXR">PROBAR WEBXR AR (SIN JUEGO)</button></div>
-<div class="card"><strong>Resultado</strong><div id="log">Tocá uno de los botones para iniciar una prueba.</div></div>
-<a class="link" href="/ar.html">VER ARENA CON VISOR GOOGLE</a><a class="link" href="/">VOLVER A MICROCAOS</a>
-<p class="tip">Si WebXR dice «No disponible», dar permiso a la cámara no lo habilita. Abrí esta página en Google Chrome fuera del navegador interno de ChatGPT y actualizá Servicios de Google Play para RA.</p>
-<canvas id="xrCanvas"></canvas></main><script>
-const $=id=>document.getElementById(id),say=(s)=>{$("log").textContent=s};
-let stream=null,session=null,gl=null;
-$("secure").textContent=window.isSecureContext?"Sí":"No";
-$("media").textContent=navigator.mediaDevices?.getUserMedia?"Disponible":"Bloqueado";
-$("webxr").textContent=navigator.xr?"Detectado":"No disponible";
-$("browser").textContent=/CriOS/i.test(navigator.userAgent)?"Chrome iOS":/Chrome|CriOS/i.test(navigator.userAgent)?"Chrome/Chromium":/Firefox/i.test(navigator.userAgent)?"Firefox":/Safari/i.test(navigator.userAgent)?"Safari":"Navegador interno u otro";
-if(navigator.xr?.isSessionSupported){navigator.xr.isSessionSupported("immersive-ar").then(ok=>$("immersive").textContent=ok?"Compatible":"No disponible").catch(e=>$("immersive").textContent="Error: "+e.name)}else $("immersive").textContent="No disponible";
-async function stopCamera(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$("camera").srcObject=null;$("camera").style.display="none";$("stopCam").style.display="none"}
-$("stopCam").onclick=stopCamera;
-$("testCam").onclick=async()=>{try{await stopCamera();stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});$("camera").srcObject=stream;$("camera").style.display="block";$("stopCam").style.display="block";await $("camera").play();say("CÁMARA OK. El permiso y la cámara funcionan. Si la prueba AR falla, el problema es WebXR/ARCore o el navegador, no los permisos.")}catch(e){say("CÁMARA FALLÓ: "+e.name+" — "+e.message+". Revisá permisos de cámara de Chrome, si otra aplicación la usa y si abriste el sitio en Chrome.")}};
-$("testXR").onclick=async()=>{
- if(!navigator.xr?.requestSession){say("WEBXR AUSENTE: este navegador no puede iniciar AR inmersiva. Abrí la página directamente en Chrome para Android.");return}
- try{
-  await stopCamera();
-  const cvs=$("xrCanvas");gl=cvs.getContext("webgl",{alpha:true,antialias:true,xrCompatible:true});
-  if(!gl)throw new Error("No hay WebGL");
-  if(gl.makeXRCompatible)await gl.makeXRCompatible();
-  session=await navigator.xr.requestSession("immersive-ar");
-  session.addEventListener("end",()=>{say("Sesión AR cerrada. Si viste el entorno, WebXR funciona y el problema está en la integración del juego.");session=null});
-  await session.updateRenderState({baseLayer:new XRWebGLLayer(session,gl,{alpha:true})});
-  const space=await session.requestReferenceSpace("local");
-  say("AR INICIADA: debería aparecer la imagen de tu entorno. Salí con Atrás del teléfono.");
-  const frameLoop=(time,frame)=>{
-    if(!session)return;
-    session.requestAnimationFrame(frameLoop);
-    const pose=frame.getViewerPose(space);
-    if(!pose)return;
-    gl.bindFramebuffer(gl.FRAMEBUFFER,session.renderState.baseLayer.framebuffer);
-    gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
-  };
-  session.requestAnimationFrame(frameLoop);
- }catch(e){say("WEBXR FALLÓ: "+e.name+" — "+e.message+". Si la prueba de cámara común funcionó, el fallo está en compatibilidad de ARCore/WebXR o el navegador.");if(session){try{await session.end()}catch(e2){}}}
-};
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>MICROCAOS — Diagnóstico AR</title>
+<style>body{background:#071626;color:#eaffff;font:16px system-ui;margin:0;padding:24px}main{max-width:520px;margin:auto}a{display:block;color:#022e33;background:#5af1e5;padding:15px 20px;border-radius:13px;text-align:center;text-decoration:none;font-weight:850;margin:12px 0}#results{background:#122c42;padding:18px;border-radius:12px;line-height:1.8}h1{font-size:25px}</style></head><body><main><h1>◈ MICROCAOS · Diagnóstico AR</h1><p>Para jugar sobre una mesa o el piso necesitás Chrome en Android y un dispositivo compatible con WebXR y Servicios de Google Play para RA.</p><section id="results" aria-live="polite">Comprobando WebXR…</section><a href="./index.html?ar=1">🎮 Abrir AR JUGABLE</a><a href="./index.html">Jugar en 3D sin cámara</a><p>Si llegaste desde WhatsApp o ChatGPT, abrí el menú ⋮ de esa aplicación y elegí <strong>Abrir en Chrome</strong> o <strong>Abrir en navegador</strong>. La cámara AR puede no funcionar en navegadores integrados.</p></main><script>
+(async()=>{const r=document.querySelector("#results");const android=/Android/i.test(navigator.userAgent);const ios=/iPhone|iPad|iPod/i.test(navigator.userAgent);let msg="Sistema: "+(android?"Android":ios?"iOS":"Otro")+"<br>Conexión segura: "+(isSecureContext?"Sí":"No")+"<br>WebXR: "+(navigator.xr?"Disponible":"No expuesto por este navegador");
+if(navigator.xr){try{msg+="<br>Sesión inmersiva AR: "+(await navigator.xr.isSessionSupported("immersive-ar")?"Compatible":"No compatible")}catch(e){msg+="<br>AR: no se pudo comprobar ("+e.name+")"}}r.innerHTML=msg})();
 </script></body></html>
