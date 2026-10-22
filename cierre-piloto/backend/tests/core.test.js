@@ -53,3 +53,16 @@ test("estado bloqueado permanece bloqueado aunque llegue gracias",()=>{
 test("actividad vieja no debe cambiar el estado",()=>{
  assert.equal(transition({quoteAt:20,status:"candidate",reason:"en curso"},{direction:"in",text:"No me interesa",createdAt:10}).status,"candidate");
 });
+
+test("un gracias no levanta un rechazo ambiguo anterior",()=>{
+ const state=transition({quoteAt:10,status:"review",reason:"Lo voy a pensar"},{direction:"in",text:"Gracias",createdAt:20});
+ assert.equal(state.status,"review");
+});
+test("un gracias no cierra una consulta sin responder",()=>{
+ const state=transition({quoteAt:10,status:"waiting",reason:"Pregunta pendiente"},{direction:"in",text:"Gracias",createdAt:20});
+ assert.equal(state.status,"waiting");
+});
+test("un gracias normal mantiene una propuesta como candidata",()=>{
+ const state=transition({quoteAt:10,status:"candidate",reason:"PDF"},{direction:"in",text:"Gracias",createdAt:20});
+ assert.equal(state.status,"candidate");
+});
