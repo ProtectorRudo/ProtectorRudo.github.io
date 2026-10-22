@@ -789,7 +789,7 @@ for(const modeName of ["tag","gems","survival"]){
   }
  }
  const label=textSprite(MINI_MODES[modeName].title,42,modeName==="tag"?"#ffc9d8":modeName==="gems"?"#ffe7ae":"#c4d6ff");
- label.position.set(0,3.3,-7.0);label.scale.set(8,1.2,1);area.add(label);
+ label.position.set(0,3.1,-7.0);label.scale.set(5.4,.78,1);area.add(label);
 }
 const tagWeight=new THREE.Group();
 const tagMetal=mat(0x64798b,.62,.26),tagWarn=mat(0xffb1c7,.12,.25,{emissive:0xd03b56,emissiveIntensity:.28});
@@ -799,6 +799,9 @@ const handle=mesh(new THREE.TorusGeometry(.25,.095,9,32,Math.PI),tagMetal,tagWei
 handle.rotation.z=Math.PI;
 ball(tagWarn,tagWeight,[0,.18,-.36],[.16,.13,.10]);
 stage.add(tagWeight);tagWeight.visible=false;
+const tagDangerMat=new THREE.MeshBasicMaterial({color:0xff2e8c,transparent:true,opacity:.7,depthWrite:false});
+const tagDangerRing=mesh(new THREE.TorusGeometry(.77,.048,8,40),tagDangerMat,stage,[0,.20,0],[1,1,1],false);
+tagDangerRing.rotation.x=Math.PI/2;tagDangerRing.visible=false;
 const gemItems=[];
 for(let k=0;k<12;k++){
  const g=new THREE.Group();miniStages.gems.add(g);
@@ -1347,9 +1350,9 @@ function renderModeLabel(){
  renderer.shadowMap.enabled=currentMode!=="ballistix";
  applyGraphicsQuality();
  if(mode==="preview"){
-  previewTable.visible=currentMode!=="ballistix";
-  scene.background=new THREE.Color(currentMode==="ballistix"?0x071426:0x172b4a);
-  scene.fog.color.setHex(currentMode==="ballistix"?0x071426:0x142542);
+  previewTable.visible=currentMode==="race";
+  scene.background=new THREE.Color(currentMode==="race"?0x172b4a:currentMode==="tag"?0x180d35:0x0c1736);
+  scene.fog.color.setHex(currentMode==="race"?0x142542:0x0c1030);
  }
  camera.fov=currentMode==="ballistix"?(camera.aspect<.68?64:48):(camera.aspect<.68?58:42);
  camera.updateProjectionMatrix();
@@ -1371,7 +1374,7 @@ function renderModeLabel(){
   for(const o of obstacles){const g=o.kind==="spin"||o.kind==="piston"?o.part.parent:o.part;g.visible=false}
  }
  for(const star of stars)star.g.visible=currentMode==="race"&&!star.used;
- tagWeight.visible=currentMode==="tag"&&weightHolder>=0;
+ tagWeight.visible=currentMode==="tag"&&weightHolder>=0;tagDangerRing.visible=false;
 }
 function spawnGem(gem){
  gem.x=(Math.random()-.5)*7.2;gem.z=(Math.random()-.5)*11.0;
@@ -1438,7 +1441,10 @@ function miniTag(dt){
  if(weightHolder>=0){
   const h=racers[weightHolder];
   tagWeight.visible=true;
-  tagWeight.position.set(h.x,h.y+2.22+Math.sin(miniChallengeElapsed*7)*.12,h.z);
+  tagWeight.position.set(h.x,h.y+2.70+Math.sin(miniChallengeElapsed*7)*.12,h.z);
+   tagDangerRing.visible=true;tagDangerRing.position.set(h.x,.17,h.z);
+   tagDangerRing.scale.setScalar(1+Math.sin(miniChallengeElapsed*7)*.13);
+   tagDangerMat.opacity=.55+Math.sin(miniChallengeElapsed*7)*.25;
   tagWeight.rotation.y+=dt*1.4;
   if(miniChallengeElapsed-miniLastTouch>.85){
    for(const other of living){
@@ -1675,7 +1681,7 @@ function resetRound(){
 function startTournament(){cancelAutoAdvance();gameType="tournament";raceEndAfterPlayer=0;roundIndex=0;contestants=[0,1,2,3,4,5];nextQualifiers=[];playerQualified=false;tournamentStars=0;modePlaylist=choosePlaylist();resetRound()}
 function concludeRound(){
  if(phase!=="race")return;
- phase="finished";dragSteeringActive=false;tagWeight.visible=false;
+ phase="finished";dragSteeringActive=false;tagWeight.visible=false;tagDangerRing.visible=false;
  for(const id of ["controls","obstacleHint","hud","progress","stagebanner","pickupCounter","miniObjective"])$(id).classList.remove("on");
  $("speedtrails").classList.remove("active");$("miniObjective").classList.remove("danger");
  $("ballScoreboard").classList.remove("on");
