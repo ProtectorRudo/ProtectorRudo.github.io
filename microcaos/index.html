@@ -361,7 +361,7 @@ body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172a
  <button id="arRotate" type="button" aria-label="Girar arena">↻</button>
  </div>
  <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V4.4</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V4.5</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -939,13 +939,20 @@ function v37InstallCharacter(index,gltf){
  const original=originalMascotParts[index],rig=original.rig;
  if(!rig||!gltf.scene)return false;
  const model=cloneRig(gltf.scene);
+ // Bunny's authored GLB is Z-UP (head/ears in +Z), while Three.js plays on Y-UP.
+ // First put Bunny upright; then measure its actual 3D extents, not a lying bbox.
+ if(index===0){
+   model.rotation.order="YXZ";
+   model.rotation.set(-Math.PI/2,Math.PI,0,"YXZ");
+ }else model.rotation.y=Math.PI;
+ model.updateMatrixWorld(true);
  const bounds=new THREE.Box3().setFromObject(model);
  const dimensions=bounds.getSize(new THREE.Vector3());
  if(!Number.isFinite(dimensions.y)||dimensions.y<.1)return false;
  // V4.3 · 3D characters fit by full silhouette; uniform skin scaling to avoid deforming skeletons.
  // V4.4 — compact, consistently sized characters (three hard axis limits).
  const profiles44=[
-  {h:2.12,w:1.48,d:1.40}, // Conejo
+  {h:1.98,w:1.78,d:1.52}, // Conejo · upright and visible
   {h:1.86,w:1.40,d:1.33}, // Dragon
   {h:1.64,w:1.14,d:1.16}, // Slime: no oversized sphere
   {h:1.86,w:1.35,d:1.32}, // Demon
@@ -969,7 +976,7 @@ function v37InstallCharacter(index,gltf){
   const polish=m=>{if(!m?.clone)return m;const c=m.clone();if("roughness" in c)c.roughness=Math.min(.9,Math.max(.33,c.roughness??.5));return c};
   o.material=Array.isArray(o.material)?o.material.map(polish):polish(o.material);
  });
- model.rotation.y=Math.PI; // align imported +Z model heading to game forward -Z
+ // Orientation already corrected before the bbox was computed.
  model.userData.restY=model.position.y;
  const clips=gltf.animations||[];
  const mixer=new THREE.AnimationMixer(model),actions={};
@@ -1007,17 +1014,20 @@ async function v37LoadCharacters(){
   $("notice").textContent="⚠ No cargaron todos los monstruos. Actualizá la página para reintentar.";
   $("notice").classList.add("show");
  }
+ window.__microcaosV45QA=()=>({version:"4.5",bunnyUpright:Math.abs(originalMascotParts[0].rig.userData.premiumCharacter?.model.rotation.x+Math.PI/2)<.001,visible:racers[0].root.visible&&racers[0].rig.visible&&!!racers[0].rig.userData.premiumCharacter?.model.visible,mode:currentMode});
  window.__microcaosVisibilityQA=()=>({
- version:"4.4",mode:currentMode,
+ version:"4.5",mode:currentMode,
  renderer:renderer.info.render.calls,
  playerVisible:racers[0].root.visible&&racers[0].rig.visible,
  playerPremiumVisible:!!racers[0].rig.userData.premiumCharacter?.model.visible,
  playerScale:racers[0].rig.userData.premiumCharacter?.model.scale.toArray(),
+ playerEuler:racers[0].rig.userData.premiumCharacter?.model.rotation.toArray(),
+ playerBox:racers[0].rig.userData.premiumCharacter?.model?new THREE.Box3().setFromObject(racers[0].rig.userData.premiumCharacter.model).getSize(new THREE.Vector3()).toArray():null,
  playerPosition:racers[0].root.position.toArray(),
  cameraPosition:camera.position.toArray(),
  figureCount:racers.filter(r=>r.root.visible).length
 });
-window.__microcaosHeroQA=()=>({version:"4.4",ready:state.ready,loaded:state.loaded,failed:state.failed,errors:state.errors,source:state.source,assets:V37_HERO_ASSETS,characters:racers.map(r=>{const q=r.rig?.userData?.premiumCharacter;return q?{index:q.index,radius:q.bodyRadius,width:q.visualWidth,depth:q.visualDepth,clips:q.clips}:null})});
+window.__microcaosHeroQA=()=>({version:"4.5",ready:state.ready,loaded:state.loaded,failed:state.failed,errors:state.errors,source:state.source,assets:V37_HERO_ASSETS,characters:racers.map(r=>{const q=r.rig?.userData?.premiumCharacter;return q?{index:q.index,radius:q.bodyRadius,width:q.visualWidth,depth:q.visualDepth,clips:q.clips}:null})});
 }
  v37LoadCharacters().catch(error=>{console.warn("Premium characters unavailable",error)});
 
@@ -1032,15 +1042,15 @@ function v44EnsureLocalAvatar(){
  for(const r of racers){
   const entry=r.rig?.userData?.premiumCharacter;if(!entry)continue;
   const front=r.index===slot&&mode!=="ar";
+  r.rig.visible=true;entry.model.visible=true;
   if(entry._front===front)continue;
   entry._front=front;
-  r.rig.visible=true;entry.model.visible=true;
   entry.model.traverse(o=>{
    if(!o.isMesh)return;
-   o.frustumCulled=false;o.renderOrder=front?90:0;
+   o.frustumCulled=false;o.renderOrder=front?2:0;
    for(const material of (Array.isArray(o.material)?o.material:[o.material])){
     if(!material)continue;
-    material.depthTest=!front;material.depthWrite=!front;
+    material.depthTest=true;material.depthWrite=true;
     material.side=THREE.DoubleSide;material.needsUpdate=true;
    }
   });
@@ -2791,7 +2801,7 @@ function v34AnimateFaces(t,dt){
 // MICROCAOS CINEMATIC ARENA V3.5 — large, unmistakable stage architecture.
 // Compact geometry + one instanced crowd and one instanced LED row per mode.
 // All details sit OUTSIDE playable cells; rules, hitboxes and AR anchoring unchanged.
-const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"4.4"};
+const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"4.5"};
 const v35Ink=new THREE.MeshStandardMaterial({color:0x09132d,metalness:.42,roughness:.36,clearcoat:1});
 const v35Alloy=new THREE.MeshStandardMaterial({color:0x294665,metalness:.72,roughness:.24,clearcoat:.72});
 const v35SeatMaterial=new THREE.MeshStandardMaterial({color:0xffffff,metalness:.12,roughness:.35,clearcoat:.6});
@@ -2974,8 +2984,8 @@ function v35ApplyArt(){
  for(const [name,kit]of Object.entries(v35.kits))kit.visible=name==="race"?currentMode==="race":name==="ballistix"?false:true; // V3.7 custom venue owns Ballistix
  v35.mode=currentMode;
 }
-window.__microcaosV38QA=()=>({version:"4.4",uniqueModels:new Set(V37_HERO_ASSETS).size,modelCount:V37_HERO_ASSETS.length,loaded:v37CharacterState.loaded,beaconReady:!!v38Beacon,localSlot:typeof mp!=="undefined"&&mp.active?mp.slot:0,mode:currentMode,ar:renderer.xr.enabled});
-window.__microcaosStartQA=()=>({version:"4.4",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
+window.__microcaosV38QA=()=>({version:"4.5",uniqueModels:new Set(V37_HERO_ASSETS).size,modelCount:V37_HERO_ASSETS.length,loaded:v37CharacterState.loaded,beaconReady:!!v38Beacon,localSlot:typeof mp!=="undefined"&&mp.active?mp.slot:0,mode:currentMode,ar:renderer.xr.enabled});
+window.__microcaosStartQA=()=>({version:"4.5",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
 window.__microcaosV37QA=()=>({version:"3.7",characterSource:v37CharacterState.source,loadedHeroes:v37CharacterState.loaded,arena:!!ballArena,impulseCooldown:1.95,impulseCharges:"infinite",sevenModes:Object.keys(MINI_MODES).length,arKept:!!renderer.xr.enabled});
 window.__microcaosDirectorQA=()=>({raceFloorIsolated:currentMode==="race"||!raceFloor.visible,version:"3.7",venues:Object.keys(v36Venues),sevenScenes:Object.keys(v36Venues).length===7,mode:currentMode,webxr:renderer.xr.isPresenting,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,unchangedARScale:true});
 window.__microcaosCinematicQA=()=>({
@@ -3904,7 +3914,7 @@ function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;
   if(!entry||!runner.root.visible)continue;
   runner.rig.visible=true;entry.model.visible=true;
   const colorMode=currentMode==="colorcrash";
-  const factor=colorMode?(runner.index===0?1.22:1.12):(runner.index===0?1.12:1.06);
+  const factor=colorMode?(runner.index===0?1.26:1.12):(runner.index===0?1.16:1.06);
   runner.rig.scale.multiplyScalar(factor);
   if(colorMode&&!runner.finished&&phase==="race")
     runner.rig.position.y=Math.max(runner.rig.position.y,.48);
