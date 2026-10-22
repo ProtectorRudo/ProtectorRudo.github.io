@@ -334,7 +334,7 @@ html.xr-active .modalshade:not(.hidden),html.xr-active .mp-lobby:not([hidden]){b
   <div class="gem-lb-footer" id="gemLeaderboardFooter">JUNTÁ GEMAS PARA SUBIR</div>
 </section><div id="ballScoreboard" class="ball-scoreboard" aria-live="off"></div><button id="ballRestart" type="button" class="ball-restart" aria-label="Reiniciar Ballistix" title="Reiniciar Ballistix">↻</button><div class="raceprogress" id="progress"><div class="bar" id="progressBar"></div></div>
 <div class="toast" id="toast">¡PREPARADOS!</div><div id="skillToast" class="skilltoast"></div><div id="obstacleHint" class="obstacle-hint">↥ ¡SALTÁ AHORA!</div><div class="rushHud" id="rushHud">⚡ RITMO ×<span id="rushValue">1</span></div><div class="pickupCounter" id="pickupCounter">✦ <span id="pickupValue">0</span></div>
-<div id="notice"></div><button id="placeArena" class="primary ar-place" style="display:none">✓ COLOCAR PISTA AQUÍ</button><div id="arHelp" class="ar-help" style="display:none"><div class="ar-help-box"><div class="ar-help-icon">◈</div><h2 id="arHelpTitle">Realidad aumentada</h2><p id="arHelpText"></p><a class="primary ar-fallback" id="arHelpNative" href="ar.html">◈ ABRIR VISOR AR ANDROID ↗</a><button class="secondary ar-fallback2" id="arHelp3D">JUGAR EN 3D SIN CÁMARA</button><button class="ar-dismiss" id="arHelpClose">CERRAR</button></div></div>
+<div id="notice"></div><button id="placeArena" class="primary ar-place" style="display:none">✓ COLOCAR PISTA AQUÍ</button><div id="arHelp" class="ar-help" style="display:none"><div class="ar-help-box"><div class="ar-help-icon">◈</div><h2 id="arHelpTitle">Realidad aumentada</h2><p id="arHelpText"></p><a class="primary ar-fallback" id="arHelpNative" href="ar.html">◈ VER MODELO AR · NO JUGABLE ↗</a><button class="secondary ar-fallback2" id="arHelp3D">JUGAR EN 3D SIN CÁMARA</button><button class="ar-dismiss" id="arHelpClose">CERRAR</button></div></div>
 <div class="modalshade" id="intro">
 <div class="sheet premium-menu">
  <div class="menu-eyebrow">✦ MICROCAOS PARTY GAMES</div>
@@ -395,7 +395,7 @@ html.xr-active .modalshade:not(.hidden),html.xr-active .mp-lobby:not([hidden]){b
   <div class="setting-line"><div><b>Dificultad</b><small>Modifica la velocidad y reacción de los rivales</small></div><select id="settingDifficulty"><option value="easy">Tranquila</option><option value="normal">Normal</option><option value="hard">Difícil</option></select></div>
   <button class="primary mainprimary" data-open-page="home">GUARDAR Y VOLVER ✓</button>
  </section>
- <div class="menu-footer"><a id="nativeAR" href="ar.html">◈ VISOR AR</a><button id="ar">AR JUGABLE · BETA</button><button id="cam" style="display:none" aria-hidden="true">DEMO CÁMARA</button></div>
+ <div class="menu-footer"><a id="nativeAR" href="ar.html">◈ VISOR 3D · SIN JUEGO</a><button id="ar">AR JUGABLE · BETA</button><button id="cam" style="display:none" aria-hidden="true">DEMO CÁMARA</button></div>
  <div id="arDevice" class="ar-device">Comprobando compatibilidad AR...</div>
  <div class="hint" id="gamehint">UN TORNEO DIFERENTE EN CADA PARTIDA · 6 MASCOTAS · 6 MODOS</div>
 </div></div>
@@ -3053,7 +3053,7 @@ function xrErrorMessage(e){
   if(name==="NotSupportedError")return "Tu navegador reconoce WebXR, pero no dispone de alguna función que requiere esta carrera, como seguimiento de superficies o controles táctiles sobre la cámara.";
   if(name==="NotAllowedError"||name==="SecurityError")return "La sesión fue bloqueada por permisos o por el navegador de la aplicación. Probá abrir el sitio directamente en Chrome.";
   if(name==="InvalidStateError")return "Ya hay una sesión de realidad aumentada abierta. Cerrala antes de volver a probar.";
-  return "El teléfono rechazó el inicio de la sesión AR ("+name+"). "+(message?message+" ":"")+"El visor AR nativo es la alternativa para colocar la pista.";
+  return "El teléfono rechazó el inicio de la sesión AR ("+name+"). "+(message?message+" ":"")+"El visor AR nativo solo muestra una maqueta 3D; para jugar con controles necesitás WebXR compatible.";
 }
 async function setupAR(){
   if(arStarting||mode==="ar")return;
