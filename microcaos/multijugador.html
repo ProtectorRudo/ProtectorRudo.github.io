@@ -1204,15 +1204,16 @@ function mpState(p){
 }
 function mpResult(p){
  if(!mp.active||mp.host||!p)return;
- const place=p.order.indexOf(mp.slot)+1;
+ const exists=p.order.includes(mp.slot);
+ const place=exists?p.order.indexOf(mp.slot)+1:null;
  const advancing=p.qualifiers.includes(mp.slot);
  phase="finished";
  for(const id of ["controls","obstacleHint","hud","progress","stagebanner","pickupCounter","miniObjective","gemLeaderboard","territoryLeaderboard"])$(id).classList.remove("on");
  $("colorCrashHUD").classList.remove("on");$("mpLive").classList.remove("on");
  $("finish").classList.add("show");
- $("finaltitle").textContent=p.final?(place===1?"¡GANASTE LA PARTIDA!":"¡PARTIDA TERMINADA!"):(advancing?"¡CLASIFICASTE!":"¡ELIMINADO!");
- $("finaltext").textContent=p.final?"Terminaste "+place+"º en una partida multijugador.":advancing?"¡Pasaste a la próxima prueba! Esperá al anfitrión.":"Terminaste "+place+"º. ¡Probá de nuevo!";
- $("finalpos").textContent=place+"º";$("finaltime").textContent=formatTime(p.elapsed);
+ $("finaltitle").textContent=!exists?"SEGUÍS COMO ESPECTADOR":p.final?(place===1?"¡GANASTE LA PARTIDA!":"¡PARTIDA TERMINADA!"):(advancing?"¡CLASIFICASTE!":"¡ELIMINADO!");
+ $("finaltext").textContent=!exists?"Podés mirar cómo les va a los demás.":p.final?"Terminaste "+place+"º en una partida multijugador.":advancing?"¡Pasaste a la próxima prueba! Esperá al anfitrión.":"Terminaste "+place+"º. ¡Podés seguir mirando!";
+ $("finalpos").textContent=place?place+"º":"—";$("finaltime").textContent=formatTime(p.elapsed);
  $("finalstars").textContent=miniScores[mp.slot]||0;
  $("retry").style.display="none";$("autoRound").textContent="SALA "+mp.code+" · ESPERANDO AL ANFITRIÓN";
 }
@@ -1243,7 +1244,7 @@ function mpAnimateNetwork(time){
  if(mp.host){
   if(time-mp.lastSnapshotAt>=95){mp.lastSnapshotAt=time;mpSendSnapshot()}
  }else{
-  if(time-mp.lastInputAt>=72&&mp.connected&&phase==="race"){
+  if(time-mp.lastInputAt>=72&&mp.connected&&phase==="race"&&contestants.includes(mp.slot)){
     mp.lastInputAt=time;
     let dx=steer,dz=steerZ;
     if(dragSteeringActive){
@@ -3045,12 +3046,12 @@ function concludeRound(){
  window.resultText=won?"¡Gané "+MINI_MODES[currentMode].title+" en MICROCAOS! 🏆":
   "Jugué "+MINI_MODES[currentMode].title+" en MICROCAOS y terminé "+place+"º.";
  const auto= $("autoRound");
- if(!solo&&playerQualified&&!final){
+ if(!solo&&(playerQualified||(mp.active&&mp.host))&&!final){
   auto.textContent="✓ CLASIFICADO · SIGUIENTE NIVEL AUTOMÁTICO EN 3 SEGUNDOS";
   const ticket=runSequence,expected=roundIndex;
   roundTransitionTimer=setTimeout(()=>{
    roundTransitionTimer=null;
-   if(phase==="finished"&&runSequence===ticket&&roundIndex===expected&&gameType==="tournament"&&playerQualified){
+   if(phase==="finished"&&runSequence===ticket&&roundIndex===expected&&gameType==="tournament"&&(playerQualified||(mp.active&&mp.host))){
     roundAdvance();
    }
   },3100);
@@ -3064,7 +3065,7 @@ function roundAdvance(){
  if(mp.active&&!mp.host)return;
  cancelAutoAdvance();
  if(gameType==="individual"){startSolo(chosenSoloMode);return}
- if(playerQualified&&roundIndex<2){
+ if((playerQualified||(mp.active&&mp.host))&&roundIndex<2){
   roundIndex++;contestants=[...nextQualifiers];raceEndAfterPlayer=0;resetRound();
  }else startTournament();
 }
