@@ -1037,7 +1037,7 @@ const MP_ENDPOINT=MP_SUPA_URL+"/functions/v1/microcaos-rooms";
 const MP_SESSION_KEY="microcaos_multiplayer_session_v31";
 const MP_NAME_KEY="microcaos_multiplayer_name";
 const mp={active:false,host:false,slot:0,code:"",token:"",topic:"",maxPlayers:4,players:[],
- channel:null,client:null,connected:false,ready:true,useAR:false,inputs:{},seq:0,lastSeq:-1,roundId:0,lastResult:null,resultShown:false,
+ channel:null,client:null,connected:false,ready:true,useAR:false,inputs:{},seq:0,lastSeq:-1,renderClock:0,roundId:0,lastResult:null,resultShown:false,
  currentRound:"",reconnectAt:0,lastStateAt:0,lastInputAt:0,lastSnapshotAt:0,lastRosterAt:0,
  poller:null,started:false,closing:false,gameType:"individual",chosenMode:"colorcrash"};
 function mpError(txt){$("mpError").textContent=txt}
@@ -1226,7 +1226,7 @@ function mpOnAction(p){
  }
 }
 function mpPack(){
- const state={seq:++mp.seq,phase,mode:currentMode,gameType,roundId:mp.roundId,contestants:[...contestants],playlist:[...modePlaylist],result:mp.lastResult,roundIndex,elapsed,miniClock,
+ const state={seq:++mp.seq,clock:mp.renderClock,phase,mode:currentMode,gameType,roundId:mp.roundId,contestants:[...contestants],playlist:[...modePlaylist],result:mp.lastResult,roundIndex,elapsed,miniClock,
   racers:racers.map(r=>({x:r.x,y:r.y,z:r.z,vx:r.vx,vz:r.vz,rot:r.root.rotation.y,finished:r.finished,eliminatedAt:r.eliminatedAt,ccFall:r.ccFall,ccScore:r.ccScore||0})),
   scores:miniScores,weightHolder,miniSafe:{...miniSafe},territoryCount:Array.from(territoryCount),
   cc:{status:cc.status,round:cc.round,target:cc.target,left:cc.left,total:cc.total,gap:cc.gap,colors:ccTiles.map(t=>t.color),fall:ccTiles.map(t=>t.fall?1:0)},
@@ -1265,6 +1265,7 @@ function mpRound(p){
 function mpState(p){
  if(!mp.active||mp.host||!p||p.seq<=mp.lastSeq)return;
  mp.lastSeq=p.seq;mp.lastStateAt=performance.now();
+ if(Number.isFinite(p.clock))mp.renderClock=p.clock;
  if(!mp.started||p.roundId!==mp.roundId||p.roundIndex!==roundIndex||currentMode!==p.mode){
   mpRound({roundId:p.roundId,roundIndex:p.roundIndex,mode:p.mode,gameType:p.gameType,contestants:p.contestants||[0,1,2,3,4,5],playlist:p.playlist||modePlaylist});
  }
@@ -3479,7 +3480,7 @@ function physicsTick(frameDt){
   for(let n=0;n<count;n++){physicsTime+=FIXED_DT;move(FIXED_DT,physicsTime);physicsAccumulator-=FIXED_DT}
   if(count===6&&physicsAccumulator>FIXED_DT)physicsAccumulator=0;
 }
-function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;const sec=t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);animateFallingWeights(dt);animateTerritoryFX(dt);ccAnimate(dt);mpAnimateNetwork(t);try{physicsTick(dt)}catch(error){
+function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;if(mp.host)mp.renderClock=t/1000;const sec=mp.active&&!mp.host&&mp.started&&mp.renderClock?mp.renderClock:t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);animateFallingWeights(dt);animateTerritoryFX(dt);ccAnimate(dt);mpAnimateNetwork(t);try{physicsTick(dt)}catch(error){
  console.error("MICROCAOS physics error",error);
  phase="paused";physicsAccumulator=0;window.__microcaosError=error?.message||String(error);
  $("notice").textContent="Error al simular la partida. Tocá REINICIAR para volver a jugar. "+window.__microcaosError;
