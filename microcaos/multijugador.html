@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#070f28">
-<title>MICROCAOS — Multijugador Premium V3.7.1 · Realidad aumentada</title>
+<title>MICROCAOS — Multijugador Monster Edition V4.7 · Realidad aumentada</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -441,7 +441,7 @@ body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172a
 </div></section>
 <div class="mp-live" id="mpLive"></div>
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V4.6</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V4.7</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -1060,7 +1060,7 @@ function v37InstallCharacter(index,gltf){
  rig.add(model);
  const hidden=rig.userData.v35Body;
  if(hidden)hidden.visible=false;
- rig.userData.premiumCharacter={model,mixer,actions,clips:clips.map(c=>c.name),index,bodyRadius,visualWidth,visualDepth,visualHeight,
+ rig.userData.premiumCharacter={model,mixer,actions,clips:clips.map(c=>c.name),index,baseScale:fit,bodyRadius,visualWidth,visualDepth,visualHeight,
    bones:{
     legLeft:model.getObjectByName("UpperLeg.L"),
     legRight:model.getObjectByName("UpperLeg.R"),
@@ -1090,9 +1090,18 @@ async function v37LoadCharacters(){
   $("notice").textContent="⚠ No cargaron todos los monstruos. Actualizá la página para reintentar.";
   $("notice").classList.add("show");
  }
- window.__microcaosV45QA=()=>({version:"4.6",bunnyUpright:Math.abs(originalMascotParts[0].rig.userData.premiumCharacter?.model.rotation.x||0)<.001,visible:racers[0].root.visible&&racers[0].rig.visible&&!!racers[0].rig.userData.premiumCharacter?.model.visible,mode:currentMode});
+ window.__microcaosV45QA=()=>({version:"4.7",bunnyUpright:Math.abs(originalMascotParts[0].rig.userData.premiumCharacter?.model.rotation.x||0)<.001,visible:racers[0].root.visible&&racers[0].rig.visible&&!!racers[0].rig.userData.premiumCharacter?.model.visible,mode:currentMode});
+ window.__microcaosScaleQA=()=>({
+  version:"4.7",mode:currentMode,
+  scales:racers.map(r=>({name:r.name,visible:r.root.visible,
+   rig:r.rig.scale.toArray().map(n=>+n.toFixed(3)),
+   model:r.rig.userData.premiumCharacter?.model.scale.toArray().map(n=>+n.toFixed(4))||null,
+   baseline:r.rig.userData.premiumCharacter?.baseScale??null
+  })),
+  bounded:racers.every(r=>Math.max(r.rig.scale.x,r.rig.scale.y,r.rig.scale.z)<=1.16)
+ });
  window.__microcaosVisibilityQA=()=>({
- version:"4.6",mode:currentMode,
+ version:"4.7",mode:currentMode,
  renderer:renderer.info.render.calls,
  playerVisible:racers[0].root.visible&&racers[0].rig.visible,
  playerPremiumVisible:!!racers[0].rig.userData.premiumCharacter?.model.visible,
@@ -1103,7 +1112,7 @@ async function v37LoadCharacters(){
  cameraPosition:camera.position.toArray(),
  figureCount:racers.filter(r=>r.root.visible).length
 });
-window.__microcaosHeroQA=()=>({version:"4.6",ready:state.ready,loaded:state.loaded,failed:state.failed,errors:state.errors,source:state.source,assets:V37_HERO_ASSETS,characters:racers.map(r=>{const q=r.rig?.userData?.premiumCharacter;return q?{index:q.index,radius:q.bodyRadius,width:q.visualWidth,depth:q.visualDepth,clips:q.clips}:null})});
+window.__microcaosHeroQA=()=>({version:"4.7",ready:state.ready,loaded:state.loaded,failed:state.failed,errors:state.errors,source:state.source,assets:V37_HERO_ASSETS,characters:racers.map(r=>{const q=r.rig?.userData?.premiumCharacter;return q?{index:q.index,radius:q.bodyRadius,width:q.visualWidth,depth:q.visualDepth,clips:q.clips}:null})});
 }
  v37LoadCharacters().catch(error=>{console.warn("Premium characters unavailable",error)});
 
@@ -3360,7 +3369,7 @@ function v34AnimateFaces(t,dt){
 // MICROCAOS CINEMATIC ARENA V3.5 — large, unmistakable stage architecture.
 // Compact geometry + one instanced crowd and one instanced LED row per mode.
 // All details sit OUTSIDE playable cells; rules, hitboxes and AR anchoring unchanged.
-const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"4.6"};
+const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"4.7"};
 const v35Ink=new THREE.MeshStandardMaterial({color:0x09132d,metalness:.42,roughness:.36,clearcoat:1});
 const v35Alloy=new THREE.MeshStandardMaterial({color:0x294665,metalness:.72,roughness:.24,clearcoat:.72});
 const v35SeatMaterial=new THREE.MeshStandardMaterial({color:0xffffff,metalness:.12,roughness:.35,clearcoat:.6});
@@ -3542,8 +3551,8 @@ function v35ApplyArt(){
  for(const [name,kit]of Object.entries(v35.kits))kit.visible=name==="race"?currentMode==="race":name==="ballistix"?false:true; // V3.7 custom venue owns Ballistix
  v35.mode=currentMode;
 }
-window.__microcaosV38QA=()=>({version:"4.6",uniqueModels:new Set(V37_HERO_ASSETS).size,modelCount:V37_HERO_ASSETS.length,loaded:v37CharacterState.loaded,beaconReady:!!v38Beacon,localSlot:typeof mp!=="undefined"&&mp.active?mp.slot:0,mode:currentMode,ar:renderer.xr.enabled});
-window.__microcaosStartQA=()=>({version:"4.6",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
+window.__microcaosV38QA=()=>({version:"4.7",uniqueModels:new Set(V37_HERO_ASSETS).size,modelCount:V37_HERO_ASSETS.length,loaded:v37CharacterState.loaded,beaconReady:!!v38Beacon,localSlot:typeof mp!=="undefined"&&mp.active?mp.slot:0,mode:currentMode,ar:renderer.xr.enabled});
+window.__microcaosStartQA=()=>({version:"4.7",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
 window.__microcaosV37QA=()=>({version:"3.7",characterSource:v37CharacterState.source,loadedHeroes:v37CharacterState.loaded,arena:!!ballArena,impulseCooldown:1.95,impulseCharges:"infinite",sevenModes:Object.keys(MINI_MODES).length,arKept:!!renderer.xr.enabled});
 window.__microcaosDirectorQA=()=>({raceFloorIsolated:currentMode==="race"||!raceFloor.visible,version:"3.7",venues:Object.keys(v36Venues),sevenScenes:Object.keys(v36Venues).length===7,mode:currentMode,webxr:renderer.xr.isPresenting,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,unchangedARScale:true});
 window.__microcaosCinematicQA=()=>({
@@ -4475,16 +4484,19 @@ function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;
  }
  v40UpdateAnimations(t,dt);
  v44EnsureLocalAvatar();
- // V4.3 · visibility guarantee in top-down modes, applied after gait/squash animation.
+ // V4.7: FIX runaway scale. A per-frame multiplication caused exponential growth.
+ // Set a stable ABSOLUTE scale for 3D rigs; never accumulate the value from prior frames.
  for(const runner of racers){
   const entry=runner.rig?.userData?.premiumCharacter;
-  if(!entry||!runner.root.visible)continue;
+  if(!entry)continue;
   runner.rig.visible=true;entry.model.visible=true;
   const colorMode=currentMode==="colorcrash";
-  const factor=colorMode?(runner.index===0?1.26:1.12):(runner.index===0?1.16:1.06);
-  runner.rig.scale.multiplyScalar(factor);
-  if(colorMode&&!runner.finished&&phase==="race")
-    runner.rig.position.y=Math.max(runner.rig.position.y,.48);
+  const fit=colorMode?(runner.index===0?1.15:1.06):(runner.index===0?1.10:1.02);
+  runner.rig.scale.set(fit,fit,fit);
+  if(Number.isFinite(entry.baseScale)&&entry.baseScale>0)
+    entry.model.scale.setScalar(entry.baseScale);
+  if(colorMode&&!runner.finished&&phase==="race"&&runner.root.visible)
+    runner.rig.position.y=Math.max(runner.rig.position.y,.43);
  }
  v34AnimateFaces(t,dt);
   v38UpdateBeacon(t);
