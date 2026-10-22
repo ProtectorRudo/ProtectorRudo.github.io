@@ -569,11 +569,24 @@ const toyIvory=toyMat(0xfff8ed),toyInk=toyMat(0x112044,.25),
  toyBlack=toyMat(0x090e29,.20),toySparkle=new THREE.MeshBasicMaterial({color:0xffffff}),
  toyPink=toyMat(0xff629d),toyPeach=toyMat(0xffd1aa),
  toyAzure=toyMat(0x42dfff),toyGold=toyMat(0xffd64c),toyChocolate=toyMat(0x3b2c51);
+// Soft shared contact shadows anchor the figures to the stage, including AR.
+const v33ShadowCanvas=document.createElement("canvas");
+v33ShadowCanvas.width=v33ShadowCanvas.height=128;
+const v33ShadowContext=v33ShadowCanvas.getContext("2d");
+const v33ShadowGradient=v33ShadowContext.createRadialGradient(64,64,6,64,64,62);
+v33ShadowGradient.addColorStop(0,"rgba(0,7,20,.60)");
+v33ShadowGradient.addColorStop(.38,"rgba(0,8,22,.43)");
+v33ShadowGradient.addColorStop(.78,"rgba(0,7,24,.11)");
+v33ShadowGradient.addColorStop(1,"rgba(0,7,24,0)");
+v33ShadowContext.fillStyle=v33ShadowGradient;v33ShadowContext.fillRect(0,0,128,128);
+const v33ShadowTexture=new THREE.CanvasTexture(v33ShadowCanvas);
+v33ShadowTexture.colorSpace=THREE.SRGBColorSpace;
+const v33ShadowMaterial=new THREE.MeshBasicMaterial({map:v33ShadowTexture,transparent:true,opacity:.60,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});
 function createCharacter(col,index){
  const root=new THREE.Group();stage.add(root);
- const shade=new THREE.Mesh(new THREE.CircleGeometry(.56,24),
-   new THREE.MeshBasicMaterial({color:0x030f28,transparent:true,opacity:.28,depthWrite:false}));
- shade.rotation.x=-Math.PI/2;shade.position.y=.04;root.add(shade);
+ const shade=new THREE.Mesh(new THREE.PlaneGeometry(1.75,1.75),v33ShadowMaterial);
+ shade.castShadow=false;shade.receiveShadow=false;shade.rotation.x=-Math.PI/2;
+ shade.position.y=.102;root.add(shade);
  const rig=new THREE.Group();root.add(rig);
  const fur=toyMat([0x23dfd6,0xff665f,0x9b64fa,0x8dea48,0xffae40,0x85c4ff][index]);
  const light=toyMat([0xc4fff1,0xffdccb,0xdfb8ff,0xdaffb0,0xffe9c5,0xf5f8ff][index]);
@@ -2593,7 +2606,7 @@ function miniGems(dt,t){
     item.lastCollector=r.index;
     item.g.visible=false;
     if(r.index!==0){r.gemThinkAt=0;r.gemTargetIndex=-1}
-    updateGemLeaderboard();puff(item.x,item.z,0xffe5a4,8);
+    updateGemLeaderboard();puff(item.x,item.z,0xffe5a4,8);v33Burst(item.x,item.z,8,0xffd549);
     if(r.index===0){tactile(12);cue(880,.08);skillMessage("💎 "+miniScores[0]+" GEMAS",450)}
     break;
    }
@@ -3139,6 +3152,12 @@ function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;
  // Per-entity transforms only: no extra draw calls, works in WebXR and PC.
  for(const r of racers){
   if(r.mixer)r.mixer.update(dt);
+  if(r.shade){
+   r.shade.position.y=currentMode==="colorcrash"?.167:currentMode==="territory"?.17:.10;
+   const shadowScale=1+Math.max(0,r.y||0)*.12;
+   r.shade.scale.setScalar(shadowScale);
+   r.shade.visible=!r.finished&&currentMode!=="ballistix";
+  }
   if(!r.rig)continue;
   const speed=Math.min(1,Math.hypot(r.vx||0,r.vz||0)/7);
   const moving=phase==="race"&&!r.finished&&currentMode!=="ballistix";
