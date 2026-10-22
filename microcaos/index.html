@@ -311,7 +311,7 @@ body.colorcrash-mode .color-crash-hud{top:64px!important}
  border:1px solid #ffffff3b;background:#245277;color:#eaffff;font:900 21px Outfit,sans-serif;
  pointer-events:auto!important}
 .ar-tools span{font:800 10px Outfit,sans-serif;color:#b7fff7;min-width:39px;text-align:center;white-space:nowrap}
-html.xr-active #ui .ar-tools{display:flex}
+html.xr-active #ui .ar-tools{display:flex}html.xr-active #ui .ar-tools .ar-outside{background:#c6385d;border-color:#ffb2b8;color:#fff}
 html.xr-active #ui .ar-tools[style*="display:none"]{display:none}
 html.xr-active .modalshade:not(.hidden),html.xr-active .mp-lobby:not([hidden]){background:#06132de8}
 @media(max-width:650px){.ar-tools{top:max(86px,calc(env(safe-area-inset-top) + 77px));right:7px;padding:4px;gap:3px}
@@ -358,10 +358,10 @@ body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172a
 <div id="ui">
 <div class="ar-tools" id="arTools" style="display:none" role="group" aria-label="Ajustar arena en realidad aumentada">
  <button id="arSmaller" type="button" aria-label="Achicar arena">−</button><span id="arSizeLabel">76 cm</span><button id="arBigger" type="button" aria-label="Agrandar arena">+</button>
- <button id="arRotate" type="button" aria-label="Girar arena">↻</button>
+ <button id="arRotate" type="button" aria-label="Girar arena">↻</button><button id="arRecenter" type="button" aria-label="Recentrar pista" title="Centrar pista frente a cámara">⌖</button>
  </div>
  <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V4.8</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V4.9</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -3932,6 +3932,7 @@ function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;
  }
  v34AnimateFaces(t,dt);
   v38UpdateBeacon(t);
+ v49XRUpdate(t);
  // Art-only multiplier: larger readable characters; physics remain untouched.
  const v35MascotScale=mode==="ar"?1.09:1.25;
  for(const r of racers){
@@ -3988,7 +3989,7 @@ if(location.search.includes("ar-error=1"))showARHelp("No se abrió el visor AR",
 function resetARView(){
   document.documentElement.classList.remove("xr-active");$("ui").classList.remove("xr-active");
   try{renderer.setClearAlpha(1)}catch(e){}
-  scene.background=new THREE.Color(0x172b4a);previewTable.visible=currentMode==="race";stage.visible=true;
+  scene.background=new THREE.Color(0x172b4a);scene.fog=new THREE.FogExp2(0x142542,.009);previewTable.visible=currentMode==="race";stage.visible=true;
   stage.position.set(0,0,0);stage.quaternion.identity();stage.scale.setScalar(1);
   $("notice").classList.remove("show");$("placeArena").style.display="none";
   reticle.visible=false;hitRequested=false;hitSource=null;placed=false;session=null;arLastHitAttempt=0;
@@ -4040,7 +4041,7 @@ async function setupAR(){
     if(typeof leaveCamera==="function"&&videoStream){leaveCamera()}
     session=started;mode="ar";
     document.documentElement.classList.add("xr-active");$("ui").classList.add("xr-active");
-    renderer.setClearColor(0x000000,0);scene.background=null;previewTable.visible=false;stage.visible=false;$("arTools").style.display="none";
+    renderer.setClearColor(0x000000,0);scene.background=null;scene.fog=null;previewTable.visible=false;stage.visible=false;$("arTools").style.display="none";
     placed=false;hitRequested=false;hitSource=null;arLastHitAttempt=0;
     $("modebar").textContent="AR ESPACIAL · BUSCANDO SUPERFICIE";
     $("intro").classList.add("hidden");$("arHelp").style.display="none";
@@ -4065,6 +4066,86 @@ const AR_SPANS={race:[10,28],tag:[11.5,16.5],gems:[11.5,16.5],survival:[11.5,16.
   territory:[TERRITORY_HALF_X*2,TERRITORY_HALF_Z*2],colorcrash:[CC_HALF_X*2,CC_HALF_Z*2],
   ballistix:[14,14]};
 let arScaleMultiplier=1,arCurrentSpan=.76,arLastMode="";
+
+/* V4.9 — verify XR placements; offer a camera-centered recovery control. */
+const v49Visibility={lastPlaced:0,inFrame:false};
+const v49Marker=new THREE.Group();stage.add(v49Marker);
+const v49Glow=new THREE.MeshBasicMaterial({color:0x2affd5,toneMapped:false,depthTest:false,depthWrite:false,side:THREE.DoubleSide});
+const v49Ring=new THREE.Mesh(new THREE.RingGeometry(1.4,2.0,48).rotateX(-Math.PI/2),v49Glow);
+v49Ring.position.y=.35;v49Ring.renderOrder=200;v49Marker.add(v49Ring);
+const v49Pillar=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,4.5,8),v49Glow);
+v49Pillar.position.y=2.45;v49Pillar.renderOrder=200;v49Marker.add(v49Pillar);
+const v49Gold=new THREE.Mesh(new THREE.ConeGeometry(.84,1.1,10),new THREE.MeshBasicMaterial({color:0xffd15d,toneMapped:false,depthTest:false,depthWrite:false}));
+v49Gold.position.y=5.20;v49Gold.renderOrder=200;v49Marker.add(v49Gold);
+v49Marker.visible=false;
+function v49Eye(){
+ if(!renderer.xr.isPresenting)return null;
+ const xr=renderer.xr.getCamera(camera),eye=xr?.cameras?.[0]||xr;
+ eye?.updateMatrixWorld(true);return eye;
+}
+function v49FrameCheck(){
+ const eye=v49Eye();if(!eye)return {visible:false,reason:"no-xr-eye"};
+ stage.updateWorldMatrix(true,false);
+ const p=stage.getWorldPosition(new THREE.Vector3()),view=p.clone().project(eye);
+ const vector=p.clone().sub(eye.getWorldPosition(new THREE.Vector3()));
+ const inFront=vector.dot(eye.getWorldDirection(new THREE.Vector3()))>.18;
+ const visible=inFront&&Math.abs(view.x)<.9&&Math.abs(view.y)<.9&&view.z>-1&&view.z<1;
+ return {visible,inFront,projection:[view.x,view.y,view.z],meters:vector.length()};
+}
+function v49FrontFloorPoint(height){
+ const eye=v49Eye();if(!eye)return null;
+ const origin=eye.getWorldPosition(new THREE.Vector3());
+ const look=eye.getWorldDirection(new THREE.Vector3()).normalize();
+ const t=look.y<-.12?(height-origin.y)/look.y:0;
+ if(Number.isFinite(t)&&t>.3&&t<3){const hit=origin.addScaledVector(look,t);hit.y=height;return hit}
+ look.y=0;
+ if(look.lengthSq()<1e-5)look.set(0,0,-1);
+ look.normalize();
+ return new THREE.Vector3(origin.x+look.x*.95,height,origin.z+look.z*.95);
+}
+function v49Recenter(){
+ if(!placed||mode!=="ar")return;
+ const target=v49FrontFloorPoint(stage.position.y),eye=v49Eye();
+ if(!target||!eye)return;
+ stage.position.copy(target);
+ const cam=eye.getWorldPosition(new THREE.Vector3());
+ stage.rotation.set(0,Math.atan2(cam.x-target.x,cam.z-target.z),0);
+ stage.updateMatrixWorld(true);
+ v49Visibility.lastPlaced=performance.now();
+ v49Marker.visible=true;
+ $("notice").textContent="Pista recentrada enfrente. Si no la ves, apuntá hacia el piso y probá otra vez.";
+ $("notice").classList.add("show");
+}
+function v49PlacementCheck(){
+ if(!placed||mode!=="ar")return;
+ stage.visible=true;world.visible=true;previewTable.visible=false;scene.fog=null;
+ stage.updateMatrixWorld(true);
+ let test=v49FrameCheck();
+ if(!test.visible){
+    const candidate=v49FrontFloorPoint(stage.position.y);
+    if(candidate)stage.position.copy(candidate);
+    stage.updateMatrixWorld(true);
+    test=v49FrameCheck();
+ }
+ v49Visibility.lastPlaced=performance.now();
+ v49Visibility.inFrame=test.visible;
+ v49Marker.visible=true;
+ $("notice").textContent=test.visible?
+    "Pista colocada. Buscá el marcador turquesa sobre el tablero o tocá RECENTRAR.":
+    "La pista quedó fuera de cuadro. Tocá RECENTRAR para verla enfrente.";
+ $("notice").classList.add("show");
+}
+function v49XRUpdate(time){
+ if(mode!=="ar"||!placed)return;
+ v49Marker.visible=time-v49Visibility.lastPlaced<4400;
+ if(Math.floor(time/700)%2!==0)return;
+ v49Visibility.inFrame=v49FrameCheck().visible;
+ $("arRecenter").classList.toggle("ar-outside",!v49Visibility.inFrame);
+}
+window.__microcaosARVisualQA=()=>({placed,arMode:mode,visible:stage.visible,worldVisible:world.visible,scale:stage.scale.x,
+ position:stage.position.toArray(),marker:v49Marker.visible,projection:v49FrameCheck(),
+ renderCalls:renderer.info.render.calls});
+
 function arSceneMode(){
  if(phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused")return currentMode;
  if(typeof mp!=="undefined"&&mp.active)return mp.chosenMode||"colorcrash";
@@ -4107,6 +4188,7 @@ window.__microcaosARAudit=arAllModesAudit;
 $("arSmaller").onclick=()=>{arScaleMultiplier=Math.max(.60,Math.round((arScaleMultiplier-.20)*100)/100);arUpdateScale()};
 $("arBigger").onclick=()=>{arScaleMultiplier=Math.min(2.2,Math.round((arScaleMultiplier+.20)*100)/100);arUpdateScale()};
 $("arRotate").onclick=()=>{if(mode==="ar"&&placed)stage.rotation.y+=Math.PI/4};
+$("arRecenter").onclick=v49Recenter;
 
 function placeArena(){
   if(mode!=="ar"||placed)return;
@@ -4124,6 +4206,7 @@ function placeArena(){
   arLastMode=selected;arCurrentSpan=.76;
   $("arSizeLabel").textContent="76 cm";$("arTools").style.display="flex";
   reticle.visible=false;placed=true;
+   v49PlacementCheck();
   $("notice").classList.remove("show");$("placeArena").style.display="none";
   $("intro").classList.remove("hidden");$("modebar").textContent="AR REAL · PISTA ANCLADA";
   announce("¡PISTA COLOCADA!",1100);cue(780,.2);
