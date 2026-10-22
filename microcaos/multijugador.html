@@ -441,7 +441,7 @@ body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172a
 </div></section>
 <div class="mp-live" id="mpLive"></div>
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V5.0</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V5.1</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -4545,7 +4545,7 @@ function checkARSupport(){
 checkARSupport();
 if(location.search.includes("ar-error=1"))showARHelp("No se abrió el visor AR","Chrome o el visor de Google no pudieron abrirlo. Abrí esta página en Chrome, actualizá Servicios de Google Play para RA y volvé a intentar.");
 function resetARView(){
-  document.documentElement.classList.remove("xr-active");$("ui").classList.remove("xr-active");
+  document.documentElement.classList.remove("xr-active","ar-placed");$("ui").classList.remove("xr-active");
   try{renderer.setClearAlpha(1)}catch(e){}
   scene.background=new THREE.Color(0x172b4a);scene.fog=new THREE.FogExp2(0x142542,.009);previewTable.visible=currentMode==="race";stage.visible=true;
   stage.position.set(0,0,0);stage.quaternion.identity();stage.scale.setScalar(1);
@@ -4596,7 +4596,7 @@ async function setupAR(){
     renderer.xr.setReferenceSpaceType("local");
     await renderer.xr.setSession(started);
     if(typeof leaveCamera==="function"&&videoStream){leaveCamera()}
-    session=started;mode="ar";
+    session=started;mode="ar";v51RevealSelectedArena();
     document.documentElement.classList.add("xr-active");$("ui").classList.add("xr-active");
     renderer.setClearColor(0x000000,0);scene.background=null;scene.fog=null;previewTable.visible=false;stage.visible=true;world.visible=true;$("arTools").style.display="none";
      v50XR.startedAt=0;v50XR.previewReady=false;v50XR.manual=false;v50XR.fallback=false;v50XR.lastGroundHit=0;
@@ -4639,14 +4639,27 @@ const v49Visibility={lastPlaced:0,inFrame:false};
 const v50XR={startedAt:0,lastPoseAt:0,lastVisibilityRetry:0,manual:false,fallback:false,previewReady:false,lastHitError:0,lastGroundHit:0,stableFrames:0};
 function v50ForwardPose(){
  const eye=v49Eye();if(!eye)return null;
- const origin=eye.getWorldPosition(new THREE.Vector3());
- const dir=eye.getWorldDirection(new THREE.Vector3());
- if(![origin.x,origin.y,origin.z,dir.x,dir.y,dir.z].every(Number.isFinite))return null;
- const horizontal=new THREE.Vector3(dir.x,0,dir.z);
- if(horizontal.lengthSq()<.0001)horizontal.set(0,0,-1);
- horizontal.normalize();
- // About 1m in front and below camera: a useful preview even with no floor plane.
- return {target:new THREE.Vector3(origin.x+horizontal.x*1.03,origin.y-.66,origin.z+horizontal.z*1.03),origin};
+ const origin=eye.getWorldPosition(new THREE.Vector3()),gaze=eye.getWorldDirection(new THREE.Vector3()).normalize();
+ if(![origin.x,origin.y,origin.z,gaze.x,gaze.y,gaze.z].every(Number.isFinite))return null;
+ const target=origin.clone().addScaledVector(gaze,1.35);
+ if(gaze.y>-.24)target.y=origin.y-.62;
+ else target.y-=.04;
+ target.y=clamp(target.y,origin.y-1.60,origin.y-.35);
+ return {target,origin,gaze};
+}
+function v51RevealSelectedArena(){
+ if(mode!=="ar")return;
+ const selected=arSceneMode();
+ if(phase==="intro"&&selected!==currentMode&&MINI_MODES[selected]){
+  currentMode=selected;renderModeLabel();
+ }
+ const which=phase==="intro"?selected:currentMode;
+ raceFloor.visible=which==="race";
+ for(const item of raceDecor)item.visible=which==="race";
+ for(const key of Object.keys(miniStages))miniStages[key].visible=key===which;
+ ballArena.visible=which==="ballistix";
+ for(const [key,g] of Object.entries(v35.kits))g.visible=key===which&&key!=="ballistix";
+ stage.visible=true;world.visible=true;previewTable.visible=false;scene.fog=null;
 }
 function v50AnchorPreview(useHit=false){
  const pose=v50ForwardPose();if(!pose)return false;
@@ -4662,7 +4675,7 @@ function v50AnchorPreview(useHit=false){
 function v50CommitPlacement(realSurface=false){
  if(mode!=="ar"||placed)return false;
  if(!v50AnchorPreview(realSurface))return false;
- placed=true;v50XR.manual=true;v50XR.fallback=!realSurface;
+ placed=true;document.documentElement.classList.add("ar-placed");v50XR.manual=true;v50XR.fallback=!realSurface;
  arLastMode=arSceneMode();arCurrentSpan=.76*arScaleMultiplier;
  $("arSizeLabel").textContent=Math.round(arCurrentSpan*100)+" cm";
  $("arTools").style.display="flex";
@@ -4706,6 +4719,7 @@ function v50XRFrame(time,frame){
   }catch(e){reticle.visible=false;if(time-v50XR.lastHitError>2400){console.warn("AR floor frame",e);v50XR.lastHitError=time}}
  }
  if(!placed){
+  v51RevealSelectedArena();
   if(v50AnchorPreview(reticle.visible))v50XR.previewReady=true;
   $("placeArena").style.display=v50XR.previewReady?"inline-flex":"none";
   if(elapsed>900&&!v50XR.lastGroundHit){
@@ -4716,7 +4730,7 @@ function v50XRFrame(time,frame){
    $("notice").textContent="Superficie detectada. Tocá FIJAR EN SUPERFICIE.";
   }
   // Never leave the camera empty because hit-test reports no horizontal plane.
-  if(elapsed>4500&&v50XR.previewReady)v50CommitPlacement(!!reticle.visible);
+  // V5.1: do not auto-place an unseen arena, especially in online rooms.
  }else{
   world.visible=true;stage.visible=true;
   if(!v50XR.manual)return;
@@ -4739,6 +4753,7 @@ function v50XRFrame(time,frame){
   }
  }
 }
+window.__microcaosARV51QA=()=>({version:"5.1",placed,visible:stage.visible,mode:arSceneMode(),preview:v50XR.previewReady,view:v49FrameCheck(),position:stage.position.toArray()});
 window.__microcaosARV50QA=()=>({version:"5.0",mode,placed,preview:v50XR.previewReady,
  hitTestActive:!!hitSource,seenGround:v50XR.lastGroundHit>0,manual:v50XR.manual,
  fallback:v50XR.fallback,sceneVisible:world.visible&&stage.visible,
@@ -4781,7 +4796,7 @@ function v49FrontFloorPoint(height){
 }
 function v49Recenter(){
  if(!placed||mode!=="ar")return;
- const target=v49FrontFloorPoint(stage.position.y),eye=v49Eye();
+ const target=v50ForwardPose()?.target,eye=v49Eye();
  if(!target||!eye)return;
  stage.position.copy(target);
  const cam=eye.getWorldPosition(new THREE.Vector3());
@@ -4798,7 +4813,7 @@ function v49PlacementCheck(){
  stage.updateMatrixWorld(true);
  let test=v49FrameCheck();
  if(!test.visible){
-    const candidate=v49FrontFloorPoint(stage.position.y);
+    const candidate=v50ForwardPose()?.target;
     if(candidate)stage.position.copy(candidate);
     stage.updateMatrixWorld(true);
     test=v49FrameCheck();
@@ -4874,7 +4889,7 @@ function placeArena(){
  }
 }
 $("placeArena").onclick=placeArena;
-renderer.domElement.addEventListener("pointerup",placeArena);
+// V5.1 requires the explicit placement button (no accidental canvas taps).
 // Premium game navigation – every menu control changes real gameplay state.
 $("play").onclick=begin;
 $("singleStart").onclick=()=>startSolo(chosenSoloMode);
