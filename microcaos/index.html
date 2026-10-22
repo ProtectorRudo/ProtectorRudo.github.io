@@ -419,6 +419,10 @@ const originalMascotParts=racers.map(r=>({
  rig:r.rig,arms:r.arms,feet:r.feet,crown:r.crown,prop:r.prop,sheen:r.sheen
 }));
 const mascotDisplayNames=["MOMO","POP","NIX","BOOM","KIWI","ZAP"];
+function visualCharacterId(runnerId){
+ return runnerId===0?selectedMascot:runnerId===selectedMascot?0:runnerId;
+}
+function runnerColor(runnerId){return colors[visualCharacterId(runnerId)]}
 let selectedMascot=0;
 function selectMascot(index){
  if(!Number.isInteger(index)||index<0||index>=6)return;
@@ -916,7 +920,15 @@ function startBallistix(){
  ballElapsed=0;ballSpawnDelay=14;ballTimeSinceScore=0;ballLastHudAt=-1;
  ballSides=[0,...contestants.filter(i=>i!==0)];
  if(ballSides.length!==4)throw new Error("Ballistix requires exactly four contestants");
- ballHealth=[10,7,7,7];ballStatus=Array(4).fill(true);ballSaves.fill(0);ballGoalFlash.fill(0);ballGoalMats.forEach(m=>m.emissiveIntensity=.43);
+ ballHealth=[10,7,7,7];ballStatus=Array(4).fill(true);ballSaves.fill(0);
+ballGoalFlash.fill(0);
+for(let k=0;k<4;k++){
+ const color=runnerColor(ballSides[k]);
+ ballGoalMats[k].color.setHex(color);
+ ballGoalMats[k].emissive.setHex(color).multiplyScalar(.42);
+ ballGoalMats[k].emissiveIntensity=.43;
+ ballTeamLEDs[k].color.setHex(color);
+}
  ballPulseUntil=0;ballPulseCd=0;
  ballBalls.forEach(b=>{b.g.visible=false;b.trails.forEach(t=>t.visible=false)});
  ballBalls.length=0;ballStats.restarts++;
@@ -1070,7 +1082,7 @@ function ballGoal(b,k){
 function updateBallScoreboard(){
  const target=$("ballScoreboard");
  target.innerHTML=ballSides.map((id,k)=>
-  '<div class="ball-score'+(k===0?' you':'')+(!ballStatus[k]?' out':'')+'" style="--team:#'+colors[id].toString(16).padStart(6,"0")+'"><small><i style="background:var(--team)"></i>'+
+  '<div class="ball-score'+(k===0?' you':'')+(!ballStatus[k]?' out':'')+'" style="--team:#'+runnerColor(id).toString(16).padStart(6,"0")+'"><small><i style="background:var(--team)"></i>'+
   (k===0?'VOS':profiles[id].name)+'</small><strong>'+String(ballHealth[k]||0).padStart(2,"0")+'</strong><span class="hp-track"><span style="width:'+(ballHealth[k]/(k===0?10:7)*100)+'%"></span></span></div>').join("");
 }
 function completeBallistix(){
@@ -1546,7 +1558,7 @@ function concludeRound(){
  const solo=gameType==="individual";
  $("qualifiedGrid").innerHTML=selected.map((r,n)=>
   '<div class="qualified-card'+(r.index===0?' you':'')+'"><span class="ord">'+(n+1)+'º</span>'+
-  '<span class="chip" style="background:#'+colors[r.index].toString(16).padStart(6,"0")+'"></span>'+
+  '<span class="chip" style="background:#'+runnerColor(r.index).toString(16).padStart(6,"0")+'"></span>'+
   (r.index===0?'VOS':profiles[r.index].name)+'</div>').join("");
  $("stageEyebrow").textContent=MINI_MODES[currentMode].emoji+" "+MINI_MODES[currentMode].title+
   (solo?" · RESULTADOS":" · CLASIFICADOS");
