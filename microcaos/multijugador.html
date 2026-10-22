@@ -330,6 +330,15 @@ body.colorcrash-mode .hud,body.colorcrash-mode .raceprogress,body.colorcrash-mod
 .mp-shell #mpReadyText{padding:7px 10px;margin-top:10px;border-radius:9px;background:#174a484c;color:#94fff0}
 .mp-shell #mpReadyText.not-ready{background:#63402170;color:#ffdd9d}
 .mp-shell #mpGameType{width:100%}
+.mp-advanced{margin:12px 0 0;border:1px solid #7198b055;border-radius:12px;padding:8px 11px}
+.mp-advanced summary{font-size:11px;cursor:pointer;color:#b6d9eb;font-weight:800}
+.mp-invite-link .mp-capacity-label,.mp-invite-link .mp-capacity,.mp-invite-link .mp-advanced,.mp-invite-link #mpCreate,.mp-invite-link .mp-division{display:none!important}
+.mp-invite-link #mpJoinCode{border-color:#71fde2;background:#083042}
+.mp-invite-link #mpJoin{background:linear-gradient(130deg,#6fffea,#45aaff);border:0;color:#051a37}
+.mp-invite-link #mpSubtitle{color:#b7ffee}
+.mp-invite-link #mpSetup>.mp-info{display:none}
+.mp-shell .mp-btn{transition:transform .12s,filter .12s}
+.mp-shell .mp-btn:not(:disabled):active{transform:scale(.975);filter:brightness(1.08)}
 .mp-fields{grid-template-columns:1fr}
 .mp-shell input,.mp-shell select{font-size:16px}
 .mp-shell .mp-btn.primary:disabled{opacity:.48}
@@ -347,14 +356,14 @@ body.colorcrash-mode .hud,body.colorcrash-mode .raceprogress,body.colorcrash-mod
   <label for="mpName">TU NOMBRE EN LA SALA</label>
   <input id="mpName" maxlength="18" placeholder="Ej. Mauro" autocomplete="nickname" value="">
   <div class="mp-capacity-label">¿CUÁNTAS PERSONAS JUEGAN?</div><div class="mp-capacity"><button class="mp-cap-option" type="button" data-count="2">2</button><button class="mp-cap-option" type="button" data-count="3">3</button><button class="mp-cap-option selected" type="button" data-count="4">4</button></div>
- <div class="mp-fields"><div class="mp-hidden-control"><label for="mpCapacity">PARTICIPANTES REALES</label><select id="mpCapacity"><option value="2">2 jugadores</option><option value="3">3 jugadores</option><option value="4" selected>4 jugadores</option></select></div>
+ <details class="mp-advanced"><summary>⚙️ Opciones de partida · Color Crash por defecto</summary><div class="mp-fields"><div class="mp-hidden-control"><label for="mpCapacity">PARTICIPANTES REALES</label><select id="mpCapacity"><option value="2">2 jugadores</option><option value="3">3 jugadores</option><option value="4" selected>4 jugadores</option></select></div>
   <div><label for="mpGameType">ELEGÍ CÓMO JUGAR</label><select id="mpGameType"><option value="individual">Una prueba</option><option value="tournament">Torneo (3 pruebas)</option></select></div></div>
   <label for="mpMode">MINIJUEGO</label>
   <select id="mpMode"><option value="colorcrash">🎨 Color Crash</option><option value="gems">💎 Fiebre de Gemas</option><option value="survival">🌀 El Piso se Hunde</option><option value="tag">⚖ La Mancha</option><option value="territory">🟩 Territorios (beta)</option><option value="race">🏁 Carrera Loca</option></select>
-  <div class="mp-actions"><button id="mpCreate" class="mp-btn primary">✦ CREAR SALA Y COMPARTIR</button></div>
+  </details><div class="mp-actions"><button id="mpCreate" class="mp-btn primary">✦ CREAR SALA Y COMPARTIR</button></div>
   <div class="mp-division">O SUMATE A UNA SALA</div>
   <label for="mpJoinCode">CÓDIGO DE INVITACIÓN</label><input id="mpJoinCode" maxlength="6" placeholder="ABC234" autocapitalize="characters">
-  <div class="mp-actions"><button id="mpJoin" class="mp-btn">↗ UNIRME CON CÓDIGO</button></div>
+  <div class="mp-actions"><button id="mpJoin" class="mp-btn">↗ ENTRAR A LA SALA</button></div>
   <p class="mp-info">El enlace incluye el código. Quien lo recibe solo escribe su nombre y toca UNIRME. Los bots completan los personajes que falten.</p>
  </section>
  <section id="mpWaiting" hidden>
@@ -1064,7 +1073,8 @@ function mpBackToWaiting(message){
  mpLobbyDraw();
 }
 function mpDisconnect(reason){
- mpForget();mp.active=false;mp.connected=false;
+ mpForget();
+ $("mpLobby").classList.remove("mp-invite-link");mp.active=false;mp.connected=false;
  if(mp.poller)clearInterval(mp.poller);
  if(mp.channel&&mp.client)mp.client.removeChannel(mp.channel);
  mp.started=false;phase="intro";
@@ -1324,10 +1334,12 @@ async function mpLaunch(){
 }
 function mpSmoothPlayers(dt){
  if(!mp.active||mp.host||!mp.started)return;
+ const a=Math.min(1,1-Math.exp(-18*dt));
  for(const r of racers){
   const t=r.netTarget;if(!t)continue;
-  const a=Math.min(1,1-Math.exp(-18*dt));
-  r.root.position.lerp(new THREE.Vector3(t.x,t.y,t.z),a);
+  r.root.position.x+=(t.x-r.root.position.x)*a;
+  r.root.position.y+=(t.y-r.root.position.y)*a;
+  r.root.position.z+=(t.z-r.root.position.z)*a;
   const diff=Math.atan2(Math.sin(t.rot-r.root.rotation.y),Math.cos(t.rot-r.root.rotation.y));
   r.root.rotation.y+=diff*a;
  }
@@ -1394,7 +1406,12 @@ document.querySelectorAll(".mp-cap-option").forEach(btn=>{
 $("mpLaunchAR").onclick=mpAutoAR;
 $("mpGameType").onchange=()=>{$("mpMode").disabled=$("mpGameType").value==="tournament"};
 const mpRequestedCode=new URLSearchParams(location.search).get("room");
-if(mpRequestedCode){$("mpJoinCode").value=mpRequestedCode.toUpperCase();mpError("Ingresá tu nombre y tocá UNIRME CON CÓDIGO.");}
+if(mpRequestedCode){
+ $("mpJoinCode").value=mpRequestedCode.toUpperCase();
+ $("mpSubtitle").textContent="¡Te invitaron a una partida! Escribí tu nombre y entrá.";
+ $("mpLobby").classList.add("mp-invite-link");
+ mpError("Ya tenés el código. Solo falta tu nombre.");
+}
 window.addEventListener("pagehide",()=>{if(mp.channel&&mp.client)mp.client.removeChannel(mp.channel)});
 try{const name=localStorage.getItem(MP_NAME_KEY);if(name)$("mpName").value=name}catch(e){}
 mpRestore();
