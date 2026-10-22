@@ -7,7 +7,7 @@
 <script>
 (()=>{"use strict";
 const API="https://bwsgxpttnrctklrcjmjs.supabase.co",KEY="sb_publishable_2wOSRn_o7M6OqRSikERXUg_2RGQWkFW",STORE="cierre_pages_session_v1",DEFAULT="Hola, ¿cómo estás? Te escribimos por el presupuesto que te enviamos. ¿Pudiste revisarlo? Si necesitás algo, estamos para ayudarte.";
-const S={session:null,user:null,business:null,settings:null,connection:null,quotes:[],page:"overview",mode:"login",notice:"",busy:false,hours:36,scope:"all",message:DEFAULT};
+const S={session:null,user:null,business:null,settings:null,connection:null,quotes:[],reviews:{},page:"overview",mode:"login",notice:"",busy:false,hours:36,scope:"all",message:DEFAULT};
 const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const app=()=>document.getElementById("app");
 function save(){if(S.session)sessionStorage.setItem(STORE,JSON.stringify(S.session));else sessionStorage.removeItem(STORE);}
@@ -23,14 +23,16 @@ async function load(){
  S.user=await call("/auth/v1/user","GET",undefined,tok);
  const businesses=await call("/rest/v1/cierre_businesses?select=id,owner_id,name,industry,created_at&owner_id=eq."+encodeURIComponent(S.user.id)+"&limit=1","GET",undefined,tok);
  S.business=businesses[0]||null;
- if(!S.business){S.settings=null;S.connection=null;S.quotes=[];return;}
+ if(!S.business){S.settings=null;S.connection=null;S.quotes=[];S.reviews={};return;}
  const id=encodeURIComponent(S.business.id);
  const results=await Promise.all([
- call("/rest/v1/cierre_settings?select=business_id,followup_hours,followup_text,contact_scope,shadow_only&business_id=eq."+id+"&limit=1","GET",undefined,tok),
+ call("/rest/v1/cierre_settings?select=business_id,followup_hours,followup_text,contact_scope,shadow_only,paused&business_id=eq."+id+"&limit=1","GET",undefined,tok),
  call("/rest/v1/cierre_connections?select=state,phone_masked,inbound_seen,seller_echo_seen,pdf_echo_seen&business_id=eq."+id+"&limit=1","GET",undefined,tok),
- call("/rest/v1/cierre_opportunities?select=id,quote_ref,quote_number,amount,currency,document_state,status,reason,sent_at&business_id=eq."+id+"&order=sent_at.desc&limit=150","GET",undefined,tok)
+ call("/rest/v1/cierre_opportunities?select=id,quote_ref,quote_number,amount,currency,document_state,status,reason,sent_at&business_id=eq."+id+"&order=sent_at.desc&limit=150","GET",undefined,tok),
+ call("/rest/v1/cierre_shadow_reviews?select=opportunity_id,due_at,verdict,reason,checked_at&business_id=eq."+id+"&limit=150","GET",undefined,tok)
  ]);
  S.settings=results[0][0]||null;S.connection=results[1][0]||null;S.quotes=results[2]||[];
+ S.reviews=Object.fromEntries((results[3]||[]).map(r=>[r.opportunity_id,r]));
  S.hours=S.settings?.followup_hours||36;S.scope=S.settings?.contact_scope||"all";S.message=S.settings?.followup_text||DEFAULT;
 }
 const logo=()=>'<div class="brand"><em>↗</em><span>CIERRE<small>POR VIRALIO</small></span></div>';
@@ -42,8 +44,8 @@ function onboarding(){return '<div class="auth-right" style="min-height:100dvh">
 const qty=s=>S.quotes.filter(x=>x.status===s).length;
 const statusName=s=>({candidate:"Posible seguimiento",review:"Revisión",waiting:"Esperar",blocked:"Bloqueado",superseded:"Reemplazado"})[s]||"Sin clasificar";
 function quoteList(quotes){if(!quotes.length)return '<div class="empty"><div style="font-size:35px;color:var(--green)">▤</div><strong>Sin presupuestos registrados</strong><p>Los presupuestos llegarán cuando terminemos de conectar el WhatsApp Business oficial. No mostramos datos inventados.</p></div>';
-return quotes.map(q=>'<div class="row"><div><b>'+esc(q.quote_number?"Presupuesto Nº "+q.quote_number:q.quote_ref)+'</b><small>'+(q.amount!==null&&q.currency?esc(q.currency)+" "+Number(q.amount).toLocaleString("es-AR")+" · ":"")+esc(q.reason)+'</small>'+(q.status==="blocked"||q.status==="superseded"?"":'<div class="quote-actions"><button data-act="close" data-id="'+esc(q.id)+'" data-value="sold">✓ Vendido</button><button data-act="close" data-id="'+esc(q.id)+'" data-value="human_followup">Ya contactado</button><button data-act="close" data-id="'+esc(q.id)+'" data-value="optout">No contactar</button></div>')+'</div><span class="state '+esc(q.status)+'">'+esc(statusName(q.status))+'</span></div>').join("")}
-function overview(){return '<span class="eyebrow">RADAR COMERCIAL</span><h1>Tu negocio, bajo control.</h1><p>Una forma simple de no perder oportunidades.</p><div class="banner"><div><strong>'+(S.connection?.state==="connected"?"WhatsApp vinculado, pendiente de pruebas":"Primero conectemos WhatsApp")+'</strong><p>Por ahora CIERRE está en modo observación. Nunca envía mensajes a clientes.</p></div><button class="btn alt" data-act="page" data-value="connect">Ver conexión →</button></div><div class="stats">'+[["Presupuestos",S.quotes.length],["Posibles seguimientos",qty("candidate")],["En revisión",qty("review")+qty("waiting")],["Bloqueados",qty("blocked")+qty("superseded")]].map(([t,n])=>'<div class="stat"><span>'+t+'</span><strong>'+Number(n).toLocaleString("es-AR")+'</strong><small>Datos del comercio</small></div>').join("")+'</div><section class="card"><div class="head"><h2>Actividad reciente</h2><button class="btn link" data-act="page" data-value="quotes">Ver todos →</button></div>'+quoteList(S.quotes.slice(0,5))+'</section>';}
+return quotes.map(q=>'<div class="row"><div><b>'+esc(q.quote_number?"Presupuesto Nº "+q.quote_number:q.quote_ref)+'</b><small>'+(q.amount!==null&&q.currency?esc(q.currency)+" "+Number(q.amount).toLocaleString("es-AR")+" · ":"")+esc(q.reason)+'</small>'+(S.reviews[q.id]?'<small>Evaluación automática: '+esc(S.reviews[q.id].reason)+(S.reviews[q.id].due_at?' · '+esc(new Date(S.reviews[q.id].due_at).toLocaleString("es-AR")):'')+'</small>':'')+(q.status==="blocked"||q.status==="superseded"?"":'<div class="quote-actions"><button data-act="close" data-id="'+esc(q.id)+'" data-value="sold">✓ Vendido</button><button data-act="close" data-id="'+esc(q.id)+'" data-value="human_followup">Ya contactado</button><button data-act="close" data-id="'+esc(q.id)+'" data-value="optout">No contactar</button></div>')+'</div><span class="state '+esc(q.status)+'">'+esc(statusName(q.status))+'</span></div>').join("")}
+function overview(){return '<span class="eyebrow">RADAR COMERCIAL</span><h1>Tu negocio, bajo control.</h1><p>Una forma simple de no perder oportunidades.</p><div class="banner"><div><strong>'+(S.settings?.paused?"CIERRE está pausado":S.connection?.state==="connected"?"WhatsApp vinculado, pendiente de pruebas":"Primero conectemos WhatsApp")+'</strong><p>El evaluador revisa los presupuestos cada hora, sin enviar mensajes. '+(S.settings?.paused?"La pausa bloquea también las simulaciones.":"Falta completar la integración para el uso real.")+'</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn alt" data-act="page" data-value="connect">Conexión →</button><button class="btn alt" data-act="pause">'+(S.settings?.paused?"▶ Reanudar evaluación":"⏸ Pausar CIERRE")+'</button></div></div><div class="stats">'+[["Presupuestos",S.quotes.length],["Posibles seguimientos",qty("candidate")],["En revisión",qty("review")+qty("waiting")],["Bloqueados",qty("blocked")+qty("superseded")]].map(([t,n])=>'<div class="stat"><span>'+t+'</span><strong>'+Number(n).toLocaleString("es-AR")+'</strong><small>Datos del comercio</small></div>').join("")+'</div><section class="card"><div class="head"><h2>Actividad reciente</h2><button class="btn link" data-act="page" data-value="quotes">Ver todos →</button></div>'+quoteList(S.quotes.slice(0,5))+'</section>';}
 function quotes(){return '<span class="eyebrow">OPERACIONES</span><h1>Presupuestos.</h1><p>Exclusivos de '+esc(S.business.name)+'.</p><section class="card"><div class="head"><h2>Historial</h2><span class="tag">MODO SOMBRA</span></div>'+quoteList(S.quotes)+'</section>';}
 function settings(){
  return '<span class="eyebrow">EN TRES PASOS</span><h1>Elegí cómo trabajar.</h1><p>Un solo mensaje eventual. Ningún chatbot.</p>'+notice()+'<form id="settingsform"><section class="card"><div class="pad"><span class="eyebrow">01 · CUÁNDO</span><h2 style="margin-top:8px">¿Cuánto tiempo esperamos?</h2><p>Desde la última interacción del cliente o vendedor.</p><div class="picks">'+[24,36,48,72].map(h=>'<button type="button" data-act="hours" data-value="'+h+'" class="'+(S.hours===h?"sel":"")+'">'+h+' horas</button>').join("")+'</div></div></section><section class="card"><div class="pad"><span class="eyebrow">02 · QUIÉNES</span><h2 style="margin-top:8px">¿A qué clientes?</h2><div class="opts">'+[["all","Todos","Agendados y no agendados"],["saved","Solo agendados","Guardados en WhatsApp Business"],["unsaved","Solo sin agendar","No guardados en la agenda"]].map(([k,t,d])=>'<label><input type="radio" name="scope" value="'+k+'" '+(S.scope===k?"checked":"")+'><span>'+t+'<small>'+d+'</small></span></label>').join("")+'</div>'+(S.scope!=="all"?'<div class="notice">Este filtro exige una sincronización completa y verificada de la agenda de WhatsApp.</div>':"")+'</div></section><section class="card"><div class="pad"><span class="eyebrow">03 · MENSAJE</span><h2 style="margin-top:8px">¿Qué escribiría CIERRE?</h2><p>Una plantilla aprobada por Meta será necesaria antes de cualquier envío real.</p><label class="field">Texto<textarea name="message" minlength="35" maxlength="800" rows="5" required>'+esc(S.message)+'</textarea></label></div></section><div class="banner"><strong>● Envíos automáticos desactivados</strong><button class="btn" '+(S.busy?"disabled":"")+'>Guardar cambios</button></div></form>';}
@@ -59,6 +61,13 @@ document.addEventListener("click",event=>{
  if(action==="hours"){const draft=document.querySelector('textarea[name="message"]');if(draft)S.message=draft.value;S.hours=Number(value);render();}
  if(action==="logout"){const old=S.session;S.session=null;S.user=null;S.business=null;S.quotes=[];save();S.mode="login";S.notice="";render();if(old?.access_token)call("/auth/v1/logout","POST",{},old.access_token).catch(()=>{});}
  if(action==="refresh")transaction(async()=>{await load();S.notice="Información actualizada."});
+ if(action==="pause")transaction(async()=>{
+   await refreshToken();const next=!Boolean(S.settings?.paused);
+   await call("/rest/v1/cierre_settings?business_id=eq."+encodeURIComponent(S.business.id),"PATCH",
+    {paused:next},S.session.access_token,{"Prefer":"return=minimal"});
+   await load();S.page="overview";
+   S.notice=next?"CIERRE pausado. No se enviará ningún seguimiento.":"Evaluación reanudada en modo prueba, sin envíos reales.";
+ });
  if(action==="close"){
    const quoteId=btn.dataset.id,kind=value;
    if(!/^[0-9a-f-]{36}$/i.test(quoteId)||!["sold","human_followup","optout"].includes(kind))return;
