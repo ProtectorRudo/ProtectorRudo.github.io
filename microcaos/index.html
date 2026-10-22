@@ -996,6 +996,104 @@ const territoryShieldVisual=mesh(new THREE.TorusGeometry(.86,.045,9,44),
  new THREE.MeshBasicMaterial({color:0x8bfff2,transparent:true,opacity:.82,depthWrite:false}),
  territoryArea,[0,.34,0],[1,1,1],false);
 territoryShieldVisual.rotation.x=Math.PI/2;territoryShieldVisual.visible=false;
+
+// Lightweight pooled arcade impact FX: reused ring meshes and one instanced
+// sparkle draw call. No new GPU objects are allocated during gameplay.
+const territoryFXRings=[];
+const territoryFXRingGeo=new THREE.TorusGeometry(.72,.044,8,40);
+for(let i=0;i<14;i++){
+ const material=new THREE.MeshBasicMaterial({
+  color:0xffffff,transparent:true,opacity:0,depthWrite:false,
+  blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
+ const m=new THREE.Mesh(territoryFXRingGeo,material);
+ m.rotation.x=-Math.PI/2;m.visible=false;m.frustumCulled=false;
+ territoryArea.add(m);
+ territoryFXRings.push({mesh:m,life:0,maxLife:0,scale:1});
+}
+const TERRITORY_FX_COUNT=52;
+const territoryFXGeometry=new THREE.OctahedronGeometry(.15,0);
+const territoryFXMaterial=new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide});
+const territoryFXMesh=new THREE.InstancedMesh(territoryFXGeometry,territoryFXMaterial,TERRITORY_FX_COUNT);
+territoryFXMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+territoryFXMesh.frustumCulled=false;territoryFXMesh.count=0;territoryArea.add(territoryFXMesh);
+const territoryFXParticles=Array.from({length:TERRITORY_FX_COUNT},()=>({
+ life:0,max:1,x:0,y:0,z:0,vx:0,vy:0,vz:0,color:0xffffff
+}));
+const territoryFXTemp=new THREE.Object3D(),territoryFXColors=new THREE.Color();
+let territoryFXClock=0;
+function territoryBurst(x,z,color,kind="capture",gain=0){
+ if(!Number.isFinite(x)||!Number.isFinite(z))return;
+ const cut=kind==="cut",shield=kind==="shield";
+ const radius=cut?1.3:shield?1.5:Math.max(1.35,Math.min(4.4,1.6+Math.sqrt(Math.max(0,gain))*.17));
+ const ring=territoryFXRings.find(v=>v.life<=0)||territoryFXRings.reduce((a,b)=>a.life<b.life?a:b);
+ ring.mesh.position.set(x,.48,z);ring.mesh.material.color.setHex(color);
+ ring.mesh.material.opacity=.78;ring.mesh.visible=true;
+ ring.life=ring.maxLife=shield?.50:cut?.58:.88;ring.scale=radius;
+ ring.mesh.scale.setScalar(.26);
+ const sparks=cut?19:shield?10:Math.min(23,10+Math.round(Math.sqrt(Math.max(0,gain))));
+ for(let j=0;j<sparks;j++){
+  const p=territoryFXParticles.find(x=>x.life<=0)||
+   territoryFXParticles.reduce((a,b)=>a.life<b.life?a:b);
+  const a=Math.random()*Math.PI*2,d=.5+Math.random()*2.1;
+  p.x=x;p.y=.25+Math.random()*.38;p.z=z;
+  p.vx=Math.cos(a)*d*(shield?.55:1);
+  p.vz=Math.sin(a)*d*(shield?.55:1);
+  p.vy=.8+Math.random()*2.1;
+  p.max=p.life=.45+Math.random()*.40;
+  p.color=color;
+ }
+}
+function animateTerritoryFX(dt){
+ if(currentMode!=="territory"||!territoryArea.visible)return;
+ territoryFXClock+=dt;
+ territoryAuraMat.opacity=.20+Math.sin(territoryFXClock*4.4)*.08;
+ for(const fx of territoryFXRings){
+  if(fx.life<=0){fx.mesh.visible=false;continue}
+  fx.life=Math.max(0,fx.life-dt);
+  const progress=1-fx.life/fx.maxLife;
+  fx.mesh.scale.setScalar(.4+progress*fx.scale*2.1);
+  fx.mesh.material.opacity=.75*(1-progress)*(1-progress);
+  fx.mesh.visible=fx.life>0;
+ }
+ let visible=0;
+ for(const p of territoryFXParticles){
+  if(p.life<=0)continue;
+  p.life=Math.max(0,p.life-dt);
+  if(p.life<=0)continue;
+  p.vy-=dt*3.7;p.x+=p.vx*dt;p.y=Math.max(.24,p.y+p.vy*dt);p.z+=p.vz*dt;
+  const scale=Math.max(.04,p.life/p.max);
+  territoryFXTemp.position.set(p.x,p.y,p.z);
+  territoryFXTemp.rotation.set(territoryFXClock*3,territoryFXClock*5,0);
+  territoryFXTemp.scale.setScalar(.52+scale*.72);
+  territoryFXTemp.updateMatrix();
+  territoryFXMesh.setMatrixAt(visible,territoryFXTemp.matrix);
+  territoryFXColors.setHex(p.color);
+  territoryFXMesh.setColorAt(visible,territoryFXColors);
+  visible++;
+ }
+ territoryFXMesh.count=visible;
+ territoryFXMesh.instanceMatrix.needsUpdate=true;
+ if(territoryFXMesh.instanceColor&&visible>0)territoryFXMesh.instanceColor.needsUpdate=true;
+}
+function clearTerritoryFX(){
+ territoryFXRings.forEach(f=>{f.life=0;f.mesh.visible=false});
+ territoryFXParticles.forEach(p=>{p.life=0});
+ territoryFXMesh.count=0;
+}
+const territoryShieldOuter=new THREE.Mesh(
+ new THREE.TorusGeometry(1.14,.035,8,48),
+ new THREE.MeshBasicMaterial({color:0x75fff6,transparent:true,opacity:.50,depthWrite:false,blending:THREE.AdditiveBlending}));
+territoryShieldOuter.rotation.x=-Math.PI/2;territoryShieldOuter.visible=false;territoryArea.add(territoryShieldOuter);
+const territoryShieldOrbit=new THREE.Group();territoryArea.add(territoryShieldOrbit);
+const territoryShieldStarGeo=new THREE.OctahedronGeometry(.11,0);
+const territoryShieldStarMat=new THREE.MeshBasicMaterial({color:0xb4fff8});
+for(let j=0;j<7;j++){
+ const sp=new THREE.Mesh(territoryShieldStarGeo,territoryShieldStarMat);
+ const a=j*2*Math.PI/7;sp.position.set(Math.cos(a)*1.13,.42,Math.sin(a)*1.13);
+ territoryShieldOrbit.add(sp);
+}
+territoryShieldOrbit.visible=false;
+
 territoryTrailMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 territoryTrailMesh.frustumCulled=false;territoryTrailMesh.castShadow=false;
 territoryTrailMesh.count=0;territoryArea.add(territoryTrailMesh);
@@ -1067,22 +1165,38 @@ function territoryClaim(r){
   if(z>0)visit(idx-TERRITORY_X);if(z<TERRITORY_Z-1)visit(idx+TERRITORY_X);
  }
  const before=territoryCount[r.index];
- for(let idx=0;idx<TERRITORY_SIZE;idx++)if(!shield[idx])territorySetCell(idx,r.index);
+ let areaX=0,areaZ=0,areaN=0;
+ for(let idx=0;idx<TERRITORY_SIZE;idx++)if(!shield[idx]){
+  if(territoryOwners[idx]!==r.index&&territoryBaseCells[idx]<0){
+   const pos=territoryPos(idx);areaX+=pos.x;areaZ+=pos.z;areaN++;
+  }
+  territorySetCell(idx,r.index);
+ }
  territoryClearTrail(r);
  r.territoryAiPlan=null;
  const gain=territoryCount[r.index]-before;
  if(gain>0){
-  puff(r.x,r.z,runnerColor(r.index),Math.min(24,6+Math.round(gain/5)));
-  if(r.index===0){cue(750,.10);tactile(25);skillMessage("+"+(gain*100/TERRITORY_SIZE).toFixed(1)+"% TERRITORIO",750)}
+  territoryBurst(areaN?areaX/areaN:r.x,areaN?areaZ/areaN:r.z,runnerColor(r.index),"capture",gain);
+  if(r.index===0){
+   cameraShake=Math.max(cameraShake,.13);
+   cue(750,.14,"sine",.08);tactile(28);
+   skillMessage("+"+(gain*100/TERRITORY_SIZE).toFixed(1)+"% TERRITORIO",750)
+  }
  }
  territoryUpdateBoard(true);
 }
 function territoryBreak(victim,attacker){
  if(!victim.territoryTrail.length||miniChallengeElapsed<victim.territoryStunnedUntil)return;
  if(miniChallengeElapsed<(victim.territoryShieldUntil||0)){
-  if(victim.index===0)skillMessage("🛡 ESCUDO SALVÓ TU RASTRO",520);
+  if(miniChallengeElapsed>(victim.territoryShieldFXAt||0)){
+   victim.territoryShieldFXAt=miniChallengeElapsed+.35;
+   territoryBurst(victim.x,victim.z,runnerColor(victim.index),"shield");
+   if(victim.index===0)skillMessage("🛡 ESCUDO SALVÓ TU RASTRO",520);
+  }
   return;
  }
+ territoryBurst(victim.x,victim.z,runnerColor(victim.index),"cut");
+ if(victim.index===0||attacker?.index===0)cameraShake=Math.max(cameraShake,.40);
  territoryClearTrail(victim);
  victim.territoryStunnedUntil=miniChallengeElapsed+1.0;
  victim.territoryShieldUntil=miniChallengeElapsed+2.2;
@@ -1136,12 +1250,12 @@ function territoryMovePath(r){
 }
 function territoryStart(){
  territoryOwners.fill(-1);territoryTrails.fill(-1);territoryBaseCells.fill(-1);territoryCount.fill(0);
- territoryTrailMesh.count=0;territoryAuraMesh.count=0;territoryShieldVisual.visible=false;territoryUpdatedAt=-1;territoryLeaderboardSignature="";
+ territoryTrailMesh.count=0;territoryAuraMesh.count=0;territoryShieldVisual.visible=false;territoryShieldOuter.visible=false;territoryShieldOrbit.visible=false;clearTerritoryFX();territoryUpdatedAt=-1;territoryLeaderboardSignature="";
  for(let idx=0;idx<TERRITORY_SIZE;idx++)territoryTiles.setColorAt(idx,territoryDark);
  territoryTiles.instanceColor.needsUpdate=true;territoryChanged=false;
  for(const r of activeRacers()){
   r.territoryTrail=[];r.territoryAiPlan=null;r.territoryAiStep=0;r.territoryHuntAt=0;
-  r.territoryShieldCd=0;r.territoryShieldUntil=miniChallengeElapsed+1.25;r.territoryStunnedUntil=0;
+  r.territoryShieldCd=0;r.territoryShieldUntil=miniChallengeElapsed+1.25;r.territoryStunnedUntil=0;r.territoryShieldFXAt=0;
   r.territoryHomeX=r.x;r.territoryHomeZ=r.z;
   r.territoryLastX=r.x;r.territoryLastZ=r.z;
   // Distinct nonoverlapping, recognizable home areas for six players.
@@ -1236,9 +1350,15 @@ function territoryTick(dt){
  miniClock-=dt;
  const player=racers[0],shielded=miniChallengeElapsed<(player.territoryShieldUntil||0);
  territoryShieldVisual.visible=shielded;
+ territoryShieldOuter.visible=shielded;territoryShieldOrbit.visible=shielded;
  if(shielded){
   territoryShieldVisual.position.set(player.x,.34,player.z);
   territoryShieldVisual.scale.setScalar(1+Math.sin(miniChallengeElapsed*11)*.08);
+  territoryShieldVisual.material.opacity=.68+Math.sin(miniChallengeElapsed*8)*.18;
+  territoryShieldOuter.position.set(player.x,.35,player.z);
+  territoryShieldOuter.scale.setScalar(.97+Math.sin(miniChallengeElapsed*5)*.075);
+  territoryShieldOrbit.position.set(player.x,0,player.z);
+  territoryShieldOrbit.rotation.y+=dt*2.4;
  }
  for(const r of activeRacers())territoryMovePath(r);
  territoryFlushTiles();
@@ -2281,7 +2401,7 @@ function resetRound(){
   r.root.position.set(r.x,0,r.z);r.root.rotation.set(0,0,0);r.rig.scale.set(1,1,1);
   if(r.mixer)r.mixer.stopAllAction();useAnimation(r,"Idle");
  });
- startMiniChallenge();showRoundTheme();cue(510,.12);announce("¡"+MINI_MODES[currentMode].title+"!",1400);
+ startMiniChallenge();showRoundTheme();resize();cue(510,.12);announce("¡"+MINI_MODES[currentMode].title+"!",1400);
 }
 function startTournament(){cancelAutoAdvance();gameType="tournament";raceEndAfterPlayer=0;roundIndex=0;contestants=[0,1,2,3,4,5];nextQualifiers=[];playerQualified=false;tournamentStars=0;modePlaylist=choosePlaylist();resetRound()}
 function concludeRound(){
@@ -2565,6 +2685,7 @@ function jump(){
  if(currentMode==="territory"){
   const p=racers[0];if(phase!=="race"||p.territoryShieldCd>0)return;
   p.territoryShieldCd=10;p.territoryShieldUntil=miniChallengeElapsed+2.0;
+  territoryBurst(p.x,p.z,runnerColor(0),"shield");
   tactile(22);cue(780,.15);skillMessage("🛡 RASTRO PROTEGIDO",700);return;
  }
  const p=racers[0];
@@ -2598,7 +2719,7 @@ function physicsTick(frameDt){
   for(let n=0;n<count;n++){physicsTime+=FIXED_DT;move(FIXED_DT,physicsTime);physicsAccumulator-=FIXED_DT}
   if(count===6&&physicsAccumulator>FIXED_DT)physicsAccumulator=0;
 }
-function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;const sec=t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);animateFallingWeights(dt);try{physicsTick(dt)}catch(error){
+function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;const sec=t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);animateFallingWeights(dt);animateTerritoryFX(dt);try{physicsTick(dt)}catch(error){
  console.error("MICROCAOS physics error",error);
  phase="paused";physicsAccumulator=0;window.__microcaosError=error?.message||String(error);
  $("notice").textContent="Error al simular la partida. Tocá REINICIAR para volver a jugar. "+window.__microcaosError;
