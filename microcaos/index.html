@@ -299,7 +299,7 @@ body.colorcrash-mode .hud,body.colorcrash-mode .raceprogress,body.colorcrash-mod
 <div id="scene"></div>
 <div id="ui">
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · COLOR CRASH V2.7</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · COLOR CRASH V2.8</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -940,9 +940,10 @@ for(const modeName of ["tag","gems","survival"]){
 }
 
 
-// COLOR CRASH V1 — 42 interactive 3D glass-metal panels, six readable glyph colors,
-// per-bot reactive routing, escalating speed and pooled arcade impact effects.
-const CC_COLS=6,CC_ROWS=7,CC_W=1.29,CC_D=1.43,CC_MAX=7;
+// COLOR CRASH V2.8 — 81 visibly colored panels, responsive larger arena.
+// Tile faces are above the floor, avoiding the V2.7 occlusion bug.
+const CC_COLS=9,CC_ROWS=9,CC_W=1.42,CC_D=1.53,CC_MAX=7;
+const CC_HALF_X=CC_COLS*CC_W/2,CC_HALF_Z=CC_ROWS*CC_D/2;
 const CC_PALETTE=[
  {name:"ROJO",hex:0xff526c,symbol:"◆"},
  {name:"AZUL",hex:0x438fff,symbol:"●"},
@@ -956,22 +957,23 @@ const ccFrame=mat(0x121b38,.60,.22,{clearcoat:1});
 const ccInset=mat(0x1c315a,.33,.24,{emissive:0x06162b,emissiveIntensity:.30});
 const ccLED=mat(0x51faff,.18,.20,{emissive:0x1ddbf1,emissiveIntensity:1.15});
 const ccPink=mat(0xff43ab,.13,.22,{emissive:0xef2784,emissiveIntensity:.63});
-soft(ccFrame,ccArena,[0,-.61,0],[9.15,.94,11.52]);
-soft(ccInset,ccArena,[0,-.14,0],[8.50,.19,10.75]);
-soft(mat(0x040d23,.06,.52),ccArena,[0,-.025,0],[7.94,.035,10.25]);
-for(const x of [-4.28,4.28]){
- soft(ccLED,ccArena,[x,-.01,0],[.10,.15,10.9],false);
- for(const z of [-4.4,-2.2,0,2.2,4.4])ball(ccPink,ccArena,[x,.22,z],[.10,.12,.10]).castShadow=false;
+// Layer hierarchy: the metallic backing is BELOW the +0.13 colorful tile faces.
+soft(ccFrame,ccArena,[0,-.73,0],[CC_HALF_X*2+1.48,1.12,CC_HALF_Z*2+1.54]);
+soft(ccInset,ccArena,[0,-.17,0],[CC_HALF_X*2+.92,.18,CC_HALF_Z*2+.96]);
+soft(mat(0x030a20,.06,.58),ccArena,[0,-.075,0],[CC_HALF_X*2+.22,.032,CC_HALF_Z*2+.22]);
+for(const x of [-(CC_HALF_X+.47),CC_HALF_X+.47]){
+ soft(ccLED,ccArena,[x,-.03,0],[.11,.15,CC_HALF_Z*2+.84],false);
+ for(const f of [-.76,-.38,0,.38,.76])ball(ccPink,ccArena,[x,.16,f*CC_HALF_Z],[.13,.12,.13]).castShadow=false;
 }
-for(const z of [-5.39,5.39])soft(ccLED,ccArena,[0,-.01,z],[8.65,.15,.10],false);
-for(const x of [-4.28,4.28])for(const z of [-5.38,5.38]){
- cyl(ccFrame,ccArena,[x,.57,z],.25,.29,1.30);
- cyl(ccLED,ccArena,[x,1.24,z],.19,.23,.11).castShadow=false;
- ball(ccPink,ccArena,[x,1.40,z],[.21,.21,.21]).castShadow=false;
+for(const z of [-(CC_HALF_Z+.47),CC_HALF_Z+.47])soft(ccLED,ccArena,[0,-.03,z],[CC_HALF_X*2+.96,.15,.11],false);
+for(const x of [-(CC_HALF_X+.50),CC_HALF_X+.50])for(const z of [-(CC_HALF_Z+.50),CC_HALF_Z+.50]){
+ cyl(ccFrame,ccArena,[x,.55,z],.27,.31,1.28);
+ cyl(ccLED,ccArena,[x,1.23,z],.19,.24,.12).castShadow=false;
+ ball(ccPink,ccArena,[x,1.38,z],[.23,.23,.23]).castShadow=false;
 }
 const ccMats=CC_PALETTE.map(c=>({
- face:mat(c.hex,.35,.16,{clearcoat:1,clearcoatRoughness:.07,emissive:c.hex,emissiveIntensity:.18}),
- edge:mat(c.hex,.36,.22,{emissive:c.hex,emissiveIntensity:.80})
+ face:mat(c.hex,.045,.16,{clearcoat:1,clearcoatRoughness:.045,emissive:c.hex,emissiveIntensity:.78}),
+ edge:mat(c.hex,.22,.20,{emissive:c.hex,emissiveIntensity:1.15})
 }));
 const ccGlyphs=CC_PALETTE.map(c=>{
  const cv=document.createElement("canvas");cv.width=cv.height=256;
@@ -981,15 +983,16 @@ const ccGlyphs=CC_PALETTE.map(c=>{
  const tx=new THREE.CanvasTexture(cv);tx.colorSpace=THREE.SRGBColorSpace;
  return new THREE.MeshBasicMaterial({map:tx,transparent:true,opacity:.82,depthWrite:false,side:THREE.DoubleSide});
 });
-const ccGeometry=new RoundedBoxGeometry(CC_W-.09,.25,CC_D-.09,4,.09);
+const ccGeometry=new RoundedBoxGeometry(CC_W-.055,.24,CC_D-.055,4,.09);
 const ccTiles=[];
 for(let row=0;row<CC_ROWS;row++)for(let col=0;col<CC_COLS;col++){
  const g=new THREE.Group();
  g.position.set((col-(CC_COLS-1)/2)*CC_W,0,(row-(CC_ROWS-1)/2)*CC_D);
  ccArena.add(g);
- const edge=soft(ccMats[0].edge,g,[0,-.275,0],[CC_W-.03,.085,CC_D-.03]);edge.castShadow=false;
- const face=mesh(ccGeometry,ccMats[0].face,g,[0,-.14,0]);face.castShadow=false;
- const glyph=mesh(new THREE.PlaneGeometry(.81,.81),ccGlyphs[0],g,[0,-.006,0],[1,1,1],false);
+ // Top face at y=+.13 and symbol y=+.145; base layer ends at y=-.059.
+ const edge=soft(ccMats[0].edge,g,[0,-.085,0],[CC_W-.02,.10,CC_D-.02]);edge.castShadow=false;
+ const face=mesh(ccGeometry,ccMats[0].face,g,[0,.01,0]);face.castShadow=false;
+ const glyph=mesh(new THREE.PlaneGeometry(CC_W*.54,CC_D*.50),ccGlyphs[0],g,[0,.145,0],[1,1,1],false);
  glyph.rotation.x=-Math.PI/2;glyph.receiveShadow=false;
  ccTiles.push({g,face,edge,glyph,color:0,fall:false,phase:Math.random()*6.283});
 }
@@ -1005,18 +1008,19 @@ function ccTile(x,z){
  const i=Math.floor((x+CC_COLS*CC_W/2)/CC_W),j=Math.floor((z+CC_ROWS*CC_D/2)/CC_D);
  if(i<0||i>=CC_COLS||j<0||j>=CC_ROWS)return null;
  const tile=ccTiles[j*CC_COLS+i];
- return Math.abs(x-tile.g.position.x)<CC_W*.475&&Math.abs(z-tile.g.position.z)<CC_D*.475?tile:null;
+ return Math.abs(x-tile.g.position.x)<=CC_W*.499&&Math.abs(z-tile.g.position.z)<=CC_D*.499?tile:null;
 }
 function ccRipple(x,z,hex){
  const v=ccRipples.find(r=>!r.m.visible)||ccRipples.reduce((a,b)=>a.age>b.age?a:b);
  v.age=0;v.m.visible=true;v.m.material.color.setHex(hex);v.m.material.opacity=.78;
- v.m.position.set(x,.13,z);v.m.scale.setScalar(.28);
+ v.m.position.set(x,.23,z);v.m.scale.setScalar(.28);
 }
 function ccShuffle(){
  const bag=Array.from({length:ccTiles.length},(_,i)=>i%CC_PALETTE.length);
  for(let i=bag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]]}
  ccTiles.forEach((tile,i)=>{
-  tile.color=bag[i];tile.fall=false;tile.g.position.y=-3.1;tile.g.rotation.set(0,0,0);
+  // Restore full colors instantly so the player doesn't lose reaction time.
+  tile.color=bag[i];tile.fall=false;tile.g.position.y=0;tile.g.rotation.set(0,0,0);
   tile.face.material=ccMats[tile.color].face;
   tile.edge.material=ccMats[tile.color].edge;
   tile.glyph.material=ccGlyphs[tile.color];
@@ -1034,7 +1038,7 @@ function ccHUD(){
 }
 function ccNewRound(){
  cc.round++;cc.status="choose";
- cc.total=Math.max(1.16,3.15-(cc.round-1)*.325);
+ cc.total=Math.max(1.55,3.65-(cc.round-1)*.35);
  cc.left=cc.total;cc.target=Math.floor(Math.random()*CC_PALETTE.length);
  ccShuffle();
  for(const r of liveRacers()){
@@ -2206,7 +2210,7 @@ function renderModeLabel(){
   scene.background=new THREE.Color(currentMode==="race"?0x172b4a:currentMode==="tag"?0x180d35:0x0c1736);
   scene.fog.color.setHex(currentMode==="race"?0x142542:0x0c1030);
  }
- camera.fov=currentMode==="ballistix"?(camera.aspect<.68?64:48):currentMode==="territory"?(camera.aspect<.68?63:46):currentMode==="colorcrash"?(camera.aspect<.68?68:51):(camera.aspect<.68?58:42);
+ camera.fov=currentMode==="ballistix"?(camera.aspect<.68?64:48):currentMode==="territory"?(camera.aspect<.68?63:46):currentMode==="colorcrash"?(camera.aspect<.68?65:48):(camera.aspect<.68?58:42);
  camera.updateProjectionMatrix();
  ballArena.visible=currentMode==="ballistix";$("ballScoreboard").classList.toggle("on",currentMode==="ballistix");
  for(const o of obstacles){
@@ -2552,15 +2556,15 @@ function moveMiniGame(dt,t){
   let dx=0,dz=0;
   if(r.index!==0){[dx,dz]=currentMode==="territory"?territoryBotDirection(r,t):miniBotDirection(r,t)}
   else if(dragSteeringActive){
-   dx=clamp((dragTargetX-r.x)*1.45,-1,1);dz=(currentMode==="territory"?-1:1)*clamp((dragTargetZ-r.z)*1.28,-1,1);
+   dx=clamp((dragTargetX-r.x)*1.45,-1,1);dz=((currentMode==="territory"||currentMode==="colorcrash")?-1:1)*clamp((dragTargetZ-r.z)*1.28,-1,1);
   }else{dx=steer;dz=steerZ}
   const norm=Math.max(1,Math.hypot(dx,dz));dx/=norm;dz/=norm;
   const sprint=(r.dash>0?1.68:1)*(currentMode==="tag"&&r.index===weightHolder?1.16:1);
   const rate=r.index===0?20:14,vel=(currentMode==="territory"?(r.index===0?6.65:5.9*difficultyScale()):(r.index===0?5.75:5.03*difficultyScale()))*sprint;
   r.vx+=(dx*vel-r.vx)*(1-Math.exp(-rate*dt));
   r.vz=(r.vz||0)+(-dz*vel-(r.vz||0))*(1-Math.exp(-rate*dt));
-  r.x=clamp(r.x+r.vx*dt,currentMode==="territory"?-TERRITORY_HALF_X:-4.25,currentMode==="territory"?TERRITORY_HALF_X:4.25);
-  r.z=clamp(r.z+r.vz*dt,currentMode==="territory"?-TERRITORY_HALF_Z:-5.85,currentMode==="territory"?TERRITORY_HALF_Z:5.85);
+  r.x=clamp(r.x+r.vx*dt,currentMode==="territory"?-TERRITORY_HALF_X:currentMode==="colorcrash"?-CC_HALF_X+.38:-4.25,currentMode==="territory"?TERRITORY_HALF_X:currentMode==="colorcrash"?CC_HALF_X-.38:4.25);
+  r.z=clamp(r.z+r.vz*dt,currentMode==="territory"?-TERRITORY_HALF_Z:currentMode==="colorcrash"?-CC_HALF_Z+.40:-5.85,currentMode==="territory"?TERRITORY_HALF_Z:currentMode==="colorcrash"?CC_HALF_Z-.40:5.85);
   // Preserve the familiar jumping animation from races, including double jump.
   const airborne=r.y>.01||r.vy>0;
   if(airborne){r.vy-=18.5*dt;r.y=Math.max(0,r.y+r.vy*dt)}
@@ -2636,7 +2640,7 @@ function resetRound(){
   r.stun=0;r.dash=0;r.dashCd=0;r.tagGraceUntil=0;r.aiFocus=null;r.aiFocusUntil=0;r.y=0;r.vy=0;r.nearMisses=new Set();
   if(lane>=0){
    if(currentMode==="race"){r.x=(lane-(count-1)/2)*(count>=5?1.29:1.75);r.z=11.6+(lane%2)*.90}
-   else{const a=lane/Math.max(1,count)*Math.PI*2+Math.PI/2;r.x=Math.cos(a)*(currentMode==="territory"?TERRITORY_HALF_X*.67:currentMode==="colorcrash"?2.5:2.3);r.z=Math.sin(a)*(currentMode==="territory"?TERRITORY_HALF_Z*.66:currentMode==="colorcrash"?3.25:2.8)}
+   else{const a=lane/Math.max(1,count)*Math.PI*2+Math.PI/2;r.x=Math.cos(a)*(currentMode==="territory"?TERRITORY_HALF_X*.67:currentMode==="colorcrash"?CC_HALF_X*.64:2.3);r.z=Math.sin(a)*(currentMode==="territory"?TERRITORY_HALF_Z*.66:currentMode==="colorcrash"?CC_HALF_Z*.64:2.8)}
   }
   r.root.position.set(r.x,0,r.z);r.root.rotation.set(0,0,0);r.rig.scale.set(1,1,1);
   if(r.mixer)r.mixer.stopAllAction();useAnimation(r,"Idle");
@@ -2965,12 +2969,12 @@ function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;
  $("notice").textContent="Error al simular la partida. Tocá REINICIAR para volver a jugar. "+window.__microcaosError;
  $("notice").classList.add("show");
 }for(let r of racers)if(r.mixer)r.mixer.update(dt);$("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
-if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=currentMode==="territory"&&follow?new THREE.Vector3(clamp(p.x*.72,-TERRITORY_HALF_X*.72,TERRITORY_HALF_X*.72),0,clamp(p.z*.70,-TERRITORY_HALF_Z*.70,TERRITORY_HALF_Z*.70)):new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,22.3,9.5):new THREE.Vector3(0,18.0,9.7)):currentMode==="territory"&&follow?(portrait?new THREE.Vector3(previewTarget.x,32,previewTarget.z+22):new THREE.Vector3(previewTarget.x+11.8,21,previewTarget.z+22)):currentMode==="colorcrash"&&follow?(portrait?new THREE.Vector3(0,21,12):new THREE.Vector3(8.2,15.5,13.5)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.7,11.6,12.5):new THREE.Vector3(9.7,11.8,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
+if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=currentMode==="territory"&&follow?new THREE.Vector3(clamp(p.x*.72,-TERRITORY_HALF_X*.72,TERRITORY_HALF_X*.72),0,clamp(p.z*.70,-TERRITORY_HALF_Z*.70,TERRITORY_HALF_Z*.70)):new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,22.3,9.5):new THREE.Vector3(0,18.0,9.7)):currentMode==="territory"&&follow?(portrait?new THREE.Vector3(previewTarget.x,32,previewTarget.z+22):new THREE.Vector3(previewTarget.x+11.8,21,previewTarget.z+22)):currentMode==="colorcrash"&&follow?(portrait?new THREE.Vector3(0,23,16):new THREE.Vector3(8.5,20.3,19.4)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.7,11.6,12.5):new THREE.Vector3(9.7,11.8,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
 if(mode==="ar"&&frame&&session){if(!hitRequested){hitRequested=true;session.requestReferenceSpace("viewer").then(viewer=>session.requestHitTestSource({space:viewer})).then(s=>hitSource=s).catch(()=>{})}if(hitSource&&!placed){const results=frame.getHitTestResults(hitSource);if(results.length){let pose=results[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;const m=new THREE.Matrix4().fromArray(pose.transform.matrix);reticle.position.setFromMatrixPosition(m);reticle.quaternion.setFromRotationMatrix(m);$("placeArena").style.display="inline-flex";$("notice").textContent="¡Ya veo la superficie! Tocá COLOCAR PISTA para anclar la arena."}}else{reticle.visible=false;$("placeArena").style.display="none"}}}
 if(performance.now()>lastToast)$("toast").classList.remove("show");if(performance.now()>skillToastUntil)$("skillToast").classList.remove("on");renderer.render(scene,camera)}
 const reticle=new THREE.Mesh(new THREE.RingGeometry(.20,.23,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x71ffdf,side:THREE.DoubleSide,depthWrite:false}));reticle.visible=false;scene.add(reticle);
 renderer.setAnimationLoop(render);
-function resize(){camera.aspect=innerWidth/innerHeight;camera.fov=currentMode==="ballistix"?(camera.aspect<.68?64:48):currentMode==="territory"?(camera.aspect<.68?63:46):currentMode==="colorcrash"?(camera.aspect<.68?68:51):(camera.aspect<.68?58:42);camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}addEventListener("resize",resize);
+function resize(){camera.aspect=innerWidth/innerHeight;camera.fov=currentMode==="ballistix"?(camera.aspect<.68?64:48):currentMode==="territory"?(camera.aspect<.68?63:46):currentMode==="colorcrash"?(camera.aspect<.68?65:48):(camera.aspect<.68?58:42);camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}addEventListener("resize",resize);
 function leaveCamera(){if(videoStream){videoStream.getTracks().forEach(tr=>tr.stop());videoStream=null}$("cameraVideo").style.display="none";$("scene").classList.remove("camera");scene.background=new THREE.Color(0x172b4a);mode="preview";previewTable.visible=true;$("modebar").textContent="PREVIEW 3D · PC Y CELULAR";$("cam").textContent="◎ VER CON MI CÁMARA"}
 $("cam").onclick=async()=>{if(mode==="camera"){leaveCamera();return}if(!navigator.mediaDevices?.getUserMedia){announce("CÁMARA NO DISPONIBLE",1500);return}try{videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});$("cameraVideo").srcObject=videoStream;$("cameraVideo").style.display="block";await $("cameraVideo").play();$("scene").classList.add("camera");scene.background=null;mode="camera";$("cam").textContent="◉ CERRAR CÁMARA";$("modebar").textContent="CÁMARA DEMO · SIN ANCLAJE ESPACIAL"}catch(e){announce("SIN PERMISO DE CÁMARA",1500)}};
 
@@ -3158,8 +3162,8 @@ playSurface.addEventListener("pointermove",e=>{
  if(currentMode==="ballistix"){
   const rect=playSurface.getBoundingClientRect();
   dragTargetX=clamp((((e.clientX-rect.left)/rect.width)-.5)*8.1,-ballMaxMove,ballMaxMove);
- }else dragTargetX=clamp(dragTargetX+(dx/Math.max(320,innerWidth))*8.6,-4.25,4.25);
- if(currentMode!=="race")dragTargetZ=clamp(dragTargetZ+(dy/Math.max(400,innerHeight))*14,-5.75,5.75);
+ }else dragTargetX=clamp(dragTargetX+(dx/Math.max(320,innerWidth))*(currentMode==="colorcrash"?13.6:8.6),currentMode==="colorcrash"?-CC_HALF_X+.38:-4.25,currentMode==="colorcrash"?CC_HALF_X-.38:4.25);
+ if(currentMode!=="race")dragTargetZ=clamp(dragTargetZ+(dy/Math.max(400,innerHeight))*(currentMode==="colorcrash"?18:14),currentMode==="colorcrash"?-CC_HALF_Z+.4:-5.75,currentMode==="colorcrash"?CC_HALF_Z-.4:5.75);
  dragLastX=e.clientX;dragLastY=e.clientY;
  e.preventDefault();
 });
