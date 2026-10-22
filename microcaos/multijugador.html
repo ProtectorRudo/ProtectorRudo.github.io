@@ -441,7 +441,7 @@ body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172a
 </div></section>
 <div class="mp-live" id="mpLive"></div>
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V4.2</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V4.3</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -1018,17 +1018,25 @@ function v37InstallCharacter(index,gltf){
  const bounds=new THREE.Box3().setFromObject(model);
  const dimensions=bounds.getSize(new THREE.Vector3());
  if(!Number.isFinite(dimensions.y)||dimensions.y<.1)return false;
- // Physically normalize by height, width AND depth.
- const heightScale=2.22/Math.max(dimensions.y,.001);
- // Normalize horizontal dimensions independently; wide wings never make the whole
- // character nearly invisible on crowded Color Crash tiles.
- const widthScale=Math.min(heightScale,1.74/Math.max(dimensions.x,.001));
- const depthScale=Math.min(heightScale,1.74/Math.max(dimensions.z,.001));
- const visualWidth=dimensions.x*widthScale,visualDepth=dimensions.z*depthScale;
- const visualHeight=dimensions.y*heightScale;
- const bodyRadius=Math.min(.72,Math.max(.47,Math.max(visualWidth,visualDepth)*.34+.16));
- model.scale.set(widthScale,heightScale,depthScale);
- model.position.set(-(bounds.min.x+bounds.max.x)*.5*widthScale,-bounds.min.y*heightScale,-(bounds.min.z+bounds.max.z)*.5*depthScale);
+ // V4.3 · 3D characters fit by full silhouette; uniform skin scaling to avoid deforming skeletons.
+ const profiles43=[
+  {h:3.00,w:2.38,d:2.38}, // Bunny
+  {h:2.83,w:2.45,d:2.35}, // Dragon
+  {h:2.72,w:2.40,d:2.40}, // Slime
+  {h:2.86,w:2.38,d:2.38}, // Demon
+  {h:2.70,w:2.85,d:2.50}, // Bat: natural wings need additional room
+  {h:2.86,w:2.30,d:2.30}  // Skeleton
+ ];
+ const spec=profiles43[index]||profiles43[0];
+ const byHeight=spec.h/Math.max(dimensions.y,.001);
+ const byWidth=spec.w/Math.max(dimensions.x,.001);
+ const byDepth=spec.d/Math.max(dimensions.z,.001);
+ // Never shrink a creature below 80% of target height merely due to wings or whiskers.
+ const fit=Math.max(byHeight*.80,Math.min(byHeight,byWidth,byDepth));
+ const visualWidth=dimensions.x*fit,visualDepth=dimensions.z*fit,visualHeight=dimensions.y*fit;
+ const bodyRadius=Math.min(.96,Math.max(.50,Math.max(visualWidth,visualDepth)*.41+.11));
+ model.scale.setScalar(fit);
+ model.position.set(-(bounds.min.x+bounds.max.x)*.5*fit,-bounds.min.y*fit,-(bounds.min.z+bounds.max.z)*.5*fit);
  // Preserve original Quaternius texture colors and authored rigs.
  model.traverse(o=>{
   if(!o.isMesh)return;
@@ -1073,7 +1081,17 @@ async function v37LoadCharacters(){
   $("notice").textContent="⚠ No cargaron todos los monstruos. Actualizá la página para reintentar.";
   $("notice").classList.add("show");
  }
- window.__microcaosHeroQA=()=>({version:"4.2",ready:state.ready,loaded:state.loaded,failed:state.failed,errors:state.errors,source:state.source,assets:V37_HERO_ASSETS,characters:racers.map(r=>{const q=r.rig?.userData?.premiumCharacter;return q?{index:q.index,radius:q.bodyRadius,width:q.visualWidth,depth:q.visualDepth,clips:q.clips}:null})});
+ window.__microcaosVisibilityQA=()=>({
+ version:"4.3",mode:currentMode,
+ renderer:renderer.info.render.calls,
+ playerVisible:racers[0].root.visible&&racers[0].rig.visible,
+ playerPremiumVisible:!!racers[0].rig.userData.premiumCharacter?.model.visible,
+ playerScale:racers[0].rig.userData.premiumCharacter?.model.scale.toArray(),
+ playerPosition:racers[0].root.position.toArray(),
+ cameraPosition:camera.position.toArray(),
+ figureCount:racers.filter(r=>r.root.visible).length
+});
+window.__microcaosHeroQA=()=>({version:"4.3",ready:state.ready,loaded:state.loaded,failed:state.failed,errors:state.errors,source:state.source,assets:V37_HERO_ASSETS,characters:racers.map(r=>{const q=r.rig?.userData?.premiumCharacter;return q?{index:q.index,radius:q.bodyRadius,width:q.visualWidth,depth:q.visualDepth,clips:q.clips}:null})});
 }
  v37LoadCharacters().catch(error=>{console.warn("Premium characters unavailable",error)});
 
@@ -1092,11 +1110,18 @@ v38Ctx.fillStyle="#ffffff";v38Ctx.font="900 102px Outfit,Arial,sans-serif";v38Ct
 const v38Texture=new THREE.CanvasTexture(v38Canvas);v38Texture.colorSpace=THREE.SRGBColorSpace;
 const v38Caption=new THREE.Sprite(new THREE.SpriteMaterial({map:v38Texture,transparent:true,depthTest:false,depthWrite:false,toneMapped:false}));
 v38Caption.position.y=3.54;v38Caption.scale.set(2.2,.77,1);v38Beacon.add(v38Caption);
+const v43PlayerTorsoRing=new THREE.Mesh(new THREE.TorusGeometry(.83,.095,10,64),
+ new THREE.MeshBasicMaterial({color:0x24f7ee,transparent:true,opacity:.94,depthWrite:false,toneMapped:false}));
+v43PlayerTorsoRing.rotation.x=Math.PI/2;v43PlayerTorsoRing.position.y=1.23;
+v38Beacon.add(v43PlayerTorsoRing);
+const v43PlayerFlag=new THREE.Mesh(new THREE.CylinderGeometry(.042,.042,1.35,8),
+ new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.87,depthWrite:false,toneMapped:false}));
+v43PlayerFlag.position.set(.83,1.11,0);v38Beacon.add(v43PlayerFlag);
 function v38UpdateBeacon(t){
  const n=typeof mp!=="undefined"&&mp.active?mp.slot:0;
  const id=Number.isInteger(n)&&n>=0&&n<racers.length?n:0;
  const me=racers[id];
- const playing=["race","countdown","paused","finished"].includes(phase)&&contestants.includes(id)&&me?.root.visible;
+ const playing=["race","countdown","paused","finished"].includes(phase)&&contestants.includes(id)&&!me?.finished&&me?.root.visible;
  v38Beacon.visible=!!playing;
  for(const runner of racers)if(runner.label){
    runner.label.visible=runner.index!==id&&!(id!==0&&runner.index===0);
@@ -1108,6 +1133,8 @@ function v38UpdateBeacon(t){
  const height=Math.max(1.8,Math.min(2.6,me.rig?.userData?.premiumCharacter?.visualHeight??2));
  v38Pointer.position.y=height+.53+Math.sin(t*.0045)*.10;
  v38Caption.position.y=height+1.03+Math.sin(t*.0045)*.10;
+ v43PlayerTorsoRing.scale.setScalar(1+Math.sin(t*.005)*.045);
+ v43PlayerTorsoRing.position.y=1.15+Math.sin(t*.004)*.07;
 }
 
 
@@ -3295,7 +3322,7 @@ function v34AnimateFaces(t,dt){
 // MICROCAOS CINEMATIC ARENA V3.5 — large, unmistakable stage architecture.
 // Compact geometry + one instanced crowd and one instanced LED row per mode.
 // All details sit OUTSIDE playable cells; rules, hitboxes and AR anchoring unchanged.
-const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"4.2"};
+const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"4.3"};
 const v35Ink=new THREE.MeshStandardMaterial({color:0x09132d,metalness:.42,roughness:.36,clearcoat:1});
 const v35Alloy=new THREE.MeshStandardMaterial({color:0x294665,metalness:.72,roughness:.24,clearcoat:.72});
 const v35SeatMaterial=new THREE.MeshStandardMaterial({color:0xffffff,metalness:.12,roughness:.35,clearcoat:.6});
@@ -3477,8 +3504,8 @@ function v35ApplyArt(){
  for(const [name,kit]of Object.entries(v35.kits))kit.visible=name==="race"?currentMode==="race":name==="ballistix"?false:true; // V3.7 custom venue owns Ballistix
  v35.mode=currentMode;
 }
-window.__microcaosV38QA=()=>({version:"4.2",uniqueModels:new Set(V37_HERO_ASSETS).size,modelCount:V37_HERO_ASSETS.length,loaded:v37CharacterState.loaded,beaconReady:!!v38Beacon,localSlot:typeof mp!=="undefined"&&mp.active?mp.slot:0,mode:currentMode,ar:renderer.xr.enabled});
-window.__microcaosStartQA=()=>({version:"4.2",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
+window.__microcaosV38QA=()=>({version:"4.3",uniqueModels:new Set(V37_HERO_ASSETS).size,modelCount:V37_HERO_ASSETS.length,loaded:v37CharacterState.loaded,beaconReady:!!v38Beacon,localSlot:typeof mp!=="undefined"&&mp.active?mp.slot:0,mode:currentMode,ar:renderer.xr.enabled});
+window.__microcaosStartQA=()=>({version:"4.3",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
 window.__microcaosV37QA=()=>({version:"3.7",characterSource:v37CharacterState.source,loadedHeroes:v37CharacterState.loaded,arena:!!ballArena,impulseCooldown:1.95,impulseCharges:"infinite",sevenModes:Object.keys(MINI_MODES).length,arKept:!!renderer.xr.enabled});
 window.__microcaosDirectorQA=()=>({raceFloorIsolated:currentMode==="race"||!raceFloor.visible,version:"3.7",venues:Object.keys(v36Venues),sevenScenes:Object.keys(v36Venues).length===7,mode:currentMode,webxr:renderer.xr.isPresenting,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,unchangedARScale:true});
 window.__microcaosCinematicQA=()=>({
@@ -4351,7 +4378,7 @@ function v36UpdateCamera(dt){
    gems:portrait?[7.9,12.5,16.8]:[7.7,11.65,16.0],
    survival:portrait?[7.9,12.5,16.8]:[7.7,11.65,16.0],
    territory:portrait?[0,26.5,18.1]:[9.0,18.7,19.0],
-   colorcrash:portrait?[1.3,19.7,14.9]:[5.6,15.3,15.2],
+   colorcrash:portrait?[1.20,18.2,13.7]:[5.10,14.1,14.0],
    ballistix:portrait?[0,22.1,12.3]:[0,17.3,11.8]
  };
  const o=table[currentMode]||table.race;
@@ -4409,6 +4436,17 @@ function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;
   r.rig.rotation.x+=(Math.max(-.09,Math.min(.09,(r.vz||0)*.012))*active-r.rig.rotation.x)*blend;
  }
  v40UpdateAnimations(t,dt);
+ // V4.3 · visibility guarantee in top-down modes, applied after gait/squash animation.
+ for(const runner of racers){
+  const entry=runner.rig?.userData?.premiumCharacter;
+  if(!entry||!runner.root.visible)continue;
+  runner.rig.visible=true;entry.model.visible=true;
+  const colorMode=currentMode==="colorcrash";
+  const factor=colorMode?(runner.index===0?1.36:1.21):(runner.index===0?1.10:1.045);
+  runner.rig.scale.multiplyScalar(factor);
+  if(colorMode&&!runner.finished&&phase==="race")
+    runner.rig.position.y=Math.max(runner.rig.position.y,.48);
+ }
  v34AnimateFaces(t,dt);
   v38UpdateBeacon(t);
  // Art-only multiplier: larger readable characters; physics remain untouched.
