@@ -758,6 +758,8 @@ function ballContact(b,k,projectedPosition=ballShipPositions[k]){
   b.x=k===2?-ballPaddleAt+.43:ballPaddleAt-.43;
  }
  ballNormalize(b,Math.min(12.6,s*(hot?1.40:1.035)));b.glow=hot?1:.5;ballStats.hits++;ballSaves[k]++;
+ ballShipGroups[k].scale.y=.84;
+ puff(b.x,b.z,ballGoalMats[k].color.getHex(),hot?11:5);
  b.immunity=.11;
  if(hot){
   ballPulseUntil=0;ballPulseCd=.62;
