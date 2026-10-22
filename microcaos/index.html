@@ -924,6 +924,7 @@ const TERRITORY_X=32,TERRITORY_Z=42,TERRITORY_SIZE=TERRITORY_X*TERRITORY_Z;
 const TERRITORY_DX=8.50/TERRITORY_X,TERRITORY_DZ=11.70/TERRITORY_Z;
 const territoryOwners=new Int8Array(TERRITORY_SIZE).fill(-1);
 const territoryTrails=new Int8Array(TERRITORY_SIZE).fill(-1);
+const territoryBaseCells=new Int8Array(TERRITORY_SIZE).fill(-1);
 const territoryCount=new Int32Array(6),territoryPalette=colors.map(c=>new THREE.Color(c));
 const territoryDark=new THREE.Color(0x0c2754),territoryScratch=new THREE.Object3D();
 const territoryArea=new THREE.Group();territoryArea.visible=false;stage.add(territoryArea);
@@ -963,7 +964,9 @@ territoryTiles.instanceColor.needsUpdate=true;
 let territoryUpdatedAt=-1,territoryChanged=true,territoryLastMessageAt=-10,territoryLeaderboardSignature="";
 function territorySetCell(idx,owner){
  if(idx<0||idx>=TERRITORY_SIZE||territoryOwners[idx]===owner)return;
- const previous=territoryOwners[idx];if(previous>=0)territoryCount[previous]--;
+ const previous=territoryOwners[idx];
+ if(previous>=0&&owner!==previous&&territoryBaseCells[idx]===previous)return;
+ if(previous>=0)territoryCount[previous]--;
  territoryOwners[idx]=owner;if(owner>=0)territoryCount[owner]++;
  territoryTiles.setColorAt(idx,owner<0?territoryDark:territoryPalette[owner]);
  territoryChanged=true;
@@ -1075,7 +1078,7 @@ function territoryMovePath(r){
   r.territoryLastCell=territoryIdx(r.x,r.z);
 }
 function territoryStart(){
- territoryOwners.fill(-1);territoryTrails.fill(-1);territoryCount.fill(0);
+ territoryOwners.fill(-1);territoryTrails.fill(-1);territoryBaseCells.fill(-1);territoryCount.fill(0);
  territoryTrailMesh.count=0;territoryUpdatedAt=-1;territoryLeaderboardSignature="";
  for(let idx=0;idx<TERRITORY_SIZE;idx++)territoryTiles.setColorAt(idx,territoryDark);
  territoryTiles.instanceColor.needsUpdate=true;territoryChanged=false;
@@ -1087,7 +1090,10 @@ function territoryStart(){
   // Distinct nonoverlapping, recognizable home areas for six players.
   for(let idx=0;idx<TERRITORY_SIZE;idx++){
    const pos=territoryPos(idx);
-   if(Math.abs(pos.x-r.x)<.72&&Math.abs(pos.z-r.z)<.79)territorySetCell(idx,r.index);
+   if(Math.abs(pos.x-r.x)<.72&&Math.abs(pos.z-r.z)<.79){
+    territorySetCell(idx,r.index);
+    if(Math.abs(pos.x-r.x)<.36&&Math.abs(pos.z-r.z)<.40)territoryBaseCells[idx]=r.index;
+   }
   }
  }
  territoryFlushTiles();territoryUpdateTrails();territoryUpdateBoard(true);
