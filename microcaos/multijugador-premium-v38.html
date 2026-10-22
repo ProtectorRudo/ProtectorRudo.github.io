@@ -1180,6 +1180,7 @@ const MINI_MODES={
  race:{title:"CARRERA LOCA",emoji:"🏁",objective:"¡LLEGÁ A LA META!",time:53,color:0x80ffe5}
 };
 const miniStages={};
+const v381SinkingTiles=[];
 const miniAccent={
  tag:mat(0xff3387,.10,.28,{emissive:0x951447,emissiveIntensity:.30}),
  gems:mat(0xffcf30,.12,.29,{emissive:0xb17005,emissiveIntensity:.34}),
@@ -1224,9 +1225,12 @@ for(const modeName of ["tag","gems","survival"]){
   }
  }else{
   for(let z=-5.5;z<5.6;z+=2.4)for(let x=-3.6;x<=3.6;x+=2.4){
-   const tile=soft(border,area,[x,.12,z],[2.1,.05,2.2]);
-   tile.material=mat(0x405a97,.12,.49,{emissive:0x273e87,emissiveIntensity:.13});
+   const tile=soft(border,area,[x,.29,z],[2.1,.18,2.2]);
+   tile.material=mat(0x5376ba,.12,.49,{emissive:0x0b6950,emissiveIntensity:.19});
+   tile.userData.gridX=x;tile.userData.gridZ=z;
+   v381SinkingTiles.push(tile);
   }
+  soft(new THREE.MeshBasicMaterial({color:0x030716,toneMapped:false}),area,[0,.12,0],[9.95,.12,14.78],false);
  }
  // 3D title removed: the compact HUD already identifies the game.
 }
@@ -3224,7 +3228,7 @@ function v34AnimateFaces(t,dt){
 // MICROCAOS CINEMATIC ARENA V3.5 — large, unmistakable stage architecture.
 // Compact geometry + one instanced crowd and one instanced LED row per mode.
 // All details sit OUTSIDE playable cells; rules, hitboxes and AR anchoring unchanged.
-const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"3.8"};
+const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"3.8.1"};
 const v35Ink=new THREE.MeshStandardMaterial({color:0x09132d,metalness:.42,roughness:.36,clearcoat:1});
 const v35Alloy=new THREE.MeshStandardMaterial({color:0x294665,metalness:.72,roughness:.24,clearcoat:.72});
 const v35SeatMaterial=new THREE.MeshStandardMaterial({color:0xffffff,metalness:.12,roughness:.35,clearcoat:.6});
@@ -3406,8 +3410,8 @@ function v35ApplyArt(){
  for(const [name,kit]of Object.entries(v35.kits))kit.visible=name==="race"?currentMode==="race":name==="ballistix"?false:true; // V3.7 custom venue owns Ballistix
  v35.mode=currentMode;
 }
-window.__microcaosV38QA=()=>({version:"3.8",uniqueModels:new Set(V37_HERO_ASSETS).size,modelCount:V37_HERO_ASSETS.length,loaded:v37CharacterState.loaded,beaconReady:!!v38Beacon,localSlot:typeof mp!=="undefined"&&mp.active?mp.slot:0,mode:currentMode,ar:renderer.xr.enabled});
-window.__microcaosStartQA=()=>({version:"3.8",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
+window.__microcaosV38QA=()=>({version:"3.8.1",uniqueModels:new Set(V37_HERO_ASSETS).size,modelCount:V37_HERO_ASSETS.length,loaded:v37CharacterState.loaded,beaconReady:!!v38Beacon,localSlot:typeof mp!=="undefined"&&mp.active?mp.slot:0,mode:currentMode,ar:renderer.xr.enabled});
+window.__microcaosStartQA=()=>({version:"3.8.1",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
 window.__microcaosV37QA=()=>({version:"3.7",characterSource:v37CharacterState.source,loadedHeroes:v37CharacterState.loaded,arena:!!ballArena,impulseCooldown:1.95,impulseCharges:"infinite",sevenModes:Object.keys(MINI_MODES).length,arKept:!!renderer.xr.enabled});
 window.__microcaosDirectorQA=()=>({raceFloorIsolated:currentMode==="race"||!raceFloor.visible,version:"3.7",venues:Object.keys(v36Venues),sevenScenes:Object.keys(v36Venues).length===7,mode:currentMode,webxr:renderer.xr.isPresenting,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,unchangedARScale:true});
 window.__microcaosCinematicQA=()=>({
@@ -3511,7 +3515,7 @@ function startMiniChallenge(){
   ccStart();
  }else if(currentMode==="survival"){
   miniClock=6.5;
-  miniSafe={x:0,z:0,radius:3.0};updateSafeZone();
+  miniSafe={x:0,z:0,radius:3.0};updateSafeZone();v381UpdateSinkingFloor();
  }
 }
 function updateSafeZone(){
@@ -3673,13 +3677,43 @@ function miniGems(dt,t){
  }
  if(miniClock<=0)miniCloseRound();
 }
+
+const v381SafeColor=new THREE.Color(0x27e8ad),v381FallColor=new THREE.Color(0xff385d);
+const v381BaseColor=new THREE.Color(0x5376ba),v381RiskColor=new THREE.Color(0x987be3);
+function v381UpdateSinkingFloor(){
+ if(currentMode!=="survival")return;
+ const remaining=Math.max(0,miniClock),warning=THREE.MathUtils.clamp((3.75-remaining)/3.45,0,1);
+ const sinking=THREE.MathUtils.clamp((1.12-remaining)/1.12,0,1);
+ for(const tile of v381SinkingTiles){
+   const x=tile.userData.gridX,z=tile.userData.gridZ;
+   const safe=Math.hypot(x-miniSafe.x,z-miniSafe.z)<miniSafe.radius+.1;
+   tile.material.color.copy(safe?v381BaseColor:v381RiskColor).lerp(safe?v381SafeColor:v381FallColor,safe?.78:warning);
+   tile.material.emissive.setHex(safe?0x0b6950:0x5b1c30);
+   tile.material.emissiveIntensity=safe?.19:.14+.3*warning;
+   tile.position.y=.29-(safe?0:sinking*sinking*1.42);
+   tile.rotation.z=safe?0:Math.sin(miniChallengeElapsed*10+x+z*.9)*sinking*.08;
+   tile.rotation.x=safe?0:Math.cos(miniChallengeElapsed*12+x*.8-z)*sinking*.07;
+ }
+ const label=$("miniObjective");
+ if(remaining<=1.12){
+  label.textContent="⚠ ¡SE HUNDE! "+remaining.toFixed(1)+"s";
+  label.classList.add("danger");
+ }else if(remaining<=3.75){
+  label.textContent="⚠ BALDOSAS ROJAS CAEN EN "+Math.ceil(remaining)+"s";
+  label.classList.toggle("danger",remaining<2.2);
+ }else{
+  label.textContent="🟢 ZONA SEGURA: BALDOSAS VERDES";
+  label.classList.remove("danger");
+ }
+}
+
 function miniSurvival(dt){
  miniClock-=dt;
  const living=liveRacers();
  if(living.length<=roundRule().qualify){miniCloseRound();return}
  const stageProgress=Math.min(1,miniChallengeElapsed/26);
  miniSafe.radius=Math.max(1.8,3.3-stageProgress*.9-roundIndex*.15);
- updateSafeZone();
+ updateSafeZone();v381UpdateSinkingFloor();
  if(miniClock<=0){
   const out=liveRacers().filter(r=>Math.hypot(r.x-miniSafe.x,r.z-miniSafe.z)>miniSafe.radius);
   for(const r of out)knockoutRunner(r,"¡SE HUNDIÓ EL PISO!");
@@ -3689,7 +3723,7 @@ function miniSurvival(dt){
   miniSafe.x=Math.sin(miniPhase*2.3)*2.0;
   miniSafe.z=Math.cos(miniPhase*1.8)*2.6;
   miniSafe.radius=Math.max(1.65,3.2-miniPhase*.14-roundIndex*.15);
-  updateSafeZone();announce("¡EL CÍRCULO CAMBIÓ DE LUGAR!",950);
+  updateSafeZone();v381UpdateSinkingFloor();announce("¡EL CÍRCULO CAMBIÓ DE LUGAR!",950);
  }
  if(miniChallengeElapsed>=27){miniCloseRound()}
 }
