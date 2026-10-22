@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#070f28">
-<title>MICROCAOS — Multijugador online V3.0</title>
+<title>MICROCAOS — Multijugador online V3.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -321,6 +321,18 @@ body.colorcrash-mode .hud,body.colorcrash-mode .raceprogress,body.colorcrash-mod
 .mp-live{position:fixed;display:none;bottom:120px;left:50%;transform:translateX(-50%);z-index:35;pointer-events:none;padding:7px 11px;border:1px solid #6df6f482;background:#081930df;border-radius:30px;font:900 11px Outfit,sans-serif;color:#c6fff0;white-space:nowrap}
 .mp-live.on{display:block}
 @media(max-width:600px){.mp-shell{padding:18px}.mp-live{bottom:111px;font-size:9px}.mp-code{font-size:29px}}
+
+.mp-capacity-label{color:#a4c3e0;font-size:10px;font-weight:800;letter-spacing:.08em;margin:14px 0 7px}
+.mp-capacity{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mp-cap-option{background:#10254a;border:1px solid #6ed3e468;border-radius:13px;min-height:45px;color:#eafaff;font:900 19px Outfit,sans-serif;cursor:pointer}
+.mp-cap-option.selected{background:#3fe9d8;color:#09243f;box-shadow:0 0 18px #3fe9d840;border-color:#9dfff7}
+.mp-hidden-control{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
+.mp-shell #mpReadyText{padding:7px 10px;margin-top:10px;border-radius:9px;background:#174a484c;color:#94fff0}
+.mp-shell #mpReadyText.not-ready{background:#63402170;color:#ffdd9d}
+.mp-shell #mpGameType{width:100%}
+.mp-fields{grid-template-columns:1fr}
+.mp-shell input,.mp-shell select{font-size:16px}
+.mp-shell .mp-btn.primary:disabled{opacity:.48}
 </style>
 </head>
 <body>
@@ -329,27 +341,28 @@ body.colorcrash-mode .hud,body.colorcrash-mode .raceprogress,body.colorcrash-mod
 <div id="ui">
 <section id="mpLobby" class="mp-lobby" aria-label="Sala multijugador"><div class="mp-shell">
  <div class="mp-kicker">✦ MICROCAOS · ONLINE</div>
- <h2>El caos es mejor en compañía.</h2>
- <p class="mp-muted" id="mpSubtitle">Creá una sala privada e invitá a otras personas. Jugá desde PC, celular o realidad aumentada compatible.</p>
+ <h2>Jugá con tus amigos en 3 pasos.</h2>
+ <p class="mp-muted" id="mpSubtitle">1. Creá una sala. 2. Compartí el enlace. 3. ¡Jueguen juntos! Sin cuentas ni descargas.</p>
  <section id="mpSetup">
   <label for="mpName">TU NOMBRE EN LA SALA</label>
-  <input id="mpName" maxlength="18" placeholder="Ej. Mauro" autocomplete="nickname" value="JUGADOR">
-  <div class="mp-fields"><div><label for="mpCapacity">PARTICIPANTES REALES</label><select id="mpCapacity"><option value="2">2 jugadores</option><option value="3">3 jugadores</option><option value="4" selected>4 jugadores</option></select></div>
-  <div><label for="mpGameType">TIPO DE PARTIDA</label><select id="mpGameType"><option value="individual">Una prueba</option><option value="tournament">Torneo (3 pruebas)</option></select></div></div>
+  <input id="mpName" maxlength="18" placeholder="Ej. Mauro" autocomplete="nickname" value="">
+  <div class="mp-capacity-label">¿CUÁNTAS PERSONAS JUEGAN?</div><div class="mp-capacity"><button class="mp-cap-option" type="button" data-count="2">2</button><button class="mp-cap-option" type="button" data-count="3">3</button><button class="mp-cap-option selected" type="button" data-count="4">4</button></div>
+ <div class="mp-fields"><div class="mp-hidden-control"><label for="mpCapacity">PARTICIPANTES REALES</label><select id="mpCapacity"><option value="2">2 jugadores</option><option value="3">3 jugadores</option><option value="4" selected>4 jugadores</option></select></div>
+  <div><label for="mpGameType">ELEGÍ CÓMO JUGAR</label><select id="mpGameType"><option value="individual">Una prueba</option><option value="tournament">Torneo (3 pruebas)</option></select></div></div>
   <label for="mpMode">MINIJUEGO</label>
   <select id="mpMode"><option value="colorcrash">🎨 Color Crash</option><option value="gems">💎 Fiebre de Gemas</option><option value="survival">🌀 El Piso se Hunde</option><option value="tag">⚖ La Mancha</option><option value="territory">🟩 Territorios (beta)</option><option value="race">🏁 Carrera Loca</option></select>
-  <div class="mp-actions"><button id="mpCreate" class="mp-btn primary">✦ CREAR SALA</button></div>
+  <div class="mp-actions"><button id="mpCreate" class="mp-btn primary">✦ CREAR SALA Y COMPARTIR</button></div>
   <div class="mp-division">O SUMATE A UNA SALA</div>
   <label for="mpJoinCode">CÓDIGO DE INVITACIÓN</label><input id="mpJoinCode" maxlength="6" placeholder="ABC234" autocapitalize="characters">
   <div class="mp-actions"><button id="mpJoin" class="mp-btn">↗ UNIRME CON CÓDIGO</button></div>
-  <p class="mp-info">Las salas son privadas por enlace, no requieren cuenta y se cierran al irse el anfitrión. Los bots completan los seis personajes de la arena.</p>
+  <p class="mp-info">El enlace incluye el código. Quien lo recibe solo escribe su nombre y toca UNIRME. Los bots completan los personajes que falten.</p>
  </section>
  <section id="mpWaiting" hidden>
   <div class="mp-code" id="mpRoomCode">------</div>
-  <div class="mp-actions"><button id="mpCopy" class="mp-btn">↗ COPIAR INVITACIÓN</button></div>
+  <div class="mp-actions"><button id="mpWhatsApp" class="mp-btn primary">🟢 INVITAR POR WHATSAPP</button><button id="mpCopy" class="mp-btn">COPIAR ENLACE</button></div>
   <div class="mp-roster" id="mpRoster"></div>
-  <div id="mpLobbyHint" class="mp-info">Esperando participantes…</div>
-  <div class="mp-actions"><button id="mpLaunchAR" class="mp-btn">◈ COLOCAR ARENA EN RA</button><button id="mpLaunch" class="mp-btn primary" disabled>▶ INICIAR PARTIDA</button></div>
+  <div id="mpLobbyHint" class="mp-info">Esperando participantes…</div><div id="mpReadyText" class="mp-info">✓ Listo para jugar en 3D</div>
+  <div class="mp-actions"><button id="mpChoose3D" class="mp-btn primary">✓ JUGAR EN 3D</button><button id="mpLaunchAR" class="mp-btn">◈ USAR REALIDAD AUMENTADA</button></div><div class="mp-actions"><button id="mpLaunch" class="mp-btn primary" disabled>▶ COMENZAR CON TODOS</button></div>
   <div class="mp-info">En RA, cada celular coloca la misma arena virtual sobre su propia superficie. No sincroniza automáticamente mesas u objetos físicos entre domicilios.</div>
  </section>
  <p class="mp-status" id="mpError" role="status"></p>
@@ -357,7 +370,7 @@ body.colorcrash-mode .hud,body.colorcrash-mode .raceprogress,body.colorcrash-mod
 </div></section>
 <div class="mp-live" id="mpLive"></div>
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MULTIJUGADOR ONLINE V3.0</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MULTIJUGADOR ONLINE V3.1</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -1007,11 +1020,27 @@ for(const modeName of ["tag","gems","survival"]){
 const MP_SUPA_URL="https://bwsgxpttnrctklrcjmjs.supabase.co";
 const MP_PUBLIC_KEY="sb_publishable_2wOSRn_o7M6OqRSikERXUg_2RGQWkFW";
 const MP_ENDPOINT=MP_SUPA_URL+"/functions/v1/microcaos-rooms";
+const MP_SESSION_KEY="microcaos_multiplayer_session_v31";
+const MP_NAME_KEY="microcaos_multiplayer_name";
 const mp={active:false,host:false,slot:0,code:"",token:"",topic:"",maxPlayers:4,players:[],
- channel:null,client:null,connected:false,inputs:{},seq:0,lastSeq:-1,
- currentRound:"",lastStateAt:0,lastInputAt:0,lastSnapshotAt:0,lastRosterAt:0,
- poller:null,started:false,gameType:"individual",chosenMode:"colorcrash"};
+ channel:null,client:null,connected:false,ready:true,inputs:{},seq:0,lastSeq:-1,roundId:0,lastResult:null,resultShown:false,
+ currentRound:"",reconnectAt:0,lastStateAt:0,lastInputAt:0,lastSnapshotAt:0,lastRosterAt:0,
+ poller:null,started:false,closing:false,gameType:"individual",chosenMode:"colorcrash"};
 function mpError(txt){$("mpError").textContent=txt}
+function mpRemember(){
+ try{sessionStorage.setItem(MP_SESSION_KEY,JSON.stringify({code:mp.code,token:mp.token,slot:mp.slot,ts:Date.now()}))}
+ catch(e){}
+}
+function mpForget(){try{sessionStorage.removeItem(MP_SESSION_KEY)}catch(e){}}
+function mpSaveName(){try{localStorage.setItem(MP_NAME_KEY,$("mpName").value.trim().slice(0,18))}catch(e){}}
+function mpLink(){const url=new URL("multijugador.html",location.href);url.search="?room="+mp.code;return url.href}
+function mpIsHuman(slot){return mp.active&&mp.host&&mp.players.some(p=>p.slot===slot&&p.online)}
+function mpReadyStatus(ready){mp.ready=!!ready;$("mpReadyText").textContent=ready?"✓ Listo para jugar en 3D":"◈ Preparando arena en realidad aumentada…";$("mpReadyText").classList.toggle("not-ready",!ready)}
+async function mpSetReady(ready){
+ if(!mp.active)return;mpReadyStatus(ready);
+ try{const data=await mpAPI("ready",{code:mp.code,token:mp.token,ready});mp.players=data.players;mpLobbyDraw()}
+ catch(e){mpError(e.message)}
+}
 async function mpAPI(action,fields={}){
  const response=await fetch(MP_ENDPOINT,{method:"POST",headers:{"content-type":"application/json","apikey":MP_PUBLIC_KEY},
   body:JSON.stringify({action,...fields}),cache:"no-store"});
@@ -1028,12 +1057,15 @@ function mpLobbyDraw(){
  $("mpRoster").innerHTML=Array.from({length:mp.maxPlayers},(_,i)=>{
   const p=mp.players.find(v=>v.slot===i);
   return '<div class="mp-player '+(p?.slot===mp.slot?"you":p?"":"empty")+'">'+
-  (p?("● "+p.name+(i===0?" 👑":"")+(i===mp.slot?" · VOS":"")+(p.online?"":" · SIN CONEXIÓN")):"○ LUGAR LIBRE")+'</div>'
+  (p?("● "+p.name+(i===0?" 👑":"")+(i===mp.slot?" · VOS":"")+(p.online?(p.ready?" ✓":" ⏳"):" · SIN CONEXIÓN")):"○ LUGAR LIBRE")+'</div>'
  }).join("");
  const online=mp.players.filter(v=>v.online).length;
- $("mpLobbyHint").textContent=online+"/"+mp.maxPlayers+" conectados · "+(mp.host?"Sos el anfitrión. Iniciá cuando estén listos.":"Esperá a que el anfitrión comience.");
+ const awaiting=mp.players.filter(v=>v.online&&v.ready===false);
+ $("mpLobbyHint").textContent=online+"/"+mp.maxPlayers+" conectados · "+(mp.host?(awaiting.length?"Esperando que "+awaiting.map(x=>x.name).join(", ")+" termine de preparar su arena.":"Podés iniciar desde dos personas, con todos listos."):"Esperá a que el anfitrión comience.");
+ const self=mp.players.find(p=>p.slot===mp.slot);
+ mpReadyStatus(self?.ready!==false);
  $("mpLaunch").hidden=!mp.host;
- $("mpLaunch").disabled=online<2||!mp.connected;
+ $("mpLaunch").disabled=online<2||awaiting.length>0||!mp.connected;
  $("mpLive").textContent="● ONLINE · SALA "+mp.code+" · "+online+" HUMANOS";
  $("mpLive").classList.toggle("on",mp.active&&mp.started);
  for(const p of mp.players){
@@ -1046,7 +1078,7 @@ async function mpConnectRoom(result){
  mp.active=true;mp.host=result.slot===0;mp.slot=result.slot;mp.code=result.code;
  mp.token=result.token;mp.topic=result.topic;mp.maxPlayers=result.maxPlayers;
  mp.players=result.players||[];mp.gameType=result.gameType||"individual";mp.chosenMode=result.mode||"colorcrash";
- mp.lastStateAt=performance.now();
+ mp.lastStateAt=performance.now();mpRemember();
  $("mpSetup").hidden=true;$("mpWaiting").hidden=false;$("mpLobby").hidden=false;
  mpError("Conectando jugadores en tiempo real…");mpLobbyDraw();
  try{
@@ -1080,7 +1112,7 @@ async function mpConnectRoom(result){
 }
 async function mpCreate(){
  $("mpCreate").disabled=true;mpError("Creando sala…");
- try{const data=await mpAPI("create",{name:$("mpName").value,maxPlayers:Number($("mpCapacity").value),gameType:$("mpGameType").value,mode:$("mpMode").value});
+ try{mpSaveName();const data=await mpAPI("create",{name:$("mpName").value,maxPlayers:Number($("mpCapacity").value),gameType:$("mpGameType").value,mode:$("mpMode").value});
   await mpConnectRoom(data);
  }catch(e){mpError(e.message)}finally{$("mpCreate").disabled=false}
 }
@@ -1088,7 +1120,7 @@ async function mpJoin(){
  const code=$("mpJoinCode").value.trim().toUpperCase();
  if(!/^[A-Z2-9]{6}$/.test(code)){mpError("Ingresá un código de 6 caracteres");return}
  $("mpJoin").disabled=true;mpError("Entrando a la sala…");
- try{const data=await mpAPI("join",{code,name:$("mpName").value});await mpConnectRoom(data)}
+ try{mpSaveName();const data=await mpAPI("join",{code,name:$("mpName").value});await mpConnectRoom(data)}
  catch(e){mpError(e.message)}finally{$("mpJoin").disabled=false}
 }
 function mpOnInput(p){
