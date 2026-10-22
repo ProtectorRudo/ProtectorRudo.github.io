@@ -1270,7 +1270,7 @@ function mpPack(){
   scores:miniScores,weightHolder,miniSafe:{...miniSafe},territoryCount:Array.from(territoryCount),
   cc:{status:cc.status,round:cc.round,target:cc.target,left:cc.left,total:cc.total,gap:cc.gap,colors:ccTiles.map(t=>t.color),fall:ccTiles.map(t=>t.fall?1:0)},
   gems:gemItems.map(g=>({x:g.x,z:g.z,visible:g.g.visible})),
-  ball:{status:[...ballStatus],health:[...ballHealth],ship:[...ballShipPositions],elapsed:ballElapsed,balls:ballBalls.map(b=>({x:b.x,z:b.z,vx:b.vx,vz:b.vz}))},
+  ball:{status:[...ballStatus],health:[...ballHealth],ship:[...ballShipPositions],elapsed:ballElapsed,pulses:ballSides.map(i=>racers[i]?.ballPulseCd||0),balls:ballBalls.map(b=>({x:b.x,z:b.z,vx:b.vx,vz:b.vz}))},
   ts:Date.now()};
  if(currentMode==="territory"&&mp.seq%8===0){
   state.land=btoa(Array.from(territoryOwners,v=>String.fromCharCode(v+1)).join(""));
@@ -1339,6 +1339,7 @@ function mpState(p){
    ballStatus[k]=!!v.status[k];
    ballHealth[k]=v.health[k];
    ballShipPositions[k]=v.ship[k];
+   if(racers[ballSides[k]])racers[ballSides[k]].ballPulseCd=v.pulses?.[k]||0;
    const pos=ballSidePosition(k,v.ship[k]);
    const ship=ballShipGroups[k],r=racers[ballSides[k]];
    ship.visible=ballStatus[k];
@@ -2608,8 +2609,8 @@ function ballGoal(b,k){
 function updateBallScoreboard(){
  const target=$("ballScoreboard");
  target.innerHTML=ballSides.map((id,k)=>
-  '<div class="ball-score'+(k===0?' you':'')+(!ballStatus[k]?' out':'')+'" style="--team:#'+runnerColor(id).toString(16).padStart(6,"0")+'"><small><i style="background:var(--team)"></i>'+
-  (k===0?'VOS':profiles[id].name)+'</small><strong>'+String(ballHealth[k]||0).padStart(2,"0")+'</strong><span class="hp-track"><span style="width:'+(ballHealth[k]/(k===0?10:7)*100)+'%"></span></span></div>').join("");
+  '<div class="ball-score'+(ballSides[k]===(mp.active&&!mp.host?mp.slot:0)?' you':'')+(!ballStatus[k]?' out':'')+'" style="--team:#'+runnerColor(id).toString(16).padStart(6,"0")+'"><small><i style="background:var(--team)"></i>'+
+  (id===(mp.active&&!mp.host?mp.slot:0)?'VOS':profiles[id].name)+'</small><strong>'+String(ballHealth[k]||0).padStart(2,"0")+'</strong><span class="hp-track"><span style="width:'+(ballHealth[k]/(k===0?10:7)*100)+'%"></span></span></div>').join("");
 }
 function completeBallistix(){
  if(phase!=="race")return;
@@ -2700,15 +2701,17 @@ function ballTrailUpdate(b,dt){
 function ballUIUpdate(){
  if(ballElapsed-ballLastHudAt<.12)return;
  ballLastHudAt=ballElapsed;
- const p=racers[0];
- $("miniObjective").textContent=ballStatus[0]?ballPulseUntil>ballElapsed?"🛡 PULSO ARMADO":ballElapsed<6?"DEFENDÉ TU ARCO":ballElapsed>=BALL_SUDDEN_DEATH?"⚡ ÚLTIMOS SEGUNDOS":"⚽ "+ballBalls.length+" PELOTA"+(ballBalls.length===1?"":"S"):"ELIMINADO";
- $("miniObjective").classList.toggle("danger",ballHealth[0]<=2||ballElapsed>=BALL_SUDDEN_DEATH);
+ const own=mp.active&&!mp.host?Math.max(0,ballSides.indexOf(mp.slot)):0;
+ const p=racers[ballSides[own]];
+ const cooldown=own===0?ballPulseCd:(p?.ballPulseCd||0);
+ $("miniObjective").textContent=ballStatus[own]?(own===0&&ballPulseUntil>ballElapsed?"🛡 PULSO ARMADO":ballElapsed<6?"DEFENDÉ TU ARCO":ballElapsed>=BALL_SUDDEN_DEATH?"⚡ ÚLTIMOS SEGUNDOS":"⚽ "+ballBalls.length+" PELOTA"+(ballBalls.length===1?"":"S")):"ELIMINADO";
+ $("miniObjective").classList.toggle("danger",ballHealth[own]<=2||ballElapsed>=BALL_SUDDEN_DEATH);
  $("timer").textContent=""+Math.max(0,Math.ceil(BALL_MAX_SECONDS-ballElapsed));
- $("place").innerHTML=ballHealth[0]+"<em> / 10</em>";
- $("jumpCount").textContent=ballPulseUntil>ballElapsed?"ARMADO":ballPulseCd>0?ballPulseCd.toFixed(1)+"s":"LISTO";
- $("jump").classList.toggle("ballistix-pulse-ready",ballPulseCd===0);
- $("jump").classList.toggle("ballistix-pulse-cool",ballPulseCd>0);
- $("dash").textContent=p.dashCd>0?Math.ceil(p.dashCd)+"s":"RÁPIDO";
+ $("place").innerHTML=ballHealth[own]+"<em> / "+(own===0?10:7)+"</em>";
+ $("jumpCount").textContent=own===0&&ballPulseUntil>ballElapsed?"ARMADO":cooldown>0?cooldown.toFixed(1)+"s":"LISTO";
+ $("jump").classList.toggle("ballistix-pulse-ready",cooldown<=0);
+ $("jump").classList.toggle("ballistix-pulse-cool",cooldown>0);
+ $("dash").textContent=p?.dashCd>0?Math.ceil(p.dashCd)+"s":"RÁPIDO";
 }
 function ballTick(dt){
  ballElapsed+=dt;
