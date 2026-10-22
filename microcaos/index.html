@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#0a1226">
+<meta name="theme-color" content="#070f28">
 <title>MICROCAOS — Party Rush · AR 0.7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -92,7 +92,7 @@ body.ballistix-mode .actionbar{gap:12px!important;padding-bottom:5px!important}
 <div id="scene"></div>
 <div id="ui">
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · BALLISTIX V1.5</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · NEÓN V1.6</div></div></div>
 <div class="topright"><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -143,7 +143,7 @@ const rim=new THREE.DirectionalLight(0x6dc9ff,3);rim.position.set(12,6,-17);scen
 const fill=new THREE.PointLight(0xffab71,70,55);fill.position.set(-9,7,4);scene.add(fill);
 const world=new THREE.Group();scene.add(world);const stage=new THREE.Group();world.add(stage);const atmosphere=new THREE.Group();stage.add(atmosphere);
 const mat=(hex,metal=0,rough=.42,extra={})=>new THREE.MeshPhysicalMaterial({color:hex,metalness:metal,roughness:rough,clearcoat:.38,clearcoatRoughness:.19,...extra});
-const navy=mat(0x17304b,.17,.43),ivory=mat(0xf3ecdc,.03,.46),teal=mat(0x4fdacb,.05,.35,{emissive:0x12645a,emissiveIntensity:.12}),gold=mat(0xe6b868,.48,.36),rubber=mat(0x1d506b,.05,.54),pink=mat(0xff729f,.07,.36),white=mat(0xfffaf2,.02,.34),glass=mat(0x142d45,.07,.23,{clearcoat:1}),chrome=mat(0x97abb5,.25,.45,{clearcoat:.62}),carbon=mat(0x0d2035,.11,.66),candy=mat(0xffdc96,.19,.29,{emissive:0x603615,emissiveIntensity:.13});
+const navy=mat(0x132a62,.12,.37),ivory=mat(0xdbeeff,.03,.43),teal=mat(0x25f5e5,.05,.29,{emissive:0x07786d,emissiveIntensity:.22}),gold=mat(0xffd436,.20,.30,{emissive:0xa66e05,emissiveIntensity:.10}),rubber=mat(0x143e78,.08,.50),pink=mat(0xff3d9c,.07,.31),white=mat(0xffffff,.02,.33),glass=mat(0x111c42,.11,.25,{clearcoat:1}),chrome=mat(0x72a9d2,.25,.37,{clearcoat:.7}),carbon=mat(0x09152f,.13,.59),candy=mat(0xffcf35,.25,.28,{emissive:0x864809,emissiveIntensity:.18});
 const sphereG=new THREE.SphereGeometry(1,32,24),cylinderG=new THREE.CylinderGeometry(1,1,1,24),boxG=new THREE.BoxGeometry(1,1,1),softG=new RoundedBoxGeometry(1,1,1,3,.13);
 const mesh=(g,m,parent,pos=[0,0,0],scale=[1,1,1],shadow=true)=>{let o=new THREE.Mesh(g,m);o.position.set(...pos);o.scale.set(...scale);o.castShadow=shadow;o.receiveShadow=true;parent.add(o);return o};
 const ball=(m,p,pos,s)=>mesh(sphereG,m,p,pos,s),box=(m,p,pos,s)=>mesh(boxG,m,p,pos,s),soft=(m,p,pos,s)=>mesh(softG,m,p,pos,s),cyl=(m,p,pos,top,bottom,height)=>{let o=mesh(new THREE.CylinderGeometry(top,bottom,height,24),m,p,pos);return o};
@@ -189,7 +189,7 @@ function makeScenery(){
 makeScenery();
 
 function polishRaceArena(){
- const led=mat(0x90ffea,.02,.21,{emissive:0x57ffe5,emissiveIntensity:.7}),goldTrim=mat(0xeec77c,.43,.36),dark=mat(0x173751,.18,.42);
+ const led=mat(0x28ffe7,.02,.22,{emissive:0x00d0c0,emissiveIntensity:.55}),goldTrim=mat(0xffca30,.30,.33),dark=mat(0x192d65,.12,.41);
  for(let side of [-1,1]){
   soft(led,stage,[side*4.38,.21,0],[.09,.055,29.7]);
   soft(goldTrim,stage,[side*5.05,.15,0],[.13,.12,30.5]);
@@ -239,11 +239,11 @@ makePistons(-1.15);
 
 function makeGate(z){for(let x of [-4.3,4.3]){box(navy,stage,[x,.65,z],[.3,1.3,.3]);ball(gold,stage,[x,1.37,z],[.2,.18,.2])}box(teal,stage,[0,1.3,z],[8.85,.23,.35]);const sign=textSprite("META",56,"#ffdc82");sign.position.set(0,2.03,z);stage.add(sign)}makeGate(-12.82);
 const raceDecor=[...stage.children];
-const colors=[0xe3bc71,0xffbad4,0xa18bf1,0x74e8c3,0xf1ad70,0xebf0f4];
+const colors=[0x29f5df,0xff604d,0x8b59ff,0xa4ff3f,0xffac26,0x338bff];
 const profiles=[{name:"VOS",speed:1.79,skill:.87},{name:"POP",speed:1.60,skill:.76},{name:"NIX",speed:1.83,skill:.87},{name:"BOOM",speed:1.56,skill:.56},{name:"KIWI",speed:1.70,skill:.74},{name:"ZAP",speed:1.89,skill:.92}];
 const racers=[];
 function createCharacter(col,index){const root=new THREE.Group();stage.add(root);const shade=new THREE.Mesh(new THREE.CircleGeometry(.58,32),new THREE.MeshBasicMaterial({color:0x001224,transparent:true,opacity:.28,depthWrite:false}));shade.rotation.x=-Math.PI/2;shade.position.y=.072;root.add(shade);
-const rig=new THREE.Group();root.add(rig);const bodyMat=mat(col,.04,.35,{clearcoat:.6}),dark=mat(0x19344a,.12,.45);
+const rig=new THREE.Group();root.add(rig);const bodyMat=mat(col,.07,.29,{clearcoat:.76}),dark=mat(0x152449,.12,.40);
 ball(bodyMat,rig,[0,.76,0],[.49,.66,.43]);ball(bodyMat,rig,[0,1.13,-.02],[.44,.48,.42]);ball(white,rig,[-.175,1.16,-.396],[.16,.21,.105]);ball(white,rig,[.175,1.16,-.396],[.16,.21,.105]);ball(glass,rig,[-.145,1.14,-.497],[.093,.14,.043]);ball(glass,rig,[.145,1.14,-.497],[.093,.14,.043]);ball(white,rig,[-.169,1.205,-.538],[.029,.043,.013]);ball(white,rig,[.124,1.205,-.538],[.029,.043,.013]);for(let x of [-.33,.33])ball(pink,rig,[x,.92,-.357],[.095,.055,.034]);let smile=mesh(new THREE.TorusGeometry(.13,.023,8,24,Math.PI),dark,rig,[0,.893,-.414],[1,1,1]);smile.rotation.z=Math.PI;const shine=ball(white,rig,[-.25,1.42,-.24],[.11,.09,.035]);shine.material=mat(0xffffff,0,.25,{transparent:true,opacity:.21});
 const arms=[];for(let side of [-1,1]){let a=new THREE.Group();a.position.set(side*.47,.86,0);rig.add(a);ball(bodyMat,a,[side*.11,-.19,0],[.18,.31,.2]);ball(white,a,[side*.13,-.4,-.02],[.19,.18,.18]);arms.push(a)}
 const feet=[];for(let side of [-1,1]){let f=new THREE.Group();f.position.set(side*.25,.2,0);rig.add(f);ball(dark,f,[0,.015,-.09],[.23,.22,.35]);box(white,f,[0,-.125,-.15],[.43,.075,.47]);feet.push(f)}
@@ -255,7 +255,7 @@ return{root,rig,arms,feet,shade,index,name:profiles[index].name,x:0,z:0,y:0,vy:0
 for(let i=0;i<6;i++)racers.push(createCharacter(colors[i],i));
 
 function detailCharacter(r,col,index){
-  const {rig,root}=r,trim=mat(0xf2dfb8,.23,.35),suit=mat(0x203751,.14,.44),metallic=mat(col,.07,.37,{clearcoat:.65});
+  const {rig,root}=r,trim=mat(0xffe26a,.17,.31),suit=mat(0x13295a,.14,.35),metallic=mat(col,.08,.30,{clearcoat:.72});
   soft(suit,rig,[0,.59,-.367],[.51,.31,.19]);soft(trim,rig,[0,.64,-.476],[.33,.09,.039]);soft(metallic,rig,[0,.5,-.478],[.25,.07,.038]);
   for(let side of [-1,1]){soft(metallic,rig,[side*.3,.35,-.05],[.21,.23,.29]);ball(trim,rig,[side*.39,.95,.04],[.09,.085,.11])}
   for(let x of [-.26,.26])ball(white,rig,[x,1.33,-.345],[.07,.048,.037]);
@@ -279,8 +279,8 @@ function detailCharacter(r,col,index){
 for(let i=0;i<racers.length;i++)detailCharacter(racers[i],colors[i],i);
 
 function addCollectorIdentity(r,i){
- const p=r.rig,matte=h=>mat(h,.035,.36,{clearcoat:.56}),cl=[0xeac478,0xf6acc7,0xa58ee9,0x60d8b9,0xf0ad73,0xeceef3][i];
- const c=matte(cl),accent=matte([0xffeab4,0xff7ea8,0x7157ce,0x259f9c,0x517dc1,0x233653][i]);
+ const p=r.rig,matte=h=>mat(h,.065,.30,{clearcoat:.66}),cl=[0x27dccf,0xff795f,0x9b72ff,0xb0f65a,0xffa72e,0x458eff][i];
+ const c=matte(cl),accent=matte([0xffdf52,0xffd94f,0xf542b7,0x2bece0,0x3588ff,0x76efff][i]);
  for(let d of [-1,1]){ball(c,p,[d*.48,.8,.055],[.20,.28,.19]);ball(accent,p,[d*.26,.20,-.14],[.23,.14,.28]);}
  soft(accent,p,[0,.70,-.42],[.43,.29,.11]);soft(white,p,[0,.76,-.485],[.33,.07,.035]);
  if(i===0){for(let x of [-.34,.34]){ball(c,p,[x,1.56,0],[.19,.19,.18]);ball(accent,p,[x,1.58,-.09],[.095,.09,.045]);}}
@@ -397,21 +397,21 @@ for(let side of [-1,1]){
 // Four distinct 3D arenas; only one is visible per round.
 // This is real Three.js geometry, not a static illustration.
 const MINI_MODES={
- tag:{title:"LA MANCHA DE LA PESA",emoji:"⚖",objective:"¡PASÁ LA PESA!",time:12.5,color:0xff839e},
- gems:{title:"FIEBRE DE GEMAS",emoji:"💎",objective:"¡JUNTÁ GEMAS!",time:25,color:0xffdb83},
- survival:{title:"EL PISO SE HUNDE",emoji:"🌀",objective:"¡ENTRÁ EN EL CÍRCULO!",time:26,color:0x91b4ff},
+ tag:{title:"LA MANCHA DE LA PESA",emoji:"⚖",objective:"¡PASÁ LA PESA!",time:12.5,color:0xff438d},
+ gems:{title:"FIEBRE DE GEMAS",emoji:"💎",objective:"¡JUNTÁ GEMAS!",time:25,color:0xffd13e},
+ survival:{title:"EL PISO SE HUNDE",emoji:"🌀",objective:"¡ENTRÁ EN EL CÍRCULO!",time:26,color:0x835eff},
  ballistix:{title:"BATALLA BALLISTIX",emoji:"⚽",objective:"¡DEFENDÉ TU ARCO!",time:0,color:0x87efff},
  race:{title:"CARRERA LOCA",emoji:"🏁",objective:"¡LLEGÁ A LA META!",time:53,color:0x80ffe5}
 };
 const miniStages={};
 const miniAccent={
- tag:mat(0xff85a3,.10,.29,{emissive:0xbf315e,emissiveIntensity:.21}),
- gems:mat(0xffd58b,.12,.32,{emissive:0xa56d17,emissiveIntensity:.25}),
- survival:mat(0x97b4ff,.08,.34,{emissive:0x4c53af,emissiveIntensity:.25})
+ tag:mat(0xff3387,.10,.28,{emissive:0x951447,emissiveIntensity:.30}),
+ gems:mat(0xffcf30,.12,.29,{emissive:0xb17005,emissiveIntensity:.34}),
+ survival:mat(0x8c5cff,.08,.28,{emissive:0x4223b0,emissiveIntensity:.37})
 };
 for(const modeName of ["tag","gems","survival"]){
  const area=new THREE.Group();area.visible=false;stage.add(area);miniStages[modeName]=area;
- const border=miniAccent[modeName],floorMat=mat(modeName==="tag"?0x33223b:modeName==="gems"?0x203c50:0x232e58,.08,.58);
+ const border=miniAccent[modeName],floorMat=mat(modeName==="tag"?0x270d36:modeName==="gems"?0x092f56:0x191b59,.08,.52);
  soft(navy,area,[0,-.56,0],[12.0,.96,17.0]);
  soft(border,area,[0,-.1,0],[11.5,.17,16.5]);
  soft(floorMat,area,[0,.02,0],[10.0,.13,14.8]);
@@ -424,7 +424,7 @@ for(const modeName of ["tag","gems","survival"]){
  }
  for(let z=-5.8;z<=5.8;z+=2.3){
   for(let x=-3.6;x<=3.6;x+=2.4){
-   const shade=mat(modeName==="tag"?0x53334d:modeName==="gems"?0x2a5264:0x344475,.05,.66);
+   const shade=mat(modeName==="tag"?0x521445:modeName==="gems"?0x155376:0x2c2984,.05,.56);
    soft(shade,area,[x,.107,z],[2.25,.019,2.15],false);
   }
  }
@@ -498,12 +498,12 @@ function choosePlaylist(){
 // and pulse lets the player launch a well-timed counterattack.
 const ballArena=new THREE.Group();ballArena.visible=false;stage.add(ballArena);
 const BM={
- floor:new THREE.MeshBasicMaterial({color:0x071a35}),floor2:new THREE.MeshBasicMaterial({color:0x113657}),rim:mat(0x0a162a,.12,.56),
- trim:mat(0x2ac9d6,.25,.36,{emissive:0x0f7185,emissiveIntensity:.2}),cyan:mat(0x56f8ee,.06,.35,{emissive:0x28a8a6,emissiveIntensity:.38}),
- violet:mat(0xae8cfb,.09,.28,{emissive:0x5d2db6,emissiveIntensity:.37}),
- red:mat(0xff6e89,.09,.27,{emissive:0xb52949,emissiveIntensity:.36}),
- glow:mat(0xd5fdfd,.10,.26,{emissive:0x57f0ee,emissiveIntensity:.36}),
- metal:mat(0x849bb5,.55,.29)
+ floor:new THREE.MeshBasicMaterial({color:0x071739}),floor2:new THREE.MeshBasicMaterial({color:0x124a86}),rim:mat(0x080d27,.12,.52),
+ trim:mat(0x31ddff,.17,.25,{emissive:0x067bb0,emissiveIntensity:.45}),cyan:mat(0x25f6f0,.06,.23,{emissive:0x06b5aa,emissiveIntensity:.48}),
+ violet:mat(0x9251ff,.09,.24,{emissive:0x4b12ae,emissiveIntensity:.45}),
+ red:mat(0xff317b,.09,.23,{emissive:0xaf144f,emissiveIntensity:.44}),
+ glow:mat(0xb1ffff,.07,.22,{emissive:0x22d8ee,emissiveIntensity:.46}),
+ metal:mat(0x438bc7,.36,.28)
 };
 soft(BM.rim,ballArena,[0,-.59,0],[13.6,1.05,13.6]);
 soft(BM.trim,ballArena,[0,-.16,0],[13.2,.17,13.2]);
@@ -520,9 +520,9 @@ for(const [x,z] of [[-5,-5],[5,5],[-5,5],[5,-5]]){
  const t=soft(BM.trim,ballArena,[x,.53,z],[1.18,1.12,1.18]);
  const lamp=ball(BM.glow,ballArena,[x,1.24,z],[.27,.22,.27]);lamp.castShadow=false;
 }
-const ballGoalMats=Array.from({length:4},(_,j)=>mat([0x74f8df,0xa1a1ff,0xffa57f,0xff86b0][j],.07,.27,{emissive:[0x217a76,0x4747c3,0xc16336,0xbc375a][j],emissiveIntensity:.38}));
-const ballFloorAccent=new THREE.MeshBasicMaterial({color:0x4eece9,transparent:true,opacity:.45,depthWrite:false});
-const ballFloorViolet=new THREE.MeshBasicMaterial({color:0x9f92ff,transparent:true,opacity:.42,depthWrite:false});
+const ballGoalMats=Array.from({length:4},(_,j)=>mat([0x29f5df,0xff604d,0x8b59ff,0xa4ff3f][j],.07,.25,{emissive:[0x009c90,0xa5271c,0x451ac1,0x569b0c][j],emissiveIntensity:.43}));
+const ballFloorAccent=new THREE.MeshBasicMaterial({color:0x12f6e5,transparent:true,opacity:.75,depthWrite:false});
+const ballFloorViolet=new THREE.MeshBasicMaterial({color:0xa65cff,transparent:true,opacity:.70,depthWrite:false});
 // Broadcast-arena markings: restrained floor light strips and corner team emblems.
 for(const sign of [-1,1]){
  for(let corner of [-1,1]){
@@ -537,7 +537,7 @@ for(const sign of [-1,1]){
 const ballCenterMedallion=new THREE.Group();ballArena.add(ballCenterMedallion);
 const medallionBase=new THREE.Mesh(new THREE.CylinderGeometry(.68,.68,.08,32),BM.rim);
 medallionBase.position.y=.16;medallionBase.receiveShadow=true;ballCenterMedallion.add(medallionBase);
-const medallionInset=mesh(new THREE.OctahedronGeometry(.28,0),BM.cyan,ballCenterMedallion,[0,.30,0],[1,.28,1],false);
+const medallionInset=mesh(new THREE.OctahedronGeometry(.33,0),BM.violet,ballCenterMedallion,[0,.30,0],[1,.28,1],false);
 medallionInset.rotation.y=Math.PI/4;medallionInset.castShadow=false;
 
 const BALL_SIDES=["bottom","top","left","right"];
@@ -598,11 +598,11 @@ let ballSides=[],ballHealth=[],ballStatus=[],ballBalls=[],ballPool=[],ballSpawnD
 const ballShipPrevPositions=[0,0,0,0],ballSaves=[0,0,0,0],ballStats={hits:0,goals:0,corner:0,restarts:0,physicsErrors:0};
 const BALL_MAX_SECONDS=76,BALL_SUDDEN_DEATH=58;
 const ballBallMats=[
- mat(0xdcecfb,.55,.19,{emissive:0x1c6eab,emissiveIntensity:.25}),
- mat(0xffd79d,.43,.25,{emissive:0xaa691c,emissiveIntensity:.30}),
- mat(0xb8ffe9,.28,.25,{emissive:0x137b66,emissiveIntensity:.32}),
- mat(0xffadd6,.27,.28,{emissive:0xa73c80,emissiveIntensity:.30}),
- mat(0xbeb7ff,.30,.20,{emissive:0x6555bc,emissiveIntensity:.35})
+ mat(0x28eafc,.18,.20,{emissive:0x00a9ca,emissiveIntensity:.48}),
+ mat(0xffc531,.22,.21,{emissive:0xcb6300,emissiveIntensity:.42}),
+ mat(0xb5ff44,.16,.21,{emissive:0x4eb500,emissiveIntensity:.40}),
+ mat(0xff3b99,.15,.22,{emissive:0xb0126d,emissiveIntensity:.42}),
+ mat(0x9a62ff,.18,.20,{emissive:0x4f1cb7,emissiveIntensity:.45})
 ];
 const ballPulseFx=mesh(new THREE.TorusGeometry(.72,.095,9,42),BM.cyan,ballArena,[0,.66,0]);
 ballPulseFx.rotation.x=Math.PI/2;ballPulseFx.visible=false;ballPulseFx.castShadow=false;
