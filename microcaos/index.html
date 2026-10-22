@@ -29,7 +29,7 @@ html.xr-active,html.xr-active body,html.xr-active #scene{background:transparent!
 <div id="scene"></div>
 <div id="ui">
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · GAMEPLAY V0.8</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MOVIMIENTO V0.9</div></div></div>
 <div class="topright"><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel">POSICIÓN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -315,11 +315,12 @@ let bestTime=0;try{bestTime=Number(localStorage.getItem("microcaos_best_v2")||0)
 let mode="preview",session=null,hitSource=null,hitRequested=false,placed=false,videoStream=null,camEnabled=false,phase="intro",elapsed=0,countdown=0,steer=0,moveTouch=false,soundOn=true,audio=null,lastToast=0,last=0,finishAt=0,checkpoint=-1,stunMessage=0;let skillToastUntil=0,runParticles=0,zoomEase=0;
 function cue(f=440,d=.1,type="sine",volume=.06){if(!soundOn)return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();if(audio.state==="suspended")audio.resume();const o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.setValueAtTime(f,audio.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(100,f*.58),audio.currentTime+d);g.gain.setValueAtTime(volume,audio.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+d);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+d)}catch(e){}}
 function announce(s,ms=1100){$("toast").textContent=s;$("toast").classList.add("show");lastToast=performance.now()+ms}
-function begin(){if(mode==="ar"&&!placed){announce("TOCÁ UNA SUPERFICIE",1400);return}phase="countdown";elapsed=0;countdown=2.75;checkpoint=-1;$("intro").classList.add("hidden");$("finish").classList.remove("show");$("hud").classList.add("on");$("progress").classList.add("on");$("controls").classList.add("on");racers.forEach((r,i)=>{r.x=(i-2.5)*1.29;r.z=12.2+(i%2)*1.0;r.y=0;r.vy=0;r.stun=0;r.dash=0;r.dashCd=0;r.finished=false;r.finishTime=0;r.cool=0;r.stumbles=0;r.stars=0;r.invuln=0;r.animationName="";r.jumpCount=0;r.jumpBuffer=0;r.padCooldown=null;r.coyote=0;r.airTime=0;r.jumpFlash=0;r.landing=0;r.combo=0;r.speedBonus=0;r.nearMisses=new Set();r.root.position.set(r.x,0,r.z);if(r.mixer)r.mixer.stopAllAction();useAnimation(r,"Idle")});$("progressBar").style.width="0%";$("pickupValue").textContent="0";$("pickupCounter").classList.add("on");$("rushHud").classList.remove("on");$("skillToast").classList.remove("on");$("obstacleHint").classList.remove("on");$("jumpCount").textContent="×2";for(let s of stars){s.used=false;s.g.visible=true}cue(520,.13);announce("¡PREPARADOS!",1100)}
+function begin(){if(mode==="ar"&&!placed){announce("TOCÁ UNA SUPERFICIE",1400);return}phase="countdown";elapsed=0;countdown=2.75;checkpoint=-1;$("intro").classList.add("hidden");$("finish").classList.remove("show");$("hud").classList.add("on");$("progress").classList.add("on");$("controls").classList.add("on");racers.forEach((r,i)=>{r.x=(i-2.5)*1.29;r.z=12.2+(i%2)*1.0;r.y=0;r.vy=0;r.stun=0;r.dash=0;r.dashCd=0;r.finished=false;r.finishTime=0;r.cool=0;r.stumbles=0;r.stars=0;r.invuln=0;r.animationName="";r.jumpCount=0;r.jumpBuffer=0;r.padCooldown=null;r.vx=0;r.lean=0;r.animDistance=0;r.coyote=0;r.airTime=0;r.jumpFlash=0;r.landing=0;r.combo=0;r.speedBonus=0;r.nearMisses=new Set();r.root.position.set(r.x,0,r.z);if(r.mixer)r.mixer.stopAllAction();useAnimation(r,"Idle")});$("progressBar").style.width="0%";$("pickupValue").textContent="0";$("pickupCounter").classList.add("on");$("rushHud").classList.remove("on");$("skillToast").classList.remove("on");$("obstacleHint").classList.remove("on");$("jumpCount").textContent="×2";for(let s of stars){s.used=false;s.g.visible=true}cue(520,.13);announce("¡PREPARADOS!",1100)}
 function hit(r,power=1){
  if(r.invuln>0||r.y>.75||r.dash>.10)return;
- r.stun=.30;r.invuln=1.15;r.speedBonus=0;r.combo=0;r.z+=.23*power;
- r.x=clamp(r.x+rand(-.60,.60),-3.36,3.36);
+ r.stun=.21;r.invuln=1.05;r.speedBonus=0;r.combo=0;
+ // Do not teleport the character when hit; collisions only change lateral momentum.
+ r.vx=(r.vx||0)+(r.x>=0?.9:-.9)*power;
  r.stumbles++;useAnimation(r,"Hit");puff(r.x,r.z,0xffd578,12);
  if(r.index===0){tactile(32);cameraShake=.16;cue(210,.13,"triangle",.075);skillMessage("¡REBOTE! SEGUÍ",650);}
 }
@@ -375,9 +376,17 @@ function move(dt,t){
   }else{
    lateral=steer;
   }
-  // Instant horizontal reaction with steering in mid-air, less punishment on contact.
-  r.x=clamp(r.x+lateral*dt*(r.stun>0?4.2:(bot?6.2:7.8)),-3.45,3.45);
-  const forward=r.speed*(r.stun>0?.57:1)*(r.dash>0?1.72:1)*(r.speedBonus>0?1.16:1);
+  // Time-based lateral acceleration and drag. No discontinuous X-position snaps.
+  // Changes direction quickly, but momentum is predictable during jumps.
+  const topSpeed=bot?4.65:5.0;
+  const targetVelocity=lateral*topSpeed;
+  const response=bot?12.0:(r.y>.1?15.0:19.0);
+  r.vx=(r.vx||0)+(targetVelocity-(r.vx||0))*(1-Math.exp(-response*dt));
+  const nextX=r.x+r.vx*dt;
+  r.x=clamp(nextX,-3.38,3.38);
+  if(nextX!==r.x)r.vx=0;
+  r.lean=(r.lean||0)+(clamp(-r.vx*.055,-.22,.22)-(r.lean||0))*(1-Math.exp(-11*dt));
+  const forward=r.speed*(r.stun>0?.72:1)*(r.dash>0?1.72:1)*(r.speedBonus>0?1.16:1);
   r.z-=forward*dt;
   const airborne=r.y>.015||r.vy>0;
   if(airborne){r.vy-=18.5*dt;r.y=Math.max(0,r.y+r.vy*dt);r.airTime+=dt}else{r.y=0;r.vy=0}
@@ -418,13 +427,13 @@ function move(dt,t){
    puff(r.x,r.z,0xffd978,18);useAnimation(r,"Dance");
    if(i===0){finishRace();break}
   }
-  const run=t*(r.stun>0?8:r.dash>0?22:16)+r.phase;
+  r.animDistance=(r.animDistance||0)+dt*(r.stun>0?9:r.dash>0?22:15);const run=r.animDistance+r.phase;
   r.root.position.set(r.x,r.y,r.z);
-  r.root.rotation.y=clamp(-lateral*.23,-.34,.34);
+  r.root.rotation.y=(r.root.rotation.y||0)+(r.lean-r.root.rotation.y)*(1-Math.exp(-12*dt));
   if(r.robot)useAnimation(r,r.stun>0?"Hit":r.y>.2?"Jump":"Run");
-  r.rig.position.y=Math.sin(run*1.35)*(r.y>.1?.019:.065)+(r.stun>0?-.06:0);
-  r.rig.rotation.z=r.stun>0?Math.sin(t*16)*.24:Math.sin(run)*.05;
-  const landSquash=r.landing>0?Math.sin(r.landing/.18*Math.PI)*.16:0;
+  r.rig.position.y=Math.sin(run*1.15)*(r.y>.1?.012:.036)+(r.stun>0?-.035:0);
+  r.rig.rotation.z=r.stun>0?Math.sin(t*14)*.08:Math.sin(run)*.028;
+  const landSquash=r.landing>0?Math.sin(r.landing/.18*Math.PI)*.075:0;
   r.rig.scale.set(1+landSquash,1-landSquash,1+landSquash);
   r.arms.forEach((a,j)=>{a.rotation.x=Math.sin(run+j*Math.PI)*(r.y>.1?.20:.80)});
   r.feet.forEach((f,j)=>{f.rotation.x=Math.sin(run+j*Math.PI)*(r.y>.1?.17:.73)});
@@ -479,7 +488,23 @@ function performJump(r,double=false){
  }
  return true;
 }
-function separateRacers(dt){for(let i=0;i<racers.length;i++)for(let j=i+1;j<racers.length;j++){const a=racers[i],b=racers[j];if(a.finished||b.finished)continue;const dx=b.x-a.x,dz=b.z-a.z;if(Math.abs(dx)<.65&&Math.abs(dz)<.7){const push=(.67-Math.abs(dx))*.18*(dx>=0?1:-1);a.x=clamp(a.x-push,-3.48,3.48);b.x=clamp(b.x+push,-3.48,3.48);a.root.position.x=a.x;b.root.position.x=b.x;}}}
+function separateRacers(dt){
+ // Soft, velocity-based interactions instead of teleporting opponents sideways.
+ for(let i=0;i<racers.length;i++){
+  for(let j=i+1;j<racers.length;j++){
+   const a=racers[i],b=racers[j];
+   if(a.finished||b.finished||a.y>.55||b.y>.55)continue;
+   const dx=b.x-a.x,dz=b.z-a.z;
+   if(Math.abs(dx)<.68&&Math.abs(dz)<.55){
+    const side=Math.abs(dx)>.04?Math.sign(dx):(a.index<b.index?1:-1);
+    const overlap=.68-Math.abs(dx);
+    const softPush=Math.min(1.6,overlap*4)*dt;
+    a.vx=(a.vx||0)-side*softPush*3;
+    b.vx=(b.vx||0)+side*softPush*3;
+   }
+  }
+ }
+}
 
 function jump(){
  const p=racers[0];
@@ -631,7 +656,7 @@ const keys=new Set();addEventListener("keydown",e=>{keys.add(e.code);if(["Space"
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&phase==="race"){phase="paused";$("notice").textContent="Partida en pausa. Tocá para continuar.";$("notice").classList.add("show")}});
 $("notice").addEventListener("click",()=>{if(phase==="paused"){phase="race";$("notice").classList.remove("show")}});
 renderer.domElement.addEventListener("webglcontextlost",e=>{e.preventDefault();$("notice").textContent="Se perdió el contexto gráfico. Actualizá la página para recuperar el juego.";$("notice").classList.add("show")});
-for(let i=0;i<racers.length;i++){const r=racers[i];r.x=(i-2.5)*1.29;r.z=12.2+(i%2);r.root.position.set(r.x,0,r.z);r.jumpCount=0;r.jumpBuffer=0;r.padCooldown=null;r.nearMisses=new Set()}
+for(let i=0;i<racers.length;i++){const r=racers[i];r.x=(i-2.5)*1.29;r.z=12.2+(i%2);r.root.position.set(r.x,0,r.z);r.vx=0;r.lean=0;r.animDistance=0;r.jumpCount=0;r.jumpBuffer=0;r.padCooldown=null;r.nearMisses=new Set()}
 </script>
 </body>
 </html>
