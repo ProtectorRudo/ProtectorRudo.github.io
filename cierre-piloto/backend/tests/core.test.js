@@ -1,6 +1,6 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
-import {classifyText,isQuoteFilename,normaliseWebhook,transition} from "./core.js";
+import {classifyText,isQuoteFilename,normaliseWebhook,transition,extractEventSignal,shouldForceSafetyHold,safetyStateForLateSignal} from "./core.js";
 const messages=[
  ["Muchas gracias","in","ack"],
  ["No me interesa","in","rejected"],
@@ -65,4 +65,28 @@ test("un gracias no cierra una consulta sin responder",()=>{
 test("un gracias normal mantiene una propuesta como candidata",()=>{
  const state=transition({quoteAt:10,status:"candidate",reason:"PDF"},{direction:"in",text:"Gracias",createdAt:20});
  assert.equal(state.status,"candidate");
+});
+
+test("un PDF comercial se identifica inequívocamente",()=>{
+ assert.equal(extractEventSignal({direction:"out",kind:"document",filename:"Presupuesto N123.pdf"}),"quote_pdf");
+});
+test("una factura PDF no crea presupuestos",()=>{
+ assert.equal(extractEventSignal({direction:"out",kind:"document",filename:"factura-123.pdf"}),"unverified_document");
+});
+test("un documento sin nombre requiere revisión",()=>{
+ assert.equal(extractEventSignal({direction:"out",kind:"document",filename:null}),"unverified_document");
+});
+test("una foto de comprobante no se supone inocua",()=>{
+ assert.equal(extractEventSignal({direction:"in",kind:"image"}),"non_text");
+ assert.equal(shouldForceSafetyHold("non_text"),true);
+});
+test("los pagos tardíos bloquean, no reactivan",()=>{
+ assert.equal(safetyStateForLateSignal("purchased"),"blocked");
+ assert.equal(safetyStateForLateSignal("rejected"),"blocked");
+});
+test("consulta tardía obliga a revisar, no volver a contactar",()=>{
+ assert.equal(safetyStateForLateSignal("question"),"review");
+});
+test("nuevo mensaje del vendedor tras PDF exige revisar",()=>{
+ assert.equal(transition({quoteAt:1,status:"candidate"},{createdAt:2,direction:"out",text:"Te mandé el número del camión"}).status,"review");
 });
