@@ -543,8 +543,12 @@ soft(BM.rim,ballArena,[0,-.59,0],[13.6,1.05,13.6]);
 soft(BM.trim,ballArena,[0,-.16,0],[13.2,.17,13.2]);
 soft(BM.floor,ballArena,[0,-.053,0],[12.7,.11,12.7]);
 soft(BM.floor2,ballArena,[0,.01,0],[10.0,.10,10.0]);
-for(let x=-3.75;x<=3.75;x+=2.5)for(let z=-3.75;z<=3.75;z+=2.5){
- soft(BM.floor,ballArena,[x,.07,z],[2.39,.011,2.39],false);
+// Checker tiles add richer cobalt/indigo contrast, with just two shared materials.
+const ballTileDark=new THREE.MeshBasicMaterial({color:0x092654});
+const ballTileBlue=new THREE.MeshBasicMaterial({color:0x153c88});
+for(let i=0;i<4;i++)for(let j=0;j<4;j++){
+ const x=-3.75+i*2.5,z=-3.75+j*2.5;
+ soft((i+j)%2?ballTileBlue:ballTileDark,ballArena,[x,.07,z],[2.39,.011,2.39],false);
 }
 for(let r=0;r<2;r++){
  const border=mesh(new THREE.TorusGeometry(1.65+r*1.82,.028,9,72),r===0?BM.violet:BM.cyan,ballArena,[0,.135,0]);
@@ -555,6 +559,22 @@ for(const [x,z] of [[-5,-5],[5,5],[-5,5],[5,-5]]){
  const lamp=ball(BM.glow,ballArena,[x,1.24,z],[.27,.22,.27]);lamp.castShadow=false;
 }
 const ballGoalMats=Array.from({length:4},(_,j)=>mat([0x29f5df,0xff604d,0x8b59ff,0xa4ff3f][j],.07,.25,{emissive:[0x009c90,0xa5271c,0x451ac1,0x569b0c][j],emissiveIntensity:.43}));
+const ballTeamLEDs=[0x25ffe6,0xff503d,0x9457ff,0xa5ff39].map(col=>new THREE.MeshBasicMaterial({color:col}));
+const ballGoalFlash=new Float32Array(4);
+// Each side has a bright, distinct team LED. These are decorative only, not colliders.
+for(let k=0;k<4;k++){
+ const alongZ=k===0||k===1;
+ const sign=k===0?1:k===1?-1:k===2?-1:1;
+ const location=sign*4.62;
+ soft(ballTeamLEDs[k],ballArena,
+   alongZ?[0,.16,location]:[location,.16,0],
+   alongZ?[6.6,.055,.10]:[.10,.055,6.6],false);
+ for(let t of [-2.7,2.7]){
+  soft(ballTeamLEDs[k],ballArena,
+   alongZ?[t,.20,location]:[location,.20,t],
+   alongZ?[.15,.14,.20]:[.20,.14,.15],false);
+ }
+}
 const ballFloorAccent=new THREE.MeshBasicMaterial({color:0x12f6e5,transparent:true,opacity:.75,depthWrite:false});
 const ballFloorViolet=new THREE.MeshBasicMaterial({color:0xa65cff,transparent:true,opacity:.70,depthWrite:false});
 // Broadcast-arena markings: restrained floor light strips and corner team emblems.
@@ -684,7 +704,7 @@ function startBallistix(){
  ballElapsed=0;ballSpawnDelay=14;ballTimeSinceScore=0;ballLastHudAt=-1;
  ballSides=[0,...contestants.filter(i=>i!==0)];
  if(ballSides.length!==4)throw new Error("Ballistix requires exactly four contestants");
- ballHealth=[10,7,7,7];ballStatus=Array(4).fill(true);ballSaves.fill(0);
+ ballHealth=[10,7,7,7];ballStatus=Array(4).fill(true);ballSaves.fill(0);ballGoalFlash.fill(0);ballGoalMats.forEach(m=>m.emissiveIntensity=.43);
  ballPulseUntil=0;ballPulseCd=0;
  ballBalls.forEach(b=>{b.g.visible=false;b.trails.forEach(t=>t.visible=false)});
  ballBalls.length=0;ballStats.restarts++;
@@ -791,7 +811,7 @@ function ballContact(b,k,projectedPosition=ballShipPositions[k]){
   b.vz=offset*1.60+ballShipVel(k);
   b.x=k===2?-ballPaddleAt+.43:ballPaddleAt-.43;
  }
- ballNormalize(b,Math.min(12.6,s*(hot?1.40:1.035)));b.glow=hot?1:.5;ballStats.hits++;ballSaves[k]++;
+ ballNormalize(b,Math.min(12.6,s*(hot?1.40:1.035)));b.glow=hot?1:.5;ballStats.hits++;ballSaves[k]++;ballGoalFlash[k]=hot?1.2:.68;
  ballShipGroups[k].scale.y=.84;
  puff(b.x,b.z,ballGoalMats[k].color.getHex(),hot?11:5);
  b.immunity=.11;
@@ -811,7 +831,7 @@ function ballGoal(b,k){
   if(k===2)b.vx=Math.abs(b.vx);
   if(k===3)b.vx=-Math.abs(b.vx);
  }else{
-  ballHealth[k]=Math.max(0,ballHealth[k]-1);
+  ballHealth[k]=Math.max(0,ballHealth[k]-1);ballGoalFlash[k]=1.7;
   ballTimeSinceScore=ballElapsed;
   puff(b.x,b.z,ballGoalMats[k].color.getHex(),16);
   if(k===0){cue(140,.19,"sawtooth",.12);tactile(60);skillMessage("¡GOL EN CONTRA! -1 VIDA",750)}
@@ -947,6 +967,12 @@ function ballUIUpdate(){
 function ballTick(dt){
  ballElapsed+=dt;
  ballCenterMedallion.rotation.y=ballElapsed*.24;
+ for(let k=0;k<4;k++){
+  if(ballGoalFlash[k]>.005){
+   ballGoalFlash[k]=Math.max(0,ballGoalFlash[k]-dt*3.5);
+   ballGoalMats[k].emissiveIntensity=.43+ballGoalFlash[k]*.68;
+  }else if(ballGoalMats[k].emissiveIntensity!==.43){ballGoalMats[k].emissiveIntensity=.43}
+ }
  if(ballStatus.filter(Boolean).length<=3){completeBallistix();return}
  if(ballElapsed>=BALL_MAX_SECONDS){
   // A guaranteed ending: lowest surviving health is eliminated at the buzzer.
