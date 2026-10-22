@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#070f28">
-<title>MICROCAOS — Premium Edition V3.4 · 7 juegos AR</title>
+<title>MICROCAOS — Cinematic Edition V3.5 · 7 juegos AR</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -328,6 +328,18 @@ html.xr-active #scene:after{display:none!important}
 .mascot-option span{filter:drop-shadow(0 3px 7px #0007)}
 @media(hover:hover){.mascot-option:hover{transform:translateY(-3px)}}
 html.xr-active .menu-feature{box-shadow:none!important}
+
+/* V3.5: theatrical broadcast graphics, with no opaque panels over gameplay. */
+body.colorcrash-mode .color-crash-hud{border:1px solid color-mix(in srgb,var(--cc) 72%,white)!important;
+ box-shadow:0 15px 42px #000c,0 0 30px color-mix(in srgb,var(--cc) 22%,transparent),inset 0 1px 0 #ffffff32!important;
+ width:min(400px,88vw)!important}
+body.colorcrash-mode .cc-call strong{font-size:clamp(25px,5vw,33px);letter-spacing:-.02em}
+body.colorcrash-mode .cc-symbol{width:50px;height:50px;border-radius:14px}
+body.colorcrash-mode .color-crash-hud.critical{animation:v35Pulse .29s linear infinite alternate}
+@keyframes v35Pulse{to{filter:brightness(1.15);border-color:#fff!important}}
+body:not(.colorcrash-mode) .stagebanner{background:linear-gradient(90deg,#09172aef,#153555e8,#09172aef)}
+#scene{background:radial-gradient(ellipse 62% 72% at 50% 45%,#17325a 0%,#06142c 64%,#040918 100%)!important}
+
 </style>
 </head>
 <body>
@@ -339,7 +351,7 @@ html.xr-active .menu-feature{box-shadow:none!important}
  <button id="arRotate" type="button" aria-label="Girar arena">↻</button>
  </div>
  <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · SIGNATURE EDITION V3.4</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · CINEMATIC EDITION V3.5</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -376,7 +388,7 @@ html.xr-active .menu-feature{box-shadow:none!important}
    <div class="feature-stages"><span>6 PARTICIPANTES</span><b>→</b><span>4</span><b>→</b><span>3</span><b>→</b><span>🏆</span></div>
    <button id="play" class="primary mainprimary">COMENZAR TORNEO <span>↗</span></button>
   </div>
-  <a class="menu-secondary-link" href="multijugador-signature-v34.html" style="display:flex;text-decoration:none;color:#d6fff9;border:1px solid #48e9dba1;background:linear-gradient(110deg,#16485aa9,#102e54b8);font-weight:900">🌐 MULTIJUGADOR ONLINE · 2, 3 O 4 AMIGOS <span>↗</span></a>
+  <a class="menu-secondary-link" href="multijugador-cinematico-v35.html" style="display:flex;text-decoration:none;color:#d6fff9;border:1px solid #48e9dba1;background:linear-gradient(110deg,#16485aa9,#102e54b8);font-weight:900">🌐 MULTIJUGADOR ONLINE · 2, 3 O 4 AMIGOS <span>↗</span></a>
   <button class="menu-secondary-link" data-open-page="modes">🎮 ELEGÍ UNA DE LAS 7 PRUEBAS <span>→</span></button>
   <p class="menu-muted" style="font-size:11px;margin-top:10px">◈ PARA JUGAR EN AR: elegí la prueba en MODOS, tocá «INICIAR AR JUGABLE» y colocá la arena sobre una mesa o en el piso. Compatible con celulares Android que admitan WebXR.</p>
   <button class="menu-secondary-link" data-open-page="characters">✨ Elegir personaje <span id="activeMascotName">VOS</span></button>
@@ -726,6 +738,11 @@ function createCharacter(col,index){
   mat(col,0,.52,{transparent:true,opacity:.07,depthWrite:false,emissive:col,emissiveIntensity:.48}),
   root,[0,.055,0],[1,1,1],false);
  sheen.rotation.x=Math.PI/2;
+ // Isolate the collectible silhouette from the animated rig: scale without
+ // touching motion animation, collision, blink coordinates or AR world size.
+ const v35Body=new THREE.Group();v35Body.name="CINEMATIC CHARACTER SILHOUETTE";
+ while(rig.children.length)v35Body.add(rig.children[0]);
+ rig.add(v35Body);rig.userData.v35Body=v35Body;
  return{root,rig,arms,feet,shade,label,sheen,crown,prop,index,
   v34Face:{pupils:eyes,pupilBase:eyes.map(o=>({x:o.position.x,y:o.position.y})),lids:v34Lids,brows:v34Brows,ears:v34Ears,tail:v34Tail,crest},
  name:profiles[index].name,x:0,z:0,y:0,vy:0,stun:0,dash:0,dashCd:0,
@@ -1048,10 +1065,31 @@ for(const x of [-(CC_HALF_X+.50),CC_HALF_X+.50])for(const z of [-(CC_HALF_Z+.50)
 // Gameplay color accuracy: intense studio lights and ACES were washing
 // physical tile materials into pastels. Render color-critical faces with
 // exact sRGB pigments; the glossy surrounding stadium remains physically lit.
-const ccMats=CC_PALETTE.map(c=>({
- face:new THREE.MeshBasicMaterial({color:c.hex,toneMapped:false}),
- edge:new THREE.MeshBasicMaterial({color:c.hex,toneMapped:false})
-}));
+
+// Retain exact vivid sRGB colors while giving the floor the surface language
+// of premium game-show glass: controlled highlights, darker edge, no washed hues.
+const ccMats=CC_PALETTE.map(c=>{
+ const cnv=document.createElement("canvas");cnv.width=cnv.height=256;
+ const g=cnv.getContext("2d"),hex="#"+c.hex.toString(16).padStart(6,"0");
+ g.fillStyle=hex;g.fillRect(0,0,256,256);
+ const shine=g.createLinearGradient(0,0,235,220);
+ shine.addColorStop(0,"rgba(255,255,255,.20)");
+ shine.addColorStop(.29,"rgba(255,255,255,.065)");
+ shine.addColorStop(.30,"rgba(255,255,255,.00)");
+ shine.addColorStop(.67,"rgba(0,0,0,.015)");
+ shine.addColorStop(1,"rgba(0,0,0,.22)");
+ g.fillStyle=shine;g.fillRect(0,0,256,256);
+ g.strokeStyle="rgba(255,255,255,.20)";g.lineWidth=8;
+ g.strokeRect(12,12,232,232);
+ g.strokeStyle="rgba(0,0,0,.21)";g.lineWidth=7;
+ g.beginPath();g.moveTo(10,245);g.lineTo(245,245);g.lineTo(245,10);g.stroke();
+ g.fillStyle="rgba(255,255,255,.14)";
+ g.beginPath();g.moveTo(16,17);g.lineTo(137,17);g.lineTo(16,132);g.closePath();g.fill();
+ const tex=new THREE.CanvasTexture(cnv);tex.colorSpace=THREE.SRGBColorSpace;
+ tex.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+ return {face:new THREE.MeshBasicMaterial({map:tex,color:0xffffff,toneMapped:false}),
+ edge:new THREE.MeshBasicMaterial({color:c.hex,toneMapped:false})};
+});
 const ccGlyphs=CC_PALETTE.map(c=>{
  const cv=document.createElement("canvas");cv.width=cv.height=256;
  const ctx=cv.getContext("2d");ctx.textAlign="center";ctx.textBaseline="middle";
@@ -1111,6 +1149,7 @@ function ccHUD(){
  $("ccSymbol").textContent=color.symbol;
  $("ccName").textContent=cc.status==="collapse"?"¡CUIDADO!":color.name;
  $("ccSeconds").textContent=cc.status==="choose"?cc.left.toFixed(1):"!";
+ $("colorCrashHUD").classList.toggle("critical",cc.status==="choose"&&cc.left<1.05);
  $("ccFill").style.width=(cc.status==="choose"?100*cc.left/cc.total:0).toFixed(1)+"%";
 }
 function ccNewRound(){
@@ -2485,6 +2524,116 @@ function v34AnimateFaces(t,dt){
  }
 }
 
+
+// MICROCAOS CINEMATIC ARENA V3.5 — large, unmistakable stage architecture.
+// Compact geometry + one instanced crowd and one instanced LED row per mode.
+// All details sit OUTSIDE playable cells; rules, hitboxes and AR anchoring unchanged.
+const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"3.5"};
+const v35Ink=new THREE.MeshStandardMaterial({color:0x09132d,metalness:.42,roughness:.36,clearcoat:1});
+const v35Alloy=new THREE.MeshStandardMaterial({color:0x294665,metalness:.72,roughness:.24,clearcoat:.72});
+const v35SeatMaterial=new THREE.MeshStandardMaterial({color:0xffffff,metalness:.12,roughness:.35,clearcoat:.6});
+const v35SeatGeo=new RoundedBoxGeometry(.55,.42,.49,2,.11);
+const v35LightGeo=new THREE.IcosahedronGeometry(.12,1);
+const v35LightMat=new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false});
+const v35Temp=new THREE.Object3D();
+for(const [name,meta] of Object.entries(V33_PRESETS)){
+ const base=name==="race"?stage:name==="ballistix"?ballArena:miniStages[name];
+ if(!base)continue;
+ const set=new THREE.Group();set.name="V3.5 CINEMATIC "+name;base.add(set);
+ if(name==="race")raceDecor.push(set);
+ v35.kits[name]=set;
+ const width=meta.x*1.91,back=-meta.z-.84;
+ const primary=new THREE.MeshBasicMaterial({color:meta.color,toneMapped:false});
+ const rimMetal=new THREE.MeshStandardMaterial({color:0x163453,metalness:.65,roughness:.28});
+ // Long modular broadcast grandstand, clearly readable at gameplay camera distances.
+ soft(v35Ink,set,[0,-.33,back],[width+.95,.55,1.90]);
+ soft(rimMetal,set,[0,.03,back+.52],[width+.98,.22,.32]);
+ soft(primary,set,[0,.16,back+.56],[width+.97,.095,.12],false);
+ const audienceCount=30;
+ const seats=new THREE.InstancedMesh(v35SeatGeo,v35SeatMaterial,audienceCount);
+ seats.castShadow=false;seats.receiveShadow=false;set.add(seats);v35.seats[name]=seats;
+ const lamps=new THREE.InstancedMesh(v35LightGeo,v35LightMat,audienceCount);
+ lamps.castShadow=false;lamps.receiveShadow=false;set.add(lamps);v35.lights[name]=lamps;
+ const palette=[0xffcf6d,0x7ffff0,0xff76b4,0x8887ff,0xbfff78,0xffffff];
+ for(let k=0;k<audienceCount;k++){
+   const lane=k%15,row=Math.floor(k/15);
+   const x=(lane-7)/7*meta.x*.85,z=back-.40-row*.60;
+   v35Temp.position.set(x,.54+row*.32,z);
+   v35Temp.rotation.set(0,0,0);v35Temp.scale.set(1,1,1);v35Temp.updateMatrix();
+   seats.setMatrixAt(k,v35Temp.matrix);
+   seats.setColorAt(k,new THREE.Color(palette[(k*5+row*3)%palette.length]));
+   v35Temp.position.set(x,.94+row*.32,z);v35Temp.scale.set(.95,.95,.95);v35Temp.updateMatrix();
+   lamps.setMatrixAt(k,v35Temp.matrix);
+   lamps.setColorAt(k,new THREE.Color(palette[(k*3+row*5)%palette.length]));
+ }
+ seats.instanceMatrix.needsUpdate=true;seats.instanceColor.needsUpdate=true;
+ lamps.instanceMatrix.needsUpdate=true;lamps.instanceColor.needsUpdate=true;
+ // Broadcast scoreboard: crisp, vertical, with real typographic hierarchy.
+ const sign=document.createElement("canvas");sign.width=1024;sign.height=256;
+ const g=sign.getContext("2d");
+ g.fillStyle="#07152c";g.fillRect(0,0,1024,256);
+ const grad=g.createLinearGradient(0,0,1024,0);
+ grad.addColorStop(0,"#07152c");grad.addColorStop(.55,"#102f4c");grad.addColorStop(1,"#07152c");
+ g.fillStyle=grad;g.fillRect(8,8,1008,240);
+ g.strokeStyle="#"+meta.color.toString(16).padStart(6,"0");g.lineWidth=9;g.strokeRect(12,12,1000,232);
+ g.textAlign="center";g.textBaseline="middle";
+ g.fillStyle="#8dfbef";g.font="900 42px Outfit,Arial";g.fillText("M I C R O C A O S   ·   L I V E",512,70);
+ g.fillStyle="#ffffff";g.font="900 88px Outfit,Arial";g.fillText(meta.tag,512,162,920);
+ const texture=new THREE.CanvasTexture(sign);texture.colorSpace=THREE.SRGBColorSpace;
+ texture.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+ const billboard=new THREE.Mesh(new THREE.PlaneGeometry(Math.min(9.4,width*.80),1.82),
+ new THREE.MeshBasicMaterial({map:texture,toneMapped:false,side:THREE.DoubleSide,depthWrite:false}));
+ billboard.position.set(0,2.18,back-.66);billboard.castShadow=false;set.add(billboard);
+ // A real raised nose on the platform, no flat floating plastic sheet.
+ soft(v35Ink,set,[0,-.49,meta.z+.56],[width+.52,.70,.64]);
+ soft(v35Alloy,set,[0,-.09,meta.z+.64],[width+.5,.11,.22]);
+ soft(primary,set,[0,.02,meta.z+.77],[width+.43,.057,.09],false);
+ for(const sx of [-1,1]){
+   // Two large angled broadcast pylons, but never projecting through the board.
+   const pylon=new THREE.Group();pylon.position.set(sx*(meta.x+.72),.04,back+.38);set.add(pylon);
+   soft(v35Alloy,pylon,[0,.93,0],[.37,1.80,.52]);
+   soft(primary,pylon,[0,1.80,.07],[.52,.24,.62],false);
+   const cap=ball(v35LightMat,pylon,[0,2.04,0],[.19,.19,.19]);cap.castShadow=false;
+ }
+}
+// Subtle oversized concentric stage halos visible only in the normal 3D viewer.
+const v35Backdrop=new THREE.Group();scene.add(v35Backdrop);
+for(const radius of [10.5,15.5,22]){
+ const ring=new THREE.Mesh(new THREE.RingGeometry(radius,radius+.13,96),
+  new THREE.MeshBasicMaterial({color:radius===10.5?0x2c7893:0x174168,transparent:true,opacity:.18,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}));
+ ring.rotation.x=-Math.PI/2;ring.position.y=-2.0;v35Backdrop.add(ring);
+}
+function v35UpdateStage(t){
+ v35Backdrop.visible=mode==="preview"&&phase!=="intro";
+ v35Backdrop.position.set(0,0,0);
+ const next=Math.floor(t/190);
+ if(v35.ledTick!==next){
+  v35.ledTick=next;
+  const strip=v35.lights[currentMode];
+  if(strip&&gameSettings.quality!=="low"){
+   const main=new THREE.Color(V33_PRESETS[currentMode].color);
+   for(let k=0;k<30;k++){
+    const pulse=(k+30-next%30)%30;
+    strip.setColorAt(k,pulse<5?main:new THREE.Color(pulse%3===0?0x93d1f0:0x324b69));
+   }
+   strip.instanceColor.needsUpdate=true;
+  }
+ }
+}
+function v35ApplyArt(){
+ // V3.3 thin outer rails caused gigantic diagonal cyan lines in other modes.
+ // Replaced with physically contiguous grandstands inside each mode's group.
+ for(const kit of Object.values(visual33.kits))kit.visible=false;
+ for(const [name,kit]of Object.entries(v35.kits))kit.visible=name==="race"?currentMode==="race":true;
+ v35.mode=currentMode;
+}
+window.__microcaosCinematicQA=()=>({
+ version:"3.5",mode:currentMode,studio:!!v35Backdrop.visible,
+ arenas:Object.keys(v35.kits),onScreenArenaZoom:v35.zoom,
+ audienceModels:30,signatureMascots:6,webxr:renderer.xr.isPresenting,
+ sceneDrawCalls:renderer.info.render.calls,sceneTriangles:renderer.info.render.triangles
+});
+
 function renderModeLabel(){
  const tag=MINI_MODES[currentMode];
  $("stagebanner").textContent=(gameType==="individual"?"PARTIDA INDIVIDUAL":"RONDA "+(roundIndex+1)+"/3")+" · "+tag.emoji+" · "+(gameType==="individual"?"1º GANA":"PASAN "+ROUND_RULES[roundIndex].qualify);
@@ -2504,7 +2653,7 @@ function renderModeLabel(){
  $("gemLeaderboard").classList.toggle("on",currentMode==="gems");
  $("territoryLeaderboard").classList.toggle("on",currentMode==="territory");
  renderer.shadowMap.enabled=currentMode!=="ballistix";
- v33ModeArt();
+ v33ModeArt();v35ApplyArt();
  applyGraphicsQuality();
  if(mode==="ar"&&placed)arUpdateScale();
  if(mode==="preview"){
@@ -3269,7 +3418,7 @@ function physicsTick(frameDt){
   for(let n=0;n<count;n++){physicsTime+=FIXED_DT;move(FIXED_DT,physicsTime);physicsAccumulator-=FIXED_DT}
   if(count===6&&physicsAccumulator>FIXED_DT)physicsAccumulator=0;
 }
-function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;const sec=t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);v33UpdateFX(dt);v34UpdateArena(t);animateFallingWeights(dt);animateTerritoryFX(dt);ccAnimate(dt);try{physicsTick(dt)}catch(error){
+function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;const sec=t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);v33UpdateFX(dt);v34UpdateArena(t);v35UpdateStage(t);animateFallingWeights(dt);animateTerritoryFX(dt);ccAnimate(dt);try{physicsTick(dt)}catch(error){
  console.error("MICROCAOS physics error",error);
  phase="paused";physicsAccumulator=0;window.__microcaosError=error?.message||String(error);
  $("notice").textContent="Error al simular la partida. Tocá REINICIAR para volver a jugar. "+window.__microcaosError;
@@ -3299,8 +3448,15 @@ function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;
   // Small torso tilt communicates direction but never distorts world physics.
   r.rig.rotation.x+=(Math.max(-.09,Math.min(.09,(r.vz||0)*.012))*active-r.rig.rotation.x)*blend;
  }
- v34AnimateFaces(t,dt);$("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
-if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=currentMode==="territory"&&follow?new THREE.Vector3(clamp(p.x*.72,-TERRITORY_HALF_X*.72,TERRITORY_HALF_X*.72),0,clamp(p.z*.70,-TERRITORY_HALF_Z*.70,TERRITORY_HALF_Z*.70)):new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,22.3,9.5):new THREE.Vector3(0,18.0,9.7)):currentMode==="territory"&&follow?(portrait?new THREE.Vector3(previewTarget.x,32,previewTarget.z+22):new THREE.Vector3(previewTarget.x+11.8,21,previewTarget.z+22)):currentMode==="colorcrash"&&follow?(portrait?new THREE.Vector3(0,23,16):new THREE.Vector3(8.5,20.3,19.4)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.7,11.6,12.5):new THREE.Vector3(9.7,11.8,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
+ v34AnimateFaces(t,dt);
+ // Art-only multiplier: larger readable characters; physics remain untouched.
+ const v35MascotScale=mode==="ar"?1.07:1.23;
+ for(const r of racers){
+  const visual=r.rig?.userData?.v35Body;
+  if(visual)visual.scale.setScalar(v35MascotScale);
+ }
+ $("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
+if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished"||phase==="paused";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=currentMode==="territory"&&follow?new THREE.Vector3(clamp(p.x*.72,-TERRITORY_HALF_X*.72,TERRITORY_HALF_X*.72),0,clamp(p.z*.70,-TERRITORY_HALF_Z*.70,TERRITORY_HALF_Z*.70)):new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,20.5,9.4):new THREE.Vector3(0,16.1,9.2)):currentMode==="territory"&&follow?(portrait?new THREE.Vector3(previewTarget.x,30,previewTarget.z+22):new THREE.Vector3(previewTarget.x+10.7,20.3,previewTarget.z+20.5)):currentMode==="colorcrash"&&follow?(portrait?new THREE.Vector3(0,21.5,15):new THREE.Vector3(7.1,16.7,16.6)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.5,11.6,12.4):new THREE.Vector3(8.2,10.7,11.9)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:currentMode==="colorcrash"?1.20:0))}
 if(mode==="ar"&&frame&&session){if(!hitRequested&&performance.now()-arLastHitAttempt>2100){hitRequested=true;arLastHitAttempt=performance.now();const origin=session;session.requestReferenceSpace("viewer").then(viewer=>origin.requestHitTestSource({space:viewer})).then(source=>{if(session===origin)hitSource=source;else source?.cancel?.()}).catch(error=>{hitRequested=false;console.warn("XR hit-test",error);$("notice").textContent="No pude detectar superficies todavía. Reintentando…"})}if(hitSource&&!placed){const results=frame.getHitTestResults(hitSource);if(results.length){let pose=results[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;const m=new THREE.Matrix4().fromArray(pose.transform.matrix);reticle.position.setFromMatrixPosition(m);reticle.quaternion.setFromRotationMatrix(m);
  const normal=new THREE.Vector3(0,1,0).applyQuaternion(reticle.quaternion);
  reticle.visible=normal.y>.77;
