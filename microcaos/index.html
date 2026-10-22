@@ -270,6 +270,11 @@ body.ballistix-mode #ui .jump.ballistix-pulse-ready{animation:ballPulseReady 1.1
  body.ballistix-mode #ui .toast{top:185px!important}
 }
 
+.territory-board{border-color:#55ffa6a3;background:linear-gradient(150deg,#092e33ed,#0e1837f1);box-shadow:0 7px 27px #00eaa220}
+.territory-board .gem-lb-row.you{background:#10575cba;border-color:#39ffbd}
+.territory-board .gem-lb-count{font-size:11px;color:#a0ffca}
+@media(min-width:950px){.territory-board{right:13px;top:240px}}
+@media(max-width:600px){.territory-board{right:8px;top:215px;width:143px}}
 </style>
 </head>
 <body>
@@ -277,11 +282,16 @@ body.ballistix-mode #ui .jump.ballistix-pulse-ready{animation:ballPulseReady 1.1
 <div id="scene"></div>
 <div id="ui">
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · HUD + PULSO V2.3</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · TERRITORIOS V2.4</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
 <div class="speedtrails" id="speedtrails"></div><div class="stagebanner" id="stagebanner">RONDA SORPRESA</div><div id="miniObjective" class="mini-objective">¡PREPARADOS!</div>
+<section id="territoryLeaderboard" class="gem-leaderboard territory-board" aria-label="Ranking de territorios">
+<div class="gem-lb-heading"><div><span>🟩</span><strong>CONTROL</strong></div><small id="territoryQualification">PASAN 4</small></div>
+<div id="territoryLeaderboardRows" class="gem-lb-rows"></div>
+<div id="territoryLeaderboardFooter" class="gem-lb-footer">CERRÁ EL RASTRO PARA SUMAR</div>
+</section>
 <section id="gemLeaderboard" class="gem-leaderboard" aria-label="Ranking de gemas en vivo">
   <div class="gem-lb-heading"><div><span>💎</span><strong>RANKING</strong></div><small id="gemQualification">PASAN 4</small></div>
   <div id="gemLeaderboardRows" class="gem-lb-rows"></div>
@@ -319,6 +329,7 @@ body.ballistix-mode #ui .jump.ballistix-pulse-ready{animation:ballPulseReady 1.1
    <button class="mode-option" data-mode="tag"><b>⚖ LA MANCHA</b><small>Pasá la pesa antes de que se termine el tiempo · 6 jugadores</small></button>
    <button class="mode-option" data-mode="gems"><b>💎 FIEBRE DE GEMAS</b><small>Recolectá más gemas que los rivales · 6 jugadores</small></button>
    <button class="mode-option" data-mode="survival"><b>🌀 EL PISO SE HUNDE</b><small>Quedate en la zona segura · 6 jugadores</small></button>
+<button class="mode-option" data-mode="territory"><b>🟩 CONQUISTA DE TERRITORIO</b><small>Cerrá tu rastro para conquistar · 6 jugadores</small></button>
    <button class="mode-option" data-mode="ballistix"><b>⚽ BALLISTIX</b><small>Cuatro arcos, pelotas y PULSO · 4 jugadores</small></button>
   </div>
   <button id="singleStart" class="primary mainprimary">JUGAR ESTA PRUEBA ↗</button>
@@ -357,7 +368,7 @@ body.ballistix-mode #ui .jump.ballistix-pulse-ready{animation:ballPulseReady 1.1
 <div class="finish" id="finish"><div class="finishcard">
 <div class="eyebrow"><i></i> <span id="stageEyebrow">RONDA TERMINADA</span></div>
 <div class="medal" id="medal">🏆</div><div class="finaltitle" id="finaltitle">¡QUÉ CARRERA!</div><div class="finaltext" id="finaltext"></div>
-<div id="finalGemLeaderboard" class="final-gem-leaderboard"></div>
+<div id="finalGemLeaderboard" class="final-gem-leaderboard"></div><div id="finalTerritoryLeaderboard" class="final-gem-leaderboard"></div>
 <div id="qualifiedGrid" class="qualified-grid"></div>
 <div class="stats"><div><div class="statnum" id="finalpos">1º</div><div class="statlabel">POSICIÓN</div></div><div><div class="statnum" id="finaltime">00:30</div><div class="statlabel">TIEMPO</div></div><div><div class="statnum" id="finalstars">0</div><div class="statlabel">ESTRELLAS</div></div></div>
 <button class="primary mainprimary" id="retry">→ CONTINUAR</button><button class="result-menu-btn" id="resultMenu">☰ VOLVER AL MENÚ</button><div class="auto-round" id="autoRound" aria-live="polite"></div>
@@ -804,7 +815,7 @@ function returnToMenu(){
  cancelAutoAdvance();
  $("pauseOverlay").classList.remove("on");
  phase="intro";dragSteeringActive=false;raceEndAfterPlayer=0;
- for(const id of ["hud","progress","controls","stagebanner","ballScoreboard","miniObjective","pickupCounter","gemLeaderboard"])$(id).classList.remove("on");
+ for(const id of ["hud","progress","controls","stagebanner","ballScoreboard","miniObjective","pickupCounter","gemLeaderboard","territoryLeaderboard"])$(id).classList.remove("on");
  $("finish").classList.remove("show");$("intro").classList.remove("hidden");
  $("speedtrails").classList.remove("active");
  document.body.classList.remove("ballistix-mode");
@@ -851,6 +862,7 @@ const MINI_MODES={
  tag:{title:"LA MANCHA DE LA PESA",emoji:"⚖",objective:"¡PASÁ LA PESA!",time:12.5,color:0xff438d},
  gems:{title:"FIEBRE DE GEMAS",emoji:"💎",objective:"¡JUNTÁ GEMAS!",time:25,color:0xffd13e},
  survival:{title:"EL PISO SE HUNDE",emoji:"🌀",objective:"¡ENTRÁ EN EL CÍRCULO!",time:26,color:0x835eff},
+ territory:{title:"CONQUISTA DE TERRITORIO",emoji:"🟩",objective:"CERRÁ TU RASTRO PARA CONQUISTAR",time:55,color:0x4affb7},
  ballistix:{title:"BATALLA BALLISTIX",emoji:"⚽",objective:"¡DEFENDÉ TU ARCO!",time:0,color:0x87efff},
  race:{title:"CARRERA LOCA",emoji:"🏁",objective:"¡LLEGÁ A LA META!",time:53,color:0x80ffe5}
 };
@@ -944,7 +956,7 @@ function shuffleModes(items){
 }
 function choosePlaylist(){
  // One guaranteed weight-tag round, two unique surprises; shuffled again so tag can start anywhere.
- const order=shuffleModes(["tag","gems","survival","race"]);return [order[0],"ballistix",order[1]];
+ const order=shuffleModes(["tag","gems","survival","race","territory"]);return [order[0],"ballistix",order[1]];
 }
 
 // BALLISTIX - four player air-hockey survival semifinal.
@@ -1494,7 +1506,7 @@ function renderModeLabel(){
  $("stagebanner").textContent=(gameType==="individual"?"PARTIDA INDIVIDUAL":"RONDA "+(roundIndex+1)+"/3")+" · "+tag.emoji+" · "+(gameType==="individual"?"1º GANA":"PASAN "+ROUND_RULES[roundIndex].qualify);
  $("rankLabel").textContent=currentMode==="race"?"POSICIÓN · "+ROUND_RULES[roundIndex].qualify+" PASAN":
   currentMode==="tag"?"PESA · ÚLTIMO PIERDE":
-  currentMode==="gems"?"GEMAS · MÁS JUNTADAS":currentMode==="ballistix"?"VIDAS · NO RECIBAS GOLES":"SUPERVIVIENTES";
+  currentMode==="gems"?"GEMAS · MÁS JUNTADAS":currentMode==="territory"?"TERRITORIO · ÁREA CONQUISTADA":currentMode==="ballistix"?"VIDAS · NO RECIBAS GOLES":"SUPERVIVIENTES";
  $("miniObjective").textContent=tag.objective;
  $("miniObjective").classList.toggle("on",currentMode!=="race");
  $("miniObjective").classList.remove("danger");
@@ -1504,6 +1516,7 @@ function renderModeLabel(){
  for(const k of Object.keys(miniStages))miniStages[k].visible=k===currentMode;
  document.body.classList.toggle("ballistix-mode",currentMode==="ballistix");
  $("gemLeaderboard").classList.toggle("on",currentMode==="gems");
+ $("territoryLeaderboard").classList.toggle("on",currentMode==="territory");
  renderer.shadowMap.enabled=currentMode!=="ballistix";
  applyGraphicsQuality();
  if(mode==="preview"){
@@ -1571,6 +1584,8 @@ function startMiniChallenge(){
   updateGemLeaderboard(true);
  }else if(currentMode==="ballistix"){
   miniClock=0;startBallistix();
+ }else if(currentMode==="territory"){
+  miniClock=MINI_MODES.territory.time;territoryStart();
  }else if(currentMode==="survival"){
   miniClock=6.5;
   miniSafe={x:0,z:0,radius:3.0};updateSafeZone();
@@ -1599,6 +1614,7 @@ function miniOrder(){
  if(currentMode==="race")return scoreOrder();
  if(currentMode==="ballistix")return entries.sort((a,b)=>{const ai=ballSides.indexOf(a.index),bi=ballSides.indexOf(b.index);return Number(!ballStatus[ai])-Number(!ballStatus[bi])||ballHealth[bi]-ballHealth[ai]});
  if(currentMode==="gems")return entries.sort((a,b)=>miniScores[b.index]-miniScores[a.index]||(a.index-b.index)*.0001);
+ if(currentMode==="territory")return entries.sort((a,b)=>territoryCount[b.index]-territoryCount[a.index]||a.index-b.index);
  if(currentMode==="survival")return entries.sort((a,b)=>
   Number(a.finished)-Number(b.finished)||
   (a.finished?b.eliminatedAt-a.eliminatedAt:
@@ -1841,8 +1857,9 @@ function moveMiniGame(dt,t){
   if(r.finished)continue;
   r.stun=Math.max(0,(r.stun||0)-dt);r.dashCd=Math.max(0,(r.dashCd||0)-dt);
   r.dash=Math.max(0,(r.dash||0)-dt);
+  if(currentMode==="territory")r.territoryShieldCd=Math.max(0,(r.territoryShieldCd||0)-dt);
   let dx=0,dz=0;
-  if(r.index!==0){[dx,dz]=miniBotDirection(r,t)}
+  if(r.index!==0){[dx,dz]=currentMode==="territory"?territoryBotDirection(r,t):miniBotDirection(r,t)}
   else if(dragSteeringActive){
    dx=clamp((dragTargetX-r.x)*1.45,-1,1);dz=clamp((dragTargetZ-r.z)*1.28,-1,1);
   }else{dx=steer;dz=steerZ}
@@ -1871,13 +1888,14 @@ function moveMiniGame(dt,t){
  }
  if(currentMode==="tag")miniTag(dt);
  else if(currentMode==="gems")miniGems(dt,t);
+ else if(currentMode==="territory")territoryTick(dt);
  else if(currentMode==="survival")miniSurvival(dt);
  if(phase!=="race")return;
  $("timer").textContent=formatTime(Math.max(0,miniClock));
  const pos=miniOrder().findIndex(r=>r.index===0)+1;
  $("place").innerHTML=pos+"<em> / "+contestants.length+"</em>";
  $("miniObjective").classList.toggle("danger",
-  currentMode==="tag"&&weightHolder===0||currentMode==="survival"&&miniClock<2.2);
+  currentMode==="tag"&&weightHolder===0||currentMode==="survival"&&miniClock<2.2||currentMode==="territory"&&racers[0].territoryTrail.length>0);
  if(currentMode==="tag"){
   $("miniObjective").textContent=weightHolder===0?"⚖ ¡TENÉS LA PESA! · "+Math.ceil(miniClock)+" s":
     "⚖ "+profiles[weightHolder]?.name+" TIENE LA PESA · "+Math.ceil(miniClock)+" s";
@@ -1886,13 +1904,17 @@ function moveMiniGame(dt,t){
   const targetRank=gameType==="individual"?1:Math.min(roundRule().qualify,ranking.length);
   const qualificationScore=ranking[targetRank-1]?.score||0;
   $("miniObjective").textContent="💎 VOS "+miniScores[0]+" · TOP "+targetRank+": "+qualificationScore+" · "+Math.ceil(miniClock)+" s";
+ }else if(currentMode==="territory"){
+  const own=territoryCount[0],top=Math.max(...territoryCount);
+  $("miniObjective").textContent=racers[0].territoryTrail.length?"⚡ RASTRO ABIERTO · ¡VOLVÉ A TU COLOR!":
+   "🟩 TU ÁREA "+(own*100/TERRITORY_SIZE).toFixed(1)+"% · LÍDER "+(top*100/TERRITORY_SIZE).toFixed(1)+"%";
  }else{
   $("miniObjective").textContent="🌀 ZONA SEGURA · "+Math.ceil(miniClock)+" s";
  }
- $("progressBar").style.width=(Math.min(100,100*miniChallengeElapsed/(currentMode==="gems"?25:currentMode==="survival"?27:26))).toFixed(1)+"%";
+ $("progressBar").style.width=(Math.min(100,100*miniChallengeElapsed/(currentMode==="territory"?55:currentMode==="gems"?25:currentMode==="survival"?27:26))).toFixed(1)+"%";
  $("dash").classList.toggle("cooldown",racers[0].dashCd>0);
  $("dash").textContent=racers[0].dashCd>0?Math.ceil(racers[0].dashCd)+"s":"TURBO";
- $("jumpCount").textContent=racers[0].jumpCount?"×1":"×2";
+ $("jumpCount").textContent=currentMode==="territory"?(racers[0].territoryShieldCd>0?Math.ceil(racers[0].territoryShieldCd)+"s":"LISTO"):(racers[0].jumpCount?"×1":"×2");
 }
 
 function showRoundTheme(){moodLights.forEach(m=>m.material=moodMat[roundIndex]);renderModeLabel()}
@@ -1906,7 +1928,7 @@ function resetRound(){
  for(const id of ["hud","progress","stagebanner","controls","pickupCounter"])$(id).classList.add("on");
  for(const id of ["obstacleHint","rushHud","skillToast"])$(id).classList.remove("on");
  $("speedtrails").classList.remove("active");
- $("jump").innerHTML='SALTAR <span class="jump-count" id="jumpCount">×2</span>';$("jump").classList.remove("ballistix-pulse-ready","ballistix-pulse-cool");
+ $("jump").innerHTML=currentMode==="territory"?'ESCUDO <span class="jump-count" id="jumpCount">LISTO</span>':'SALTAR <span class="jump-count" id="jumpCount">×2</span>';$("jump").classList.remove("ballistix-pulse-ready","ballistix-pulse-cool");
  $("dash").textContent="TURBO";$("ballScoreboard").classList.remove("on");
  $("progressBar").style.width="0%";$("pickupValue").textContent=tournamentStars;
  for(const item of stars){item.used=false;item.g.visible=currentMode==="race"}
@@ -1934,7 +1956,7 @@ function concludeRound(){
  for(const id of ["controls","obstacleHint","hud","progress","stagebanner","pickupCounter","miniObjective","gemLeaderboard"])$(id).classList.remove("on");
  $("speedtrails").classList.remove("active");$("miniObjective").classList.remove("danger");
  $("ballScoreboard").classList.remove("on");
- showFinalGemLeaderboard();
+ showFinalGemLeaderboard();showFinalTerritoryLeaderboard();
  const ordered=currentMode==="race"?scoreOrder():miniOrder();
  const quota=roundRule().qualify,final=gameType==="tournament"&&roundIndex===2;
  // A timed-out race must rank all participants by progress, not discard runners
@@ -2206,6 +2228,11 @@ function separateRacers(dt){
 
 function jump(){
  if(currentMode==="ballistix"){ballPulse();return}
+ if(currentMode==="territory"){
+  const p=racers[0];if(phase!=="race"||p.territoryShieldCd>0)return;
+  p.territoryShieldCd=10;p.territoryShieldUntil=miniChallengeElapsed+2.0;
+  tactile(22);cue(780,.15);skillMessage("🛡 RASTRO PROTEGIDO",700);return;
+ }
  const p=racers[0];
  if(phase==="countdown"){p.jumpBuffer=.25;return}
  if(phase!=="race")return;
