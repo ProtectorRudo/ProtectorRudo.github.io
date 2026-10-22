@@ -4,11 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#0a1226">
-<title>MICROCAOS — Party Rush · Prototipo 01</title>
+<title>MICROCAOS — Party Rush · AR 0.7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
+.ar-native{text-decoration:none;display:flex;justify-content:center;align-items:center;gap:12px;pointer-events:auto!important}.ar-native:hover{filter:brightness(1.07)}.ar-help{background:#061425a9!important;align-items:flex-end!important;justify-content:center!important;padding:14px 14px max(24px,env(safe-area-inset-bottom))!important;backdrop-filter:blur(6px)}.ar-help-box{padding:24px 20px!important;max-width:450px!important;border-radius:24px!important;background:linear-gradient(150deg,#203b54,#0b1c33)!important}.ar-help h2{font-size:25px!important}.ar-help p{font-size:13px!important;margin-bottom:16px!important}.ar-help-icon{font-size:27px!important}.ar-fallback{display:flex!important;align-items:center;justify-content:center;width:100%;text-decoration:none;font-size:13px;min-height:54px}.ar-fallback2{width:100%;margin-top:9px}.ar-dismiss{display:block;border:0;padding:12px 16px;margin:10px auto 0;color:#bed1dd;background:transparent;font-weight:800;font-size:12px;cursor:pointer}.modalshade:not(.hidden) .sheet{pointer-events:auto}
+
 html.xr-active,html.xr-active body,html.xr-active #scene{background:transparent!important}#ui: xr-overlay{background:transparent!important}#ui:xr-overlay{background:transparent!important;isolation:isolate}#ui.xr-active{background:transparent!important}#ui.xr-active .modalshade.hidden{display:none!important}#ui.xr-active .speedtrails{display:none!important}
 
 #ar{margin-top:2px}.more .secondary{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}.ar-device{font:700 11px DM Sans,sans-serif;line-height:1.55;color:#b4d9e5;margin-top:9px;max-width:390px;margin-left:auto;margin-right:auto}.ar-place{position:absolute;z-index:19;left:50%;bottom:max(195px,calc(env(safe-area-inset-bottom) + 187px));transform:translateX(-50%);box-shadow:0 8px 25px #0009,0 0 22px #53dfbc70;white-space:nowrap;pointer-events:auto!important}.ar-help{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:#071327da;pointer-events:auto;padding:20px}.ar-help-box{width:min(100%,390px);border:1px solid #ffffff36;background:linear-gradient(145deg,#243f53,#0b1b30);box-shadow:0 20px 70px #0008;border-radius:26px;padding:28px;text-align:center}.ar-help-icon{font-size:48px;color:#81f5d8}.ar-help h2{font:900 27px Outfit,sans-serif;letter-spacing:-.03em;margin:10px 0}.ar-help p{font:500 14px/1.6 DM Sans,sans-serif;color:#cfdeeb;margin:10px 0 25px;white-space:pre-line}.ar-help .primary{min-width:165px}.ar-help[style*="display:none"]{display:none!important}
@@ -23,20 +25,20 @@ html.xr-active,html.xr-active body,html.xr-active #scene{background:transparent!
 <div id="scene"></div>
 <div id="ui">
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · PREMIUM V0.6</div></div></div>
-<div class="topright"><span class="tinylabel">✦ <b id="modelstatus">CARGANDO 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · AR V0.7</div></div></div>
+<div class="topright"><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel">POSICIÓN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
 <div class="speedtrails" id="speedtrails"></div><div class="raceprogress" id="progress"><div class="bar" id="progressBar"></div></div>
 <div class="toast" id="toast">¡PREPARADOS!</div><div class="pickupCounter" id="pickupCounter">✦ <span id="pickupValue">0</span></div>
-<div id="notice"></div><button id="placeArena" class="primary ar-place" style="display:none">✓ COLOCAR PISTA AQUÍ</button><div id="arHelp" class="ar-help" style="display:none"><div class="ar-help-box"><div class="ar-help-icon">◈</div><h2 id="arHelpTitle">Realidad aumentada</h2><p id="arHelpText"></p><button class="primary" id="arHelpClose">ENTENDIDO</button></div></div>
+<div id="notice"></div><button id="placeArena" class="primary ar-place" style="display:none">✓ COLOCAR PISTA AQUÍ</button><div id="arHelp" class="ar-help" style="display:none"><div class="ar-help-box"><div class="ar-help-icon">◈</div><h2 id="arHelpTitle">Realidad aumentada</h2><p id="arHelpText"></p><a class="primary ar-fallback" id="arHelpNative" href="/ar.html">◈ ABRIR VISOR AR ANDROID ↗</a><button class="secondary ar-fallback2" id="arHelp3D">JUGAR EN 3D SIN CÁMARA</button><button class="ar-dismiss" id="arHelpClose">CERRAR</button></div></div>
 <div class="modalshade" id="intro">
 <div class="sheet">
 <div class="eyebrow"><i></i> UN MUNDO CHIQUITO · UN CAOS GIGANTE</div>
 <h1 class="hero">Mini corredores.<br><strong>Máximo caos.</strong></h1>
 <p class="sub">Seis personajes, una pista imposible y una sola meta. Corré, saltá, esquivá y llegá primero.</p>
-<button id="ar" class="primary mainprimary">◈ JUGAR EN REALIDAD AUMENTADA <span>↗</span></button>
-<div class="more"><button id="play" class="secondary">JUGAR EN 3D SIN CÁMARA</button><a id="nativeAR" class="secondary" href="intent://arvr.google.com/scene-viewer/1.0?file=https%3A%2F%2Fcdn.jsdelivr.net%2Fgh%2FProtectorRudo%2FProtectorRudo.github.io%40main%2Fmicrocaos%2Farena.glb&mode=ar_preferred#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=https%3A%2F%2Fmicrocaos-party-rush.vercel.app%2F%3Far-error%3D1;end;" role="button">◈ VER LA PISTA EN MI MESA</a><button id="cam" class="secondary" style="display:none" aria-hidden="true">◎ DEMO DE CÁMARA</button></div>
+<a id="nativeAR" class="primary mainprimary ar-native" href="/ar.html">◈ VER ARENA EN MI MESA (AR) <span>↗</span></a>
+<div class="more"><button id="play" class="secondary">JUGAR EN 3D SIN CÁMARA</button><button id="ar" class="secondary">PROBAR AR JUGABLE · BETA</button><button id="cam" class="secondary" style="display:none" aria-hidden="true">◎ DEMO DE CÁMARA</button></div>
 <div id="arDevice" class="ar-device">Comprobando compatibilidad AR...</div>
 <div class="hint" id="gamehint">Joystick, salto y turbo · Recogé estrellas para recuperar energía</div>
 </div></div>
@@ -365,60 +367,93 @@ function resize(){camera.aspect=innerWidth/innerHeight;camera.fov=camera.aspect<
 function leaveCamera(){if(videoStream){videoStream.getTracks().forEach(tr=>tr.stop());videoStream=null}$("cameraVideo").style.display="none";$("scene").classList.remove("camera");scene.background=new THREE.Color(0x172b4a);mode="preview";previewTable.visible=true;$("modebar").textContent="PREVIEW 3D · PC Y CELULAR";$("cam").textContent="◎ VER CON MI CÁMARA"}
 $("cam").onclick=async()=>{if(mode==="camera"){leaveCamera();return}if(!navigator.mediaDevices?.getUserMedia){announce("CÁMARA NO DISPONIBLE",1500);return}try{videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});$("cameraVideo").srcObject=videoStream;$("cameraVideo").style.display="block";await $("cameraVideo").play();$("scene").classList.add("camera");scene.background=null;mode="camera";$("cam").textContent="◉ CERRAR CÁMARA";$("modebar").textContent="CÁMARA DEMO · SIN ANCLAJE ESPACIAL"}catch(e){announce("SIN PERMISO DE CÁMARA",1500)}};
 
+
 const androidPlatform=/Android/i.test(navigator.userAgent);
 const iosPlatform=/iPhone|iPad|iPod/i.test(navigator.userAgent);
-const arModelUrl="https://raw.githubusercontent.com/ProtectorRudo/ProtectorRudo.github.io/main/microcaos/arena.glb";
-const arNativeURL="intent://arvr.google.com/scene-viewer/1.0?file="+encodeURIComponent(arModelUrl)+"&mode=ar_preferred#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url="+encodeURIComponent("https://microcaos-party-rush.vercel.app/?ar-error=1")+";end;";
-const nativeLink=$("nativeAR");nativeLink.href="/ar.html";
-if(!androidPlatform){nativeLink.style.display="none"}
-function showARHelp(title,body){$("arHelpTitle").textContent=title;$("arHelpText").textContent=body;$("arHelp").style.display="flex"}
-$("arHelpClose").onclick=()=>{$("arHelp").style.display="none"};
+const nativeLink=$("nativeAR");
+let arStarting=false,arPermissionStatus="unknown";
+function showARHelp(title,body){
+  $("arHelpTitle").textContent=title;$("arHelpText").textContent=body;
+  $("arHelpNative").style.display=androidPlatform?"flex":"none";
+  $("arHelp").style.display="flex";
+}
+$("arHelpClose").onclick=()=>{$("arHelp").style.display="none";$("intro").classList.remove("hidden")};
+$("arHelp3D").onclick=()=>{$("arHelp").style.display="none";begin()};
 function checkARSupport(){
   const label=$("arDevice");
-  if(iosPlatform){label.textContent="iPhone: podés jugar en 3D. Para jugar en AR real necesitaremos la versión nativa con ARKit.";return}
-  if(!androidPlatform){label.textContent="AR jugable disponible en Android con Chrome y Servicios de Google Play para RA.";return}
-  label.textContent="Android: verificando AR jugable; también podés abrir la arena con el visor nativo.";
-  if(!navigator.xr?.isSessionSupported){label.textContent="Android: este navegador no expone WebXR. Probá Chrome o tocá VER LA PISTA EN MI MESA.";return}
+  if(iosPlatform){label.textContent="En iPhone podés jugar en 3D. Para AR jugable completa falta una app compatible con ARKit.";return}
+  if(!androidPlatform){label.textContent="La AR jugable es experimental y necesita Android, Chrome y WebXR.";return}
+  label.textContent="AR con cámara: abrí el visor de Android. La carrera AR experimental depende de WebXR y controles superpuestos.";
+  if(!navigator.xr?.isSessionSupported)return;
   navigator.xr.isSessionSupported("immersive-ar").then(ok=>{
-    label.textContent=ok?"✓ AR jugable detectada: tocá JUGAR EN REALIDAD AUMENTADA.":"Este navegador no permite AR jugable. Abrí el sitio en Chrome o probá el visor nativo.";
-  }).catch(()=>{label.textContent="No pude verificar WebXR. Tocá AR para intentarlo o probá el visor nativo."});
+    arPermissionStatus=ok?"possible":"unsupported";
+    label.textContent=ok?
+      "Este teléfono anuncia compatibilidad WebXR; la carrera AR sigue siendo experimental y puede no iniciar.":
+      "Tu navegador no admite sesiones AR WebXR. Probá «VER ARENA EN MI MESA» para el visor nativo.";
+  }).catch(()=>{label.textContent="No se pudo comprobar WebXR. El visor nativo de Android es la opción recomendada."});
 }
 checkARSupport();
-if(location.search.includes("ar-error=1"))showARHelp("Visor AR no disponible","El teléfono no abrió el visor de Google. Abrí esta página en Chrome, instalá o actualizá Servicios de Google Play para RA y verificá la app de Google.");
+if(location.search.includes("ar-error=1"))showARHelp("No se abrió el visor AR","Chrome o el visor de Google no pudieron abrirlo. Abrí esta página en Chrome, actualizá Servicios de Google Play para RA y volvé a intentar.");
+function resetARView(){
+  document.documentElement.classList.remove("xr-active");$("ui").classList.remove("xr-active");
+  try{renderer.setClearAlpha(1)}catch(e){}
+  scene.background=new THREE.Color(0x172b4a);previewTable.visible=true;stage.visible=true;
+  stage.position.set(0,0,0);stage.quaternion.identity();stage.scale.setScalar(1);
+  $("notice").classList.remove("show");$("placeArena").style.display="none";
+  reticle.visible=false;hitRequested=false;hitSource=null;placed=false;session=null;
+  mode="preview";$("modebar").textContent="PREVIEW 3D · PC Y CELULAR";
+  $("intro").classList.remove("hidden");phase="intro";
+}
+function xrErrorMessage(e){
+  const name=e?.name||"Error",message=e?.message||"";
+  if(name==="NotSupportedError")return "Tu navegador reconoce WebXR, pero no dispone de alguna función que requiere esta carrera, como seguimiento de superficies o controles táctiles sobre la cámara.";
+  if(name==="NotAllowedError"||name==="SecurityError")return "La sesión fue bloqueada por permisos o por el navegador de la aplicación. Probá abrir el sitio directamente en Chrome.";
+  if(name==="InvalidStateError")return "Ya hay una sesión de realidad aumentada abierta. Cerrala antes de volver a probar.";
+  return "El teléfono rechazó el inicio de la sesión AR ("+name+"). "+(message?message+" ":"")+"El visor AR nativo es la alternativa para colocar la pista.";
+}
 async function setupAR(){
-  if(!navigator.xr?.requestSession){
-    showARHelp("AR jugable no disponible",iosPlatform?
-      "Safari en iPhone no permite esta partida con WebXR inmersivo. La versión nativa con ARKit todavía no está publicada.":
-      "Para jugar sobre tu mesa necesitás abrir este sitio en Google Chrome de Android y tener Servicios de Google Play para RA actualizado.\n\nMientras tanto podés pulsar VER LA PISTA EN MI MESA: usa el visor nativo de Google para colocarla, aunque sin controles de carrera.");
-    return;
-  }
+  if(arStarting||mode==="ar")return;
+  arStarting=true;
+  $("ar").disabled=true;$("ar").textContent="INICIANDO AR…";
   let started=null;
   try{
-    const options={requiredFeatures:["hit-test","dom-overlay"],optionalFeatures:["local-floor"],domOverlay:{root:$("ui")}};
-    started=await navigator.xr.requestSession("immersive-ar",options);
+    if(!navigator.xr?.requestSession)throw new DOMException("WebXR no está disponible","NotSupportedError");
+    // Some browsers support immersive-ar but reject a session requiring both hit-test and dom-overlay.
+    // Request overlay optionally, then verify it exists before promising touch controls.
+    started=await navigator.xr.requestSession("immersive-ar",{
+      requiredFeatures:["hit-test"],optionalFeatures:["dom-overlay","local-floor"],
+      domOverlay:{root:$("ui")}
+    });
+    if(!started.domOverlayState?.type){
+      try{await started.end()}catch(e){}
+      started=null;
+      throw new DOMException("WebXR abre la cámara pero no ofrece controles superpuestos para esta carrera","NotSupportedError");
+    }
+    // Attach the end handler before renderer initialization to recover from failures.
+    const active=started;
+    active.addEventListener("end",()=>{
+      if(hitSource){try{hitSource.cancel()}catch(e){}}
+      if(session===active||mode==="ar")resetARView();
+    },{once:true});
     await renderer.xr.setSession(started);
-    leaveCamera();session=started;mode="ar";document.documentElement.classList.add("xr-active");$("ui").classList.add("xr-active");renderer.setClearColor(0x000000,0);scene.background=null;previewTable.visible=false;stage.visible=false;
+    if(typeof leaveCamera==="function"&&videoStream){leaveCamera()}
+    session=started;mode="ar";
+    document.documentElement.classList.add("xr-active");$("ui").classList.add("xr-active");
+    renderer.setClearColor(0x000000,0);scene.background=null;previewTable.visible=false;stage.visible=false;
     placed=false;hitRequested=false;hitSource=null;
     $("modebar").textContent="AR ESPACIAL · BUSCANDO SUPERFICIE";
-    $("intro").classList.add("hidden");
+    $("intro").classList.add("hidden");$("arHelp").style.display="none";
     $("notice").classList.add("show");
-    $("notice").textContent="Apuntá a una mesa despejada y mové el celular despacio para detectar la superficie.";
+    $("notice").textContent="Mové lentamente el celular sobre una mesa despejada hasta que aparezca el botón de colocar la pista.";
     $("placeArena").style.display="none";
-    session.addEventListener("end",()=>{
-      if(hitSource){try{hitSource.cancel()}catch(e){}}
-      mode="preview";document.documentElement.classList.remove("xr-active");$("ui").classList.remove("xr-active");renderer.setClearAlpha(1);scene.background=new THREE.Color(0x172b4a);previewTable.visible=true;stage.visible=true;
-      stage.position.set(0,0,0);stage.quaternion.identity();stage.scale.setScalar(1);
-      $("modebar").textContent="PREVIEW 3D · PC Y CELULAR";$("notice").classList.remove("show");
-      $("placeArena").style.display="none";session=null;placed=false;hitSource=null;hitRequested=false;
-      reticle.visible=false;$("intro").classList.remove("hidden");phase="intro";
-    });
-    announce("BUSCÁ UNA SUPERFICIE",1700);
+    announce("BUSCÁ UNA SUPERFICIE",1800);
   }catch(e){
-    console.warn("AR session failed",e?.name,e?.message);
-    if(started)try{await started.end()}catch(e2){}
-    document.documentElement.classList.remove("xr-active");$("ui").classList.remove("xr-active");renderer.setClearAlpha(1);
-    const reason=e?.name==="NotSupportedError"?"El navegador no admite alguna función de seguimiento AR necesaria.":e?.name==="NotAllowedError"?"Falta permiso de cámara o se bloqueó la sesión AR.":"No se pudo iniciar WebXR en este navegador.";
-    showARHelp("No se abrió AR",reason+"\n\nAbrí el enlace directamente en Chrome para Android (no en el navegador interno de otra aplicación) y revisá Servicios de Google Play para RA. Si no funciona, probá VER LA PISTA EN MI MESA.");
+    console.warn("MICROCAOS WebXR failed",e?.name,e?.message);
+    if(started)try{await started.end()}catch(endError){}
+    resetARView();
+    showARHelp("Esta carrera AR no pudo iniciarse",xrErrorMessage(e)+"\n\nPodés abrir la pista en el visor nativo de Android o jugar una carrera 3D sin cámara.");
+  }finally{
+    arStarting=false;$("ar").disabled=false;$("ar").textContent="PROBAR AR JUGABLE · BETA";
   }
 }
 $("ar").onclick=setupAR;
