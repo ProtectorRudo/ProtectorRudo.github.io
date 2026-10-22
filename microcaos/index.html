@@ -271,11 +271,11 @@ const clock=new THREE.Clock(),scene=new THREE.Scene();scene.fog=new THREE.FogExp
 scene.background=new THREE.Color(0x172b4a);
 const camera=new THREE.PerspectiveCamera(innerWidth/innerHeight<.68?58:42,innerWidth/innerHeight,.01,250);camera.position.set(14,17,26);camera.lookAt(0,0,0);
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:"high-performance"});
-renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.45));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;renderer.xr.enabled=true;
+renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.45));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.04;renderer.xr.enabled=true;
 try{const pmrem=new THREE.PMREMGenerator(renderer);const env=new RoomEnvironment();scene.environment=pmrem.fromScene(env,.04).texture;pmrem.dispose();if(env.dispose)env.dispose()}catch(e){console.warn("Studio light fallback",e)}
 $("scene").appendChild(renderer.domElement);
-const hemi=new THREE.HemisphereLight(0xdeffff,0x536087,2.5);scene.add(hemi);
-const key=new THREE.DirectionalLight(0xffedcf,4);key.position.set(-9,19,12);key.castShadow=true;key.shadow.mapSize.set(innerWidth<700?1024:2048,innerWidth<700?1024:2048);key.shadow.camera.left=-24;key.shadow.camera.right=24;key.shadow.camera.top=24;key.shadow.camera.bottom=-24;key.shadow.camera.near=1;key.shadow.camera.far=70;key.shadow.bias=-.00025;scene.add(key);
+const hemi=new THREE.HemisphereLight(0xdeffff,0x344574,1.8);scene.add(hemi);
+const key=new THREE.DirectionalLight(0xffffff,2.9);key.position.set(-9,19,12);key.castShadow=true;key.shadow.mapSize.set(innerWidth<700?1024:2048,innerWidth<700?1024:2048);key.shadow.camera.left=-24;key.shadow.camera.right=24;key.shadow.camera.top=24;key.shadow.camera.bottom=-24;key.shadow.camera.near=1;key.shadow.camera.far=70;key.shadow.bias=-.00025;scene.add(key);
 const rim=new THREE.DirectionalLight(0x6dc9ff,3);rim.position.set(12,6,-17);scene.add(rim);
 const fill=new THREE.PointLight(0xffab71,70,55);fill.position.set(-9,7,4);scene.add(fill);
 const world=new THREE.Group();scene.add(world);const stage=new THREE.Group();world.add(stage);const atmosphere=new THREE.Group();stage.add(atmosphere);
@@ -1442,9 +1442,10 @@ function miniTag(dt){
   tagWeight.rotation.y+=dt*1.4;
   if(miniChallengeElapsed-miniLastTouch>.85){
    for(const other of living){
-    if(other.index===weightHolder||other.y>.8||h.y>.8)continue;
+    if(other.index===weightHolder||other.y>.8||h.y>.8||other.tagGraceUntil>miniChallengeElapsed)continue;
     if(Math.hypot(other.x-h.x,other.z-h.z)<.92){
      const prev=weightHolder;weightHolder=other.index;
+     racers[prev].tagGraceUntil=miniChallengeElapsed+2.1;
      miniScores[prev]++;tagTransfers++;miniLastTouch=miniChallengeElapsed;
      puff(other.x,other.z,0xffc5d5,10);
      if(prev===0||other.index===0){tactile(34);skillMessage(prev===0?"¡PESA PASADA!":"¡TENÉS LA PESA!",670)}
@@ -1512,7 +1513,7 @@ function miniSurvival(dt){
 function miniBotDirection(r,t){
  let tx=0,tz=0;
  if(currentMode==="tag"){
-  const holder=racers[weightHolder],others=liveRacers().filter(q=>q.index!==r.index);
+  const holder=racers[weightHolder],others=liveRacers().filter(q=>q.index!==r.index&&!(q.tagGraceUntil>miniChallengeElapsed));
   if(r.index===weightHolder){
    // Hunting intelligence: choose a reachable opponent, intercept their
    // current velocity, and commit briefly so the pursuer doesn't oscillate.
@@ -1527,7 +1528,7 @@ function miniBotDirection(r,t){
     }
     r.aiFocus=best?.index??null;r.aiFocusUntil=t+.46+(1-r.skill)*.44;
    }
-   const chosen=others.find(q=>q.index===r.aiFocus)||others[0];
+   const chosen=others.find(q=>q.index===r.aiFocus)||others[0]||liveRacers().find(q=>q.index!==r.index);
    if(chosen){
     const d=Math.hypot(chosen.x-r.x,chosen.z-r.z);
     const predict=clamp(d/(6.6*difficultyScale()),.04,.44)*(.72+r.skill*.50);
@@ -1661,7 +1662,7 @@ function resetRound(){
   r.finished=false;r.finishTime=0;r.eliminatedAt=0;r.cool=0;r.stumbles=0;r.stars=0;r.invuln=0;
   r.animationName="";r.jumpCount=0;r.jumpBuffer=0;r.padCooldown=null;r.vx=0;r.vz=0;r.lean=0;r.animDistance=0;
   r.coyote=0;r.airTime=0;r.jumpFlash=0;r.landing=0;r.combo=0;r.speedBonus=0;
-  r.stun=0;r.dash=0;r.dashCd=0;r.y=0;r.vy=0;r.nearMisses=new Set();
+  r.stun=0;r.dash=0;r.dashCd=0;r.tagGraceUntil=0;r.aiFocus=null;r.aiFocusUntil=0;r.y=0;r.vy=0;r.nearMisses=new Set();
   if(lane>=0){
    if(currentMode==="race"){r.x=(lane-(count-1)/2)*(count>=5?1.29:1.75);r.z=11.6+(lane%2)*.90}
    else{const a=lane/Math.max(1,count)*Math.PI*2+Math.PI/2;r.x=Math.cos(a)*2.3;r.z=Math.sin(a)*2.8}
