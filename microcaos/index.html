@@ -1498,32 +1498,64 @@ function startTournament(){cancelAutoAdvance();gameType="tournament";raceEndAfte
 function concludeRound(){
  if(phase!=="race")return;
  phase="finished";dragSteeringActive=false;tagWeight.visible=false;
- for(let id of ["controls","obstacleHint","hud","progress","stagebanner","pickupCounter","miniObjective"])
-   $(id).classList.remove("on");
- $("speedtrails").classList.remove("active");$("miniObjective").classList.remove("danger");$("ballScoreboard").classList.remove("on");
- const order=currentMode==="race"?scoreOrder():miniOrder(),quota=roundRule().qualify;
- nextQualifiers=(currentMode==="race"?order.filter(r=>r.finished):currentMode==="ballistix"?order.filter(r=>ballStatus[ballSides.indexOf(r.index)]):order).slice(0,quota).map(r=>r.index);
+ for(const id of ["controls","obstacleHint","hud","progress","stagebanner","pickupCounter","miniObjective"])$(id).classList.remove("on");
+ $("speedtrails").classList.remove("active");$("miniObjective").classList.remove("danger");
+ $("ballScoreboard").classList.remove("on");
+ const ordered=currentMode==="race"?scoreOrder():miniOrder();
+ const quota=roundRule().qualify,final=gameType==="tournament"&&roundIndex===2;
+ // A timed-out race must rank all participants by progress, not discard runners
+ // who haven't crossed the line yet (which formerly left Ballistix short-handed).
+ const selected=currentMode==="race"?
+  ordered.slice(0,quota):
+  currentMode==="ballistix"?
+   ordered.filter(r=>ballStatus[ballSides.indexOf(r.index)]).slice(0,quota):
+   ordered.slice(0,quota);
+ nextQualifiers=selected.map(r=>r.index);
  playerQualified=nextQualifiers.includes(0);
- const place=order.findIndex(r=>r.index===0)+1,final=roundIndex===2,won=final&&nextQualifiers[0]===0;
- $("qualifiedGrid").innerHTML=nextQualifiers.map((id,n)=>
-  '<div class="qualified-card'+(id===0?' you':'')+'"><span class="ord">'+(n+1)+'º</span>'+
-  '<span class="chip" style="background:#'+colors[id].toString(16).padStart(6,"0")+'"></span>'+
-  (id===0?"VOS":profiles[id].name)+'</div>').join("");
- $("stageEyebrow").textContent=MINI_MODES[currentMode].emoji+" "+MINI_MODES[currentMode].title+" · RESULTADO";
+ const place=ordered.findIndex(r=>r.index===0)+1;
+ const won=gameType==="individual"?(currentMode==="ballistix"?playerQualified:place===1):final&&nextQualifiers[0]===0;
+ const solo=gameType==="individual";
+ $("qualifiedGrid").innerHTML=selected.map((r,n)=>
+  '<div class="qualified-card'+(r.index===0?' you':'')+'"><span class="ord">'+(n+1)+'º</span>'+
+  '<span class="chip" style="background:#'+colors[r.index].toString(16).padStart(6,"0")+'"></span>'+
+  (r.index===0?'VOS':profiles[r.index].name)+'</div>').join("");
+ $("stageEyebrow").textContent=MINI_MODES[currentMode].emoji+" "+MINI_MODES[currentMode].title+
+  (solo?" · RESULTADOS":" · CLASIFICADOS");
  $("medal").textContent=won?"🏆":playerQualified?"🏅":"🎖️";
- $("finaltitle").textContent=won?"¡SOS CAMPEÓN!":final?"¡TERMINÓ LA FINAL!":playerQualified?"¡CLASIFICASTE!":"¡ELIMINADO!";
- $("finaltext").textContent=won?"¡Ganaste el torneo sorpresa de MICROCAOS!":
- final?"Solo uno puede ganar. Quedaste "+place+"º.":
- playerQualified?"¡Seguís en competencia! La próxima prueba es "+MINI_MODES[modePlaylist[roundIndex+1]].title+".":
- "Quedaste "+place+"º. Solo pasaban "+quota+". ¡Probá otro torneo de pruebas aleatorias!";
- $("finalpos").textContent=place+"º";$("finaltime").textContent=formatTime(elapsed);
+ $("finaltitle").textContent=solo?(won?"¡GANASTE!":"¡PARTIDA TERMINADA!"):
+  won?"¡SOS CAMPEÓN!":final?"¡TERMINÓ LA FINAL!":playerQualified?"¡CLASIFICASTE!":"¡ELIMINADO!";
+ $("finaltext").textContent=solo?
+  (won?"¡Excelente partida! Podés repetir el modo o elegir otro desde el menú.":"Terminaste "+place+"º. ¡Probá otra vez o elegí un minijuego nuevo!"):
+  won?"¡Ganaste las tres pruebas de MICROCAOS!":
+  final?"Terminaste "+place+"º. Solo el primero gana la copa.":
+  playerQualified?"¡Seguís en competencia! Próxima prueba: "+MINI_MODES[modePlaylist[roundIndex+1]].title+".":
+  "Terminaste "+place+"º. Solo avanzaban "+quota+". ¡Intentalo otra vez!";
+ $("finalpos").textContent=place+"º";
+ $("finaltime").textContent=formatTime(elapsed);
  $("finalstars").textContent=currentMode==="gems"?miniScores[0]:tournamentStars;
- $("retry").textContent=playerQualified&&!final?
-  "→ "+MINI_MODES[modePlaylist[roundIndex+1]].emoji+" SIGUIENTE: "+MINI_MODES[modePlaylist[roundIndex+1]].title:
-  "↻ NUEVO TORNEO SORPRESA";
- $("finish").classList.add("show");cue(won?990:playerQualified?790:320,.21);
- if(won)for(let i=0;i<4;i++)setTimeout(()=>puff(rand(-2,2),-3,colors[i],17),i*160);
- window.resultText=won?"¡Soy campeón de MICROCAOS Party Rush! 🏆":"¡Jugué "+MINI_MODES[currentMode].title+" y terminé "+place+"º en MICROCAOS!";
+ $("retry").textContent=solo?"↻ REPETIR "+MINI_MODES[currentMode].title:
+  playerQualified&&!final?"→ CONTINUAR AHORA · "+MINI_MODES[modePlaylist[roundIndex+1]].title:
+  "↻ NUEVO TORNEO";
+ $("finish").classList.add("show");
+ cue(won?990:playerQualified?790:320,.21);
+ if(won)for(let i=0;i<4;i++)setTimeout(()=>puff(rand(-2,2),-3,colors[i],13),i*160);
+ window.resultText=won?"¡Gané "+MINI_MODES[currentMode].title+" en MICROCAOS! 🏆":
+  "Jugué "+MINI_MODES[currentMode].title+" en MICROCAOS y terminé "+place+"º.";
+ const auto= $("autoRound");
+ if(!solo&&playerQualified&&!final){
+  auto.textContent="✓ CLASIFICADO · SIGUIENTE NIVEL AUTOMÁTICO EN 3 SEGUNDOS";
+  const ticket=runSequence,expected=roundIndex;
+  roundTransitionTimer=setTimeout(()=>{
+   roundTransitionTimer=null;
+   if(phase==="finished"&&runSequence===ticket&&roundIndex===expected&&gameType==="tournament"&&playerQualified){
+    roundAdvance();
+   }
+  },3100);
+ }else if(!solo&&final&&won){
+  auto.textContent="🏆 ¡CAMPEÓN DEL TORNEO!";
+ }else if(!solo){
+  auto.textContent=playerQualified?"¡RONDA COMPLETADA!":"FIN DEL TORNEO · PODÉS INTENTARLO DE NUEVO";
+ }else auto.textContent="PARTIDA INDIVIDUAL · SIN RONDAS ADICIONALES";
 }
 function roundAdvance(){
  cancelAutoAdvance();
@@ -1559,7 +1591,7 @@ function move(dt,t){
  if(phase!=="race")return;
  elapsed+=dt;
  if(currentMode!=="race"){moveMiniGame(dt,t);return}
- if(elapsed>53){concludeRound();return}
+ if(elapsed>53||(raceEndAfterPlayer>0&&elapsed>=raceEndAfterPlayer)){concludeRound();return}
  for(let i=0;i<racers.length;i++){
   const r=racers[i];if(r.finished||!contestants.includes(i))continue;const bot=i!==0;
   r.stun=Math.max(0,r.stun-dt);r.invuln=Math.max(0,r.invuln-dt);
@@ -1649,7 +1681,10 @@ function move(dt,t){
   if(r.z<=-12.6){
    r.finished=true;r.finishTime=elapsed;r.z=-13.08;
    puff(r.x,r.z,0xffd978,18);useAnimation(r,"Dance");
-   if(i===0){skillMessage("¡LLEGASTE! ESPERANDO A LOS DEMÁS",1350)}
+   if(i===0){
+    raceEndAfterPlayer=elapsed+(gameType==="individual"?.9:4.0);
+    skillMessage(gameType==="individual"?"¡META!":"¡META! CERRANDO CLASIFICACIÓN",1350);
+   }
   }
   r.animDistance=(r.animDistance||0)+dt*(r.stun>0?9:r.dash>0?22:15);const run=r.animDistance+r.phase;
   r.root.position.set(r.x,r.y,r.z);
@@ -1667,7 +1702,10 @@ function move(dt,t){
   if(r.crown)r.crown.rotation.y=Math.sin(t*1.3)*.17;
  }
  separateRacers(dt);
- if(activeRacers().filter(r=>r.finished).length>=roundRule().qualify){concludeRound();return}
+ if(activeRacers().filter(r=>r.finished).length>=roundRule().qualify){
+  concludeRound();return
+ }
+ if(gameType==="individual"&&p.finished){concludeRound();return}
  const order=scoreOrder(),place=order.findIndex(r=>r.index===0)+1;
  $("place").innerHTML=place+"<em> / "+contestants.length+"</em>";
  $("timer").textContent=formatTime(elapsed);
