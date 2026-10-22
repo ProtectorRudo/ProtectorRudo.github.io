@@ -569,7 +569,7 @@ function ballCreateBall(){
  g.position.set(b.x,0,b.z);ballBalls.push(b);return b;
 }
 function startBallistix(){
- ballElapsed=0;ballSpawnDelay=9;ballTimeSinceScore=0;
+ ballElapsed=0;ballSpawnDelay=10;ballTimeSinceScore=0;
  ballSides=[0,...contestants.filter(i=>i!==0)];
  if(ballSides.length!==4)throw new Error("Ballistix requires exactly four contestants");
  ballHealth=Array(4).fill(8);ballStatus=Array(4).fill(true);
@@ -658,7 +658,7 @@ function ballPulse(){
 }
 function ballContact(b,k){
  const p=ballShipPositions[k],v=k<2?b.x:b.z,d=Math.abs(v-p);
- if(d>ballPaddleHalf+.24)return false;
+ if(d>ballPaddleHalf+(k===0&&ballPulseUntil>ballElapsed?.85:.24))return false;
  const s=Math.min(13.0,Math.max(5.3,Math.hypot(b.vx,b.vz)*1.05));
  const offset=clamp((v-p)/(ballPaddleHalf+.12),-1,1);
  const hot=k===0&&ballPulseUntil>ballElapsed;
@@ -730,7 +730,7 @@ function ballTick(dt){
  ballElapsed+=dt;
  const active=ballStatus.filter(Boolean).length;
  if(active<=3){completeBallistix();return}
- if(ballSpawnDelay<=0&&ballBalls.length<4){ballCreateBall();ballSpawnDelay=Math.max(5.0,10-ballElapsed*.025);cue(760,.10)}
+ if(ballSpawnDelay<=0&&ballBalls.length<4){ballCreateBall();ballSpawnDelay=Math.max(5.0,11-ballElapsed*.027);cue(760,.10)}
  ballSpawnDelay-=dt;ballPulseCd=Math.max(0,ballPulseCd-dt);
  if(racers[0].dash>0)racers[0].dash=Math.max(0,racers[0].dash-dt);
  if(racers[0].dashCd>0)racers[0].dashCd=Math.max(0,racers[0].dashCd-dt);
@@ -785,7 +785,7 @@ function ballTick(dt){
  }
  $("timer").textContent="∞";
  $("place").innerHTML=ballStatus[0]?ballHealth[0]+"<em> / 8</em>":"0<em> / 8</em>";
- $("miniObjective").textContent=ballStatus[0]?"⚽ DEFENDÉ TU ARCO · "+balls.length+" PELOTAS":"⚽ ELIMINADO";
+ $("miniObjective").textContent=ballStatus[0]?(ballElapsed<6?"⚽ DESLIZÁ PARA DEFENDER · PULSO AL REBOTAR":"⚽ DEFENDÉ TU ARCO · "+balls.length+" PELOTAS"):"⚽ ELIMINADO";
  $("miniObjective").classList.toggle("danger",ballHealth[0]<=2);
  $("progressBar").style.width=((1-active/4)*100)+"%";
  $("jumpCount").textContent=ballPulseCd>0?ballPulseCd.toFixed(1)+"s":"GOLPE";
