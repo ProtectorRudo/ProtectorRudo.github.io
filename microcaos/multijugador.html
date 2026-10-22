@@ -1120,6 +1120,33 @@ function mpLobbyDraw(){
   }
  }
 }
+function mpOpenRealtimeChannel(){
+ if(!mp.active||!mp.client||mp.closing)return;
+ const old=mp.channel;
+ const channel=mp.client.channel(mp.topic,{config:{broadcast:{self:false,ack:false}}})
+  .on("broadcast",{event:"input"},msg=>{if(mp.host)mpOnInput(msg.payload)})
+  .on("broadcast",{event:"action"},msg=>{if(mp.host)mpOnAction(msg.payload)})
+  .on("broadcast",{event:"round"},msg=>{if(!mp.host)mpRound(msg.payload)})
+  .on("broadcast",{event:"state"},msg=>{if(!mp.host)mpState(msg.payload)})
+  .on("broadcast",{event:"result"},msg=>{if(!mp.host)mpResult(msg.payload)})
+  .on("broadcast",{event:"sync"},()=>{if(mp.host&&mp.started)mpRoundSend()});
+ mp.channel=channel;
+ if(old)mp.client.removeChannel(old).catch(()=>{});
+ channel.subscribe(status=>{
+  if(mp.channel!==channel||!mp.active)return;
+  mp.connected=status==="SUBSCRIBED";
+  if(status==="SUBSCRIBED"){
+   mp.reconnectAt=0;mpError("");mpLobbyDraw();
+   if(mp.host&&mp.started)mpRoundSend();
+   if(!mp.host)mpTell("sync",{slot:mp.slot});
+  }else if(["CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(status)&&!mp.closing){
+   mpError("Reconectando comunicación… Revisá tu conexión a Internet.");
+   if(!mp.reconnectAt){mp.reconnectAt=performance.now();setTimeout(()=>{
+    if(mp.active&&!mp.connected&&mp.channel===channel){mp.reconnectAt=0;mpOpenRealtimeChannel()}
+   },2200)}
+  }
+ });
+}
 async function mpConnectRoom(result){
  mp.active=true;mp.host=result.slot===0;mp.slot=result.slot;mp.code=result.code;
  mp.token=result.token;mp.topic=result.topic;mp.maxPlayers=result.maxPlayers;
@@ -1130,30 +1157,7 @@ async function mpConnectRoom(result){
  try{
   const {createClient}=await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.91.0/+esm");
   mp.client=createClient(MP_SUPA_URL,MP_PUBLIC_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
-  mp.channel=mp.client.channel(mp.topic,{config:{broadcast:{self:false,ack:false}}})
-   .on("broadcast",{event:"input"},msg=>{if(mp.host)mpOnInput(msg.payload)})
-   .on("broadcast",{event:"action"},msg=>{if(mp.host)mpOnAction(msg.payload)})
-   .on("broadcast",{event:"round"},msg=>{if(!mp.host)mpRound(msg.payload)})
-   .on("broadcast",{event:"state"},msg=>{if(!mp.host)mpState(msg.payload)})
-   .on("broadcast",{event:"result"},msg=>{if(!mp.host)mpResult(msg.payload)})
-   .on("broadcast",{event:"sync"},()=>{if(mp.host&&mp.started)mpRoundSend()})
-   .subscribe(status=>{
-     mp.connected=status==="SUBSCRIBED";
-     if(status==="SUBSCRIBED"){
-       mpError("");mpLobbyDraw();
-       if(!mp.host)mpTell("sync",{slot:mp.slot});
-     }else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"||status==="CLOSED"){
-       mpError("Reconectando comunicación en vivo…");
-       if(!mp.reconnectAt||performance.now()-mp.reconnectAt>8000){
-        mp.reconnectAt=performance.now();
-        setTimeout(()=>{
-         if(mp.active&&!mp.connected&&mp.channel){
-          try{mp.channel.subscribe()}catch(error){console.warn("Reconnection",error)}
-         }
-        },1500);
-       }
-     }
-   });
+  mpOpenRealtimeChannel();
   if(mp.poller)clearInterval(mp.poller);
   mp.poller=setInterval(async()=>{
     if(!mp.active)return;
