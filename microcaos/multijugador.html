@@ -366,7 +366,7 @@ body.colorcrash-mode .hud,body.colorcrash-mode .raceprogress,body.colorcrash-mod
   <div class="mp-info">En RA, cada celular coloca la misma arena virtual sobre su propia superficie. No sincroniza automáticamente mesas u objetos físicos entre domicilios.</div>
  </section>
  <p class="mp-status" id="mpError" role="status"></p>
- <div class="mp-actions"><a class="mp-btn" style="text-align:center;text-decoration:none" href="./index.html">← PARTIDA LOCAL</a></div>
+ <div class="mp-actions"><button class="mp-btn" id="mpLeave" style="display:none">✕ SALIR DE LA SALA</button><a class="mp-btn" style="text-align:center;text-decoration:none" href="./index.html">← PARTIDA LOCAL</a></div>
 </div></section>
 <div class="mp-live" id="mpLive"></div>
 <header class="top">
@@ -1033,9 +1033,9 @@ function mpRemember(){
 }
 function mpForget(){try{sessionStorage.removeItem(MP_SESSION_KEY)}catch(e){}}
 function mpSaveName(){try{localStorage.setItem(MP_NAME_KEY,$("mpName").value.trim().slice(0,18))}catch(e){}}
-function mpLink(){const url=new URL("multijugador.html",location.href);url.search="?room="+mp.code;return url.href}
+function mpLink(){const url=new URL("multijugador-v31.html",location.href);url.search="?room="+mp.code;return url.href}
 function mpIsHuman(slot){return mp.active&&mp.host&&mp.players.some(p=>p.slot===slot&&p.online)}
-function mpReadyStatus(ready){mp.ready=!!ready;$("mpReadyText").textContent=ready?"✓ Listo para jugar en 3D":"◈ Preparando arena en realidad aumentada…";$("mpReadyText").classList.toggle("not-ready",!ready)}
+function mpReadyStatus(ready){mp.ready=!!ready;$("mpReadyText").textContent=ready?(mp.useAR?"✓ Arena RA lista para jugar":"✓ Listo para jugar en 3D"):"◈ Preparando arena en realidad aumentada…";$("mpReadyText").classList.toggle("not-ready",!ready)}
 async function mpSetReady(ready){
  if(!mp.active)return;mpReadyStatus(ready);
  try{const data=await mpAPI("ready",{code:mp.code,token:mp.token,ready});mp.players=data.players;mpLobbyDraw()}
@@ -1079,7 +1079,7 @@ async function mpConnectRoom(result){
  mp.token=result.token;mp.topic=result.topic;mp.maxPlayers=result.maxPlayers;
  mp.players=result.players||[];mp.gameType=result.gameType||"individual";mp.chosenMode=result.mode||"colorcrash";
  mp.lastStateAt=performance.now();mpRemember();
- $("mpSetup").hidden=true;$("mpWaiting").hidden=false;$("mpLobby").hidden=false;
+ $("mpSetup").hidden=true;$("mpWaiting").hidden=false;$("mpLobby").hidden=false;$("mpLeave").style.display="block";
  mpError("Conectando jugadores en tiempo real…");mpLobbyDraw();
  try{
   const {createClient}=await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.91.0/+esm");
@@ -1298,6 +1298,9 @@ function mpGuestButton(button){
 }
 function mpAutoAR(){
  if(!mp.active)return;
+ if(!navigator.xr?.requestSession){mpError("Este dispositivo no permite WebXR. Jugá en 3D desde aquí.");return}
+ mp.useAR=true;
+ mpSetReady(false); // Non-blocking: preserve user gesture for WebXR.
  $("mpLobby").hidden=true;
  setupAR();
 }
@@ -1305,10 +1308,29 @@ $("mpCreate").onclick=mpCreate;
 $("mpJoin").onclick=mpJoin;
 $("mpLaunch").onclick=mpLaunch;
 $("mpCopy").onclick=async()=>{
- const url=new URL("multijugador.html",location.href);url.search="?room="+mp.code;
- try{await navigator.clipboard.writeText(url.href);mpError("Enlace copiado. ¡Invitá a tus amigos!")}
- catch(e){mpError("Código de sala: "+mp.code+" · Compartí esta URL: "+url.href)}
+ try{await navigator.clipboard.writeText(mpLink());mpError("✓ Enlace copiado. Enviáselo a tus amigos.")}
+ catch(e){mpError("Compartí el código "+mp.code+" o el enlace "+mpLink())}
 };
+$("mpWhatsApp").onclick=()=>{const url="https://wa.me/?text="+encodeURIComponent("🎮 ¡Jugá MICROCAOS conmigo! Entrá acá y poné tu nombre: "+mpLink());window.open(url,"_blank","noopener,noreferrer")};
+$("mpChoose3D").onclick=()=>{
+ mp.useAR=false;
+ if(mode==="ar"&&session){try{session.end()}catch(e){}}
+ mpSetReady(true);
+ mpError("✓ Listo. Ahora esperá a que inicie el anfitrión.");
+};
+$("mpLeave").onclick=async()=>{
+ if(!mp.active)return;
+ if(!confirm(mp.host?"¿Cerrar la sala para todos?":"¿Salir de la sala?"))return;
+ mp.closing=true;mpForget();
+ try{await mpAPI("leave",{code:mp.code,token:mp.token})}catch(e){}
+ location.href="./multijugador-v31.html";
+};
+document.querySelectorAll(".mp-cap-option").forEach(btn=>{
+ btn.onclick=()=>{
+  $("mpCapacity").value=btn.dataset.count;
+  document.querySelectorAll(".mp-cap-option").forEach(x=>x.classList.toggle("selected",x===btn));
+ };
+});
 $("mpLaunchAR").onclick=mpAutoAR;
 $("mpGameType").onchange=()=>{$("mpMode").disabled=$("mpGameType").value==="tournament"};
 const mpRequestedCode=new URLSearchParams(location.search).get("room");
@@ -3465,7 +3487,7 @@ function placeArena(){
   $("notice").classList.remove("show");$("placeArena").style.display="none";
   $("intro").classList.remove("hidden");$("modebar").textContent="AR REAL · PISTA ANCLADA";
   announce("¡PISTA COLOCADA!",1100);cue(780,.2);
-  if(mp.active&&!mp.started)$("mpLobby").hidden=false;
+  if(mp.active&&!mp.started){mpSetReady(true);$("mpLobby").hidden=false;mpError("✓ ¡Arena RA lista! Esperá a los demás.")}
 }
 $("placeArena").onclick=placeArena;
 renderer.domElement.addEventListener("pointerup",placeArena);
