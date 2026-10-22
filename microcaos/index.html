@@ -23,7 +23,7 @@ html.xr-active,html.xr-active body,html.xr-active #scene{background:transparent!
 <div id="scene"></div>
 <div id="ui">
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · AR V0.5</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · PREMIUM V0.6</div></div></div>
 <div class="topright"><span class="tinylabel">✦ <b id="modelstatus">CARGANDO 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel">POSICIÓN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -65,7 +65,7 @@ const clock=new THREE.Clock(),scene=new THREE.Scene();scene.fog=new THREE.FogExp
 scene.background=new THREE.Color(0x172b4a);
 const camera=new THREE.PerspectiveCamera(innerWidth/innerHeight<.68?58:42,innerWidth/innerHeight,.01,250);camera.position.set(14,17,26);camera.lookAt(0,0,0);
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:"high-performance"});
-renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.65));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.34;renderer.xr.enabled=true;
+renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.65));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;renderer.xr.enabled=true;
 try{const pmrem=new THREE.PMREMGenerator(renderer);const env=new RoomEnvironment();scene.environment=pmrem.fromScene(env,.04).texture;pmrem.dispose();if(env.dispose)env.dispose()}catch(e){console.warn("Studio light fallback",e)}
 $("scene").appendChild(renderer.domElement);
 const hemi=new THREE.HemisphereLight(0xdeffff,0x536087,2.5);scene.add(hemi);
@@ -74,7 +74,7 @@ const rim=new THREE.DirectionalLight(0x6dc9ff,3);rim.position.set(12,6,-17);scen
 const fill=new THREE.PointLight(0xffab71,70,55);fill.position.set(-9,7,4);scene.add(fill);
 const world=new THREE.Group();scene.add(world);const stage=new THREE.Group();world.add(stage);const atmosphere=new THREE.Group();stage.add(atmosphere);
 const mat=(hex,metal=0,rough=.42,extra={})=>new THREE.MeshPhysicalMaterial({color:hex,metalness:metal,roughness:rough,clearcoat:.38,clearcoatRoughness:.19,...extra});
-const navy=mat(0x263a58,.58,.29),ivory=mat(0xe4e4d7,.1,.66),teal=mat(0x59e1c8,.12,.3),gold=mat(0xffce63,.62,.22),rubber=mat(0x142841,.2,.74),pink=mat(0xff7199,.16,.34),white=mat(0xffffff,.04,.23),glass=mat(0x101e35,.14,.12,{clearcoat:1}),chrome=mat(0xa9d3df,.88,.18,{clearcoat:1}),carbon=mat(0x111e31,.22,.7),candy=mat(0xffd476,.48,.25,{emissive:0xc8801e,emissiveIntensity:.17});
+const navy=mat(0x17304b,.17,.43),ivory=mat(0xf3ecdc,.03,.46),teal=mat(0x4fdacb,.05,.35,{emissive:0x12645a,emissiveIntensity:.12}),gold=mat(0xe6b868,.48,.36),rubber=mat(0x1d506b,.05,.54),pink=mat(0xff729f,.07,.36),white=mat(0xfffaf2,.02,.34),glass=mat(0x142d45,.07,.23,{clearcoat:1}),chrome=mat(0x97abb5,.25,.45,{clearcoat:.62}),carbon=mat(0x0d2035,.11,.66),candy=mat(0xffdc96,.19,.29,{emissive:0x603615,emissiveIntensity:.13});
 const sphereG=new THREE.SphereGeometry(1,32,24),cylinderG=new THREE.CylinderGeometry(1,1,1,24),boxG=new THREE.BoxGeometry(1,1,1),softG=new RoundedBoxGeometry(1,1,1,3,.13);
 const mesh=(g,m,parent,pos=[0,0,0],scale=[1,1,1],shadow=true)=>{let o=new THREE.Mesh(g,m);o.position.set(...pos);o.scale.set(...scale);o.castShadow=shadow;o.receiveShadow=true;parent.add(o);return o};
 const ball=(m,p,pos,s)=>mesh(sphereG,m,p,pos,s),box=(m,p,pos,s)=>mesh(boxG,m,p,pos,s),soft=(m,p,pos,s)=>mesh(softG,m,p,pos,s),cyl=(m,p,pos,top,bottom,height)=>{let o=mesh(new THREE.CylinderGeometry(top,bottom,height,24),m,p,pos);return o};
@@ -119,6 +119,32 @@ function makeScenery(){
 }
 makeScenery();
 
+function polishRaceArena(){
+ const led=mat(0x90ffea,.02,.21,{emissive:0x57ffe5,emissiveIntensity:.7}),goldTrim=mat(0xeec77c,.43,.36),dark=mat(0x173751,.18,.42);
+ for(let side of [-1,1]){
+  soft(led,stage,[side*4.38,.21,0],[.09,.055,29.7]);
+  soft(goldTrim,stage,[side*5.05,.15,0],[.13,.12,30.5]);
+  for(let z=-12.5;z<=12.5;z+=4.15){
+   cyl(goldTrim,stage,[side*6.08,1.37,z],.11,.11,2.68);
+   ball(goldTrim,stage,[side*6.08,2.75,z],[.27,.27,.27]);
+   soft(dark,stage,[side*6.09,2.03,z+.1],[.09,.54,.51]);
+  }
+ }
+ for(let z of [4.7,-6.2])for(let x of [-2.5,2.5]){
+  cyl(goldTrim,stage,[x,.22,z],.96,.96,.14);
+  cyl(dark,stage,[x,.31,z],.78,.78,.06);
+  cyl(led,stage,[x,.36,z],.60,.60,.028);
+ }
+ for(let x of [-4.15,4.15]){
+  cyl(goldTrim,stage,[x,1.48,-12.9],.17,.19,2.85);
+  ball(led,stage,[x,2.97,-12.9],[.25,.25,.25]);
+ }
+ soft(dark,stage,[0,2.78,-12.9],[8.5,.42,.51]);
+ soft(goldTrim,stage,[0,3.05,-12.9],[8.75,.11,.53]);
+ for(let i=-6;i<=6;i++)soft(i%2?white:dark,stage,[i*.61,2.78,-13.18],[.61,.24,.045]);
+}
+polishRaceArena();
+
 const obstacles=[];
 function spinner(z,color){const a=new THREE.Group();a.position.set(0,.7,z);stage.add(a);cyl(navy,a,[0,-.28,0],.52,.63,.3);cyl(gold,a,[0,.07,0],.4,.37,.2);const rotor=new THREE.Group();a.add(rotor);soft(mat(color,.17,.26,{clearcoat:.9}),rotor,[0,.12,0],[7.2,.36,.53]);for(let k=-3;k<=3;k++)soft(chrome,rotor,[k,.34,0],[.09,.04,.55]);for(let x of [-3.5,3.5])ball(white,rotor,[x,.13,0],[.33,.33,.33]);ball(glass,rotor,[0,.12,0],[.4,.33,.4]);obstacles.push({kind:"spin",z,part:rotor,rotation:rand(0,3),speed:rand(.8,1.45)})}
 function smasher(z,color,phase){const g=new THREE.Group();g.position.set(0,0,z);stage.add(g);let body=soft(mat(color,.12,.29,{clearcoat:.85}),g,[0,.58,0],[1.9,.98,.72]);soft(chrome,g,[0,1.02,0],[1.55,.12,.54]);ball(white,g,[-.32,.7,-.42],[.16,.17,.09]);ball(white,g,[.32,.7,-.42],[.16,.17,.09]);cyl(navy,g,[0,.05,0],.9,.9,.18);obstacles.push({kind:"slide",z,part:g,phase,speed:1.1})}
@@ -143,11 +169,11 @@ function makePistons(z){
 makePistons(-1.15);
 
 function makeGate(z){for(let x of [-4.3,4.3]){box(navy,stage,[x,.65,z],[.3,1.3,.3]);ball(gold,stage,[x,1.37,z],[.2,.18,.2])}box(teal,stage,[0,1.3,z],[8.85,.23,.35]);const sign=textSprite("META",56,"#ffdc82");sign.position.set(0,2.03,z);stage.add(sign)}makeGate(-12.82);
-const colors=[0xffce65,0xff719c,0x8c9cff,0x65e9d0,0xf5a96b,0xc99bff];
+const colors=[0xe3bc71,0xffbad4,0xa18bf1,0x74e8c3,0xf1ad70,0xebf0f4];
 const profiles=[{name:"VOS",speed:1.05,skill:.80},{name:"POP",speed:.91,skill:.76},{name:"NIX",speed:1.01,skill:.86},{name:"BOOM",speed:.84,skill:.54},{name:"KIWI",speed:.96,skill:.66},{name:"ZAP",speed:1.07,skill:.91}];
 const racers=[];
 function createCharacter(col,index){const root=new THREE.Group();stage.add(root);const shade=new THREE.Mesh(new THREE.CircleGeometry(.58,32),new THREE.MeshBasicMaterial({color:0x001224,transparent:true,opacity:.28,depthWrite:false}));shade.rotation.x=-Math.PI/2;shade.position.y=.072;root.add(shade);
-const rig=new THREE.Group();root.add(rig);const bodyMat=mat(col,.14,.24,{clearcoat:.86}),dark=mat(0x19344a,.17,.42);
+const rig=new THREE.Group();root.add(rig);const bodyMat=mat(col,.04,.35,{clearcoat:.6}),dark=mat(0x19344a,.12,.45);
 ball(bodyMat,rig,[0,.76,0],[.49,.66,.43]);ball(bodyMat,rig,[0,1.13,-.02],[.44,.48,.42]);ball(white,rig,[-.175,1.16,-.396],[.16,.21,.105]);ball(white,rig,[.175,1.16,-.396],[.16,.21,.105]);ball(glass,rig,[-.145,1.14,-.497],[.093,.14,.043]);ball(glass,rig,[.145,1.14,-.497],[.093,.14,.043]);ball(white,rig,[-.169,1.205,-.538],[.029,.043,.013]);ball(white,rig,[.124,1.205,-.538],[.029,.043,.013]);for(let x of [-.33,.33])ball(pink,rig,[x,.92,-.357],[.095,.055,.034]);let smile=mesh(new THREE.TorusGeometry(.13,.023,8,24,Math.PI),dark,rig,[0,.893,-.414],[1,1,1]);smile.rotation.z=Math.PI;const shine=ball(white,rig,[-.25,1.42,-.24],[.11,.09,.035]);shine.material=mat(0xffffff,0,.25,{transparent:true,opacity:.21});
 const arms=[];for(let side of [-1,1]){let a=new THREE.Group();a.position.set(side*.47,.86,0);rig.add(a);ball(bodyMat,a,[side*.11,-.19,0],[.18,.31,.2]);ball(white,a,[side*.13,-.4,-.02],[.19,.18,.18]);arms.push(a)}
 const feet=[];for(let side of [-1,1]){let f=new THREE.Group();f.position.set(side*.25,.2,0);rig.add(f);ball(dark,f,[0,.015,-.09],[.23,.22,.35]);box(white,f,[0,-.125,-.15],[.43,.075,.47]);feet.push(f)}
@@ -159,7 +185,7 @@ return{root,rig,arms,feet,shade,index,name:profiles[index].name,x:0,z:0,y:0,vy:0
 for(let i=0;i<6;i++)racers.push(createCharacter(colors[i],i));
 
 function detailCharacter(r,col,index){
-  const {rig,root}=r,trim=mat(0xffecca,.62,.22),suit=mat(0x1a2c43,.38,.3),metallic=mat(col,.54,.2,{clearcoat:1});
+  const {rig,root}=r,trim=mat(0xf2dfb8,.23,.35),suit=mat(0x203751,.14,.44),metallic=mat(col,.07,.37,{clearcoat:.65});
   soft(suit,rig,[0,.59,-.367],[.51,.31,.19]);soft(trim,rig,[0,.64,-.476],[.33,.09,.039]);soft(metallic,rig,[0,.5,-.478],[.25,.07,.038]);
   for(let side of [-1,1]){soft(metallic,rig,[side*.3,.35,-.05],[.21,.23,.29]);ball(trim,rig,[side*.39,.95,.04],[.09,.085,.11])}
   for(let x of [-.26,.26])ball(white,rig,[x,1.33,-.345],[.07,.048,.037]);
@@ -181,6 +207,21 @@ function detailCharacter(r,col,index){
 }
 
 for(let i=0;i<racers.length;i++)detailCharacter(racers[i],colors[i],i);
+
+function addCollectorIdentity(r,i){
+ const p=r.rig,matte=h=>mat(h,.035,.36,{clearcoat:.56}),cl=[0xeac478,0xf6acc7,0xa58ee9,0x60d8b9,0xf0ad73,0xeceef3][i];
+ const c=matte(cl),accent=matte([0xffeab4,0xff7ea8,0x7157ce,0x259f9c,0x517dc1,0x233653][i]);
+ for(let d of [-1,1]){ball(c,p,[d*.48,.8,.055],[.20,.28,.19]);ball(accent,p,[d*.26,.20,-.14],[.23,.14,.28]);}
+ soft(accent,p,[0,.70,-.42],[.43,.29,.11]);soft(white,p,[0,.76,-.485],[.33,.07,.035]);
+ if(i===0){for(let x of [-.34,.34]){ball(c,p,[x,1.56,0],[.19,.19,.18]);ball(accent,p,[x,1.58,-.09],[.095,.09,.045]);}}
+ else if(i===1){for(let x of [-.24,.24]){let ear=ball(c,p,[x,1.79,.015],[.14,.40,.13]);ear.rotation.z=x<0?.15:-.15;ball(accent,p,[x,1.79,-.10],[.07,.28,.027]);}}
+ else if(i===2){for(let x of [-.32,.32]){const ear=mesh(new THREE.ConeGeometry(.22,.38,14),accent,p,[x,1.65,.02]);ear.rotation.z=x<0?.17:-.17;}}
+ else if(i===3){for(let k=0;k<4;k++)mesh(new THREE.ConeGeometry(.12,.25,12),accent,p,[0,1.72-k*.27,.08+k*.15]);}
+ else if(i===4){for(let x of [-.46,.46])ball(c,p,[x,1.41,.09],[.19,.31,.15]);soft(accent,p,[0,1.42,-.39],[.49,.08,.31]);}
+ else if(i===5){for(let x of [-.34,.34])ball(glass,p,[x,1.55,.05],[.20,.21,.19]);for(let x of [-.17,.17])ball(glass,p,[x,1.20,-.42],[.14,.18,.06]);}
+}
+for(let i=0;i<racers.length;i++)addCollectorIdentity(racers[i],i);
+
 
 const ROBOT_ASSET="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r180/examples/models/gltf/RobotExpressive/RobotExpressive.glb";
 let modelLoaded=false;
@@ -240,7 +281,8 @@ function initCharacterModels(){
     }
   },undefined,()=>{$("modelstatus").textContent="MODO 3D";console.warn("Animated 3D model unavailable; using built-in fallback")});
 }
-initCharacterModels();
+// Use original six mascot designs rather than six copies of the stock sample robot.
+// initCharacterModels();
 
 const puffs=[],particleMat=mat(0xffffff,0,.8,{transparent:true,opacity:.8,depthWrite:false});
 function puff(x,z,col,n=7){for(let k=0;k<n;k++){let m=ball(mat(col,0,.7,{transparent:true,opacity:.75,depthWrite:false}),stage,[x,rand(.1,.6),z],[.07,.07,.07]);puffs.push({mesh:m,vx:rand(-2,2),vy:rand(.4,2),vz:rand(-2,2),life:rand(.32,.75),max:.75})}if(puffs.length>150){const old=puffs.splice(0,puffs.length-150);old.forEach(q=>stage.remove(q.mesh))}}
