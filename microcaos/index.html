@@ -1028,6 +1028,7 @@ function territoryBreak(victim,attacker){
  victim.territoryStunnedUntil=miniChallengeElapsed+1.0;
  victim.territoryShieldUntil=miniChallengeElapsed+2.2;
  victim.x=victim.territoryHomeX;victim.z=victim.territoryHomeZ;
+ victim.territoryLastCell=territoryIdx(victim.x,victim.z);
  victim.vx=0;victim.vz=0;
  victim.root.position.set(victim.x,0,victim.z);
  victim.territoryAiPlan=null;
@@ -1066,11 +1067,12 @@ function territoryMovePath(r){
  let prior=-1;
  for(let step=1;step<=n;step++){
   const t=step/n,idx=territoryIdx(r.territoryLastX+dx*t,r.territoryLastZ+dz*t);
-  if(idx<0||idx===prior)continue;
-  territoryStepCell(r,idx);prior=idx;
+  if(idx<0||idx===prior||idx===r.territoryLastCell)continue;
+  territoryStepCell(r,idx);prior=idx;r.territoryLastCell=idx;
   if(miniChallengeElapsed<r.territoryStunnedUntil)break;
  }
  r.territoryLastX=r.x;r.territoryLastZ=r.z;
+  r.territoryLastCell=territoryIdx(r.x,r.z);
 }
 function territoryStart(){
  territoryOwners.fill(-1);territoryTrails.fill(-1);territoryCount.fill(0);
