@@ -531,7 +531,7 @@ function startBallistix(){
   ballShipPositions[k]=0;ballShipGroups[k].visible=true;
  }
  ballCreateBall();
- updateBallScoreboard();
+ updateBallScoreboard();ballShipUpdate(0);
  $("jump").innerHTML='PULSO <span class="jump-count" id="jumpCount">LISTO</span>';
  $("dash").textContent="RÁPIDO";
  $("miniObjective").textContent="⚽ DEFENDÉ TU ARCO · 8 VIDAS";
@@ -730,7 +730,7 @@ function renderModeLabel(){
  $("stagebanner").textContent="RONDA "+(roundIndex+1)+"/3 · "+tag.emoji+" "+tag.title+" · PASAN "+ROUND_RULES[roundIndex].qualify;
  $("rankLabel").textContent=currentMode==="race"?"POSICIÓN · "+ROUND_RULES[roundIndex].qualify+" PASAN":
   currentMode==="tag"?"PESA · ÚLTIMO PIERDE":
-  currentMode==="gems"?"GEMAS · MÁS JUNTADAS":"SUPERVIVIENTES";
+  currentMode==="gems"?"GEMAS · MÁS JUNTADAS":currentMode==="ballistix"?"VIDAS · NO RECIBAS GOLES":"SUPERVIVIENTES";
  $("miniObjective").textContent=tag.objective;
  $("miniObjective").classList.toggle("on",currentMode!=="race");
  $("miniObjective").classList.remove("danger");
@@ -738,6 +738,7 @@ function renderModeLabel(){
  raceDecor.forEach(obj=>obj.visible=currentMode==="race");
  moodLights.forEach(obj=>obj.visible=currentMode==="race");
  for(const k of Object.keys(miniStages))miniStages[k].visible=k===currentMode;
+ ballArena.visible=currentMode==="ballistix";$("ballScoreboard").classList.toggle("on",currentMode==="ballistix");
  for(const o of obstacles){
   if(currentMode!=="race"){o.enabled=false;continue}
   const rules=ROUND_RULES[roundIndex];
@@ -771,6 +772,8 @@ function startMiniChallenge(){
   weightHolder=alive[Math.floor(Math.random()*alive.length)];
  }else if(currentMode==="gems"){
   miniClock=MINI_MODES.gems.time-2+roundIndex*2;
+ }else if(currentMode==="ballistix"){
+  miniClock=0;startBallistix();
  }else if(currentMode==="survival"){
   miniClock=6.5;
   miniSafe={x:0,z:0,radius:3.0};updateSafeZone();
@@ -797,6 +800,7 @@ function knockoutRunner(r,message){
 function miniOrder(){
  const entries=activeRacers();
  if(currentMode==="race")return scoreOrder();
+ if(currentMode==="ballistix")return entries.sort((a,b)=>{const ai=ballSides.indexOf(a.index),bi=ballSides.indexOf(b.index);return Number(!ballStatus[ai])-Number(!ballStatus[bi])||ballHealth[bi]-ballHealth[ai]});
  if(currentMode==="gems")return entries.sort((a,b)=>miniScores[b.index]-miniScores[a.index]||(a.index-b.index)*.0001);
  if(currentMode==="survival")return entries.sort((a,b)=>
   Number(a.finished)-Number(b.finished)||
@@ -915,6 +919,7 @@ function miniBotDirection(r,t){
 }
 function moveMiniGame(dt,t){
  miniChallengeElapsed+=dt;
+ if(currentMode==="ballistix"){ballTick(dt);return}
  for(const r of activeRacers()){
   if(r.finished)continue;
   r.stun=Math.max(0,(r.stun||0)-dt);r.dashCd=Math.max(0,(r.dashCd||0)-dt);
@@ -978,7 +983,8 @@ function resetRound(){
  for(const id of ["hud","progress","stagebanner","controls","pickupCounter"])$(id).classList.add("on");
  for(const id of ["obstacleHint","rushHud","skillToast"])$(id).classList.remove("on");
  $("speedtrails").classList.remove("active");
- $("jumpCount").textContent="×2";$("dash").textContent="TURBO";
+ $("jump").innerHTML='SALTAR <span class="jump-count" id="jumpCount">×2</span>';$("jump").classList.remove("ballistix-pulse-ready","ballistix-pulse-cool");
+ $("dash").textContent="TURBO";$("ballScoreboard").classList.remove("on");
  $("progressBar").style.width="0%";$("pickupValue").textContent=tournamentStars;
  for(const item of stars){item.used=false;item.g.visible=currentMode==="race"}
  for(const fall of fallingWeights)stage.remove(fall.mesh);fallingWeights.length=0;
@@ -1004,9 +1010,9 @@ function concludeRound(){
  phase="finished";dragSteeringActive=false;tagWeight.visible=false;
  for(let id of ["controls","obstacleHint","hud","progress","stagebanner","pickupCounter","miniObjective"])
    $(id).classList.remove("on");
- $("speedtrails").classList.remove("active");$("miniObjective").classList.remove("danger");
+ $("speedtrails").classList.remove("active");$("miniObjective").classList.remove("danger");$("ballScoreboard").classList.remove("on");
  const order=currentMode==="race"?scoreOrder():miniOrder(),quota=roundRule().qualify;
- nextQualifiers=(currentMode==="race"?order.filter(r=>r.finished):order).slice(0,quota).map(r=>r.index);
+ nextQualifiers=(currentMode==="race"?order.filter(r=>r.finished):currentMode==="ballistix"?order.filter(r=>ballStatus[ballSides.indexOf(r.index)]):order).slice(0,quota).map(r=>r.index);
  playerQualified=nextQualifiers.includes(0);
  const place=order.findIndex(r=>r.index===0)+1,final=roundIndex===2,won=final&&nextQualifiers[0]===0;
  $("qualifiedGrid").innerHTML=nextQualifiers.map((id,n)=>
@@ -1231,6 +1237,7 @@ function separateRacers(dt){
 }
 
 function jump(){
+ if(currentMode==="ballistix"){ballPulse();return}
  const p=racers[0];
  if(phase==="countdown"){p.jumpBuffer=.25;return}
  if(phase!=="race")return;
@@ -1263,7 +1270,7 @@ function physicsTick(frameDt){
   if(count===6&&physicsAccumulator>FIXED_DT)physicsAccumulator=0;
 }
 function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;const sec=t/1000;animateObstacles(sec);animateStars(sec);animateParticles(dt);animateFallingWeights(dt);physicsTick(dt);for(let r of racers)if(r.mixer)r.mixer.update(dt);$("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
-if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.7,11.6,12.5):new THREE.Vector3(9.7,11.8,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
+if(mode==="preview"||mode==="camera"){const p=racers[0],follow=phase==="race"||phase==="countdown"||phase==="finished";let zz=currentMode==="race"&&follow?clamp(p.z-1.6,-11.9,9):0;let target=new THREE.Vector3(0,0,zz);previewTarget.lerp(target,smoothFactor(8.5,dt));let portrait=innerHeight>innerWidth;let targetCam=currentMode==="ballistix"&&follow?(portrait?new THREE.Vector3(0,16.7,11.0):new THREE.Vector3(0,14.6,12.8)):currentMode!=="race"&&follow?(portrait?new THREE.Vector3(8.7,11.6,12.5):new THREE.Vector3(9.7,11.8,13.5)):follow?(portrait?new THREE.Vector3(10.1,13.3,previewTarget.z+16.6):new THREE.Vector3(11,13.2,previewTarget.z+17.5)):(portrait?new THREE.Vector3(11.8,16.4,previewTarget.z+20):new THREE.Vector3(12.4,14.5,previewTarget.z+20));camera.position.lerp(targetCam,smoothFactor(9.0,dt));if(cameraShake>.002){cameraShake*=Math.max(0,1-dt*8);camera.position.x+=(Math.random()-.5)*cameraShake;camera.position.y+=(Math.random()-.5)*cameraShake}camera.lookAt(previewTarget.x,follow&&currentMode==="race"?Math.min(.25,p.y*.15):0,previewTarget.z-(follow&&currentMode==="race"?1.9:0))}
 if(mode==="ar"&&frame&&session){if(!hitRequested){hitRequested=true;session.requestReferenceSpace("viewer").then(viewer=>session.requestHitTestSource({space:viewer})).then(s=>hitSource=s).catch(()=>{})}if(hitSource&&!placed){const results=frame.getHitTestResults(hitSource);if(results.length){let pose=results[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;const m=new THREE.Matrix4().fromArray(pose.transform.matrix);reticle.position.setFromMatrixPosition(m);reticle.quaternion.setFromRotationMatrix(m);$("placeArena").style.display="inline-flex";$("notice").textContent="¡Ya veo la superficie! Tocá COLOCAR PISTA para anclar la arena."}}else{reticle.visible=false;$("placeArena").style.display="none"}}}
 if(performance.now()>lastToast)$("toast").classList.remove("show");if(performance.now()>skillToastUntil)$("skillToast").classList.remove("on");renderer.render(scene,camera)}
 const reticle=new THREE.Mesh(new THREE.RingGeometry(.20,.23,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x71ffdf,side:THREE.DoubleSide,depthWrite:false}));reticle.visible=false;scene.add(reticle);
