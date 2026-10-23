@@ -478,7 +478,7 @@ html.xr-active #ui #placeArena{bottom:calc(env(safe-area-inset-bottom) + 110px)!
 </div></section>
 <div class="mp-live" id="mpLive"></div>
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V5.1</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V5.2</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -4585,7 +4585,7 @@ function resetARView(){
   document.documentElement.classList.remove("xr-active","ar-placed");$("ui").classList.remove("xr-active");
   try{renderer.setClearAlpha(1)}catch(e){}
   scene.background=new THREE.Color(0x172b4a);scene.fog=new THREE.FogExp2(0x142542,.009);previewTable.visible=currentMode==="race";stage.visible=true;
-  stage.position.set(0,0,0);stage.quaternion.identity();stage.scale.setScalar(1);
+  stage.position.set(0,0,0);stage.quaternion.identity();stage.scale.setScalar(1);v52AROutline.visible=false;v52AR.eye=null;v52AR.frames=0;
   $("notice").classList.remove("show");$("placeArena").style.display="none";
   reticle.visible=false;hitRequested=false;hitSource=null;placed=false;session=null;arLastHitAttempt=0;v50XR.startedAt=0;v50XR.previewReady=false;v50XR.manual=false;
   $("arTools").style.display="none";
@@ -4674,14 +4674,64 @@ const v49Visibility={lastPlaced:0,inFrame:false};
 // Hit-test is preferred. The fallback anchors in front of the camera and is
 // explicitly described as approximate, never misrepresented as detected floor.
 const v50XR={startedAt:0,lastPoseAt:0,lastVisibilityRetry:0,manual:false,fallback:false,previewReady:false,lastHitError:0,lastGroundHit:0,stableFrames:0};
+
+ // V5.2: Use tracked XRFrame viewer pose (the authoritative device pose), not
+ // a cached ArrayCamera transform from before the browser's XR render pass.
+ const v52AR={eye:null,frames:0,lastCheck:0,angle:0,lastDrawCalls:0};
+ function v52ReadXRFrame(frame){
+  try{
+   const ref=renderer.xr.getReferenceSpace();
+   const pose=ref?frame.getViewerPose(ref):null;
+   const tf=pose?.views?.[0]?.transform;
+   if(!tf)return;
+   const position=new THREE.Vector3(tf.position.x,tf.position.y,tf.position.z);
+   const rotation=new THREE.Quaternion(tf.orientation.x,tf.orientation.y,tf.orientation.z,tf.orientation.w);
+   const forward=new THREE.Vector3(0,0,-1).applyQuaternion(rotation).normalize();
+   if(![...position.toArray(),...forward.toArray()].every(Number.isFinite))return;
+   v52AR.eye={position,forward};v52AR.frames++;
+  }catch(e){if(v52AR.frames===0)console.warn("WebXR pose unavailable",e)}
+ }
+ function v52VisibleFromEye(){
+  const eye=v52AR.eye;if(!eye)return v49FrameCheck().visible;
+  const d=stage.position.clone().sub(eye.position),length=d.length();
+  if(length<.01||!Number.isFinite(length))return false;
+  v52AR.angle=d.multiplyScalar(1/length).dot(eye.forward);
+  return v52AR.angle>.60&&length<4;
+ }
+ function v52ValidateStage(){
+  if(mode!=="ar"||!placed)return;
+  v51RevealSelectedArena();
+  if(stage.parent!==world)world.add(stage);
+  world.visible=true;stage.visible=true;previewTable.visible=false;
+  v52AROutline.visible=true;
+ }
+ const v52AROutline=new THREE.Group();stage.add(v52AROutline);
+ const v52Mat=new THREE.MeshBasicMaterial({color:0x32ffe2,side:THREE.DoubleSide,depthTest:false,depthWrite:false,toneMapped:false});
+ const v52Ring=new THREE.Mesh(new THREE.RingGeometry(.75,1.02,40).rotateX(-Math.PI/2),v52Mat);
+ v52Ring.position.y=.55;v52Ring.renderOrder=200;v52AROutline.add(v52Ring);
+ for(const x of [-4,4])for(const z of [-5,5]){
+  const corner=new THREE.Mesh(new THREE.BoxGeometry(.23,.12,.23),v52Mat);
+  corner.position.set(x,.54,z);corner.renderOrder=200;v52AROutline.add(corner);
+ }
+ v52AROutline.visible=false;
+ window.__microcaosARV52QA=()=>({
+  version:"5.2",arActive:mode==="ar",placed,eyeFrames:v52AR.frames,
+  viewerPosition:v52AR.eye?.position.toArray(),viewerDirection:v52AR.eye?.forward.toArray(),
+  stagePosition:stage.position.toArray(),stageScale:stage.scale.x,
+  stageParent:stage.parent?.name||"world",worldVisible:world.visible,stageVisible:stage.visible,
+  selected:arSceneMode(),selectedArenaVisible:arSceneMode()==="race"?raceFloor.visible:arSceneMode()==="ballistix"?ballArena.visible:!!miniStages[arSceneMode()]?.visible,
+  inFront:v52VisibleFromEye(),drawCalls:renderer.info.render.calls
+ });
+
 function v50ForwardPose(){
- const eye=v49Eye();if(!eye)return null;
- const origin=eye.getWorldPosition(new THREE.Vector3()),gaze=eye.getWorldDirection(new THREE.Vector3()).normalize();
- if(![origin.x,origin.y,origin.z,gaze.x,gaze.y,gaze.z].every(Number.isFinite))return null;
- const target=origin.clone().addScaledVector(gaze,1.35);
- if(gaze.y>-.24)target.y=origin.y-.62;
- else target.y-=.04;
- target.y=clamp(target.y,origin.y-1.60,origin.y-.35);
+ const latest=v52AR.eye,fallback=v49Eye();
+ if(!latest&&!fallback)return null;
+ const origin=latest?latest.position.clone():fallback.getWorldPosition(new THREE.Vector3());
+ const gaze=latest?latest.forward.clone():fallback.getWorldDirection(new THREE.Vector3()).normalize();
+ if(![...origin.toArray(),...gaze.toArray()].every(Number.isFinite))return null;
+ const target=origin.clone().addScaledVector(gaze,1.14);
+ // Keep the venue below eye level while respecting the pitch of the device.
+ target.y=clamp(target.y,origin.y-1.03,origin.y-.24);
  return {target,origin,gaze};
 }
 function v51RevealSelectedArena(){
@@ -4706,7 +4756,7 @@ function v50AnchorPreview(useHit=false){
  const chosen=arSceneMode();
  stage.scale.setScalar(arScaleFor(chosen)*arScaleMultiplier);
  world.visible=true;stage.visible=true;previewTable.visible=false;scene.fog=null;
- v49Marker.visible=true;
+ v52AROutline.visible=true;v49Marker.visible=true;
  return true;
 }
 function v50CommitPlacement(realSurface=false){
@@ -4718,11 +4768,12 @@ function v50CommitPlacement(realSurface=false){
  $("arTools").style.display="flex";
  $("placeArena").style.display="none";
  reticle.visible=false;
+ v52ValidateStage();
  v49PlacementCheck();
  $("modebar").textContent=realSurface?"AR · SUPERFICIE DETECTADA":"AR · UBICACIÓN APROXIMADA";
  $("notice").textContent=realSurface?
   "Pista fijada sobre la superficie. Podés recenterla si queda fuera de vista.":
-  "Pista colocada aproximadamente delante tuyo, sin detección de superficie. Usá ⌖ para recentrarla o − para achicarla.";
+  "Ubicación aproximada (sin detección de superficie). Tocá ⌖ si no ves la pista.";
  $("notice").classList.add("show");
  const gameActive=["race","countdown","paused","finished"].includes(phase);
  $("intro").classList.toggle("hidden",gameActive);
@@ -4732,6 +4783,7 @@ function v50CommitPlacement(realSurface=false){
 }
 function v50XRFrame(time,frame){
  if(mode!=="ar"||!session||!frame)return;
+ v52ReadXRFrame(frame);
  if(!v50XR.startedAt)v50XR.startedAt=time;
  const elapsed=time-v50XR.startedAt;
  if(!hitRequested&&time-arLastHitAttempt>1700&&session.requestHitTestSource){
@@ -4769,14 +4821,14 @@ function v50XRFrame(time,frame){
   // Never leave the camera empty because hit-test reports no horizontal plane.
   // V5.1: do not auto-place an unseen arena, especially in online rooms.
  }else{
-  world.visible=true;stage.visible=true;
+  v52ValidateStage();
   if(!v50XR.manual)return;
   // Only recover immediately after placement, not while the user intentionally
   // looks away from an anchored object later.
   const checkTime=time-v49Visibility.lastPlaced;
   if(checkTime>550&&checkTime<3500&&time-v50XR.lastVisibilityRetry>850){
    v50XR.lastVisibilityRetry=time;
-   if(!v49FrameCheck().visible){
+   if(!v52VisibleFromEye()){
      const pose=v50ForwardPose();
      if(pose){
       stage.position.copy(pose.target);
@@ -4790,7 +4842,7 @@ function v50XRFrame(time,frame){
   }
  }
 }
-window.__microcaosARV51QA=()=>({version:"5.1",placed,visible:stage.visible,mode:arSceneMode(),preview:v50XR.previewReady,view:v49FrameCheck(),position:stage.position.toArray()});
+window.__microcaosARV51QA=()=>({version:"5.2",placed,visible:stage.visible,mode:arSceneMode(),preview:v50XR.previewReady,view:v49FrameCheck(),position:stage.position.toArray()});
 window.__microcaosARV50QA=()=>({version:"5.0",mode,placed,preview:v50XR.previewReady,
  hitTestActive:!!hitSource,seenGround:v50XR.lastGroundHit>0,manual:v50XR.manual,
  fallback:v50XR.fallback,sceneVisible:world.visible&&stage.visible,
