@@ -1050,9 +1050,9 @@ async function v37LoadCharacters(){
   $("notice").textContent="⚠ No cargaron todos los monstruos. Actualizá la página para reintentar.";
   $("notice").classList.add("show");
  }
- window.__microcaosV45QA=()=>({version:"4.7",bunnyUpright:Math.abs(originalMascotParts[0].rig.userData.premiumCharacter?.model.rotation.x||0)<.001,visible:racers[0].root.visible&&racers[0].rig.visible&&!!racers[0].rig.userData.premiumCharacter?.model.visible,mode:currentMode});
+ window.__microcaosV45QA=()=>({version:"4.8",bunnyUpright:Math.abs(originalMascotParts[0].rig.userData.premiumCharacter?.model.rotation.x||0)<.001,visible:racers[0].root.visible&&racers[0].rig.visible&&!!racers[0].rig.userData.premiumCharacter?.model.visible,mode:currentMode});
  window.__microcaosScaleQA=()=>({
-  version:"4.7",mode:currentMode,
+  version:"4.8",mode:currentMode,
   scales:racers.map(r=>({name:r.name,visible:r.root.visible,
    rig:r.rig.scale.toArray().map(n=>+n.toFixed(3)),
    model:r.rig.userData.premiumCharacter?.model.scale.toArray().map(n=>+n.toFixed(4))||null,
@@ -1061,7 +1061,7 @@ async function v37LoadCharacters(){
   bounded:racers.every(r=>Math.max(r.rig.scale.x,r.rig.scale.y,r.rig.scale.z)<=1.16)
  });
  window.__microcaosVisibilityQA=()=>({
- version:"4.7",mode:currentMode,
+ version:"4.8",mode:currentMode,
  renderer:renderer.info.render.calls,
  playerVisible:racers[0].root.visible&&racers[0].rig.visible,
  playerPremiumVisible:!!racers[0].rig.userData.premiumCharacter?.model.visible,
@@ -1072,7 +1072,7 @@ async function v37LoadCharacters(){
  cameraPosition:camera.position.toArray(),
  figureCount:racers.filter(r=>r.root.visible).length
 });
-window.__microcaosHeroQA=()=>({version:"4.7",ready:state.ready,loaded:state.loaded,failed:state.failed,errors:state.errors,source:state.source,assets:V37_HERO_ASSETS,characters:racers.map(r=>{const q=r.rig?.userData?.premiumCharacter;return q?{index:q.index,radius:q.bodyRadius,width:q.visualWidth,depth:q.visualDepth,clips:q.clips}:null})});
+window.__microcaosHeroQA=()=>({version:"4.8",ready:state.ready,loaded:state.loaded,failed:state.failed,errors:state.errors,source:state.source,assets:V37_HERO_ASSETS,characters:racers.map(r=>{const q=r.rig?.userData?.premiumCharacter;return q?{index:q.index,radius:q.bodyRadius,width:q.visualWidth,depth:q.visualDepth,clips:q.clips}:null})});
 }
  v37LoadCharacters().catch(error=>{console.warn("Premium characters unavailable",error)});
 
@@ -2846,7 +2846,7 @@ function v34AnimateFaces(t,dt){
 // MICROCAOS CINEMATIC ARENA V3.5 — large, unmistakable stage architecture.
 // Compact geometry + one instanced crowd and one instanced LED row per mode.
 // All details sit OUTSIDE playable cells; rules, hitboxes and AR anchoring unchanged.
-const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"4.7"};
+const v35={mode:"",kits:{},seats:{},lights:{},ledTick:-1,zoom:1,graphicsVersion:"4.8"};
 const v35Ink=new THREE.MeshStandardMaterial({color:0x09132d,metalness:.42,roughness:.36,clearcoat:1});
 const v35Alloy=new THREE.MeshStandardMaterial({color:0x294665,metalness:.72,roughness:.24,clearcoat:.72});
 const v35SeatMaterial=new THREE.MeshStandardMaterial({color:0xffffff,metalness:.12,roughness:.35,clearcoat:.6});
@@ -3029,8 +3029,8 @@ function v35ApplyArt(){
  for(const [name,kit]of Object.entries(v35.kits))kit.visible=name==="race"?currentMode==="race":name==="ballistix"?false:true; // V3.7 custom venue owns Ballistix
  v35.mode=currentMode;
 }
-window.__microcaosV38QA=()=>({version:"4.7",uniqueModels:new Set(V37_HERO_ASSETS).size,modelCount:V37_HERO_ASSETS.length,loaded:v37CharacterState.loaded,beaconReady:!!v38Beacon,localSlot:typeof mp!=="undefined"&&mp.active?mp.slot:0,mode:currentMode,ar:renderer.xr.enabled});
-window.__microcaosStartQA=()=>({version:"4.7",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
+window.__microcaosV38QA=()=>({version:"4.8",uniqueModels:new Set(V37_HERO_ASSETS).size,modelCount:V37_HERO_ASSETS.length,loaded:v37CharacterState.loaded,beaconReady:!!v38Beacon,localSlot:typeof mp!=="undefined"&&mp.active?mp.slot:0,mode:currentMode,ar:renderer.xr.enabled});
+window.__microcaosStartQA=()=>({version:"4.8",validBounds:[ballFieldHalf,ballPaddleAt,ballPaddleHalf,ballMaxMove,ballGoalHalf].every(Number.isFinite),hasFourLabels:ballScoreLabels.length===4,sevenGames:Object.keys(MINI_MODES).length===7,canBegin:typeof begin==="function",webXR:renderer.xr.enabled});
 window.__microcaosV37QA=()=>({version:"3.7",characterSource:v37CharacterState.source,loadedHeroes:v37CharacterState.loaded,arena:!!ballArena,impulseCooldown:1.95,impulseCharges:"infinite",sevenModes:Object.keys(MINI_MODES).length,arKept:!!renderer.xr.enabled});
 window.__microcaosDirectorQA=()=>({raceFloorIsolated:currentMode==="race"||!raceFloor.visible,version:"3.7",venues:Object.keys(v36Venues),sevenScenes:Object.keys(v36Venues).length===7,mode:currentMode,webxr:renderer.xr.isPresenting,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,unchangedARScale:true});
 window.__microcaosCinematicQA=()=>({
@@ -4157,16 +4157,50 @@ const v50XR={startedAt:0,lastPoseAt:0,lastVisibilityRetry:0,manual:false,fallbac
   inFront:v52VisibleFromEye(),drawCalls:renderer.info.render.calls
  });
 
+
+const v52={ready:false,pos:new THREE.Vector3(),dir:new THREE.Vector3(),view:new THREE.Matrix4(),proj:new THREE.Matrix4()};
+function v52Capture(frame){
+ try{
+  const ref=renderer.xr.getReferenceSpace(),pose=ref&&frame.getViewerPose(ref),eye=pose?.views?.[0];
+  if(!eye)return;
+  const p=eye.transform.position,q=eye.transform.orientation;
+  v52.pos.set(p.x,p.y,p.z);
+  v52.dir.set(0,0,-1).applyQuaternion(new THREE.Quaternion(q.x,q.y,q.z,q.w)).normalize();
+  v52.view.fromArray(eye.transform.inverse.matrix);v52.proj.fromArray(eye.projectionMatrix);
+  v52.ready=true;
+ }catch(e){if(!v52.warned){console.warn("XR pose",e);v52.warned=true}}
+}
+function v52Footprint(){
+ if(!v52.ready)return {visible:false,reason:"waiting-for-XR-frame"};
+ stage.updateWorldMatrix(true,false);
+ const a=AR_SPANS[arSceneMode()]||AR_SPANS.race,w=a[0]*.44,d=a[1]*.44;
+ const projected=[[0,0,0],[-w,0,-d],[w,0,-d],[-w,0,d],[w,0,d],[0,2,0]].map(c=>{
+   const p=stage.localToWorld(new THREE.Vector3(...c)).applyMatrix4(v52.view).applyMatrix4(v52.proj);
+   return {x:+p.x.toFixed(2),y:+p.y.toFixed(2),visible:Math.abs(p.x)<=1.08&&Math.abs(p.y)<=1.08&&p.z>=-1&&p.z<=1};
+ });
+ return {visible:projected.some(x=>x.visible),points:projected.filter(x=>x.visible).length,center:projected[0]};
+}
+function v52PlaceInView(){
+ const p=v50ForwardPose();if(!p)return false;
+ stage.position.copy(p.target);
+ stage.rotation.y=Math.atan2(p.origin.x-p.target.x,p.origin.z-p.target.z);
+ stage.scale.setScalar(arScaleFor(arSceneMode())*arScaleMultiplier);
+ v51RevealSelectedArena();world.visible=true;stage.visible=true;previewTable.visible=false;
+ stage.updateMatrixWorld(true);return true;
+}
+window.__microcaosARV52QA=()=>({version:"5.2",poseReady:v52.ready,placed,arena:v52Footprint(),visible:world.visible&&stage.visible,position:stage.position.toArray(),scale:stage.scale.x,drawCalls:renderer.info.render.calls});
+
 function v50ForwardPose(){
- const latest=v52AR.eye,fallback=v49Eye();
- if(!latest&&!fallback)return null;
- const origin=latest?latest.position.clone():fallback.getWorldPosition(new THREE.Vector3());
- const gaze=latest?latest.forward.clone():fallback.getWorldDirection(new THREE.Vector3()).normalize();
- if(![...origin.toArray(),...gaze.toArray()].every(Number.isFinite))return null;
- const target=origin.clone().addScaledVector(gaze,1.14);
- // Keep the venue below eye level while respecting the pitch of the device.
- target.y=clamp(target.y,origin.y-1.03,origin.y-.24);
- return {target,origin,gaze};
+ if(v52.ready){
+  const origin=v52.pos.clone(),gaze=v52.dir.clone(),target=origin.clone().addScaledVector(gaze,1.30);
+  target.y=clamp(target.y,origin.y-1.05,origin.y-.07);
+  return {origin,gaze,target};
+ }
+ const eye=v49Eye();if(!eye)return null;
+ const origin=eye.getWorldPosition(new THREE.Vector3()),gaze=eye.getWorldDirection(new THREE.Vector3()).normalize();
+ const target=origin.clone().addScaledVector(gaze,1.30);
+ target.y=clamp(target.y,origin.y-1.05,origin.y-.07);
+ return {origin,gaze,target};
 }
 function v51RevealSelectedArena(){
  if(mode!=="ar")return;
@@ -4196,6 +4230,7 @@ function v50AnchorPreview(useHit=false){
 function v50CommitPlacement(realSurface=false){
  if(mode!=="ar"||placed)return false;
  if(!v50AnchorPreview(realSurface))return false;
+ v51RevealSelectedArena();
  placed=true;document.documentElement.classList.add("ar-placed");v50XR.manual=true;v50XR.fallback=!realSurface;
  arLastMode=arSceneMode();arCurrentSpan=.76*arScaleMultiplier;
  $("arSizeLabel").textContent=Math.round(arCurrentSpan*100)+" cm";
@@ -4219,6 +4254,7 @@ function v50XRFrame(time,frame){
  if(mode!=="ar"||!session||!frame)return;
  v52ReadXRFrame(frame);
  if(!v50XR.startedAt)v50XR.startedAt=time;
+ v52Capture(frame);
  const elapsed=time-v50XR.startedAt;
  if(!hitRequested&&time-arLastHitAttempt>1700&&session.requestHitTestSource){
   hitRequested=true;arLastHitAttempt=time;const origin=session;
@@ -4265,8 +4301,7 @@ function v50XRFrame(time,frame){
    if(!v52VisibleFromEye()){
      const pose=v50ForwardPose();
      if(pose){
-      stage.position.copy(pose.target);
-      stage.rotation.set(0,Math.atan2(pose.origin.x-pose.target.x,pose.origin.z-pose.target.z),0);
+      v52PlaceInView();
       v49Visibility.lastPlaced=time;
       v49Marker.visible=true;
       $("notice").textContent="Ajusté la arena frente al celular. Buscá el marcador turquesa; tocá ⌖ si necesitás moverla.";
@@ -4298,13 +4333,11 @@ function v49Eye(){
  eye?.updateMatrixWorld(true);return eye;
 }
 function v49FrameCheck(){
- const eye=v49Eye();if(!eye)return {visible:false,reason:"no-xr-eye"};
+ if(v52.ready)return v52Footprint();
+ const eye=v49Eye();if(!eye)return {visible:false,reason:"no-eye"};
  stage.updateWorldMatrix(true,false);
- const p=stage.getWorldPosition(new THREE.Vector3()),view=p.clone().project(eye);
- const vector=p.clone().sub(eye.getWorldPosition(new THREE.Vector3()));
- const inFront=vector.dot(eye.getWorldDirection(new THREE.Vector3()))>.18;
- const visible=inFront&&Math.abs(view.x)<.9&&Math.abs(view.y)<.9&&view.z>-1&&view.z<1;
- return {visible,inFront,projection:[view.x,view.y,view.z],meters:vector.length()};
+ const p=stage.getWorldPosition(new THREE.Vector3()).project(eye);
+ return {visible:Math.abs(p.x)<.9&&Math.abs(p.y)<.9&&p.z>=-1&&p.z<=1,projection:p.toArray()};
 }
 function v49FrontFloorPoint(height){
  const eye=v49Eye();if(!eye)return null;
@@ -4319,11 +4352,7 @@ function v49FrontFloorPoint(height){
 }
 function v49Recenter(){
  if(!placed||mode!=="ar")return;
- const target=v50ForwardPose()?.target,eye=v49Eye();
- if(!target||!eye)return;
- stage.position.copy(target);
- const cam=eye.getWorldPosition(new THREE.Vector3());
- stage.rotation.set(0,Math.atan2(cam.x-target.x,cam.z-target.z),0);
+ if(!v52PlaceInView())return;
  stage.updateMatrixWorld(true);
  v49Visibility.lastPlaced=performance.now();
  v49Marker.visible=true;
@@ -4337,7 +4366,7 @@ function v49PlacementCheck(){
  let test=v49FrameCheck();
  if(!test.visible){
     const candidate=v50ForwardPose()?.target;
-    if(candidate)stage.position.copy(candidate);
+    if(candidate)v52PlaceInView();
     stage.updateMatrixWorld(true);
     test=v49FrameCheck();
  }
@@ -4346,7 +4375,7 @@ function v49PlacementCheck(){
  v49Marker.visible=true;
  $("notice").textContent=test.visible?
     "Pista colocada. Buscá el marcador turquesa sobre el tablero o tocá RECENTRAR.":
-    "La pista quedó fuera de cuadro. Tocá RECENTRAR para verla enfrente.";
+    "⚠ La pista no está en pantalla. Tocá ⌖ RECENTRAR antes de jugar.";
  $("notice").classList.add("show");
 }
 function v49XRUpdate(time){
