@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#070f28">
-<title>MICROCAOS — Monster Edition V5.1 · 7 juegos AR</title>
+<title>MICROCAOS — Monster Edition V5.3 · 7 juegos AR</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -3978,7 +3978,7 @@ function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;
  }
  $("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
 if(mode==="preview"||mode==="camera")v36UpdateCamera(dt);
-if(mode==="ar"&&frame&&session)v50XRFrame(t,frame);
+if(mode==="ar"&&frame&&session){v50XRFrame(t,frame);v53UpdateStageVisuals(t)}
  if(performance.now()>lastToast)$("toast").classList.remove("show");if(performance.now()>skillToastUntil)$("skillToast").classList.remove("on");renderer.render(scene,camera)}
 const reticle=new THREE.Mesh(new THREE.RingGeometry(.20,.23,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x71ffdf,side:THREE.DoubleSide,depthWrite:false}));reticle.visible=false;scene.add(reticle);
 renderer.setAnimationLoop(render);
@@ -4022,7 +4022,7 @@ if(location.search.includes("ar-error=1"))showARHelp("No se abrió el visor AR",
 function resetARView(){
   document.documentElement.classList.remove("xr-active","ar-placed");$("ui").classList.remove("xr-active");
   try{renderer.setClearAlpha(1)}catch(e){}
-  scene.background=new THREE.Color(0x172b4a);scene.fog=new THREE.FogExp2(0x142542,.009);previewTable.visible=currentMode==="race";stage.visible=true;
+  scene.background=new THREE.Color(0x172b4a);scene.fog=new THREE.FogExp2(0x142542,.009);renderer.shadowMap.enabled=gameSettings.quality!=="low";previewTable.visible=currentMode==="race";stage.visible=true;
   stage.position.set(0,0,0);stage.quaternion.identity();stage.scale.setScalar(1);v52AROutline.visible=false;v52AR.eye=null;v52AR.frames=0;
   $("notice").classList.remove("show");$("placeArena").style.display="none";
   reticle.visible=false;hitRequested=false;hitSource=null;placed=false;session=null;arLastHitAttempt=0;v50XR.startedAt=0;v50XR.previewReady=false;v50XR.manual=false;
@@ -4074,7 +4074,7 @@ async function setupAR(){
     if(typeof leaveCamera==="function"&&videoStream){leaveCamera()}
     session=started;mode="ar";v51RevealSelectedArena();
     document.documentElement.classList.add("xr-active");$("ui").classList.add("xr-active");
-    renderer.setClearColor(0x000000,0);scene.background=null;scene.fog=null;previewTable.visible=false;stage.visible=true;world.visible=true;$("arTools").style.display="none";
+    renderer.setClearColor(0x000000,0);renderer.shadowMap.enabled=false;scene.background=null;scene.fog=null;previewTable.visible=false;stage.visible=true;world.visible=true;$("arTools").style.display="none";
      v50XR.startedAt=0;v50XR.previewReady=false;v50XR.manual=false;v50XR.fallback=false;v50XR.lastGroundHit=0;
     placed=false;hitRequested=false;hitSource=null;arLastHitAttempt=0;
     $("modebar").textContent="AR ESPACIAL · BUSCANDO SUPERFICIE";
@@ -4140,6 +4140,13 @@ const v50XR={startedAt:0,lastPoseAt:0,lastVisibilityRetry:0,manual:false,fallbac
   v52AROutline.visible=true;
  }
  const v52AROutline=new THREE.Group();stage.add(v52AROutline);
+const v53Guide=new THREE.Group();v53Guide.name="WEBXR STAGE LOCATOR";stage.add(v53Guide);
+const v53GuideMat=new THREE.MeshBasicMaterial({color:0x22ffe9,side:THREE.DoubleSide,depthTest:false,depthWrite:false,toneMapped:false});
+const v53GuideRing=new THREE.Mesh(new THREE.TorusGeometry(3.7,.16,10,60),v53GuideMat);
+v53GuideRing.rotation.x=Math.PI/2;v53GuideRing.position.y=1;v53GuideRing.renderOrder=300;v53Guide.add(v53GuideRing);
+const v53GuideArrow=new THREE.Mesh(new THREE.ConeGeometry(.85,1.50,10),v53GuideMat);
+v53GuideArrow.rotation.z=Math.PI;v53GuideArrow.position.y=3.3;v53GuideArrow.renderOrder=301;v53Guide.add(v53GuideArrow);
+v53Guide.visible=false;
  const v52Mat=new THREE.MeshBasicMaterial({color:0x32ffe2,side:THREE.DoubleSide,depthTest:false,depthWrite:false,toneMapped:false});
  const v52Ring=new THREE.Mesh(new THREE.RingGeometry(.75,1.02,40).rotateX(-Math.PI/2),v52Mat);
  v52Ring.position.y=.55;v52Ring.renderOrder=200;v52AROutline.add(v52Ring);
@@ -4149,7 +4156,7 @@ const v50XR={startedAt:0,lastPoseAt:0,lastVisibilityRetry:0,manual:false,fallbac
  }
  v52AROutline.visible=false;
  window.__microcaosARV52QA=()=>({
-  version:"5.2",arActive:mode==="ar",placed,eyeFrames:v52AR.frames,
+  version:"5.3",arActive:mode==="ar",placed,eyeFrames:v52AR.frames,
   viewerPosition:v52AR.eye?.position.toArray(),viewerDirection:v52AR.eye?.forward.toArray(),
   stagePosition:stage.position.toArray(),stageScale:stage.scale.x,
   stageParent:stage.parent?.name||"world",worldVisible:world.visible,stageVisible:stage.visible,
@@ -4188,19 +4195,25 @@ function v52PlaceInView(){
  v51RevealSelectedArena();world.visible=true;stage.visible=true;previewTable.visible=false;
  stage.updateMatrixWorld(true);return true;
 }
-window.__microcaosARV52QA=()=>({version:"5.2",poseReady:v52.ready,placed,arena:v52Footprint(),visible:world.visible&&stage.visible,position:stage.position.toArray(),scale:stage.scale.x,drawCalls:renderer.info.render.calls});
+window.__microcaosARV52QA=()=>({version:"5.3",poseReady:v52.ready,placed,arena:v52Footprint(),visible:world.visible&&stage.visible,position:stage.position.toArray(),scale:stage.scale.x,drawCalls:renderer.info.render.calls});
+
 
 function v50ForwardPose(){
- if(v52.ready){
-  const origin=v52.pos.clone(),gaze=v52.dir.clone(),target=origin.clone().addScaledVector(gaze,1.30);
-  target.y=clamp(target.y,origin.y-1.05,origin.y-.07);
-  return {origin,gaze,target};
+ // Fall back to an approximate *camera-centered* world position when no ground hit exists.
+ // Keep the user's current gaze without the previous vertical clamp that cropped the arena.
+ const eye=v52AR.eye;
+ const xrCam=renderer.xr.isPresenting?renderer.xr.getCamera(camera):null;
+ const monocular=xrCam?.cameras?.[0]||xrCam;
+ let origin=eye?.position?.clone(),gaze=eye?.forward?.clone();
+ if(!origin||!gaze||gaze.lengthSq()<.5){
+   if(!monocular)return null;
+   monocular.updateMatrixWorld(true);
+   origin=monocular.getWorldPosition(new THREE.Vector3());
+   gaze=monocular.getWorldDirection(new THREE.Vector3());
  }
- const eye=v49Eye();if(!eye)return null;
- const origin=eye.getWorldPosition(new THREE.Vector3()),gaze=eye.getWorldDirection(new THREE.Vector3()).normalize();
- const target=origin.clone().addScaledVector(gaze,1.30);
- target.y=clamp(target.y,origin.y-1.05,origin.y-.07);
- return {origin,gaze,target};
+ if(![...origin.toArray(),...gaze.toArray()].every(Number.isFinite))return null;
+ gaze.normalize();
+ return {origin,gaze,target:origin.clone().addScaledVector(gaze,1.14)};
 }
 function v51RevealSelectedArena(){
  if(mode!=="ar")return;
@@ -4247,9 +4260,37 @@ function v50CommitPlacement(realSurface=false){
  const gameActive=["race","countdown","paused","finished"].includes(phase);
  $("intro").classList.toggle("hidden",gameActive);
  if(typeof mp!=="undefined"&&mp.active&&!mp.started){$("mpLobby").hidden=false;if(mp.host)mpSetReady(true)}
- announce(realSurface?"¡PISTA ANCLADA!":"¡PISTA VISIBLE! AJUSTÁ SU POSICIÓN",1500);
+ announce(realSurface?"SUPERFICIE FIJADA":"BUSCÁ EL ARO TURQUESA SOBRE LA PISTA",1500);
  return true;
 }
+const v53Probe=new THREE.Mesh(new THREE.OctahedronGeometry(.085),new THREE.MeshBasicMaterial({
+ color:0xffffff,toneMapped:false,depthTest:false,depthWrite:false
+}));
+v53Probe.renderOrder=1000;v53Probe.frustumCulled=false;scene.add(v53Probe);v53Probe.visible=false;
+const v53Metrics={frames:0,renderCalls:0};
+function v53UpdateStageVisuals(t){
+ if(mode!=="ar"||!session||!placed){v53Probe.visible=false;v53Guide.visible=false;return}
+ v51RevealSelectedArena();
+ world.visible=true;stage.visible=true;previewTable.visible=false;
+ if(stage.parent!==world)world.add(stage);
+ const pose=v52AR.eye;
+ const firstFrames=t-v49Visibility.lastPlaced<6000;
+ v53Guide.visible=firstFrames;
+ v53Probe.visible=!!pose&&firstFrames;
+ if(v53Probe.visible){
+  v53Probe.position.copy(pose.position).addScaledVector(pose.forward,.72);
+  v53Metrics.frames++;
+ }
+ v53Metrics.renderCalls=renderer.info.render.calls;
+}
+window.__microcaosARV53QA=()=>({version:"5.3",xr:renderer.xr.isPresenting,
+ mode,placed,eyeFrames:v52AR.frames,probeFrames:v53Metrics.frames,
+ drawCalls:v53Metrics.renderCalls,contextLost:renderer.getContext().isContextLost(),
+ stageVisible:stage.visible,worldVisible:world.visible,stageInWorld:stage.parent===world,
+ selected:arSceneMode(),arenaVisible:arSceneMode()==="race"?raceFloor.visible:
+ arSceneMode()==="ballistix"?ballArena.visible:!!miniStages[arSceneMode()]?.visible,
+ pose:v52AR.eye?.position.toArray(),stage:stage.position.toArray(),scale:stage.scale.x,
+ footprint:v52Footprint()});
 function v50XRFrame(time,frame){
  if(mode!=="ar"||!session||!frame)return;
  v52ReadXRFrame(frame);
@@ -4292,26 +4333,10 @@ function v50XRFrame(time,frame){
   // V5.1: do not auto-place an unseen arena, especially in online rooms.
  }else{
   v52ValidateStage();
-  if(!v50XR.manual)return;
-  // Only recover immediately after placement, not while the user intentionally
-  // looks away from an anchored object later.
-  const checkTime=time-v49Visibility.lastPlaced;
-  if(checkTime>550&&checkTime<3500&&time-v50XR.lastVisibilityRetry>850){
-   v50XR.lastVisibilityRetry=time;
-   if(!v52VisibleFromEye()){
-     const pose=v50ForwardPose();
-     if(pose){
-      v52PlaceInView();
-      v49Visibility.lastPlaced=time;
-      v49Marker.visible=true;
-      $("notice").textContent="Ajusté la arena frente al celular. Buscá el marcador turquesa; tocá ⌖ si necesitás moverla.";
-      $("notice").classList.add("show");
-     }
-   }
-  }
+  // World anchor stays fixed; only explicit recenter changes it.
  }
 }
-window.__microcaosARV51QA=()=>({version:"5.2",placed,visible:stage.visible,mode:arSceneMode(),preview:v50XR.previewReady,view:v49FrameCheck(),position:stage.position.toArray()});
+window.__microcaosARV51QA=()=>({version:"5.3",placed,visible:stage.visible,mode:arSceneMode(),preview:v50XR.previewReady,view:v49FrameCheck(),position:stage.position.toArray()});
 window.__microcaosARV50QA=()=>({version:"5.0",mode,placed,preview:v50XR.previewReady,
  hitTestActive:!!hitSource,seenGround:v50XR.lastGroundHit>0,manual:v50XR.manual,
  fallback:v50XR.fallback,sceneVisible:world.visible&&stage.visible,
@@ -4431,7 +4456,7 @@ window.__microcaosARAudit=arAllModesAudit;
 $("arSmaller").onclick=()=>{arScaleMultiplier=Math.max(.60,Math.round((arScaleMultiplier-.20)*100)/100);arUpdateScale()};
 $("arBigger").onclick=()=>{arScaleMultiplier=Math.min(2.2,Math.round((arScaleMultiplier+.20)*100)/100);arUpdateScale()};
 $("arRotate").onclick=()=>{if(mode==="ar"&&placed)stage.rotation.y+=Math.PI/4};
-$("arRecenter").onclick=v49Recenter;
+$("arRecenter").title="MOSTRAR PISTA FRENTE A LA CÁMARA";$("arRecenter").onclick=()=>{if(mode==="ar"&&placed){v49Recenter();v53Guide.visible=true}};
 
 function placeArena(){
  if(mode!=="ar"||placed)return;
