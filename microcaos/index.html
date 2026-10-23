@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#070f28">
-<title>MICROCAOS — Monster Edition V5.4 · 7 juegos AR</title>
+<title>MICROCAOS — Monster Edition V5.5 · 7 juegos AR</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -394,6 +394,10 @@ html.xr-active #ui #placeArena{bottom:calc(env(safe-area-inset-bottom) + 110px)!
   background:radial-gradient(ellipse at center,#07213959,#08243a17 75%);
   border:1px solid #45ffe583;border-radius:18px}
 #arFallback3d.on{display:block}
+#scene.camera{background:transparent!important}
+#camera3dStop{position:absolute;top:65px;right:8px;z-index:45;display:none;align-items:center;justify-content:center;
+ border:1px solid #67fff0;background:#0b3750ee;color:#fff;border-radius:12px;padding:10px 12px;
+ font:800 11px Outfit,sans-serif;pointer-events:auto!important}
 #arFallback3d canvas{display:block;width:100%;height:100%;pointer-events:none}
 #arFallbackLabel{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);
   background:#092c40de;border:1px solid #55ffe69e;border-radius:22px;
@@ -404,13 +408,13 @@ html.xr-active #ui #placeArena{bottom:calc(env(safe-area-inset-bottom) + 110px)!
 <body>
 <video id="cameraVideo" muted playsinline autoplay></video>
 <div id="scene"></div>
-<div id="ui"><div id="arFallback3d" aria-label="Vista 3D de respaldo"><span id="arFallbackLabel">VISTA APROXIMADA · SIN ANCLAJE ESPACIAL</span></div>
+<div id="ui"><button id="camera3dStop" type="button">✕ CERRAR CÁMARA</button><div id="arFallback3d" aria-label="Vista 3D de respaldo"><span id="arFallbackLabel">VISTA APROXIMADA · SIN ANCLAJE ESPACIAL</span></div>
 <div class="ar-tools" id="arTools" style="display:none" role="group" aria-label="Ajustar arena en realidad aumentada">
  <button id="arSmaller" type="button" aria-label="Achicar arena">−</button><span id="arSizeLabel">76 cm</span><button id="arBigger" type="button" aria-label="Agrandar arena">+</button>
  <button id="arVisual" type="button" title="Mostrar pista alternativa si AR está vacía" aria-label="Mostrar pista 3D">👁</button><button id="arRotate" type="button" aria-label="Girar arena">↻</button><button id="arRecenter" type="button" aria-label="Recentrar pista" title="Centrar pista frente a cámara">⌖</button>
  </div>
  <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V5.4</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V5.5</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -427,7 +431,7 @@ html.xr-active #ui #placeArena{bottom:calc(env(safe-area-inset-bottom) + 110px)!
   <div class="gem-lb-footer" id="gemLeaderboardFooter">JUNTÁ GEMAS PARA SUBIR</div>
 </section><div id="ballScoreboard" class="ball-scoreboard" aria-live="off"></div><button id="ballRestart" type="button" class="ball-restart" aria-label="Reiniciar Ballistix" title="Reiniciar Ballistix">↻</button><div class="raceprogress" id="progress"><div class="bar" id="progressBar"></div></div>
 <div class="toast" id="toast">¡PREPARADOS!</div><div id="skillToast" class="skilltoast"></div><div id="obstacleHint" class="obstacle-hint">↥ ¡SALTÁ AHORA!</div><div class="rushHud" id="rushHud">⚡ RITMO ×<span id="rushValue">1</span></div><div class="pickupCounter" id="pickupCounter">✦ <span id="pickupValue">0</span></div>
-<div id="notice"></div><button id="placeArena" class="primary ar-place" style="display:none">✓ COLOCAR PISTA AQUÍ</button><div id="arHelp" class="ar-help" style="display:none"><div class="ar-help-box"><div class="ar-help-icon">◈</div><h2 id="arHelpTitle">Realidad aumentada</h2><p id="arHelpText"></p><a class="primary ar-fallback" id="arHelpNative" href="ar.html">◈ VER MODELO AR · NO JUGABLE ↗</a><button class="secondary ar-fallback2" id="arHelp3D">JUGAR EN 3D SIN CÁMARA</button><button class="ar-dismiss" id="arHelpClose">CERRAR</button></div></div>
+<div id="notice"></div><button id="placeArena" class="primary ar-place" style="display:none">✓ COLOCAR PISTA AQUÍ</button><div id="arHelp" class="ar-help" style="display:none"><div class="ar-help-box"><div class="ar-help-icon">◈</div><h2 id="arHelpTitle">Realidad aumentada</h2><p id="arHelpText"></p><a class="primary ar-fallback" id="arHelpNative" href="ar.html">◈ VER MODELO AR · NO JUGABLE ↗</a><button class="secondary ar-fallback2" id="arHelp3D">📷 CÁMARA 3D SIN ANCLAJE</button><button class="ar-dismiss" id="arHelpClose">CERRAR</button></div></div>
 <div class="modalshade" id="intro">
 <div class="sheet premium-menu">
  <div class="menu-eyebrow">✦ MICROCAOS PARTY GAMES</div>
@@ -489,7 +493,7 @@ html.xr-active #ui #placeArena{bottom:calc(env(safe-area-inset-bottom) + 110px)!
   <div class="setting-line"><div><b>Dificultad</b><small>Modifica la velocidad y reacción de los rivales</small></div><select id="settingDifficulty"><option value="easy">Tranquila</option><option value="normal">Normal</option><option value="hard">Difícil</option></select></div>
   <button class="primary mainprimary" data-open-page="home">GUARDAR Y VOLVER ✓</button>
  </section>
- <div class="menu-footer"><a id="nativeAR" href="ar.html">◈ VER MAQUETA AR · SIN JUEGO</a><button id="ar">◈ INICIAR AR JUGABLE</button><button id="cam" style="display:none" aria-hidden="true">DEMO CÁMARA</button></div>
+ <div class="menu-footer"><a id="nativeAR" href="ar.html">◈ VER MAQUETA AR · SIN JUEGO</a><button id="ar">◈ INICIAR AR ESPACIAL</button><button id="camera3dStart" type="button">📷 CÁMARA 3D COMPATIBLE</button><button id="cam" style="display:none" aria-hidden="true">DEMO CÁMARA</button></div>
  <div id="arDevice" class="ar-device">Comprobando compatibilidad AR...</div>
  <div class="hint" id="gamehint">SIETE JUEGOS JUGABLES · SEIS MASCOTAS · AR CON WEBXR</div>
 </div></div>
@@ -3995,8 +3999,8 @@ if(mode==="ar"&&frame&&session){v50XRFrame(t,frame);v53UpdateStageVisuals(t);v54
 const reticle=new THREE.Mesh(new THREE.RingGeometry(.20,.23,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x71ffdf,side:THREE.DoubleSide,depthWrite:false}));reticle.visible=false;scene.add(reticle);
 renderer.setAnimationLoop(render);
 function resize(){camera.aspect=innerWidth/innerHeight;camera.fov=currentMode==="ballistix"?(camera.aspect<.68?64:48):currentMode==="territory"?(camera.aspect<.68?63:46):currentMode==="colorcrash"?(camera.aspect<.68?65:48):(camera.aspect<.68?58:42);camera.updateProjectionMatrix();if(!renderer.xr.isPresenting)renderer.setSize(innerWidth,innerHeight)}addEventListener("resize",resize);
-function leaveCamera(){if(videoStream){videoStream.getTracks().forEach(tr=>tr.stop());videoStream=null}$("cameraVideo").style.display="none";$("scene").classList.remove("camera");scene.background=new THREE.Color(0x172b4a);mode="preview";previewTable.visible=true;$("modebar").textContent="PREVIEW 3D · PC Y CELULAR";$("cam").textContent="◎ VER CON MI CÁMARA"}
-$("cam").onclick=async()=>{if(mode==="camera"){leaveCamera();return}if(!navigator.mediaDevices?.getUserMedia){announce("CÁMARA NO DISPONIBLE",1500);return}try{videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});$("cameraVideo").srcObject=videoStream;$("cameraVideo").style.display="block";await $("cameraVideo").play();$("scene").classList.add("camera");scene.background=null;mode="camera";$("cam").textContent="◉ CERRAR CÁMARA";$("modebar").textContent="CÁMARA DEMO · SIN ANCLAJE ESPACIAL"}catch(e){announce("SIN PERMISO DE CÁMARA",1500)}};
+function leaveCamera(){if(videoStream){videoStream.getTracks().forEach(tr=>tr.stop());videoStream=null}$("cameraVideo").style.display="none";$("scene").classList.remove("camera");scene.background=new THREE.Color(0x172b4a);renderer.setClearAlpha(1);mode="preview";previewTable.visible=true;$("modebar").textContent="PREVIEW 3D · PC Y CELULAR";$("cam").textContent="◎ VER CON MI CÁMARA"}
+$("cam").onclick=async()=>{if(mode==="camera"){leaveCamera();return}if(!navigator.mediaDevices?.getUserMedia){announce("CÁMARA NO DISPONIBLE",1500);return}try{videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});$("cameraVideo").srcObject=videoStream;$("cameraVideo").style.display="block";await $("cameraVideo").play();$("scene").classList.add("camera");scene.background=null;renderer.setClearAlpha(0);mode="camera";$("cam").textContent="◉ CERRAR CÁMARA";$("modebar").textContent="CÁMARA DEMO · SIN ANCLAJE ESPACIAL"}catch(e){announce("SIN PERMISO DE CÁMARA",1500)}};
 
 
 const androidPlatform=/Android/i.test(navigator.userAgent);
@@ -4009,7 +4013,7 @@ function showARHelp(title,body){
   $("arHelp").style.display="flex";
 }
 $("arHelpClose").onclick=()=>{$("arHelp").style.display="none";$("intro").classList.remove("hidden")};
-$("arHelp3D").onclick=()=>{$("arHelp").style.display="none";begin()};
+$("arHelp3D").onclick=()=>{v55StartCamera3D()};
 // Launcher links can guide users here, but a WebXR session must start on a user tap.
  if(new URLSearchParams(location.search).has("ar")){
    $("ar").style.outline="3px solid #67f9d5";
@@ -4106,6 +4110,8 @@ async function setupAR(){
   }
 }
 $("ar").onclick=setupAR;
+$("camera3dStart").onclick=v55StartCamera3D;
+$("camera3dStop").onclick=v55StopCamera3D;
 
 // MICROCAOS AR CORE — Seven mode-specific arena scales and spatially aware controls.
 // The physical span is measured in meters; internal stage meshes use game units.
@@ -4169,7 +4175,7 @@ v53Guide.visible=false;
  }
  v52AROutline.visible=false;
  window.__microcaosARV52QA=()=>({
-  version:"5.4",arActive:mode==="ar",placed,eyeFrames:v52AR.frames,
+  version:"5.5",arActive:mode==="ar",placed,eyeFrames:v52AR.frames,
   viewerPosition:v52AR.eye?.position.toArray(),viewerDirection:v52AR.eye?.forward.toArray(),
   stagePosition:stage.position.toArray(),stageScale:stage.scale.x,
   stageParent:stage.parent?.name||"world",worldVisible:world.visible,stageVisible:stage.visible,
@@ -4208,7 +4214,7 @@ function v52PlaceInView(){
  v51RevealSelectedArena();world.visible=true;stage.visible=true;previewTable.visible=false;
  stage.updateMatrixWorld(true);return true;
 }
-window.__microcaosARV52QA=()=>({version:"5.4",poseReady:v52.ready,placed,arena:v52Footprint(),visible:world.visible&&stage.visible,position:stage.position.toArray(),scale:stage.scale.x,drawCalls:renderer.info.render.calls});
+window.__microcaosARV52QA=()=>({version:"5.5",poseReady:v52.ready,placed,arena:v52Footprint(),visible:world.visible&&stage.visible,position:stage.position.toArray(),scale:stage.scale.x,drawCalls:renderer.info.render.calls});
 
 
 function v50ForwardPose(){
@@ -4253,8 +4259,67 @@ function v50AnchorPreview(useHit=false){
  v52AROutline.visible=true;v49Marker.visible=true;
  return true;
 }
+
+/* V5.5: When WebXR cannot find a real surface, use the MAIN WebGL scene over
+   the real camera. This is an explicitly untracked, screen-relative fallback. */
+const v55Camera={starting:false,active:false,error:null};
+async function v55StartCamera3D(){
+ if(v55Camera.starting||v55Camera.active)return;
+ v55Camera.starting=true;v55Camera.error=null;
+ $("notice").textContent="Abriendo pista 3D con cámara…";$("notice").classList.add("show");
+ try{
+  const old=session;
+  if(old){try{await old.end()}catch(e){console.warn("XR end",e)}}
+  if(mode==="ar")resetARView();
+  if(!navigator.mediaDevices?.getUserMedia)throw new Error("Este navegador no permite abrir la cámara");
+  videoStream=await navigator.mediaDevices.getUserMedia({
+    video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},audio:false});
+  const vid=$("cameraVideo");vid.srcObject=videoStream;
+  vid.muted=true;vid.playsInline=true;vid.style.display="block";await vid.play();
+  $("scene").classList.add("camera");
+  renderer.setClearColor(0x000000,0);renderer.setClearAlpha(0);
+  scene.background=null;scene.fog=null;
+  mode="camera";stage.position.set(0,0,0);stage.quaternion.identity();stage.scale.setScalar(1);
+  world.visible=true;stage.visible=true;previewTable.visible=false;
+  const playing=["race","countdown","finished","paused"].includes(phase);
+  const wanted=playing?currentMode:((typeof mp!=="undefined"&&mp.active?mp.chosenMode:chosenSoloMode)||currentMode);
+  if(MINI_MODES[wanted])currentMode=wanted;
+  raceFloor.visible=currentMode==="race";
+  for(const item of raceDecor)item.visible=currentMode==="race";
+  for(const key of Object.keys(miniStages))miniStages[key].visible=key===currentMode;
+  ballArena.visible=currentMode==="ballistix";
+  for(const [key,kit] of Object.entries(v35.kits))kit.visible=key===currentMode&&key!=="ballistix";
+  $("modebar").textContent="CÁMARA 3D COMPATIBLE · NO ANCLADA AL PISO";
+  $("arTools").style.display="none";$("placeArena").style.display="none";
+  $("arHelp").style.display="none";$("camera3dStop").style.display="inline-flex";
+  $("intro").classList.toggle("hidden",playing);
+  v55Camera.active=true;
+  $("notice").textContent="✓ Arena 3D sobre la cámara (no detecta ni sigue las superficies reales).";
+  $("notice").classList.add("show");
+  resize();announce("PISTA 3D VISIBLE",1450);
+ }catch(e){
+  v55Camera.error=String(e?.message||e);console.warn("Compatible camera mode failed",e);
+  $("notice").textContent="No se pudo abrir la cámara 3D: "+v55Camera.error+". Podés seguir jugando en 3D.";
+  $("notice").classList.add("show");
+ }finally{v55Camera.starting=false}
+}
+function v55StopCamera3D(){
+ if(!v55Camera.active)return;
+ v55Camera.active=false;leaveCamera();
+ renderer.setClearAlpha(1);scene.fog=new THREE.FogExp2(0x142542,.009);
+ $("camera3dStop").style.display="none";
+}
+window.__microcaosV55CameraQA=()=>({
+ version:"5.5",cameraActive:v55Camera.active,loading:v55Camera.starting,error:v55Camera.error,
+ mode,XR:renderer.xr.isPresenting,videoTracks:videoStream?.getVideoTracks().filter(x=>x.readyState==="live").length||0,
+ stageVisible:stage.visible,worldVisible:world.visible,currentMode,
+ selectedArenaVisible:currentMode==="race"?raceFloor.visible:
+ currentMode==="ballistix"?ballArena.visible:!!miniStages[currentMode]?.visible
+});
+
 function v50CommitPlacement(realSurface=false){
  if(mode!=="ar"||placed)return false;
+ if(!realSurface&&navigator.mediaDevices?.getUserMedia){v55StartCamera3D();return true}
  if(!v50AnchorPreview(realSurface))return false;
  v51RevealSelectedArena();
  placed=true;document.documentElement.classList.add("ar-placed");v50XR.manual=true;v50XR.fallback=!realSurface;
@@ -4264,7 +4329,7 @@ function v50CommitPlacement(realSurface=false){
  $("placeArena").style.display="none";
  reticle.visible=false;
  v52ValidateStage();
- v54Toggle(!realSurface);
+ v54Toggle(false);
  v49PlacementCheck();
  $("modebar").textContent=realSurface?"AR · SUPERFICIE DETECTADA":"AR · UBICACIÓN APROXIMADA";
  $("notice").textContent=realSurface?
@@ -4297,7 +4362,7 @@ function v53UpdateStageVisuals(t){
  }
  v53Metrics.renderCalls=renderer.info.render.calls;
 }
-window.__microcaosARV53QA=()=>({version:"5.4",xr:renderer.xr.isPresenting,
+window.__microcaosARV53QA=()=>({version:"5.5",xr:renderer.xr.isPresenting,
  mode,placed,eyeFrames:v52AR.frames,probeFrames:v53Metrics.frames,
  drawCalls:v53Metrics.renderCalls,contextLost:renderer.getContext().isContextLost(),
  stageVisible:stage.visible,worldVisible:world.visible,stageInWorld:stage.parent===world,
@@ -4379,7 +4444,7 @@ function v54Render(t){
   v54DrawFallback2D();
  }
 }
-window.__microcaosARV54QA=()=>({version:"5.4",placed,mode,XR:renderer.xr.isPresenting,
+window.__microcaosARV54QA=()=>({version:"5.5",placed,mode,XR:renderer.xr.isPresenting,
  rescueVisible:v54.on,drawCalls:v54.calls,error:v54.error,fallback2D:!!v54.canvas,
  arena:arSceneMode(),stageVisible:stage.visible,stageScale:stage.scale.x});
 
@@ -4415,8 +4480,8 @@ function v50XRFrame(time,frame){
   if(v50AnchorPreview(reticle.visible))v50XR.previewReady=true;
   $("placeArena").style.display=v50XR.previewReady?"inline-flex":"none";
   if(elapsed>900&&!v50XR.lastGroundHit){
-   $("placeArena").textContent="◎ COLOCAR PISTA AQUÍ";
-   $("notice").textContent="Ves una vista previa delante del celular. Tocá COLOCAR PISTA, o mové la cámara para detectar el piso.";
+   $("placeArena").textContent="📷 MOSTRAR PISTA 3D CON CÁMARA";
+   $("notice").textContent="No se detectó un piso: tocá MOSTRAR PISTA 3D CON CÁMARA (sin anclaje), o seguí buscando una superficie real.";
   }else if(reticle.visible){
    $("placeArena").textContent="◎ FIJAR EN SUPERFICIE";
    $("notice").textContent="Superficie detectada. Tocá FIJAR EN SUPERFICIE.";
@@ -4428,7 +4493,7 @@ function v50XRFrame(time,frame){
   // World anchor stays fixed; only explicit recenter changes it.
  }
 }
-window.__microcaosARV51QA=()=>({version:"5.4",placed,visible:stage.visible,mode:arSceneMode(),preview:v50XR.previewReady,view:v49FrameCheck(),position:stage.position.toArray()});
+window.__microcaosARV51QA=()=>({version:"5.5",placed,visible:stage.visible,mode:arSceneMode(),preview:v50XR.previewReady,view:v49FrameCheck(),position:stage.position.toArray()});
 window.__microcaosARV50QA=()=>({version:"5.0",mode,placed,preview:v50XR.previewReady,
  hitTestActive:!!hitSource,seenGround:v50XR.lastGroundHit>0,manual:v50XR.manual,
  fallback:v50XR.fallback,sceneVisible:world.visible&&stage.visible,
@@ -4547,7 +4612,7 @@ function arAllModesAudit(){
 window.__microcaosARAudit=arAllModesAudit;
 $("arSmaller").onclick=()=>{arScaleMultiplier=Math.max(.60,Math.round((arScaleMultiplier-.20)*100)/100);arUpdateScale()};
 $("arBigger").onclick=()=>{arScaleMultiplier=Math.min(2.2,Math.round((arScaleMultiplier+.20)*100)/100);arUpdateScale()};
-$("arVisual").onclick=()=>{if(mode==="ar"&&placed)v54Toggle(!v54.on,true)};
+$("arVisual").onclick=()=>{if(mode==="ar")v55StartCamera3D()};
 $("arRotate").onclick=()=>{if(mode==="ar"&&placed)stage.rotation.y+=Math.PI/4};
 $("arRecenter").title="MOSTRAR PISTA FRENTE A LA CÁMARA";$("arRecenter").onclick=()=>{if(mode==="ar"&&placed){v49Recenter();v53Guide.visible=true}};
 
