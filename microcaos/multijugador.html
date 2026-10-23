@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#070f28">
-<title>MICROCAOS — Multijugador Monster Edition V5.3 · Realidad aumentada</title>
+<title>MICROCAOS — Multijugador Monster Edition V5.4 · Realidad aumentada</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -437,15 +437,27 @@ html.xr-active #ui #placeArena{bottom:calc(env(safe-area-inset-bottom) + 110px)!
  html.xr-active #ui .dash{width:58px;height:58px}
 }
 
+
+/* V5.4 AR rescue is a real-geometry view when untracked placement cannot be rendered. */
+#arFallback3d{position:absolute;z-index:2;left:50%;top:52%;transform:translate(-50%,-50%);
+  width:min(96vw,600px);height:min(60vh,650px);display:none;overflow:hidden;pointer-events:none;
+  background:radial-gradient(ellipse at center,#07213959,#08243a17 75%);
+  border:1px solid #45ffe583;border-radius:18px}
+#arFallback3d.on{display:block}
+#arFallback3d canvas{display:block;width:100%;height:100%;pointer-events:none}
+#arFallbackLabel{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);
+  background:#092c40de;border:1px solid #55ffe69e;border-radius:22px;
+  padding:5px 9px;color:white;white-space:nowrap;font:800 9px Outfit,sans-serif}
+
 </style>
 </head>
 <body>
 <video id="cameraVideo" muted playsinline autoplay></video>
 <div id="scene"></div>
-<div id="ui">
+<div id="ui"><div id="arFallback3d" aria-label="Vista 3D de respaldo"><span id="arFallbackLabel">VISTA APROXIMADA · SIN ANCLAJE ESPACIAL</span></div>
 <div class="ar-tools" id="arTools" style="display:none" role="group" aria-label="Ajustar arena en realidad aumentada">
  <button id="arSmaller" type="button" aria-label="Achicar arena">−</button><span id="arSizeLabel">76 cm</span><button id="arBigger" type="button" aria-label="Agrandar arena">+</button>
- <button id="arRotate" type="button" aria-label="Girar arena">↻</button><button id="arRecenter" type="button" aria-label="Recentrar pista" title="Centrar pista frente a cámara">⌖</button>
+ <button id="arVisual" type="button" title="Mostrar pista alternativa si AR está vacía" aria-label="Mostrar pista 3D">👁</button><button id="arRotate" type="button" aria-label="Girar arena">↻</button><button id="arRecenter" type="button" aria-label="Recentrar pista" title="Centrar pista frente a cámara">⌖</button>
  </div>
  <section id="mpLobby" class="mp-lobby" aria-label="Sala multijugador"><div class="mp-shell">
  <div class="mp-kicker">✦ MICROCAOS · ONLINE</div>
@@ -478,7 +490,7 @@ html.xr-active #ui #placeArena{bottom:calc(env(safe-area-inset-bottom) + 110px)!
 </div></section>
 <div class="mp-live" id="mpLive"></div>
 <header class="top">
-<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V5.2</div></div></div>
+<div class="brand"><div class="brand-mark">m</div><div><div class="brandname">MICRO<span>CAOS</span></div><div class="brandbelow">PARTY RUSH · MONSTER EDITION V5.4</div></div></div>
 <div class="topright"><button class="circlebtn menu-home-button" id="menuToggle" aria-label="Volver al menú">☰</button><span class="tinylabel">✦ <b id="modelstatus">6 MASCOTAS 3D</b></span><button class="circlebtn" id="sound" aria-label="Sonido">♫</button></div>
 </header>
 <div class="hud" id="hud"><div class="scorebox"><div class="scorelabel" id="rankLabel">POSICIÓN · 4 PASAN</div><div class="score" id="place">1<em> / 6</em></div></div><div class="scorebox" style="text-align:right"><div class="scorelabel">TIEMPO</div><div class="time" id="timer">00:00</div></div></div>
@@ -4546,7 +4558,7 @@ function render(t,frame){const dt=Math.min(last?(t-last)/1000:.016,.070);last=t;
  }
  $("speedtrails").classList.toggle("active",phase==="race"&&racers[0].dash>0);
 if(mode==="preview"||mode==="camera")v36UpdateCamera(dt);
-if(mode==="ar"&&frame&&session){v50XRFrame(t,frame);v53UpdateStageVisuals(t)}
+if(mode==="ar"&&frame&&session){v50XRFrame(t,frame);v53UpdateStageVisuals(t);v54Render(t)}
  if(performance.now()>lastToast)$("toast").classList.remove("show");if(performance.now()>skillToastUntil)$("skillToast").classList.remove("on");renderer.render(scene,camera)}
 const reticle=new THREE.Mesh(new THREE.RingGeometry(.20,.23,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x71ffdf,side:THREE.DoubleSide,depthWrite:false}));reticle.visible=false;scene.add(reticle);
 renderer.setAnimationLoop(render);
@@ -4582,6 +4594,7 @@ function checkARSupport(){
 checkARSupport();
 if(location.search.includes("ar-error=1"))showARHelp("No se abrió el visor AR","Chrome o el visor de Google no pudieron abrirlo. Abrí esta página en Chrome, actualizá Servicios de Google Play para RA y volvé a intentar.");
 function resetARView(){
+ v54Toggle(false);
   document.documentElement.classList.remove("xr-active","ar-placed");$("ui").classList.remove("xr-active");
   try{renderer.setClearAlpha(1)}catch(e){}
   scene.background=new THREE.Color(0x172b4a);scene.fog=new THREE.FogExp2(0x142542,.009);renderer.shadowMap.enabled=gameSettings.quality!=="low";previewTable.visible=currentMode==="race";stage.visible=true;
@@ -4722,7 +4735,7 @@ v53Guide.visible=false;
  }
  v52AROutline.visible=false;
  window.__microcaosARV52QA=()=>({
-  version:"5.3",arActive:mode==="ar",placed,eyeFrames:v52AR.frames,
+  version:"5.4",arActive:mode==="ar",placed,eyeFrames:v52AR.frames,
   viewerPosition:v52AR.eye?.position.toArray(),viewerDirection:v52AR.eye?.forward.toArray(),
   stagePosition:stage.position.toArray(),stageScale:stage.scale.x,
   stageParent:stage.parent?.name||"world",worldVisible:world.visible,stageVisible:stage.visible,
@@ -4761,7 +4774,7 @@ function v52PlaceInView(){
  v51RevealSelectedArena();world.visible=true;stage.visible=true;previewTable.visible=false;
  stage.updateMatrixWorld(true);return true;
 }
-window.__microcaosARV52QA=()=>({version:"5.3",poseReady:v52.ready,placed,arena:v52Footprint(),visible:world.visible&&stage.visible,position:stage.position.toArray(),scale:stage.scale.x,drawCalls:renderer.info.render.calls});
+window.__microcaosARV52QA=()=>({version:"5.4",poseReady:v52.ready,placed,arena:v52Footprint(),visible:world.visible&&stage.visible,position:stage.position.toArray(),scale:stage.scale.x,drawCalls:renderer.info.render.calls});
 
 
 function v50ForwardPose(){
@@ -4817,11 +4830,12 @@ function v50CommitPlacement(realSurface=false){
  $("placeArena").style.display="none";
  reticle.visible=false;
  v52ValidateStage();
+ v54Toggle(!realSurface);
  v49PlacementCheck();
  $("modebar").textContent=realSurface?"AR · SUPERFICIE DETECTADA":"AR · UBICACIÓN APROXIMADA";
  $("notice").textContent=realSurface?
   "Pista fijada sobre la superficie. Podés recenterla si queda fuera de vista.":
-  "Ubicación aproximada (sin detección de superficie). Tocá ⌖ si no ves la pista.";
+  "Sin superficie detectada: se muestra una pista 3D aproximada, sin anclaje real.";
  $("notice").classList.add("show");
  const gameActive=["race","countdown","paused","finished"].includes(phase);
  $("intro").classList.toggle("hidden",gameActive);
@@ -4849,7 +4863,7 @@ function v53UpdateStageVisuals(t){
  }
  v53Metrics.renderCalls=renderer.info.render.calls;
 }
-window.__microcaosARV53QA=()=>({version:"5.3",xr:renderer.xr.isPresenting,
+window.__microcaosARV53QA=()=>({version:"5.4",xr:renderer.xr.isPresenting,
  mode,placed,eyeFrames:v52AR.frames,probeFrames:v53Metrics.frames,
  drawCalls:v53Metrics.renderCalls,contextLost:renderer.getContext().isContextLost(),
  stageVisible:stage.visible,worldVisible:world.visible,stageInWorld:stage.parent===world,
@@ -4857,6 +4871,84 @@ window.__microcaosARV53QA=()=>({version:"5.3",xr:renderer.xr.isPresenting,
  arSceneMode()==="ballistix"?ballArena.visible:!!miniStages[arSceneMode()]?.visible,
  pose:v52AR.eye?.position.toArray(),stage:stage.position.toArray(),scale:stage.scale.x,
  footprint:v52Footprint()});
+
+/* V5.4: Visible 3D rescue if AR hit-test is unavailable or the headset compositor
+   hides the native scene. Draws the ACTUAL game scene over passthrough in the
+   XR DOM overlay. This is camera-relative, NOT a tracked physical anchor. */
+const v54={on:false,renderer:null,camera:new THREE.PerspectiveCamera(60,1,.01,40),
+  canvas:null,last:0,calls:0,error:null};
+function v54Toggle(on,help=false){
+ const host=$("arFallback3d");if(!host)return;
+ v54.on=Boolean(on)&&mode==="ar";
+ host.classList.toggle("on",v54.on);
+ $("arVisual").textContent=v54.on?"◉":"👁";
+ if(v54.on&&!v54.renderer&&!v54.canvas){
+  try{
+   v54.renderer=new THREE.WebGLRenderer({alpha:true,antialias:false,powerPreference:"low-power"});
+   v54.renderer.setPixelRatio(.8);v54.renderer.setClearColor(0,0);
+   v54.renderer.outputColorSpace=THREE.SRGBColorSpace;
+   v54.renderer.toneMapping=THREE.ACESFilmicToneMapping;v54.renderer.shadowMap.enabled=false;
+   host.insertBefore(v54.renderer.domElement,$("arFallbackLabel"));
+  }catch(error){
+   v54.error=String(error);v54.canvas=document.createElement("canvas");
+   host.insertBefore(v54.canvas,$("arFallbackLabel"));
+  }
+ }
+ if(help){
+  $("notice").textContent=v54.on?
+   "Pista 3D de respaldo activada. Es una vista aproximada sobre la cámara, NO una superficie detectada.":
+   "Vista de respaldo desactivada. Si la pista AR no se ve, tocá 👁.";
+  $("notice").classList.add("show");
+ }
+}
+function v54DrawFallback2D(){
+ const cv=v54.canvas;if(!cv)return;cv.width=470;cv.height=550;
+ const c=cv.getContext("2d"),w=470,h=550;if(!c)return;
+ c.clearRect(0,0,w,h);c.fillStyle="#0a273bb8";c.strokeStyle="#4affdf";c.lineWidth=6;
+ c.beginPath();c.moveTo(72,85);c.lineTo(398,85);c.lineTo(462,500);c.lineTo(8,500);c.closePath();c.fill();c.stroke();
+ c.strokeStyle="#baffde88";c.lineWidth=2;
+ for(let i=1;i<7;i++){let v=i/7,y=85+415*v;c.beginPath();c.moveTo(72-64*v,y);c.lineTo(398+64*v,y);c.stroke()}
+ for(let i=1;i<5;i++){let x=i/5;c.beginPath();c.moveTo(72+326*x,85);c.lineTo(8+454*x,500);c.stroke()}
+ const dims=AR_SPANS[arSceneMode()]||[12,16];
+ for(const r of racers){
+  if(!r.root.visible||r.finished||!contestants.includes(r.index))continue;
+  let nx=clamp(r.x/(dims[0]*.5),-1,1),ny=clamp(r.z/(dims[1]*.5),-1,1);
+  let t=(ny+1)*.5,y=85+415*t,left=72-64*t;
+  let x=left+(470-2*left)*(nx+1)*.5;
+  c.fillStyle=r.index===0?"#1ffff0":"#ffcf5b";
+  c.beginPath();c.arc(x,y,12,0,Math.PI*2);c.fill();
+  if(r.index===0){c.font="bold 18px sans-serif";c.fillStyle="#fff";c.fillText("VOS",x-20,y-19)}
+ }
+}
+function v54Render(t){
+ if(!v54.on||mode!=="ar"||!placed||!session||t-v54.last<55)return;
+ v54.last=t;
+ try{
+  if(v54.renderer){
+   const el=$("arFallback3d"),w=Math.max(220,Math.round(el.clientWidth)),h=Math.max(250,Math.round(el.clientHeight));
+   v54.renderer.setSize(w,h,false);
+   v51RevealSelectedArena();
+   const dims=AR_SPANS[arSceneMode()]||AR_SPANS.race;
+   stage.updateMatrixWorld(true);
+   v54.camera.position.copy(stage.localToWorld(new THREE.Vector3(dims[0]*.55,Math.max(...dims)*.95,dims[1]*1.55)));
+   v54.camera.lookAt(stage.localToWorld(new THREE.Vector3(0,.1,0)));
+   v54.camera.aspect=w/h;v54.camera.updateProjectionMatrix();
+   v54.renderer.render(scene,v54.camera);
+   v54.calls=v54.renderer.info.render.calls;
+  }else v54DrawFallback2D();
+ }catch(error){
+  v54.error=String(error?.message||error);console.error("AR rescue renderer",error);
+  if(v54.renderer){
+   v54.renderer.domElement.remove();v54.renderer.dispose();v54.renderer=null;
+  }
+  if(!v54.canvas){v54.canvas=document.createElement("canvas");$("arFallback3d").insertBefore(v54.canvas,$("arFallbackLabel"))}
+  v54DrawFallback2D();
+ }
+}
+window.__microcaosARV54QA=()=>({version:"5.4",placed,mode,XR:renderer.xr.isPresenting,
+ rescueVisible:v54.on,drawCalls:v54.calls,error:v54.error,fallback2D:!!v54.canvas,
+ arena:arSceneMode(),stageVisible:stage.visible,stageScale:stage.scale.x});
+
 function v50XRFrame(time,frame){
  if(mode!=="ar"||!session||!frame)return;
  v52ReadXRFrame(frame);
@@ -4902,7 +4994,7 @@ function v50XRFrame(time,frame){
   // World anchor stays fixed; only explicit recenter changes it.
  }
 }
-window.__microcaosARV51QA=()=>({version:"5.3",placed,visible:stage.visible,mode:arSceneMode(),preview:v50XR.previewReady,view:v49FrameCheck(),position:stage.position.toArray()});
+window.__microcaosARV51QA=()=>({version:"5.4",placed,visible:stage.visible,mode:arSceneMode(),preview:v50XR.previewReady,view:v49FrameCheck(),position:stage.position.toArray()});
 window.__microcaosARV50QA=()=>({version:"5.0",mode,placed,preview:v50XR.previewReady,
  hitTestActive:!!hitSource,seenGround:v50XR.lastGroundHit>0,manual:v50XR.manual,
  fallback:v50XR.fallback,sceneVisible:world.visible&&stage.visible,
@@ -5021,6 +5113,7 @@ function arAllModesAudit(){
 window.__microcaosARAudit=arAllModesAudit;
 $("arSmaller").onclick=()=>{arScaleMultiplier=Math.max(.60,Math.round((arScaleMultiplier-.20)*100)/100);arUpdateScale()};
 $("arBigger").onclick=()=>{arScaleMultiplier=Math.min(2.2,Math.round((arScaleMultiplier+.20)*100)/100);arUpdateScale()};
+$("arVisual").onclick=()=>{if(mode==="ar"&&placed)v54Toggle(!v54.on,true)};
 $("arRotate").onclick=()=>{if(mode==="ar"&&placed)stage.rotation.y+=Math.PI/4};
 $("arRecenter").title="MOSTRAR PISTA FRENTE A LA CÁMARA";$("arRecenter").onclick=()=>{if(mode==="ar"&&placed){v49Recenter();v53Guide.visible=true}};
 
