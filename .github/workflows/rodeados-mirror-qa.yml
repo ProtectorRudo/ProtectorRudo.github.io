@@ -4,6 +4,7 @@ on:
     paths:
       - 'Modo-caos/**'
       - '.github/scripts/rodeados-mirror-smoke.cjs'
+      - '.github/scripts/rodeados-mirror-xr-smoke.cjs'
       - '.github/workflows/rodeados-mirror-qa.yml'
 permissions:
   contents: read
@@ -20,6 +21,8 @@ jobs:
           node --check Modo-caos/rodeados-core.js
           node --check Modo-caos/rodeados-ux.js
           node --check Modo-caos/rodeados-runtime.js
+          node --check Modo-caos/rodeados-ar-compositor.js
+          test -f Modo-caos/rodeados-ar-compositor.js
           test -f Modo-caos/rodeados.html
           grep -q 'src="/Modo-caos/rodeados-runtime.js' Modo-caos/rodeados.html
       - run: |
@@ -28,3 +31,4 @@ jobs:
       - run: |
           python3 -m http.server 8765 >/tmp/rodeados-http.log 2>&1 &
           node .github/scripts/rodeados-mirror-smoke.cjs
+          node .github/scripts/rodeados-mirror-xr-smoke.cjs
