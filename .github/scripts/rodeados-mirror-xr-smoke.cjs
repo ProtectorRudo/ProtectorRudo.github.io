@@ -162,6 +162,10 @@ const server=http.createServer((req,res)=>{
  assert(degraded.tracking.pose&&degraded.tracking.limited,'emulated position is reported as limited but the viewer pose stays usable');
  assert(degraded.meshes>=2,'real 3D robot models persist with ARCore emulated positioning');
  assert(await page.locator('#radarWrap').isVisible(),'360 radar still visible in limited positioning');
+ const war=await page.evaluate(()=>__RodeadosDebug.floorRendering);
+ assert.equal(war.darkPlates,25,'world-locked war floor is present in Android WebXR overlay');
+ assert.equal(war.visible,25,'every armor plate appears in gameplay, not only in calibration');
+
  await page.evaluate(()=>window.__simEmulated=false);
  assert(await page.locator('#bomb').isVisible(),'area bomb button visible inside WebXR DOM overlay');
  await page.locator('#bomb').tap();
