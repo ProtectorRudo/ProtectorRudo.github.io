@@ -31,7 +31,7 @@
  function create(config={}){
   const mode=MODES[config.mode]?config.mode:'survival';
   const seed=(config.seed??Date.now())>>>0;
-  const g={seed,mode,phase:'ready',elapsed:0,wave:0,lives:100,score:0,shots:0,hits:0,kills:0,combo:0,bestCombo:0,ammo:28,mag:28,reload:0,skill:1,skillCooldown:0,bombCharges:1,bombCooldown:0,bombKillsAt:0,bombsUsed:0,bombHits:0,bombs:[],spawnClock:0,enemyId:0,
+  const g={seed,mode,phase:'ready',elapsed:0,wave:0,lives:100,score:0,shots:0,hits:0,kills:0,combo:0,bestCombo:0,ammo:28,mag:28,reload:0,infiniteAmmo:true,skill:1,skillCooldown:0,bombCharges:1,bombCooldown:0,bombKillsAt:0,bombsUsed:0,bombHits:0,bombs:[],spawnClock:0,enemyId:0,
    enemies:[],fx:[],scores:{},peerWeapons:Object.create(null),ownerId:config.ownerId||null,player:{x:0,z:0},arena:clamp(config.arena||2.6,1.8,4),
    duration:MODES[mode].duration,paused:false,finishedReason:'',announcedBoss:false,lastDamage:0};
   Object.defineProperty(g,'rand',{value:prng(seed),enumerable:false});
@@ -42,7 +42,7 @@
  }
  function begin(g){if(g.phase==='ready'){g.phase='playing';g.spawnClock=.5;}return g}
  function copy(g){
-  return {seed:g.seed,mode:g.mode,phase:g.phase,paused:g.paused,elapsed:g.elapsed,wave:g.wave,lives:g.lives,score:g.score,shots:g.shots,hits:g.hits,kills:g.kills,combo:g.combo,bestCombo:g.bestCombo,ammo:g.ammo,mag:g.mag,reload:g.reload,skill:g.skill,skillCooldown:g.skillCooldown,bombCharges:g.bombCharges,bombCooldown:g.bombCooldown,bombKillsAt:g.bombKillsAt,bombsUsed:g.bombsUsed,bombHits:g.bombHits,bombs:g.bombs.map(b=>({...b})),player:{...g.player},arena:g.arena,duration:Number.isFinite(g.duration)?g.duration:null,scores:{...g.scores},peerWeapons:{...g.peerWeapons},enemies:g.enemies.map(e=>({...e})),fx:g.fx.slice(-12),finishedReason:g.finishedReason};
+  return {seed:g.seed,mode:g.mode,phase:g.phase,paused:g.paused,elapsed:g.elapsed,wave:g.wave,lives:g.lives,score:g.score,shots:g.shots,hits:g.hits,kills:g.kills,combo:g.combo,bestCombo:g.bestCombo,ammo:g.ammo,mag:g.mag,reload:g.reload,infiniteAmmo:true,skill:g.skill,skillCooldown:g.skillCooldown,bombCharges:g.bombCharges,bombCooldown:g.bombCooldown,bombKillsAt:g.bombKillsAt,bombsUsed:g.bombsUsed,bombHits:g.bombHits,bombs:g.bombs.map(b=>({...b})),player:{...g.player},arena:g.arena,duration:Number.isFinite(g.duration)?g.duration:null,scores:{...g.scores},peerWeapons:{...g.peerWeapons},enemies:g.enemies.map(e=>({...e})),fx:g.fx.slice(-12),finishedReason:g.finishedReason};
  }
  function pickKind(g){
   if(g.mode==='joker')return g.rand()<.68?'joker':g.rand()<.55?'fast':'flanker';
@@ -92,8 +92,7 @@
    g.spawnClock=clamp(2.7-g.elapsed*.019,.65,2.7)*(g.mode==='reflex'?.64:1);
    if(!e)g.spawnClock=.5;
   }
-  if(g.reload>0){g.reload=Math.max(0,g.reload-dt);if(g.reload===0)g.ammo=g.mag;}
-  for(const w of Object.values(g.peerWeapons)){if(w.reload>0){w.reload=Math.max(0,w.reload-dt);if(w.reload===0)w.ammo=g.mag;}}
+  // Infinite energy weapon: no bullet consumption or timed reloading in any mode.
   g.skillCooldown=Math.max(0,g.skillCooldown-dt);
   if(g.bombCharges===0){
    g.bombCooldown=Math.max(0,g.bombCooldown-dt);
@@ -153,11 +152,8 @@
   return g.peerWeapons[key]||(g.peerWeapons[key]={ammo:g.mag,reload:0,lastFire:-100});
  }
  function reload(g,shooter='vos'){
-  if(g.phase!=='playing'||g.paused)return false;
-  const w=weaponOf(g,shooter);
-  if(w){if(w.reload>0||w.ammo===g.mag)return false;w.reload=1.35;return true;}
-  if(g.reload>0||g.ammo===g.mag)return false;
-  g.reload=1.35;g.combo=0;return true;
+  // Legacy API kept so old clients cannot accidentally reintroduce an ammo pause.
+  return false;
  }
  // Accurate oriented humanoid hitboxes aligned with actual 3D robot dimensions.
  // Slab ray/box intersection in robot-local meters, padded 6cm for phone jitter.
@@ -201,10 +197,12 @@
   return hit;
  }
  function fire(g,ray,shooter='vos'){
-  const w=weaponOf(g,shooter),ammo=w?w.ammo:g.ammo,reloading=w?w.reload:g.reload;
-  if(g.phase!=='playing'||g.paused||reloading>0||ammo<=0)return {ok:false,reason:ammo<=0?'sin_municion':'bloqueado'};
+  const w=weaponOf(g,shooter);
+  if(g.phase!=='playing'||g.paused)return {ok:false,reason:'bloqueado'};
+  // Keep host-enforced 160ms cadence against network burst cheats. Never run
+  // out of bullets, even if reconnecting from an old room with 0 ammo.
   if(w&&g.elapsed-w.lastFire<.16)return {ok:false,reason:'cadencia'};
-  if(w){w.ammo--;w.lastFire=g.elapsed}else g.ammo--;
+  if(w)w.lastFire=g.elapsed;
   g.shots++;
   let h=rayHit(g,ray.origin,ray.direction);
   if(!h){g.combo=0;g.fx.push({type:'miss',t:g.elapsed});return {ok:true,hit:false};}
