@@ -23,6 +23,12 @@ const assert=require('node:assert/strict'),{chromium}=require('playwright');
  await page.locator('#fire').click();
  await page.waitForTimeout(140);
  assert((await page.evaluate(()=>__RodeadosDebug.game.shots))>before);
+ assert(await page.locator('#bomb').isVisible(),'Bomba Caos control must be exposed');
+ await page.locator('#bomb').click();
+ assert.equal(await page.evaluate(()=>__RodeadosDebug.game.bombsUsed),1,'one real area bomb launched');
+ assert(await page.locator('#bomb').isDisabled(),'bombs do not spam while charging');
+ await page.waitForFunction(()=>__RodeadosDebug.game.bombsUsed>0&&__RodeadosDebug.game.bombs.length===0,null,{timeout:9500});
+ assert((await page.evaluate(()=>__RodeadosDebug.game.bombHits))>0,'2.5 meter area explosion deals real multi-target damage');
  assert.deepEqual(errors,[]);
  console.log('MODO CAOS PAGES MIRROR: PASS -- runtime loaded, 3D WebGL gameplay works, floor controls exist, shot works');
  }finally{await browser.close()}
