@@ -112,6 +112,17 @@ const server=http.createServer((req,res)=>{
  const start=await page.evaluate(()=>({game:__RodeadosDebug.game,meshes:__RodeadosDebug.renderedRobots}));
  assert(start.game.enemies.length>=2,'two robots exist at start');
  assert(start.meshes>=2,'both robots have live Three.js 3D meshes');
+ assert(start.game.enemies.length===2,'intro launches exactly two robots');
+ for(const e of start.game.enemies){
+  const distance=Math.hypot(e.x-start.game.player.x,e.z-start.game.player.z);
+  assert(distance>=3.1,`robots must start outside the camera, distance=${distance}`);
+ }
+ const ammoBefore=await page.evaluate(()=>__RodeadosDebug.game.ammo);
+ await page.locator('#fire').tap();
+ await page.waitForFunction(v=>__RodeadosDebug.game.ammo<v,ammoBefore,{timeout:2000});
+ assert.equal(await page.evaluate(()=>__RodeadosDebug.game.shots),1,
+  'Android XR touch dispatched pointerdown and fired exactly one bullet');
+
  assert((await page.evaluate(()=>__RodeadosDebug.compositorFrames))>8,
   'WebXR frames project actual world to separate DOM WebGL compositor');
  assert((await page.evaluate(()=>__RodeadosDebug.compositorCalls))>=2,
@@ -133,7 +144,7 @@ const server=http.createServer((req,res)=>{
  assert(await page.locator('#radarWrap').isVisible(),'360 radar still visible in limited positioning');
  await page.evaluate(()=>window.__simEmulated=false);
  assert.equal(errors.length,0,'no WebXR Javascript errors '+errors.join(' | '));
- console.log('PASS: MIRROR simulated WebXR placement, gestures, 25 cells, noncenter calibration, real-pose movement and floor lock.');
+ console.log('PASS: simulated WebXR placement, gestures, 25 cells, noncenter calibration, real-pose movement and floor lock.');
  }catch(e){console.error(e.stack||e);process.exitCode=1}
  finally{await browser?.close();await new Promise(r=>server.close(r))}
 })();

@@ -7,12 +7,12 @@
  const TAU=Math.PI*2, PI=Math.PI;
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const TYPES={
-  basic:{hp:2,speed:.31,range:.83,damage:7,value:100,radius:.31,height:1.75},
-  flanker:{hp:2,speed:.49,range:.87,damage:6,value:170,radius:.29,height:1.70},
-  tank:{hp:6,speed:.21,range:1.08,damage:12,value:350,radius:.45,height:2.0},
-  fast:{hp:1,speed:.70,range:.85,damage:6,value:190,radius:.26,height:1.60},
-  joker:{hp:3,speed:.43,range:1,damage:4,value:320,radius:.30,height:1.75},
-  boss:{hp:22,speed:.22,range:1.32,damage:15,value:1600,radius:.56,height:2.20}
+  basic:{hp:2,speed:.31,range:2.70,damage:5,value:100,radius:.31,height:1.75},
+  flanker:{hp:2,speed:.49,range:2.72,damage:5,value:170,radius:.29,height:1.70},
+  tank:{hp:6,speed:.21,range:2.80,damage:9,value:350,radius:.45,height:2.0},
+  fast:{hp:1,speed:.70,range:2.67,damage:5,value:190,radius:.26,height:1.60},
+  joker:{hp:3,speed:.43,range:2.72,damage:4,value:320,radius:.30,height:1.75},
+  boss:{hp:22,speed:.22,range:2.90,damage:12,value:1600,radius:.56,height:2.20}
  };
  const MODES={
   survival:{duration:90,label:'SUPERVIVENCIA 360'},
@@ -51,16 +51,19 @@
   if(g.wave<2)return 'basic';
   const choices=['basic','basic','flanker','fast','tank','joker'];return choices[Math.floor(g.rand()*Math.min(choices.length,2+Math.floor(g.wave/2)))];
  }
+ // The calibrated 5×5 board marks the human SAFE ZONE; full-scale robots
+ // roam a separate virtual ring. Do not crowd the phone on a 2.6m floor.
+ const SAFE_DISTANCE=2.45;
  function positionSpawn(g,radius){
-  const base=Math.floor(g.rand()*8)*PI/4,half=g.arena*.5,spawnR=Math.min(half+.55,Math.max(1.35,radius));
-  const player=g.player;
-  for(let k=0;k<24;k++){
-   const a=(base+((k%8)*PI/4)+g.rand()*.28)%TAU;
-   const r=spawnR+.2*g.rand(),x=player.x+Math.sin(a)*r,z=player.z+Math.cos(a)*r;
-   if(Math.abs(x)>half+.85||Math.abs(z)>half+.85)continue;
-   if(Math.hypot(x-player.x,z-player.z)<1.10)continue;
-   if(g.enemies.some(e=>e.hp>0&&Math.hypot(x-e.x,z-e.z)<e.radius+.46))continue;
-   return {x,z,a,sector:Math.floor((a+PI/8)/ (PI/4))%8};
+  const base=Math.floor(g.rand()*8)*PI/4;
+  const player=g.player,extent=Math.max(5.5,g.arena*.5+3.9);
+  for(let k=0;k<28;k++){
+   const a=(base+((k%8)*PI/4)+g.rand()*.22)%TAU;
+   const r=2.95+g.rand()*1.20;
+   const x=player.x+Math.sin(a)*r,z=player.z+Math.cos(a)*r;
+   if(Math.abs(x)>extent||Math.abs(z)>extent)continue;
+   if(g.enemies.some(e=>e.hp>0&&Math.hypot(x-e.x,z-e.z)<e.radius+.78))continue;
+   return {x,z,a,sector:Math.floor((a+PI/8)/(PI/4))%8};
   }
   return null;
  }
@@ -92,7 +95,7 @@
   if(g.reload>0){g.reload=Math.max(0,g.reload-dt);if(g.reload===0)g.ammo=g.mag;}
   for(const w of Object.values(g.peerWeapons)){if(w.reload>0){w.reload=Math.max(0,w.reload-dt);if(w.reload===0)w.ammo=g.mag;}}
   g.skillCooldown=Math.max(0,g.skillCooldown-dt);
-  const P=g.player,half=g.arena*.5+.72;
+  const P=g.player,half=Math.max(5.5,g.arena*.5+3.9);
   for(const e of g.enemies){
    e.age+=dt;e.lastHit=Math.max(0,e.lastHit-dt);e.stun=Math.max(0,e.stun-dt);
    const d=Math.hypot(P.x-e.x,P.z-e.z),nx=d>0.01?(P.x-e.x)/d:0,nz=d>.01?(P.z-e.z)/d:0;
@@ -112,6 +115,12 @@
     let vx=nx+zig*nz, vz=nz-zig*nx;
     if(e.type==='flanker'){vx=nx*.48+sign*nz*.9;vz=nz*.48-sign*nx*.9}
     const L=Math.hypot(vx,vz)||1;e.x+=vx/L*speed*dt;e.z+=vz/L*speed*dt;
+   }
+   // Always protect the XR eye with 2.45m of clear playable distance.
+   const eyeDx=e.x-P.x,eyeDz=e.z-P.z,eyeDist=Math.hypot(eyeDx,eyeDz);
+   if(eyeDist<SAFE_DISTANCE){
+    const k=SAFE_DISTANCE/Math.max(.001,eyeDist);
+    e.x=P.x+eyeDx*k;e.z=P.z+eyeDz*k;
    }
    e.x=clamp(e.x,-half,half);e.z=clamp(e.z,-half,half);
   }
@@ -142,21 +151,43 @@
   if(g.reload>0||g.ammo===g.mag)return false;
   g.reload=1.35;g.combo=0;return true;
  }
- // Analytic world-space capsule proxies: torso and head; nearest valid positive ray wins.
+ // Accurate oriented humanoid hitboxes aligned with actual 3D robot dimensions.
+ // Slab ray/box intersection in robot-local meters, padded 6cm for phone jitter.
+ function boxRay(ox,oy,oz,dx,dy,dz,box,maxDistance){
+  let tmin=.05,tmax=maxDistance;
+  for(const [o,d,low,high] of [[ox,dx,box[0],box[1]],[oy,dy,box[2],box[3]],[oz,dz,box[4],box[5]]]){
+   if(Math.abs(d)<1e-8){if(o<low||o>high)return null;continue}
+   let a=(low-o)/d,b=(high-o)/d;
+   if(a>b)[a,b]=[b,a];
+   tmin=Math.max(tmin,a);tmax=Math.min(tmax,b);
+   if(tmax<tmin)return null;
+  }
+  return tmin;
+ }
  function rayHit(g,origin,direction,maxDistance=14){
-  if(!origin||!direction)return null;const ox=origin.x,oy=origin.y,oz=origin.z;
+  if(!origin||!direction)return null;
+  const vals=[origin.x,origin.y,origin.z,direction.x,direction.y,direction.z];
   const L=Math.hypot(direction.x,direction.y,direction.z);
-  if(![ox,oy,oz,direction.x,direction.y,direction.z].every(Number.isFinite)||L<.99)return null;
+  if(!vals.every(Number.isFinite)||L<.5)return null;
   const dx=direction.x/L,dy=direction.y/L,dz=direction.z/L;
   let hit=null;
   for(const e of g.enemies){
    if(e.hp<=0||e.portal>.05)continue;
-   for(const [part,cx,cy,cz,r] of [['head',e.x,e.height*.88,e.z,e.radius*.50],['body',e.x,e.height*.55,e.z,e.radius*1.22]]){
-    const vx=cx-ox,vy=cy-oy,vz=cz-oz;
-    const t=vx*dx+vy*dy+vz*dz;
-    if(t<.05||t>maxDistance||hit&&t>=hit.distance)continue;
-    const closest=(vx-t*dx)**2+(vy-t*dy)**2+(vz-t*dz)**2;
-    if(closest<=r*r)hit={id:e.id,type:e.type,part,distance:t};
+   const sn=Math.sin(e.angle),cs=Math.cos(e.angle);
+   const rx=origin.x-e.x,rz=origin.z-e.z;
+   const ox=cs*rx-sn*rz,oy=origin.y,oz=sn*rx+cs*rz;
+   const lx=cs*dx-sn*dz,lz=sn*dx+cs*dz;
+   const scale=e.height/1.75,pad=e.type==='tank'||e.type==='boss'?.09:.06;
+   const boxes=[
+    ['head',[-.22-pad,.22+pad,1.43*scale,1.82*scale,-.24,.30]],
+    ['body',[-.42-pad,.42+pad,.78*scale,1.48*scale,-.32,.35]],
+    ['legs',[-.35-pad,.35+pad,.05*scale,.84*scale,-.27,.32]]
+   ];
+   for(const [part,box] of boxes){
+    const t=boxRay(ox,oy,oz,lx,dy,lz,box,maxDistance);
+    if(t===null)continue;
+    if(!hit||t<hit.distance-.008||Math.abs(t-hit.distance)<.008&&part==='head')
+     hit={id:e.id,type:e.type,part,distance:t};
    }
   }
   return hit;

@@ -60,47 +60,74 @@ export function createRodeadosArt(THREE,scene,camera){
  function createRobot(e){
   const kind=e.type,elite=kind==='boss'||kind==='tank',scale=e.height/1.75;
   const shell=kind==='boss'?M.red:kind==='tank'?M.edge:kind==='fast'?M.violet:kind==='flanker'?M.gold:kind==='joker'?M.orange:M.steel;
-  const group=new THREE.Group();root.add(group);
-  group.scale.setScalar(scale);
+  const glow=kind==='boss'?M.red:kind==='joker'?M.orange:M.cyan;
+  const group=new THREE.Group();root.add(group);group.scale.setScalar(scale);
   const body=new THREE.Group();group.add(body);
-  sphere(body,M.dark,[0,1.12,0],[.24,.34,.16]);
-  part(body,shell,[0,1.13,.08],[.44,.40,.25]);
-  part(body,M.steel,[0,1.20,.22],[.32,.23,.07]);
-  sphere(body,M.light,[0,1.53,0],[.163,.185,.16]);
-  part(body,M.dark,[0,1.56,.14],[.29,.12,.13]);
-  part(body,kind==='joker'?M.orange:M.cyan,[0,1.57,.213],[.245,.056,.025]);
-  for(const s of [-1,1]){
-   part(body,M.dark,[s*.11,1.32,.247],[.08,.06,.033]);
-   part(body,shell,[s*.23,1.34,0],[.19,.22,.23]);
-   sphere(body,M.dark,[s*.24,1.34,.10],[.068,.09,.07]);
-   part(body,shell,[s*.12,.84,.07],[.19,.16,.18]);
+  // Narrow athletic 1.75m humanoid silhouette. No giant 1m boxes or toy head.
+  sphere(body,M.dark,[0,1.13,0],[.265,.36,.17]);
+  sphere(body,shell,[0,1.20,.025],[.335,.36,.20]);
+  sphere(body,M.edge,[0,1.30,.13],[.27,.21,.105]);
+  part(body,M.dark,[0,1.08,.205],[.43,.13,.044]);
+  part(body,M.black,[0,1.35,.238],[.29,.095,.025]);
+  part(body,glow,[0,1.35,.259],[.16,.020,.015]);
+  for(const side of [-1,1]){
+   // Chest plates, titanium seam, and narrow armored collar.
+   sphere(body,shell,[side*.155,1.23,.20],[.154,.215,.085]);
+   part(body,M.dark,[side*.165,1.21,.272],[.021,.24,.017]);
+   sphere(body,M.edge,[side*.27,1.40,.01],[.146,.12,.16]);
+   part(body,glow,[side*.277,1.40,.156],[.024,.024,.016]);
   }
-  sphere(body,M.cyan,[0,1.22,.273],[.057,.055,.017]);
+  sphere(body,M.black,[0,1.48,0],[.110,.10,.10]);
+  // Compact helmet: eye line at 1.61m, physical height ~1.77m.
+  sphere(body,M.dark,[0,1.605,0],[.172,.185,.172]);
+  sphere(body,shell,[0,1.675,-.015],[.158,.09,.145]);
+  sphere(body,M.black,[0,1.59,.112],[.145,.075,.086]);
+  sphere(body,glow,[0,1.603,.177],[.126,.035,.023]);
+  part(body,M.light,[0,1.704,.057],[.155,.025,.077]);
+  for(const side of [-1,1]){
+   sphere(body,M.black,[side*.17,1.597,0],[.034,.087,.080]);
+   part(body,glow,[side*.134,1.58,.145],[.016,.034,.020]);
+  }
   const arms=[],legs=[];
-  for(const s of [-1,1]){
-   const arm=new THREE.Group();arm.position.set(s*.27,1.33,0);body.add(arm);arms.push(arm);
-   part(arm,shell,[s*.025,-.15,0],[.14,.27,.16]);
-   sphere(arm,M.dark,[0,-.28,.02],[.078,.08,.075]);
-   part(arm,M.edge,[s*.04,-.39,.065],[.11,.26,.13]);
-   part(arm,M.steel,[s*.03,-.53,.065],[.13,.11,.13]);
-   const leg=new THREE.Group();leg.position.set(s*.115,.84,0);body.add(leg);legs.push(leg);
-   part(leg,shell,[0,-.20,0],[.17,.39,.19]);
-   sphere(leg,M.dark,[0,-.43,.02],[.085,.08,.086]);
-   part(leg,M.edge,[0,-.56,.04],[.14,.29,.16]);
-   part(leg,M.dark,[0,-.75,.095],[.19,.14,.31]);
+  for(const side of [-1,1]){
+   const arm=new THREE.Group();arm.position.set(side*.335,1.35,0);body.add(arm);arms.push(arm);
+   sphere(arm,M.dark,[0,-.015,0],[.074,.083,.085]);
+   sphere(arm,shell,[side*.014,-.15,0],[.092,.17,.105]);
+   sphere(arm,M.black,[0,-.305,.005],[.076,.075,.071]);
+   sphere(arm,M.edge,[side*.014,-.44,.02],[.078,.16,.087]);
+   part(arm,glow,[side*.015,-.435,.104],[.018,.11,.014]);
+   sphere(arm,M.dark,[side*.017,-.595,.017],[.075,.09,.074]);
+   // Narrow two-piece mechanical leg, articulated at hip and knee.
+   const leg=new THREE.Group();leg.position.set(side*.136,.85,0);body.add(leg);legs.push(leg);
+   sphere(leg,M.dark,[0,-.055,0],[.104,.14,.12]);
+   sphere(leg,shell,[0,-.205,0],[.116,.25,.118]);
+   sphere(leg,M.black,[0,-.420,.01],[.104,.075,.095]);
+   sphere(leg,M.edge,[0,-.573,.015],[.105,.188,.11]);
+   part(leg,glow,[0,-.554,.128],[.041,.130,.014]);
+   sphere(leg,M.dark,[0,-.752,.085],[.121,.090,.196]);
+   part(leg,shell,[0,-.760,.181],[.17,.050,.176]);
   }
-  for(const s of [-1,1]){part(body,M.dark,[s*.16,1.68,.01],[.115,.075,.22]);sphere(body,shell,[s*.20,1.68,.06],[.07,.07,.11])}
-  // Back-pack silhouette & illuminated circuitry
-  part(body,M.dark,[0,1.13,-.19],[.32,.31,.18]);
-  for(const s of [-1,1])part(body,M.cyan,[s*.085,1.15,-.294],[.033,.19,.018]);
-  if(elite){for(const s of [-1,1]){part(body,shell,[s*.32,1.30,-.04],[.17,.25,.25]);part(body,M.gold,[s*.31,1.43,.12],[.12,.05,.1])}}
-  if(kind==='joker'){const crest=part(body,M.gold,[0,1.79,0],[.05,.18,.14]);crest.rotation.z=.14}
-  const shadow=new THREE.Mesh(geo.disc,overlay(0x061c24,.37));shadow.rotation.x=-Math.PI/2;shadow.scale.set(.43,.35,.36);shadow.position.set(0,.018,0);group.add(shadow);
-  const portal=new THREE.Mesh(geo.ring,overlay(0x50e9ff,.85));portal.rotation.x=-Math.PI/2;portal.position.y=.10;portal.scale.setScalar(.4);group.add(portal);
-  const hpBack=part(group,M.dark,[0,1.90,0],[.38,.032,.05]);
-  const hpBar=part(group,M.green,[0,1.90,.031],[.35,.024,.035]);
-  const weakSpot=new THREE.Mesh(geo.sphere,kind==='boss'?M.gold:M.cyan);
-  weakSpot.position.set(0,1.55,.21);weakSpot.scale.set(.065,.06,.025);group.add(weakSpot);
+  sphere(body,M.edge,[0,.86,0],[.22,.13,.15]);
+  for(const side of [-1,1]){
+   sphere(body,M.dark,[side*.21,1.01,-.09],[.070,.15,.13]);
+   part(body,glow,[side*.192,1.06,-.231],[.030,.15,.017]);
+  }
+  // Silhouette extensions are reserved for stronger enemies, not generic blocks.
+  if(elite)for(const side of [-1,1]){
+   sphere(body,shell,[side*.35,1.38,-.08],[.12,.17,.18]);
+   part(body,M.gold,[side*.346,1.43,.085],[.070,.038,.034]);
+  }
+  if(kind==='joker'){
+   const crest=part(body,M.gold,[0,1.79,-.035],[.07,.12,.13]);crest.rotation.z=.19;
+  }
+  const shadow=new THREE.Mesh(geo.disc,overlay(0x061c24,.26));
+  shadow.rotation.x=-Math.PI/2;shadow.scale.set(.5,.37,.42);shadow.position.set(0,.013,0);group.add(shadow);
+  const portal=new THREE.Mesh(geo.ring,overlay(0x50e9ff,.65));
+  portal.rotation.x=-Math.PI/2;portal.position.y=.10;portal.scale.setScalar(.4);group.add(portal);
+  const hpBack=part(group,M.dark,[0,1.96,0],[.38,.028,.05]);
+  const hpBar=part(group,M.green,[0,1.96,.031],[.35,.025,.035]);
+  const weakSpot=new THREE.Mesh(geo.sphere,glow);
+  weakSpot.position.set(0,1.34,.285);weakSpot.scale.set(.05,.045,.022);group.add(weakSpot);
   return {group,body,arms,legs,portal,shadow,hpBack,hpBar,weakSpot,shell};
  }
  function drawEnemies(game){
