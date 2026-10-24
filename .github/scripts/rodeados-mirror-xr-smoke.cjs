@@ -113,15 +113,23 @@ const server=http.createServer((req,res)=>{
  assert(start.game.enemies.length>=2,'two robots exist at start');
  assert(start.meshes>=2,'both robots have live Three.js 3D meshes');
  assert(start.game.enemies.length===2,'intro launches exactly two robots');
+ const eyeLocal=await page.evaluate(()=>__RodeadosDebug.openingEyePosition);
+ assert(eyeLocal&&Number.isFinite(eyeLocal.x)&&Number.isFinite(eyeLocal.z),
+  'opening robots reference the real tracked XR eye');
  for(const e of start.game.enemies){
-  const distance=Math.hypot(e.x-start.game.player.x,e.z-start.game.player.z);
-  assert(distance>=3.1,`robots must start outside the camera, distance=${distance}`);
+  const distance=Math.hypot(e.x-eyeLocal.x,e.z-eyeLocal.z);
+  assert(distance>=3.14,`robots must start 3m away from the PHYSICAL phone, distance=${distance}`);
  }
  const ammoBefore=await page.evaluate(()=>__RodeadosDebug.game.ammo);
  await page.locator('#fire').tap();
  await page.waitForFunction(v=>__RodeadosDebug.game.ammo<v,ammoBefore,{timeout:2000});
  assert.equal(await page.evaluate(()=>__RodeadosDebug.game.shots),1,
   'Android XR touch dispatched pointerdown and fired exactly one bullet');
+ assert((await page.evaluate(()=>__RodeadosDebug.game.hits))>=1,
+  'center-screen reticle must really damage the first centered 3D robot');
+ assert((await page.evaluate(()=>__RodeadosDebug.game.score))>0,
+  'visible shot scores points instead of silently missing');
+
 
  assert((await page.evaluate(()=>__RodeadosDebug.compositorFrames))>8,
   'WebXR frames project actual world to separate DOM WebGL compositor');
@@ -129,7 +137,7 @@ const server=http.createServer((req,res)=>{
   'at least two physical 3D floor/robot objects reach compositor while playing');
  assert.equal(await page.evaluate(()=>__RodeadosDebug.compositorError),null,
   'overlay compositor produces no WebGL errors');
- assert(start.game.enemies.some(e=>e.z<start.game.player.z-.7),'at least one opening robot appears in front of forward-facing camera');
+ // The arena can be rotated by the user's gesture; local -Z is not the XR eye's forward axis.
  await page.evaluate(()=>window.__simPhone.x=.18);
  await page.waitForTimeout(400);
  const now=await page.evaluate(()=>({pose:__RodeadosDebug.floorTransform,player:__RodeadosDebug.player}));
