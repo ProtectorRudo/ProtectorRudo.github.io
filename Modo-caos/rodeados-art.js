@@ -27,6 +27,51 @@ export function createRodeadosArt(THREE,scene,camera){
  };
  const part=(parent,mat,p,s)=>box(parent,mat,p,s);
  const sphere=(parent,mat,p,s)=>box(parent,mat,p,s,geo.sphere);
+ const warMat=Array.from({length:25},()=>new THREE.MeshBasicMaterial({
+  color:0x24343b,transparent:true,opacity:.76,depthTest:false,depthWrite:false,toneMapped:false,side:THREE.DoubleSide
+ }));
+ const warMarks=[],warBurn=[],warCracks=[],warScars=[];
+ // One lightweight procedural scorch texture shared across all 25 cells.
+ const burnCanvas=document.createElement('canvas');burnCanvas.width=128;burnCanvas.height=128;
+ const burnCtx=burnCanvas.getContext('2d'),grad=burnCtx.createRadialGradient(64,64,3,64,64,62);
+ grad.addColorStop(0,'rgba(10,4,2,.96)');grad.addColorStop(.38,'rgba(26,9,3,.75)');
+ grad.addColorStop(.72,'rgba(78,25,6,.30)');grad.addColorStop(1,'rgba(80,26,4,0)');
+ burnCtx.fillStyle=grad;burnCtx.fillRect(0,0,128,128);
+ const burnTexture=new THREE.CanvasTexture(burnCanvas);burnTexture.colorSpace=THREE.SRGBColorSpace;
+ const burnGeo=new THREE.PlaneGeometry(1,1);
+ for(let i=0;i<25;i++){
+  const deck=new THREE.Group();deck.position.y=.058;arena.add(deck);warMarks.push(deck);
+  const coordinates=[
+   -.42,0,-.42,-.23,0,-.42,.23,0,-.42,.42,0,-.42,
+   -.42,0,.42,-.23,0,.42,.23,0,.42,.42,0,.42,
+   -.42,0,-.42,-.42,0,-.23,.42,0,-.42,.42,0,-.23,
+   -.42,0,.23,-.42,0,.42,.42,0,.23,.42,0,.42,
+   -.14,0,0,-.045,0,0,.045,0,0,.14,0,0,
+   -.36,0,-.30,-.28,0,-.22,.36,0,.30,.28,0,.22
+  ];
+  const seamGeometry=new THREE.BufferGeometry();
+  seamGeometry.setAttribute('position',new THREE.Float32BufferAttribute(coordinates,3));
+  const seams=new THREE.LineSegments(seamGeometry,new THREE.LineBasicMaterial({
+   color:0x94b4a4,transparent:true,opacity:.55,depthTest:false,depthWrite:false,toneMapped:false}));
+  deck.add(seams);
+  const scorch=new THREE.Mesh(burnGeo,new THREE.MeshBasicMaterial({
+   map:burnTexture,color:0xffffff,transparent:true,opacity:0,depthTest:false,depthWrite:false,toneMapped:false,
+   side:THREE.DoubleSide}));
+  scorch.rotation.x=-Math.PI/2;scorch.position.y=.006;deck.add(scorch);warBurn.push(scorch);
+  const fractures=[];
+  for(let k=0;k<3;k++){
+   const seed=i*17+k*11,ax=((seed*7)%17-8)/27,az=((seed*13)%19-9)/28;
+   const parts=[0,0,ax*.43,az*.6,ax*.43,az*.6,ax,az,
+    ax*.43,az*.6,ax*.8-.08,az*.85+.1];
+   for(let j=0;j<parts.length;j+=4)
+    fractures.push(parts[j],.012,parts[j+1],parts[j+2],.012,parts[j+3]);
+  }
+  const fractureGeometry=new THREE.BufferGeometry();
+  fractureGeometry.setAttribute('position',new THREE.Float32BufferAttribute(fractures,3));
+  const crack=new THREE.LineSegments(fractureGeometry,new THREE.LineBasicMaterial({
+   color:0xff7d45,transparent:true,opacity:0,depthTest:false,depthWrite:false,toneMapped:false}));
+  deck.add(crack);warCracks.push(crack);warScars.push(-1);
+ }
  const tiles=[],edges=[];
  const center=new THREE.Group();arena.add(center);
  for(let i=0;i<25;i++){
@@ -44,18 +89,42 @@ export function createRodeadosArt(THREE,scene,camera){
   for(let i=0;i<25;i++){const tile=tiles[i];
    tile.position.set((i%5-2)*pitch,.024,(Math.floor(i/5)-2)*pitch);
    tile.scale.set(pitch*.95,.012,pitch*.95);
-   tile.material=i===cell?pickMat:(editing?tileMat[(i%5+Math.floor(i/5))%2]:lowMat);
+   tile.material=editing&&i===cell?pickMat:(editing?tileMat[(i%5+Math.floor(i/5))%2]:warMat[i]);
+    const deck=warMarks[i];deck.position.x=tile.position.x;deck.position.z=tile.position.z;
+    deck.scale.set(pitch,1,pitch);deck.visible=!editing;
+    warBurn[i].scale.set(.76,.76,.76);
   }
   for(let i=0;i<4;i++){const e=edges[i];const xx=i===0?-half:i===1?half:0,zz=i===2?-half:i===3?half:0;
    e.position.set(xx,.045,zz);e.scale.set(i<2?.034:side,.027,i<2?side:.034);
    e.material=borderMat;
   }
+  // Cyan outline in editing; restrained amber hazard boundary in live combat.
+  borderMat.color.set(editing?0x65ffe6:0xd8a55c);
   compass.position.set(0,.015,-half+.35);compass.visible=editing;
   center.visible=editing||!!player;
   if(player)center.position.set(player.x,.025,player.z);
   else if(cell>=0)center.position.set((cell%5-2)*pitch,.025,(Math.floor(cell/5)-2)*pitch);
   else center.position.set(0,.025,0);
   marker.material.color.set(editing?0xeaffcb:0x63ffc2);
+ }
+ function setFloorDamage(game,editing=false){
+  for(let i=0;i<25;i++){
+   const damage=game?.floorDamage?.[i]||0;
+   const time=game?.floorHeat?.[i]??-100;
+   const hot=Math.max(0,1-Math.max(0,(game?.elapsed??0)-time)/1.9);
+   const step=Math.round(damage*25)/25,heat=Math.round(hot*6)/6;
+   if(warScars[i]!==step+heat*10){
+    warScars[i]=step+heat*10;
+    warMat[i].color.set(0x24343b).lerp(new THREE.Color(0x271514),Math.min(1,step*.95));
+    warMat[i].opacity=.76+step*.12;
+    warBurn[i].material.opacity=Math.min(.7,damage*.58+heat*.12);
+    warCracks[i].material.opacity=damage<.16?0:Math.min(.92,(damage-.16)*1.30+heat*.17);
+    const border=warMarks[i].children[0].material;
+    border.color.set(0x94b4a4).lerp(new THREE.Color(0xff7437),Math.min(1,step*1.3+heat*.38));
+    border.opacity=.55+Math.min(.3,step*.2+heat*.22);
+   }
+   warMarks[i].visible=!editing;
+  }
  }
  function createRobot(e){
   const kind=e.type,elite=kind==='boss'||kind==='tank',scale=e.height/1.75;
@@ -313,5 +382,9 @@ export function createRodeadosArt(THREE,scene,camera){
   for(const a of actors.values()){root.remove(a.group);a.visorMat.dispose()}actors.clear();
   for(const s of sparks){root.remove(s.mesh);s.mesh.material.dispose()}sparks.length=0;
  }
- return {root,arena,rifle,tiles,setFloor,drawEnemies,positionWeapon,drawShot,drawBombs,effect,updateSparks,clear,robotCount:()=>actors.size};
+ return {root,arena,rifle,tiles,setFloor,setFloorDamage,
+  getFloorStatus:()=>({plates:warMat.length,visible:warMarks.filter(d=>d.visible).length,
+   darkPlates:tiles.filter((t,i)=>t.material===warMat[i]).length,
+   scars:warBurn.map(b=>b.material.opacity),cracks:warCracks.map(c=>c.material.opacity)}),
+  drawEnemies,positionWeapon,drawShot,drawBombs,effect,updateSparks,clear,robotCount:()=>actors.size};
 }
