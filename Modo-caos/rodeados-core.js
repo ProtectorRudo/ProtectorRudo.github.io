@@ -1,0 +1,193 @@
+'use strict';
+/* RODEADOS 360 — gameplay core, independent of WebXR and rendering.
+   All positions are expressed in meters in the fixed arena-local reference frame.
+   A host can validate shot rays in the same coordinates; browser-host authority
+   is not equivalent to a trusted server or anti-cheat. */
+(function(root){
+ const TAU=Math.PI*2, PI=Math.PI;
+ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+ const TYPES={
+  basic:{hp:2,speed:.31,range:.83,damage:7,value:100,radius:.31,height:1.75},
+  flanker:{hp:2,speed:.49,range:.87,damage:6,value:170,radius:.29,height:1.70},
+  tank:{hp:6,speed:.21,range:1.08,damage:12,value:350,radius:.45,height:2.0},
+  fast:{hp:1,speed:.70,range:.85,damage:6,value:190,radius:.26,height:1.60},
+  joker:{hp:3,speed:.43,range:1,damage:4,value:320,radius:.30,height:1.75},
+  boss:{hp:22,speed:.22,range:1.32,damage:15,value:1600,radius:.56,height:2.20}
+ };
+ const MODES={
+  survival:{duration:90,label:'SUPERVIVENCIA 360'},
+  infinite:{duration:Infinity,label:'CAOS INFINITO'},
+  reflex:{duration:60,label:'REFLEJOS EXTREMOS'},
+  joker:{duration:75,label:'EL BURLÓN'},
+  boss:{duration:90,label:'JEFE FINAL'}
+ };
+ function prng(seed){
+  let n=(seed>>>0)||0x9e3779b9;
+  n=Math.imul(n^(n>>>16),0x85ebca6b)>>>0;
+  n=Math.imul(n^(n>>>13),0xc2b2ae35)>>>0;
+  n=(n^(n>>>16))>>>0;
+  return ()=>{n^=n<<13;n^=n>>>17;n^=n<<5;return (n>>>0)/4294967296};
+ }
+ function create(config={}){
+  const mode=MODES[config.mode]?config.mode:'survival';
+  const seed=(config.seed??Date.now())>>>0;
+  const g={seed,mode,phase:'ready',elapsed:0,wave:0,lives:100,score:0,shots:0,hits:0,kills:0,combo:0,bestCombo:0,ammo:28,mag:28,reload:0,skill:1,skillCooldown:0,spawnClock:0,enemyId:0,
+   enemies:[],fx:[],scores:{},peerWeapons:Object.create(null),ownerId:config.ownerId||null,player:{x:0,z:0},arena:clamp(config.arena||2.6,1.8,4),
+   duration:MODES[mode].duration,paused:false,finishedReason:'',announcedBoss:false,lastDamage:0};
+  Object.defineProperty(g,'rand',{value:prng(seed),enumerable:false});
+  return g;
+ }
+ function reset(g,config={}){
+  return create({...config,mode:config.mode||g.mode,arena:config.arena||g.arena,ownerId:config.ownerId??g.ownerId});
+ }
+ function begin(g){if(g.phase==='ready'){g.phase='playing';g.spawnClock=.5;}return g}
+ function copy(g){
+  return {seed:g.seed,mode:g.mode,phase:g.phase,paused:g.paused,elapsed:g.elapsed,wave:g.wave,lives:g.lives,score:g.score,shots:g.shots,hits:g.hits,kills:g.kills,combo:g.combo,bestCombo:g.bestCombo,ammo:g.ammo,mag:g.mag,reload:g.reload,skill:g.skill,skillCooldown:g.skillCooldown,player:{...g.player},arena:g.arena,duration:Number.isFinite(g.duration)?g.duration:null,scores:{...g.scores},peerWeapons:{...g.peerWeapons},enemies:g.enemies.map(e=>({...e})),fx:g.fx.slice(-12),finishedReason:g.finishedReason};
+ }
+ function pickKind(g){
+  if(g.mode==='joker')return g.rand()<.68?'joker':g.rand()<.55?'fast':'flanker';
+  if(g.mode==='boss'&&g.elapsed>3&&!g.announcedBoss)return 'boss';
+  if(g.mode==='reflex')return g.rand()<.68?'fast':'flanker';
+  if(g.wave<2)return 'basic';
+  const choices=['basic','basic','flanker','fast','tank','joker'];return choices[Math.floor(g.rand()*Math.min(choices.length,2+Math.floor(g.wave/2)))];
+ }
+ function positionSpawn(g,radius){
+  const base=Math.floor(g.rand()*8)*PI/4,half=g.arena*.5,spawnR=Math.min(half+.55,Math.max(1.35,radius));
+  const player=g.player;
+  for(let k=0;k<24;k++){
+   const a=(base+((k%8)*PI/4)+g.rand()*.28)%TAU;
+   const r=spawnR+.2*g.rand(),x=player.x+Math.sin(a)*r,z=player.z+Math.cos(a)*r;
+   if(Math.abs(x)>half+.85||Math.abs(z)>half+.85)continue;
+   if(Math.hypot(x-player.x,z-player.z)<1.10)continue;
+   if(g.enemies.some(e=>e.hp>0&&Math.hypot(x-e.x,z-e.z)<e.radius+.46))continue;
+   return {x,z,a,sector:Math.floor((a+PI/8)/ (PI/4))%8};
+  }
+  return null;
+ }
+ function spawn(g,type){
+  const def=TYPES[type]||TYPES.basic,p=positionSpawn(g,g.arena*.65);
+  if(!p)return null;
+  const e={id:++g.enemyId,type,x:p.x,z:p.z,y:0,angle:Math.atan2(g.player.x-p.x,g.player.z-p.z),sector:p.sector,
+   hp:def.hp,maxHp:def.hp,radius:def.radius,height:def.height,state:'enter',age:0,stun:0,attackCD:1+g.rand(),strafe:g.rand()<.5?-1:1,
+   phase:g.rand()*TAU,taunt:0,lastHit:0,portal:.72};
+  g.enemies.push(e);if(type==='boss')g.announcedBoss=true;return e;
+ }
+ function movePlayer(g,p){
+  if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.z))return false;
+  const bound=g.arena/2-.08;
+  g.player.x=clamp(p.x,-bound,bound);g.player.z=clamp(p.z,-bound,bound);return true;
+ }
+ function advance(g,dt){
+  if(g.phase!=='playing'||g.paused)return g;
+  dt=clamp(Number(dt)||0,0,.07);if(dt<=0)return g;
+  const prev=g.elapsed;g.elapsed+=dt;g.wave=1+Math.floor(g.elapsed/15);
+  if(g.mode==='boss'&&g.elapsed>=2&&!g.announcedBoss)spawn(g,'boss');
+  const cap=g.mode==='boss'?7:clamp(2+Math.floor(g.elapsed/18),2,8);
+  g.spawnClock-=dt;
+  if(g.spawnClock<=0&&g.enemies.length<cap){
+   const kind=pickKind(g);const e=spawn(g,kind);
+   g.spawnClock=clamp(2.7-g.elapsed*.019,.65,2.7)*(g.mode==='reflex'?.64:1);
+   if(!e)g.spawnClock=.5;
+  }
+  if(g.reload>0){g.reload=Math.max(0,g.reload-dt);if(g.reload===0)g.ammo=g.mag;}
+  for(const w of Object.values(g.peerWeapons)){if(w.reload>0){w.reload=Math.max(0,w.reload-dt);if(w.reload===0)w.ammo=g.mag;}}
+  g.skillCooldown=Math.max(0,g.skillCooldown-dt);
+  const P=g.player,half=g.arena*.5+.72;
+  for(const e of g.enemies){
+   e.age+=dt;e.lastHit=Math.max(0,e.lastHit-dt);e.stun=Math.max(0,e.stun-dt);
+   const d=Math.hypot(P.x-e.x,P.z-e.z),nx=d>0.01?(P.x-e.x)/d:0,nz=d>.01?(P.z-e.z)/d:0;
+   e.angle=Math.atan2(nx,nz);
+   if(e.portal>0){e.portal=Math.max(0,e.portal-dt);e.state='enter';continue}
+   if(e.stun){e.state='stunned';continue}
+   const def=TYPES[e.type];
+   if(e.type==='joker'&&e.age>1.5&&Math.sin(e.age*1.5+e.phase)>.7){e.state='taunt';e.taunt+=dt;}
+   else if(d<def.range){e.state='attack';e.attackCD-=dt;
+    if(e.attackCD<=0){e.attackCD=clamp(2.2-g.elapsed*.008,1.0,2.2);
+     g.lives=Math.max(0,g.lives-def.damage);g.lastDamage=g.elapsed;g.combo=0;g.fx.push({type:'damage',id:e.id,t:g.elapsed});
+    }
+   }else{
+    e.state=e.type==='flanker'?'flank':e.type==='fast'?'dash':e.type==='joker'?'dodge':'advance';
+    const sign=e.strafe,zig=(e.type==='flanker'||e.type==='joker'||e.type==='fast')?Math.sin(e.age*(e.type==='fast'?7:3.5)+e.phase)*.68:0;
+    const speed=def.speed*(1+Math.min(.42,g.elapsed/200));
+    let vx=nx+zig*nz, vz=nz-zig*nx;
+    if(e.type==='flanker'){vx=nx*.48+sign*nz*.9;vz=nz*.48-sign*nx*.9}
+    const L=Math.hypot(vx,vz)||1;e.x+=vx/L*speed*dt;e.z+=vz/L*speed*dt;
+   }
+   e.x=clamp(e.x,-half,half);e.z=clamp(e.z,-half,half);
+  }
+  // Collision separation prevents humanoids intersecting, without shifting their floor height.
+  for(let i=0;i<g.enemies.length;i++)for(let j=i+1;j<g.enemies.length;j++){
+   const a=g.enemies[i],b=g.enemies[j];if(a.portal||b.portal)continue;
+   const dx=b.x-a.x,dz=b.z-a.z,d=Math.hypot(dx,dz),min=a.radius+b.radius+.07;
+   if(d<min){const nx=d<1e-5?1:dx/d,nz=d<1e-5?0:dz/d,p=(min-d)*.5;
+    a.x=clamp(a.x-nx*p,-half,half);a.z=clamp(a.z-nz*p,-half,half);
+    b.x=clamp(b.x+nx*p,-half,half);b.z=clamp(b.z+nz*p,-half,half);
+   }
+  }
+  g.fx=g.fx.filter(f=>g.elapsed-f.t<1.1);
+  if(g.lives<=0)finish(g,'sin_vida');
+  if(g.elapsed>=g.duration)finish(g,'tiempo');
+  return g;
+ }
+ function finish(g,reason){if(g.phase==='playing'){g.phase='finished';g.finishedReason=reason||'tiempo';}return g}
+ function weaponOf(g,shooter){
+  if(!g.ownerId||!shooter||shooter===g.ownerId)return null;
+  const key=String(shooter);
+  return g.peerWeapons[key]||(g.peerWeapons[key]={ammo:g.mag,reload:0,lastFire:-100});
+ }
+ function reload(g,shooter='vos'){
+  if(g.phase!=='playing'||g.paused)return false;
+  const w=weaponOf(g,shooter);
+  if(w){if(w.reload>0||w.ammo===g.mag)return false;w.reload=1.35;return true;}
+  if(g.reload>0||g.ammo===g.mag)return false;
+  g.reload=1.35;g.combo=0;return true;
+ }
+ // Analytic world-space capsule proxies: torso and head; nearest valid positive ray wins.
+ function rayHit(g,origin,direction,maxDistance=14){
+  if(!origin||!direction)return null;const ox=origin.x,oy=origin.y,oz=origin.z;
+  const L=Math.hypot(direction.x,direction.y,direction.z);
+  if(![ox,oy,oz,direction.x,direction.y,direction.z].every(Number.isFinite)||L<.99)return null;
+  const dx=direction.x/L,dy=direction.y/L,dz=direction.z/L;
+  let hit=null;
+  for(const e of g.enemies){
+   if(e.hp<=0||e.portal>.05)continue;
+   for(const [part,cx,cy,cz,r] of [['head',e.x,e.height*.88,e.z,e.radius*.50],['body',e.x,e.height*.55,e.z,e.radius*1.22]]){
+    const vx=cx-ox,vy=cy-oy,vz=cz-oz;
+    const t=vx*dx+vy*dy+vz*dz;
+    if(t<.05||t>maxDistance||hit&&t>=hit.distance)continue;
+    const closest=(vx-t*dx)**2+(vy-t*dy)**2+(vz-t*dz)**2;
+    if(closest<=r*r)hit={id:e.id,type:e.type,part,distance:t};
+   }
+  }
+  return hit;
+ }
+ function fire(g,ray,shooter='vos'){
+  const w=weaponOf(g,shooter),ammo=w?w.ammo:g.ammo,reloading=w?w.reload:g.reload;
+  if(g.phase!=='playing'||g.paused||reloading>0||ammo<=0)return {ok:false,reason:ammo<=0?'sin_municion':'bloqueado'};
+  if(w&&g.elapsed-w.lastFire<.16)return {ok:false,reason:'cadencia'};
+  if(w){w.ammo--;w.lastFire=g.elapsed}else g.ammo--;
+  g.shots++;
+  let h=rayHit(g,ray.origin,ray.direction);
+  if(!h){g.combo=0;g.fx.push({type:'miss',t:g.elapsed});return {ok:true,hit:false};}
+  const e=g.enemies.find(x=>x.id===h.id);if(!e)return {ok:true,hit:false};
+  const weak=e.type==='tank'||e.type==='boss';
+  const damage=(h.part==='head'?2:1)+(weak&&h.part==='head'?1:0);
+  e.hp=Math.max(0,e.hp-damage);e.stun=Math.max(e.stun,.20);
+  e.lastHit=.30;g.hits++;g.combo++;g.bestCombo=Math.max(g.bestCombo,g.combo);
+  const gained=25+(h.part==='head'?70:25)+(e.hp===0?TYPES[e.type].value:0);
+  const pts=Math.round(gained*(1+Math.min(3,g.combo/9))*(g.mode==='reflex'?1.2:1));
+  g.score+=pts;g.scores[String(shooter||'vos')]=(g.scores[String(shooter||'vos')]||0)+pts;
+  g.fx.push({type:'hit',id:e.id,x:e.x,y:e.height*.75,z:e.z,t:g.elapsed,head:h.part==='head'});
+  if(!e.hp){g.kills++;g.fx.push({type:'destroy',id:e.id,x:e.x,y:1,z:e.z,t:g.elapsed});g.enemies=g.enemies.filter(x=>x.id!==e.id)}
+  return {ok:true,hit:true,enemy:h.id,part:h.part,damage,points:pts,killed:e.hp===0};
+ }
+ function pulse(g){
+  if(g.phase!=='playing'||g.paused||g.skillCooldown>0)return false;
+  g.skillCooldown=24;
+  for(const e of g.enemies){e.stun=Math.max(e.stun,2.4);e.hp=Math.max(1,e.hp-1);}
+  g.fx.push({type:'pulse',t:g.elapsed});return true;
+ }
+ const api={TYPES,MODES,create,reset,begin,advance,spawn,movePlayer,copy,rayHit,fire,reload,pulse,finish};
+ if(typeof module!=='undefined'&&module.exports)module.exports=api;
+ root.RodeadosCore=api;
+})(typeof globalThis!=='undefined'?globalThis:this);
