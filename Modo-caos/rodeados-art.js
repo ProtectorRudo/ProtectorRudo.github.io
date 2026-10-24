@@ -4,7 +4,7 @@
 export function createRodeadosArt(THREE,scene,camera){
  const root=new THREE.Group();scene.add(root);
  const arena=new THREE.Group();root.add(arena);
- const actors=new Map(),sparks=[];
+ const actors=new Map(),sparks=[],tracers=[],waves=[];let recoil=0,bombProjectile=null;
  const geo={box:new THREE.BoxGeometry(1,1,1),sphere:new THREE.SphereGeometry(1,16,12),
   cyl:new THREE.CylinderGeometry(1,1,1,12),disc:new THREE.CircleGeometry(1,34),
   ring:new THREE.TorusGeometry(1,.026,7,40),cone:new THREE.ConeGeometry(1,1,9)};
@@ -160,6 +160,63 @@ export function createRodeadosArt(THREE,scene,camera){
   mesh.position.set(pos.x,pos.y,pos.z);mesh.scale.setScalar(size);root.add(mesh);
   sparks.push({mesh,life:ttl,max:ttl,vx:(Math.random()-.5)*3,vy:.6+Math.random()*2,vz:(Math.random()-.5)*3});
  }
+ // High-impact, world-anchored muzzle beam: calculated from the real XR reticle
+ // ray, never a screen-space line or a fake hit. Short afterimage in WebGL.
+ const tracerGeo=new THREE.CylinderGeometry(1,1,1,7);
+ function drawShot(ray,distance=7,hit=false){
+  if(!ray?.origin||!ray?.direction)return;
+  const o=new THREE.Vector3(ray.origin.x,ray.origin.y,ray.origin.z);
+  const d=new THREE.Vector3(ray.direction.x,ray.direction.y,ray.direction.z).normalize();
+  const len=Math.max(.2,Math.min(distance,12)-.32);
+  const end=o.clone().addScaledVector(d,.32+len);
+  const mid=o.clone().addScaledVector(d,.32+len*.5);
+  const q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),d);
+  for(const halo of [false,true]){
+   const mat=new THREE.MeshBasicMaterial({color:halo?0x4cffee:0xffedd0,transparent:true,opacity:halo?.28:.98,
+    depthWrite:false,depthTest:!halo,blending:halo?THREE.AdditiveBlending:THREE.NormalBlending});
+   const beam=new THREE.Mesh(tracerGeo,mat);
+   beam.position.copy(mid);beam.quaternion.copy(q);
+   const radius=halo?.045:.012;
+   beam.scale.set(radius,len,radius);root.add(beam);
+   tracers.push({mesh:beam,ttl:halo?.105:.075,max:halo?.105:.075});
+  }
+  if(hit){for(let i=0;i<12;i++)addSpark(end,i%3===0?0xffffff:0xffc858,.035+Math.random()*.025,.22+Math.random()*.32)}
+  recoil=1;
+ }
+ function blastWave(x,z,radius=2.5){
+  for(let i=0;i<2;i++){
+   const mat=new THREE.MeshBasicMaterial({color:i?0xffc05a:0x7ffff1,transparent:true,opacity:i?.78:.94,
+    depthWrite:false,depthTest:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
+   const ring=new THREE.Mesh(new THREE.TorusGeometry(1,i?.026:.045,8,64),mat);
+   ring.rotation.x=-Math.PI/2;ring.position.set(x,.13+i*.05,z);ring.scale.setScalar(.15);
+   root.add(ring);waves.push({mesh:ring,maxRadius:radius,age:0,ttl:i?.63:.48,delay:i?.09:0});
+  }
+  const mat=new THREE.MeshBasicMaterial({color:0xffedaa,transparent:true,opacity:.38,depthWrite:false,depthTest:false,
+   blending:THREE.AdditiveBlending});
+  const dome=new THREE.Mesh(geo.sphere,mat);dome.position.set(x,.24,z);dome.scale.set(.18,.18,.18);root.add(dome);
+  waves.push({mesh:dome,dome:true,age:0,ttl:.32,delay:0,maxRadius:radius*.85});
+  for(let i=0;i<45;i++){
+   const a=Math.PI*2*i/45,r=Math.random()*.65;
+   addSpark({x:x+Math.sin(a)*r,y:.14+Math.random()*.6,z:z+Math.cos(a)*r},
+    i%4===0?0xfff2ca:i%2?0xffb147:0x6afff2,.035+Math.random()*.075,.35+Math.random()*.48);
+  }
+ }
+ function drawBombs(game){
+  const bomb=game.bombs?.[0];
+  if(!bomb){if(bombProjectile){root.remove(bombProjectile);bombProjectile=null}return}
+  if(!bombProjectile){
+   bombProjectile=new THREE.Group();
+   const shell=new THREE.Mesh(new THREE.SphereGeometry(1,12,10),new THREE.MeshBasicMaterial({color:0xffd376}));
+   shell.scale.setScalar(.16);bombProjectile.add(shell);
+   const halo=new THREE.Mesh(new THREE.SphereGeometry(1,12,10),new THREE.MeshBasicMaterial({color:0x7bfff2,
+    transparent:true,opacity:.34,depthWrite:false,blending:THREE.AdditiveBlending}));
+   halo.scale.setScalar(.24);bombProjectile.add(halo);root.add(bombProjectile);
+  }
+  const progress=1-Math.min(1,Math.max(0,bomb.fuse/.48));
+  bombProjectile.position.set(bomb.fromX+(bomb.x-bomb.fromX)*progress,
+   .45+Math.sin(progress*Math.PI)*1.05,bomb.fromZ+(bomb.z-bomb.fromZ)*progress);
+  bombProjectile.rotation.y+=.13;
+ }
  function effect(game,lastFx){
   for(const f of game.fx||[]){const key=f.type+':'+f.id+':'+f.t;if(lastFx.has(key))continue;
    lastFx.add(key);
@@ -169,6 +226,23 @@ export function createRodeadosArt(THREE,scene,camera){
   if(lastFx.size>120){const keep=[...lastFx].slice(-50);lastFx.clear();keep.forEach(x=>lastFx.add(x))}
  }
  function updateSparks(dt){
+  recoil=Math.max(0,recoil-dt*6.5);
+  for(let i=tracers.length-1;i>=0;i--){
+   const tr=tracers[i];tr.ttl-=dt;
+   tr.mesh.material.opacity=Math.max(0,tr.ttl/tr.max)*(tr.mesh.material.color.getHex()===0x4cffee?.28:.98);
+   if(tr.ttl<=0){root.remove(tr.mesh);tr.mesh.material.dispose();tracers.splice(i,1)}
+  }
+  for(let i=waves.length-1;i>=0;i--){
+   const w=waves[i];w.age+=dt;
+   const p=Math.max(0,Math.min(1,(w.age-w.delay)/Math.max(.1,w.ttl-w.delay)));
+   if(w.age>=w.delay){
+    const size=.15+w.maxRadius*(1-Math.pow(1-p,2));
+    w.mesh.scale.set(w.dome?size:size,w.dome?size*.55:size,w.dome?size:size);
+    w.mesh.material.opacity=(w.dome?.36:.95)*(1-p);
+   }
+   if(w.age>=w.ttl){root.remove(w.mesh);w.mesh.material.dispose();w.mesh.geometry.dispose();waves.splice(i,1)}
+  }
+
   for(let i=sparks.length-1;i>=0;i--){let s=sparks[i];s.life-=dt;
    s.mesh.position.x+=s.vx*dt;s.mesh.position.y+=s.vy*dt;s.mesh.position.z+=s.vz*dt;s.vy-=dt*3.9;
    s.mesh.material.opacity=Math.max(0,s.life/s.max);
@@ -189,13 +263,18 @@ export function createRodeadosArt(THREE,scene,camera){
  const camTemp=new THREE.Vector3(),quatTemp=new THREE.Quaternion(),offset=new THREE.Vector3(.23,-.28,-.40);
  function positionWeapon(viewCamera,flash){
   viewCamera.getWorldPosition(camTemp);viewCamera.getWorldQuaternion(quatTemp);
-  rifle.position.copy(camTemp).add(offset.clone().applyQuaternion(quatTemp));
+  rifle.position.copy(camTemp).add(offset.clone().add(new THREE.Vector3(0,0,recoil*.075)).applyQuaternion(quatTemp));
   rifle.quaternion.copy(quatTemp);rifle.rotateY(-.045);
-  rifle.rotation.x+=flash?-.06:0;muzzle.visible=!!flash;
+  rifle.rotateX(-recoil*.15-(flash?.035:0));muzzle.visible=!!flash;
+  muzzle.scale.set(.13+recoil*.07,.13+recoil*.07,.30+recoil*.18);
  }
  function clear(){
+  if(bombProjectile){root.remove(bombProjectile);bombProjectile=null}
+  for(const tr of tracers){root.remove(tr.mesh);tr.mesh.material.dispose()}tracers.length=0;
+  for(const w of waves){root.remove(w.mesh);w.mesh.material.dispose();w.mesh.geometry.dispose()}waves.length=0;
+  recoil=0;
   for(const a of actors.values())root.remove(a.group);actors.clear();
   for(const s of sparks){root.remove(s.mesh);s.mesh.material.dispose()}sparks.length=0;
  }
- return {root,arena,rifle,tiles,setFloor,drawEnemies,positionWeapon,effect,updateSparks,clear,robotCount:()=>actors.size};
+ return {root,arena,rifle,tiles,setFloor,drawEnemies,positionWeapon,drawShot,drawBombs,effect,updateSparks,clear,robotCount:()=>actors.size};
 }
