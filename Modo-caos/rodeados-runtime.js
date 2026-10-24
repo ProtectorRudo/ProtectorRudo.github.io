@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createRodeadosArt} from './rodeados-art.js?v=6';
+import {createRodeadosArt} from './rodeados-art.js?v=9';
 import {createRodeadosArCompositor} from './rodeados-ar-compositor.js';
 /* RODEADOS 360 — Native WebXR first-person game runtime.
    Floor and bots are WORLD-LOCKED. Only the weapon is camera-attached.
@@ -22,7 +22,7 @@ let game=G.create({mode:$('mode').value}),stage='home',xrSession=null,space=null
 let lastTime=0,lastHud=0,lastSnapshot=0,lastPing=0,lastRadar=0,anchorPending=false,feedbackLife=100,feedbackWave=0,feedbackCombo=0,waveUntil=0,damageUntil=0,crossUntil=0,comboUntil=0,basePos=new THREE.Vector3(),baseQ=new THREE.Quaternion(),yaw=0,shift=new THREE.Vector3(),floorSize=2.6;
 let fixedPos=new THREE.Vector3(),fixedQ=new THREE.Quaternion(),gridVisible=0,searchSince=0,lastVisibleAt=0,trackingValid=false,lastTracked=0,selected=-1,calStart=0,calSamples=[],calibrated=false,calOffset=new THREE.Vector3(),playerPos=new THREE.Vector3();
 let trackingLostSince=0,pausedByTracking=false,limitedTrackingSince=0,initialBotsSpawned=false,openingEyePosition=null;let countdown=0,pausedForCalibration=false,demo=false,aimYaw=0,aimPitch=0,fireFlash=0,toastDeadline=0,missStreak=0;
-let sounds=true,vibration=true,ctx=null,lastLaugh=0,fxShown=new Set(),lastHitRay=null,performanceFrames=0,performanceTotal=0;
+let sounds=true,vibration=true,ctx=null,lastLaugh=0,lastBlastSignal='',fxShown=new Set(),lastHitRay=null,performanceFrames=0,performanceTotal=0;
 let online=null,onlineBusy=false,onlineRoomCode=new URLSearchParams(location.search).get('room')?.toUpperCase()||'',roomTimer=0;
 const pointer=new Map();let lastPinch=null;
 const THREEVec=(x,y,z)=>new THREE.Vector3(x,y,z);
@@ -44,12 +44,14 @@ function audio(type='shot',position=null){
   if(ctx.state==='suspended')ctx.resume();
   const time=ctx.currentTime,o=ctx.createOscillator(),env=ctx.createGain();
   let f=380,d=.12,vol=.09,wave='sawtooth',end=.34;
-  if(type==='shot'){f=225;d=.18;vol=.14;end=.18}
-  if(type==='hit'){f=760;d=.09;vol=.08;wave='square';end=.40}
+  if(type==='shot'){f=165;d=.16;vol=.18;end=.16}
+  if(type==='hit'){f=590;d=.11;vol=.13;wave='square';end=.22}
   if(type==='reload'){f=490;d=.27;vol=.055;wave='triangle';end=.70}
   if(type==='danger'){f=450;d=.24;vol=.11;wave='triangle';end=.60}
   if(type==='laugh'){f=270;d=.30;vol=.085;end=1.8;wave='triangle'}
   if(type==='finish'){f=660;d=.6;vol=.10;end=.36}
+  if(type==='blast'){f=105;d=.57;vol=.30;wave='sawtooth';end=.30}
+  if(type==='throw'){f=380;d=.17;vol=.09;wave='triangle';end=.55}
   o.type=wave;o.frequency.setValueAtTime(f,time);o.frequency.exponentialRampToValueAtTime(Math.max(50,f*end),time+d);
   env.gain.setValueAtTime(.001,time);env.gain.exponentialRampToValueAtTime(vol,time+.012);env.gain.exponentialRampToValueAtTime(.001,time+d+.02);
   o.connect(env);
@@ -58,6 +60,19 @@ function audio(type='shot',position=null){
    pan.pan.value=clamp(Math.sin(dir),-1,1);env.connect(pan);pan.connect(ctx.destination);
   }else env.connect(ctx.destination);
   o.start(time);o.stop(time+d+.03);
+  // A noise transient plus falling bass supplies weight missing from a
+  // bare toy-like sine wave. Offline buffer; no assets/network required.
+  if(type==='shot'||type==='hit'||type==='blast'){
+   const length=Math.max(256,Math.round(ctx.sampleRate*(type==='blast'?.33:.105)));
+   const buffer=ctx.createBuffer(1,length,ctx.sampleRate),data=buffer.getChannelData(0);
+   for(let i=0;i<length;i++)data[i]=(Math.random()*2-1)*(1-i/length);
+   const noise=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),gain=ctx.createGain();
+   noise.buffer=buffer;filter.type='lowpass';filter.frequency.value=type==='blast'?640:1800;
+   gain.gain.setValueAtTime(type==='blast'?.18:.12,time);
+   gain.gain.exponentialRampToValueAtTime(.001,time+length/ctx.sampleRate);
+   noise.connect(filter);filter.connect(gain);gain.connect(ctx.destination);
+   noise.start(time);noise.stop(time+length/ctx.sampleRate);
+  }
  }catch(e){/* Audio is optional, gameplay stays available. */}
 }
 function relativeAngle(p){
@@ -147,7 +162,7 @@ function setupGame(keepCalibration=false){
  const keepArena=floorSize;
  game=G.create({mode:$('mode').value,arena:keepArena,ownerId:online?.isHost?online.id:null,seed:online?.seed??Math.floor(Math.random()*2**32)});
  if(!keepCalibration){selected=-1;calibrated=false;calSamples=[];calOffset.set(0,0,0)}
- fxShown.clear();initialBotsSpawned=false;openingEyePosition=null;latestAim=null;lastAimStamp=0;lastShotStatus='';pausedByTracking=false;trackingLostSince=0;limitedTrackingSince=0;fireFlash=0;missStreak=0;lastHud=0;feedbackLife=100;feedbackWave=0;feedbackCombo=0;waveUntil=damageUntil=crossUntil=comboUntil=0;
+ fxShown.clear();lastBlastSignal='';initialBotsSpawned=false;openingEyePosition=null;latestAim=null;lastAimStamp=0;lastShotStatus='';pausedByTracking=false;trackingLostSince=0;limitedTrackingSince=0;fireFlash=0;missStreak=0;lastHud=0;feedbackLife=100;feedbackWave=0;feedbackCombo=0;waveUntil=damageUntil=crossUntil=comboUntil=0;
  $('result').style.display='none';visible('healthTrack',false);visible('topHud',false);
  updateHud(true);
 }
@@ -163,6 +178,8 @@ function updateHud(force=false){
  $('reload').disabled=(magazine?.reload??game.reload)>0||(magazine?.ammo??game.ammo)===game.mag;
  $('special').disabled=game.skillCooldown>0;
  $('special').textContent=game.skillCooldown>0?'EMP '+Math.ceil(game.skillCooldown)+'s':'⚡ EMP';
+ $('bomb').disabled=game.bombCharges<=0;
+ $('bomb').textContent=game.bombCharges>0?'💣 BOMBA CAOS':'💣 '+Math.ceil(game.bombCooldown)+'s';
  if(online)$('online').textContent=online.status+' · '+(online.isHost?'ANFITRIÓN':'INVITADO')+' · '+online.mode;
 }
 function result(){
@@ -501,8 +518,10 @@ async function shoot(){
  // A guest sends a ray to the host; only the host's simulation mutates damage/score.
  if(online&&!online.isHost){if(!online.conn?.connected){notice('SIN CONEXIÓN · DISPARO NO CONFIRMADO',1);return}
   try{await online.conn.sendGameEvent({kind:'shot',ray:packet,seq:++shotSeq})}catch(e){notice('DISPARO NO SINCRONIZADO',1)}
-  fireFlash=.09;audio('shot');vib(20);return;
+  art.drawShot(packet,7,false);
+ fireFlash=.09;audio('shot');vib(20);return;
  }
+ const preHit=G.rayHit(game,packet.origin,packet.direction);
  const r=G.fire(game,packet,online?.id||'vos');
  if(!r.ok){
   lastShotStatus='BLOQUEADO: '+(r.reason||'');
@@ -511,6 +530,9 @@ async function shoot(){
   return;
  }
  lastShotStatus=r.hit?'IMPACTO':'DISPARO';
+ art.drawShot(packet,preHit?.distance??7,r.hit);
+ const shotPulse=$('shotPulse');
+ shotPulse.classList.remove('boom');void shotPulse.offsetWidth;shotPulse.classList.add('boom');
  updateHud();
  fireFlash=.09;crossUntil=r.hit?performance.now()+190:0;audio(r.hit?'hit':'shot');vib(r.hit?35:19);
  if(r.hit){missStreak=0;notice((r.part==='head'?'🎯 PUNTO DÉBIL · ':'⚡ IMPACTO · ')+'+'+r.points,0.55)}
@@ -522,6 +544,27 @@ async function shoot(){
 }
 function reload(){if(stage!=='playing')return;if(online&&!online.isHost){online.conn?.sendGameEvent({kind:'reload',seq:++shotSeq}).catch(()=>{});return}
  if(G.reload(game)){audio('reload');notice('↻ RECARGANDO',1);if(online)sendSnapshot(true)}}
+function bombCaos(){
+ if(stage!=='playing'||game.paused)return;
+ if(game.bombCharges<=0){notice('💣 BOMBA CARGANDO · '+Math.ceil(game.bombCooldown)+'s',1.2);return}
+ const ray=activeRay();
+ if(!ray){notice('🎯 APUNTÁ CON LA CÁMARA PARA LANZAR',1.4);return}
+ // Three meters forward in the plane of the CALIBRATED arena, not at the sky.
+ const flat=Math.hypot(ray.direction.x,ray.direction.z);
+ if(flat<.12){notice('🎯 APUNTÁ AL FRENTE PARA LANZAR',1);return}
+ const center={x:ray.origin.x+ray.direction.x/flat*3.35,
+  z:ray.origin.z+ray.direction.z/flat*3.35};
+ if(online&&!online.isHost){
+  if(!online.conn?.connected){notice('BOMBA SIN CONEXIÓN · INTENTÁ DE NUEVO',1.8);return}
+  online.conn.sendGameEvent({kind:'bomb',target:center,seq:++shotSeq}).catch(()=>notice('BOMBA NO SINCRONIZADA',1.5));
+  notice('💣 BOMBA PEDIDA AL ANFITRIÓN',1.2);return;
+ }
+ const out=G.throwBomb(game,center,online?.id||'vos');
+ if(!out.ok){notice('BOMBA: '+out.reason,1);return}
+ audio('throw');vib([35,25,35]);updateHud();
+ notice('💣 BOMBA CAOS · ¡CUBRÍ LA ZONA!',.9);
+ if(online)sendSnapshot(true);
+}
 function special(){if(stage!=='playing')return;
  if(online&&!online.isHost){online.conn?.sendGameEvent({kind:'pulse',seq:++shotSeq}).catch(()=>{});return}
  if(G.pulse(game)){audio('danger');vib(75);notice('⚡ PULSO ELECTROMAGNÉTICO',1);if(online)sendSnapshot(true)}}
@@ -529,6 +572,9 @@ function snapshot(){
  return {kind:'state',stamp:++online.seq,seed:game.seed,mode:game.mode,arena:game.arena,
   at:game.elapsed,hp:Math.round(game.lives*10)/10,wave:game.wave,score:game.score,
   ammo:game.ammo,reload:+game.reload.toFixed(2),special:+game.skillCooldown.toFixed(1),
+  bomb:[game.bombCharges,+game.bombCooldown.toFixed(2),game.bombKillsAt,game.bombsUsed,game.bombHits],
+  pendingBombs:game.bombs.map(b=>[+b.x.toFixed(2),+b.z.toFixed(2),+b.fromX.toFixed(2),+b.fromZ.toFixed(2),+b.fuse.toFixed(2)]),
+  bombBlast:game.fx.filter(f=>f.type==='bombBlast').slice(-1).map(f=>[f.x,f.z,f.radius,f.hits,f.kills,f.points,f.t]),
   kills:game.kills,hits:game.hits,shots:game.shots,combo:game.combo,best:game.bestCombo,phase:game.phase,
   scores:game.scores,peers:Object.entries(game.peerWeapons).map(([id,w])=>[id,w.ammo,+w.reload.toFixed(2)]),
   e:game.enemies.map(e=>[e.id,e.type,+e.x.toFixed(2),+e.z.toFixed(2),e.hp,e.maxHp,+e.age.toFixed(1),e.state,+e.portal.toFixed(2),+e.angle.toFixed(2),+e.stun.toFixed(2),+e.lastHit.toFixed(1)])};
@@ -547,6 +593,19 @@ function applySnapshot(data){
  game.elapsed=clamp(data.at,0,999999);game.lives=clamp(data.hp,0,100);game.wave=data.wave||1;
  game.score=Math.max(0,data.score||0);game.ammo=clamp(data.ammo||0,0,28);
  game.reload=data.reload||0;game.skillCooldown=data.special||0;game.kills=data.kills||0;
+ if(Array.isArray(data.bomb)&&data.bomb.length===5&&data.bomb.every(Number.isFinite)){
+  game.bombCharges=clamp(data.bomb[0],0,1);game.bombCooldown=clamp(data.bomb[1],0,32);
+  game.bombKillsAt=data.bomb[2];game.bombsUsed=data.bomb[3];game.bombHits=data.bomb[4];
+ }
+ game.bombs=Array.isArray(data.pendingBombs)?data.pendingBombs.slice(0,1).filter(a=>Array.isArray(a)&&a.length===5&&a.every(Number.isFinite))
+  .map(a=>({x:a[0],z:a[1],fromX:a[2],fromZ:a[3],fuse:a[4]})):[];
+ if(Array.isArray(data.bombBlast))for(const a of data.bombBlast){
+  if(Array.isArray(a)&&a.length===7&&a.every(Number.isFinite)&&Math.abs(a[0])<10&&Math.abs(a[1])<10
+   &&!game.fx.some(f=>f.type==='bombBlast'&&f.t===a[6])){
+   game.fx.push({type:'bombBlast',x:a[0],z:a[1],radius:a[2],hits:a[3],kills:a[4],points:a[5],t:a[6]});
+  }
+ }
+ game.fx=game.fx.filter(f=>game.elapsed-f.t<1.1);
  game.shots=data.shots||0;game.hits=data.hits||0;game.combo=data.combo||0;game.bestCombo=data.best||0;
  game.phase=data.phase||'ready';game.scores=data.scores&&typeof data.scores==='object'?data.scores:{};
  if(Array.isArray(data.peers)){
@@ -582,6 +641,11 @@ function onOnlineEvent(payload){
   G.fire(game,ray,peer);sendSnapshot(true);
  }else if(payload.kind==='reload'){G.reload(game,peer);sendSnapshot(true)}
  else if(payload.kind==='pulse'){G.pulse(game);sendSnapshot(true)}
+ else if(payload.kind==='bomb'){
+  const target=payload.target;
+  if(target&&Number.isFinite(target.x)&&Number.isFinite(target.z))G.throwBomb(game,target,peer);
+  sendSnapshot(true);
+ }
 }
 async function connectOnline(){
  if(onlineBusy||!(/^[A-F0-9]{8}$/.test(onlineRoomCode)))return;
@@ -632,7 +696,17 @@ function tickGame(dt,t){
  fireFlash=Math.max(0,fireFlash-dt);
  if(game.phase==='finished'){result();return}
  updateBattleFeedback(t);
- art.effect(game,fxShown);art.updateSparks(dt);
+ const blast=game.fx.findLast?.(f=>f.type==='bombBlast');
+ if(blast){
+  const key=blast.t+':'+blast.x+':'+blast.z;
+  if(key!==lastBlastSignal){
+   lastBlastSignal=key;audio('blast');vib([95,45,95]);
+   $('waveBanner').textContent='💥 BOMBA CAOS · '+blast.hits+' ALCANZADOS · '+blast.kills+' DESTRUIDOS';
+   waveUntil=performance.now()+1650;
+   updateHud();
+  }
+ }
+ art.effect(game,fxShown);art.drawBombs(game);art.updateSparks(dt);
  if(online?.isHost)sendSnapshot();
  if(game.lastDamage>0&&game.elapsed-game.lastDamage<.13){vib(38)}
  if(t-lastHud>110){lastHud=t;updateHud()}
@@ -789,6 +863,8 @@ $('resume').onclick=pause;
  $('fire').addEventListener('click',ev=>{ev.preventDefault();shoot()});
 $('reload').onclick=reload;
 $('special').onclick=special;
+$('bomb').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();bombCaos()});
+$('bomb').addEventListener('click',e=>{e.preventDefault();bombCaos()});
 $('sound').onclick=()=>{sounds=!sounds;$('sound').textContent=sounds?'🔊':'🔇'};
 $('close').onclick=()=>{xrSession?.end?.().catch(()=>{});location.href='https://modo-caos-eta.vercel.app/'};
 $('menu').onclick=()=>{xrSession?.end?.().catch(()=>{});location.href='https://modo-caos-eta.vercel.app/'};
