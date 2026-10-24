@@ -21,7 +21,7 @@ const server=http.createServer((req,res)=>{
  await page.addInitScript(()=>{
   const matrix=(x=0,y=0,z=0)=>new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,x,y,z,1]);
   window.__simPhone={x:0,y:1.54,z:0};
-  window.__simDrawCalls=0;window.__simEmulated=false;
+  window.__simDrawCalls=0;window.__simEmulated=false;window.__mockFrameActive=false;window.__strictXRFrame=false;
   const draw=WebGLRenderingContext.prototype.drawArrays;
   WebGLRenderingContext.prototype.drawArrays=function(...args){window.__simDrawCalls++;return draw.apply(this,args)};
   const draw2=WebGL2RenderingContext?.prototype.drawArrays;
@@ -34,6 +34,7 @@ const server=http.createServer((req,res)=>{
   const proj=new Float32Array([3.1,0,0,0,0,1.58,0,0,0,0,-1.003,-1,0,0,-.10,0]);
   const frame={
    getViewerPose:()=>{
+    if(window.__strictXRFrame&&!window.__mockFrameActive)throw new DOMException('XRFrame is no longer active','InvalidStateError');
     const p=window.__simPhone;
     return {emulatedPosition:!!window.__simEmulated,transform:{position:{...p},orientation:ori,matrix:matrix(p.x,p.y,p.z)},
      views:[{eye:'none',projectionMatrix:proj,transform:{position:{...p},orientation:ori,matrix:matrix(p.x,p.y,p.z),inverse:{matrix:matrix(-p.x,-p.y,-p.z)}}}]};
@@ -49,7 +50,7 @@ const server=http.createServer((req,res)=>{
    async requestHitTestSource(){return{cancel(){}}},
    addEventListener(ev,cb){(this.listeners[ev]||=[]).push(cb)},
    removeEventListener(){},
-   requestAnimationFrame(cb){return requestAnimationFrame(t=>cb(t,frame))},
+   requestAnimationFrame(cb){return requestAnimationFrame(t=>{window.__mockFrameActive=true;try{cb(t,frame)}finally{window.__mockFrameActive=false}})},
    cancelAnimationFrame(id){cancelAnimationFrame(id)},
    async end(){for(const fn of this.listeners.end||[])fn()}
   };
@@ -120,11 +121,21 @@ const server=http.createServer((req,res)=>{
   const distance=Math.hypot(e.x-eyeLocal.x,e.z-eyeLocal.z);
   assert(distance>=3.14,`robots must start 3m away from the PHYSICAL phone, distance=${distance}`);
  }
+ // Emulate ARCore's real XRFrame lifecycle: DOM pointerdown cannot read an expired
+ // XRFrame outside requestAnimationFrame. This previously silently left ammo at 28.
+ await page.evaluate(()=>window.__strictXRFrame=true);
+ await page.waitForTimeout(100);
+ const aimFresh=await page.evaluate(()=>__RodeadosDebug.aimAge);
+ assert(aimFresh!==null&&aimFresh<1000,'reticle must be sampled from active XRFrames');
  const ammoBefore=await page.evaluate(()=>__RodeadosDebug.game.ammo);
  await page.locator('#fire').tap();
  await page.waitForFunction(v=>__RodeadosDebug.game.ammo<v,ammoBefore,{timeout:2000});
  assert.equal(await page.evaluate(()=>__RodeadosDebug.game.shots),1,
   'Android XR touch dispatched pointerdown and fired exactly one bullet');
+ assert.equal(await page.evaluate(()=>__RodeadosDebug.shotStatus),'IMPACTO',
+  'shot must use the cached live XR ray, never silently abort due to stale XRFrame');
+ assert.equal(await page.evaluate(()=>__RodeadosDebug.aimFailures),0,
+  'no exception when sampling the active WebXR frame');
  assert((await page.evaluate(()=>__RodeadosDebug.game.hits))>=1,
   'center-screen reticle must really damage the first centered 3D robot');
  assert((await page.evaluate(()=>__RodeadosDebug.game.score))>0,
