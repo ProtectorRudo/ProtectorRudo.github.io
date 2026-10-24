@@ -1,12 +1,13 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
 import {createRodeadosArt} from './rodeados-art.js';
+import {createRodeadosArCompositor} from './rodeados-ar-compositor.js';
 /* RODEADOS 360 — Native WebXR first-person game runtime.
    Floor and bots are WORLD-LOCKED. Only the weapon is camera-attached.
    The selected 5x5 cell is a manual baseline; WebXR follows the phone, never feet.
    Shared AR origin is manual approximation, not real collaborative anchors. */
 const $=id=>document.getElementById(id),G=globalThis.RodeadosCore,UX=globalThis.RodeadosUX,clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),TAU=Math.PI*2;
 if(!G)throw Error('RODEADOS: falta el núcleo de juego');
-const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(69,innerWidth/innerHeight,.03,35);
+const scene=new THREE.Scene(),nativeXRScene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(69,innerWidth/innerHeight,.03,35);
 const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});
 renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local');
 renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;
@@ -17,7 +18,7 @@ const key=new THREE.DirectionalLight(0xfff0ce,2.2);key.position.set(-2.5,5,1.8);
 const cool=new THREE.PointLight(0x44fce0,1.7,7);cool.position.set(1,2,-1);scene.add(cool);
 if(!UX)throw Error('RODEADOS: falta el radar 360');
 const art=createRodeadosArt(THREE,scene,camera);
-let game=G.create({mode:$('mode').value}),stage='home',xrSession=null,space=null,hitSource=null,hit=null,anchor=null,anchorOffset=null;
+let game=G.create({mode:$('mode').value}),stage='home',xrSession=null,space=null,hitSource=null,hit=null,anchor=null,anchorOffset=null,arCompositor=null;
 let lastTime=0,lastHud=0,lastSnapshot=0,lastPing=0,lastRadar=0,anchorPending=false,feedbackLife=100,feedbackWave=0,feedbackCombo=0,waveUntil=0,damageUntil=0,crossUntil=0,comboUntil=0,basePos=new THREE.Vector3(),baseQ=new THREE.Quaternion(),yaw=0,shift=new THREE.Vector3(),floorSize=2.6;
 let fixedPos=new THREE.Vector3(),fixedQ=new THREE.Quaternion(),gridVisible=0,searchSince=0,lastVisibleAt=0,trackingValid=false,lastTracked=0,selected=-1,calStart=0,calSamples=[],calibrated=false,calOffset=new THREE.Vector3(),playerPos=new THREE.Vector3();
 let trackingLostSince=0,pausedByTracking=false,limitedTrackingSince=0,initialBotsSpawned=false;let countdown=0,pausedForCalibration=false,demo=false,aimYaw=0,aimPitch=0,fireFlash=0,toastDeadline=0,missStreak=0;
@@ -26,6 +27,12 @@ let online=null,onlineBusy=false,onlineRoomCode=new URLSearchParams(location.sea
 const pointer=new Map();let lastPinch=null;
 const THREEVec=(x,y,z)=>new THREE.Vector3(x,y,z);
 const raycaster=new THREE.Raycaster(),quaternionY=new THREE.Quaternion(),tempQ=new THREE.Quaternion(),tempPos=new THREE.Vector3(),tmpVec=new THREE.Vector3(),centerRay=new THREE.Vector3(),localDir=new THREE.Vector3();
+function openArWorld(){
+ if(arCompositor)return true;
+ try{arCompositor=createRodeadosArCompositor(THREE,$('arWorldOverlay'),1.2);visible('arWorldOverlay',true,'block');return true}
+ catch(e){console.error('RODEADOS: error compositor AR',e);notice('ERROR AL MOSTRAR ROBOTS · '+(e?.message||'WEBGL'),7);return false}
+}
+function closeArWorld(){arCompositor?.dispose();arCompositor=null;visible('arWorldOverlay',false)}
 function notice(text,sec=2){$('notice').textContent=text;toastDeadline=performance.now()+sec*1000}
 function hint(text){$('hint').textContent=text}
 function visible(id,show,style='flex'){$(id).style.display=show?style:'none'}
@@ -666,7 +673,15 @@ function animate(t,frame){
  tickGame(dt,t);
  if(stage==='playing')art.positionWeapon(xrSession?renderer.xr.getCamera(camera):camera,fireFlash>0);
  art.rifle.visible=stage==='playing';
- renderer.render(scene,camera);
+ // Blackzone's Android fix: the native WebXR scene is intentionally EMPTY.
+ // The world is drawn with tracked eye matrices into transparent DOM overlay.
+ if(xrSession){
+  renderer.render(nativeXRScene,camera);
+  if(arCompositor){
+   const ok=arCompositor.render(scene,renderer.xr.getCamera(camera));
+   if(!ok&&stage==='playing'){game.paused=true;pausedByTracking=true;setPhase('paused');notice('ERROR DE RENDER 3D · RECALIBRÁ',3)}
+  }
+ }else renderer.render(scene,camera);
  if(stage==='search'&&t-lastHud>600){lastHud=t;hint('🔎 APUNTÁ AL PISO Y MOVÉ LENTAMENTE LA CÁMARA')}
  performanceFrames++;performanceTotal+=dt;
  if(performanceFrames>=150&&performanceTotal>0){
@@ -763,7 +778,8 @@ async function startXR(){
   space=renderer.xr.getReferenceSpace()||await session.requestReferenceSpace('local');
   const viewerSpace=await session.requestReferenceSpace('viewer');
   hitSource=await session.requestHitTestSource({space:viewerSpace});
-  session.addEventListener('end',()=>{xrSession=null;anchor?.delete?.();anchor=null;hitSource?.cancel?.();hitSource=null;space=null;
+  if(!openArWorld())throw Error('No se pudo crear el renderizador transparente de Blackzone');
+  session.addEventListener('end',()=>{closeArWorld();xrSession=null;anchor?.delete?.();anchor=null;hitSource?.cancel?.();hitSource=null;space=null;
    setPhase('home');$('overlay').style.display='none';$('home').style.display='block';});
   setupGame(false);
   searchSince=performance.now();setPhase('search');hint('BUSCÁ EL PISO PARA COLOCAR LA ARENA');
@@ -771,7 +787,7 @@ async function startXR(){
  }catch(e){
   $('support').textContent='No se pudo iniciar AR: '+(e?.message||e)+'. Probá el entrenamiento 3D.';
   $('overlay').style.display='none';$('home').style.display='block';
-  if(xrSession)try{await xrSession.end()}catch(_){}
+  closeArWorld();if(xrSession)try{await xrSession.end()}catch(_){}
  }
 }
 $('startAR').addEventListener('click',startXR);
@@ -784,9 +800,9 @@ const old=Number(localStorage.getItem('mc-rodeados-record'))||0;
 $('record').textContent='🏆 TU RÉCORD: '+old.toLocaleString('es-AR')+' PUNTOS';
 const daily=globalThis.RodeadosProgress?.daily();
 if(daily)$('daily').textContent='🎯 DESAFÍO DEL DÍA: '+daily.text;
-window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);arCompositor?.resize(innerWidth,innerHeight)});
 globalThis.__RodeadosDebug={get stage(){return stage},get game(){return G.copy(game)},get floorSize(){return floorSize},
  get yaw(){return yaw},get editorShift(){return {x:shift.x,z:shift.z}},
  get floorTransform(){return {x:art.root.position.x,y:art.root.position.y,z:art.root.position.z,q:art.root.quaternion.toArray()}},
  get player(){return {x:game.player.x,z:game.player.z}},get enemyCount(){return game.enemies.length},get renderedRobots(){return art.robotCount()},get tracking(){return {pose:trackingValid,limited:limitedTrackingSince>0,pausedByTracking}},get initialBotsSpawned(){return initialBotsSpawned},
- get gridVisible(){return gridVisible},get selectedCell(){return selected},get calibrated(){return calibrated},get xr(){return !!xrSession},get online(){return online?.status||'off'}};
+ get compositorFrames(){return arCompositor?.frames??0},get compositorCalls(){return arCompositor?.drawCalls??0},get compositorError(){return arCompositor?.error??null},get gridVisible(){return gridVisible},get selectedCell(){return selected},get calibrated(){return calibrated},get xr(){return !!xrSession},get online(){return online?.status||'off'}};
