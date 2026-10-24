@@ -31,7 +31,7 @@
  function create(config={}){
   const mode=MODES[config.mode]?config.mode:'survival';
   const seed=(config.seed??Date.now())>>>0;
-  const g={seed,mode,phase:'ready',elapsed:0,wave:0,lives:100,score:0,shots:0,hits:0,kills:0,combo:0,bestCombo:0,ammo:28,mag:28,reload:0,skill:1,skillCooldown:0,spawnClock:0,enemyId:0,
+  const g={seed,mode,phase:'ready',elapsed:0,wave:0,lives:100,score:0,shots:0,hits:0,kills:0,combo:0,bestCombo:0,ammo:28,mag:28,reload:0,skill:1,skillCooldown:0,bombCharges:1,bombCooldown:0,bombKillsAt:0,bombsUsed:0,bombHits:0,bombs:[],spawnClock:0,enemyId:0,
    enemies:[],fx:[],scores:{},peerWeapons:Object.create(null),ownerId:config.ownerId||null,player:{x:0,z:0},arena:clamp(config.arena||2.6,1.8,4),
    duration:MODES[mode].duration,paused:false,finishedReason:'',announcedBoss:false,lastDamage:0};
   Object.defineProperty(g,'rand',{value:prng(seed),enumerable:false});
@@ -42,7 +42,7 @@
  }
  function begin(g){if(g.phase==='ready'){g.phase='playing';g.spawnClock=.5;}return g}
  function copy(g){
-  return {seed:g.seed,mode:g.mode,phase:g.phase,paused:g.paused,elapsed:g.elapsed,wave:g.wave,lives:g.lives,score:g.score,shots:g.shots,hits:g.hits,kills:g.kills,combo:g.combo,bestCombo:g.bestCombo,ammo:g.ammo,mag:g.mag,reload:g.reload,skill:g.skill,skillCooldown:g.skillCooldown,player:{...g.player},arena:g.arena,duration:Number.isFinite(g.duration)?g.duration:null,scores:{...g.scores},peerWeapons:{...g.peerWeapons},enemies:g.enemies.map(e=>({...e})),fx:g.fx.slice(-12),finishedReason:g.finishedReason};
+  return {seed:g.seed,mode:g.mode,phase:g.phase,paused:g.paused,elapsed:g.elapsed,wave:g.wave,lives:g.lives,score:g.score,shots:g.shots,hits:g.hits,kills:g.kills,combo:g.combo,bestCombo:g.bestCombo,ammo:g.ammo,mag:g.mag,reload:g.reload,skill:g.skill,skillCooldown:g.skillCooldown,bombCharges:g.bombCharges,bombCooldown:g.bombCooldown,bombKillsAt:g.bombKillsAt,bombsUsed:g.bombsUsed,bombHits:g.bombHits,bombs:g.bombs.map(b=>({...b})),player:{...g.player},arena:g.arena,duration:Number.isFinite(g.duration)?g.duration:null,scores:{...g.scores},peerWeapons:{...g.peerWeapons},enemies:g.enemies.map(e=>({...e})),fx:g.fx.slice(-12),finishedReason:g.finishedReason};
  }
  function pickKind(g){
   if(g.mode==='joker')return g.rand()<.68?'joker':g.rand()<.55?'fast':'flanker';
@@ -95,6 +95,14 @@
   if(g.reload>0){g.reload=Math.max(0,g.reload-dt);if(g.reload===0)g.ammo=g.mag;}
   for(const w of Object.values(g.peerWeapons)){if(w.reload>0){w.reload=Math.max(0,w.reload-dt);if(w.reload===0)w.ammo=g.mag;}}
   g.skillCooldown=Math.max(0,g.skillCooldown-dt);
+  if(g.bombCharges===0){
+   g.bombCooldown=Math.max(0,g.bombCooldown-dt);
+   if(g.bombCooldown<=0||g.kills-g.bombKillsAt>=10){g.bombCharges=1;g.bombCooldown=0;}
+  }
+  for(let i=g.bombs.length-1;i>=0;i--){
+   const b=g.bombs[i];b.fuse-=dt;
+   if(b.fuse<=0){g.bombs.splice(i,1);detonateBomb(g,b);}
+  }
   const P=g.player,half=Math.max(5.5,g.arena*.5+3.9);
   for(const e of g.enemies){
    e.age+=dt;e.lastHit=Math.max(0,e.lastHit-dt);e.stun=Math.max(0,e.stun-dt);
@@ -212,13 +220,54 @@
   if(!e.hp){g.kills++;g.fx.push({type:'destroy',id:e.id,x:e.x,y:1,z:e.z,t:g.elapsed});g.enemies=g.enemies.filter(x=>x.id!==e.id)}
   return {ok:true,hit:true,enemy:h.id,part:h.part,damage,points:pts,killed:e.hp===0};
  }
+ // Bomb Caos is a short-fuse AREA ability, not a firearm.
+ // Shared 1 charge, refreshed every 32s OR after 10 fresh robot kills.
+ const BOMB_RADIUS=2.5;
+ function throwBomb(g,target,shooter='vos'){
+  if(g.phase!=='playing'||g.paused)return {ok:false,reason:'bloqueado'};
+  if(g.bombCharges<=0)return {ok:false,reason:'recargando'};
+  if(!target||!Number.isFinite(target.x)||!Number.isFinite(target.z))return {ok:false,reason:'destino_invalido'};
+  if(Math.abs(target.x)>9||Math.abs(target.z)>9||Math.hypot(target.x-g.player.x,target.z-g.player.z)>6.5)
+   return {ok:false,reason:'fuera_de_alcance'};
+  g.bombCharges=0;g.bombCooldown=32;g.bombKillsAt=g.kills;g.bombsUsed++;
+  const bomb={x:target.x,z:target.z,fromX:g.player.x,fromZ:g.player.z,fuse:.48,owner:String(shooter||'vos'),radius:BOMB_RADIUS};
+  g.bombs.push(bomb);
+  g.fx.push({type:'bombThrow',x:bomb.x,z:bomb.z,t:g.elapsed});
+  return {ok:true,target:{x:bomb.x,z:bomb.z},radius:BOMB_RADIUS,fuse:bomb.fuse};
+ }
+ function detonateBomb(g,bomb){
+  const r=BOMB_RADIUS;
+  let hits=0,kills=0,points=0;
+  for(const e of g.enemies){
+   if(e.hp<=0||e.portal>.6)continue;
+   const dist=Math.hypot(e.x-bomb.x,e.z-bomb.z);
+   if(dist>r+e.radius)continue;
+   const tough=e.type==='tank'||e.type==='boss';
+   const damage=tough?2:3;
+   const oldHp=e.hp;
+   e.hp=Math.max(0,e.hp-damage);
+   e.lastHit=.55;e.stun=Math.max(e.stun,2.6);hits++;
+   const dead=e.hp===0;
+   if(dead){kills++;g.kills++;}
+   const earned=30+(dead?TYPES[e.type].value:0);
+   points+=earned;g.score+=earned;
+   const owner=String(bomb.owner||'vos');
+   g.scores[owner]=(g.scores[owner]||0)+earned;
+   g.fx.push({type:dead?'destroy':'hit',id:e.id,x:e.x,y:e.height*.68,z:e.z,t:g.elapsed,head:false});
+  }
+  g.bombHits+=hits;
+  g.enemies=g.enemies.filter(e=>e.hp>0);
+  g.fx.push({type:'bombBlast',x:bomb.x,y:.12,z:bomb.z,radius:r,hits,kills,points,t:g.elapsed});
+  // Kills by THIS bomb do not immediately regenerate another bomb.
+  g.bombKillsAt=g.kills;
+ }
  function pulse(g){
   if(g.phase!=='playing'||g.paused||g.skillCooldown>0)return false;
   g.skillCooldown=24;
   for(const e of g.enemies){e.stun=Math.max(e.stun,2.4);e.hp=Math.max(1,e.hp-1);}
   g.fx.push({type:'pulse',t:g.elapsed});return true;
  }
- const api={TYPES,MODES,create,reset,begin,advance,spawn,movePlayer,copy,rayHit,fire,reload,pulse,finish};
+ const api={TYPES,MODES,create,reset,begin,advance,spawn,movePlayer,copy,rayHit,fire,reload,pulse,throwBomb,finish,BOMB_RADIUS};
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
  root.RodeadosCore=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
