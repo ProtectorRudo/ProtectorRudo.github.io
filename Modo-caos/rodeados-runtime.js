@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createRodeadosArt} from './rodeados-art.js?v=10';
+import {createRodeadosArt} from './rodeados-art.js?v=11';
 import {createRodeadosArCompositor} from './rodeados-ar-compositor.js';
 /* RODEADOS 360 — Native WebXR first-person game runtime.
    Floor and bots are WORLD-LOCKED. Only the weapon is camera-attached.
@@ -533,7 +533,15 @@ const ray=activeRay();
  shotPulse.classList.remove('boom');void shotPulse.offsetWidth;shotPulse.classList.add('boom');
  updateHud();
  fireFlash=.09;crossUntil=r.hit?performance.now()+190:0;audio(r.hit?'hit':'shot');vib(r.hit?35:19);
- if(r.hit){missStreak=0;notice((r.part==='head'?'🎯 PUNTO DÉBIL · ':'⚡ IMPACTO · ')+'+'+r.points,0.55)}
+ if(r.hit){
+  missStreak=0;
+  if(r.part==='head'){
+   const streak=r.headshotStreak>=3?' · RACHA x'+r.headshotStreak:'';
+   notice((r.killed?'💥 HEADSHOT LETAL':'🎯 HEADSHOT')+streak+' · +'+r.points+' PTS',1.05);
+   $('waveBanner').textContent=r.killed?'🎯 ¡PRECISIÓN LETAL! +'+r.points:'🎯 HEADSHOT +'+r.points;
+   waveUntil=performance.now()+850;vib([24,12,35]);
+  }else notice('⚡ '+(r.part==='legs'?'PIERNAS':'CUERPO')+' · +'+r.points,0.6);
+ }
  else{missStreak++;if(missStreak>=3&&performance.now()-lastLaugh>2300){lastLaugh=performance.now();
   const joker=game.enemies.find(e=>e.type==='joker');
   if(joker){joker.taunt+=1;audio('laugh',{x:joker.x,z:joker.z});notice('🤖 EL BURLÓN SE ESTÁ RIENDO DE VOS',1.3)}
@@ -572,7 +580,11 @@ function snapshot(){
   bomb:[game.bombCharges,+game.bombCooldown.toFixed(2),game.bombKillsAt,game.bombsUsed,game.bombHits],
   pendingBombs:game.bombs.map(b=>[+b.x.toFixed(2),+b.z.toFixed(2),+b.fromX.toFixed(2),+b.fromZ.toFixed(2),+b.fuse.toFixed(2)]),
   bombBlast:game.fx.filter(f=>f.type==='bombBlast').slice(-1).map(f=>[f.x,f.z,f.radius,f.hits,f.kills,f.points,f.t]),
-  kills:game.kills,hits:game.hits,shots:game.shots,combo:game.combo,best:game.bestCombo,phase:game.phase,
+  kills:game.kills,hits:game.hits,shots:game.shots,combo:game.combo,best:game.bestCombo,
+  headshots:game.headshots,headshotStreak:game.headshotStreak,bestHeadshotStreak:game.bestHeadshotStreak,
+  floorDamage:game.floorDamage.map(v=>Math.round(v*100)/100),
+  floorHeat:game.floorHeat.map(t=>t<0?-100:Math.round(t*10)/10),
+  phase:game.phase,
   scores:game.scores,peers:Object.entries(game.peerWeapons).map(([id,w])=>[id,game.mag,0]),
   e:game.enemies.map(e=>[e.id,e.type,+e.x.toFixed(2),+e.z.toFixed(2),e.hp,e.maxHp,+e.age.toFixed(1),e.state,+e.portal.toFixed(2),+e.angle.toFixed(2),+e.stun.toFixed(2),+e.lastHit.toFixed(1)])};
 }
@@ -604,6 +616,13 @@ function applySnapshot(data){
  }
  game.fx=game.fx.filter(f=>game.elapsed-f.t<1.1);
  game.shots=data.shots||0;game.hits=data.hits||0;game.combo=data.combo||0;game.bestCombo=data.best||0;
+ game.headshots=Math.max(0,Math.floor(data.headshots||0));
+ game.headshotStreak=Math.max(0,Math.floor(data.headshotStreak||0));
+ game.bestHeadshotStreak=Math.max(0,Math.floor(data.bestHeadshotStreak||0));
+ if(Array.isArray(data.floorDamage)&&data.floorDamage.length===25&&data.floorDamage.every(validNumber))
+  game.floorDamage=data.floorDamage.map(v=>clamp(v,0,1));
+ if(Array.isArray(data.floorHeat)&&data.floorHeat.length===25&&data.floorHeat.every(validNumber))
+  game.floorHeat=data.floorHeat.map(v=>clamp(v,-100,game.elapsed));
  game.phase=data.phase||'ready';game.scores=data.scores&&typeof data.scores==='object'?data.scores:{};
  if(Array.isArray(data.peers)){
   game.peerWeapons=Object.create(null);
@@ -796,6 +815,7 @@ function animate(t,frame){
  // Sample the XR eye and reticle while XRFrame is active, after floor anchor updates.
  if(xrSession&&frame)cacheLiveAim(frame,t);
  tickGame(dt,t);
+ art.setFloorDamage(game,stage==='edit'||stage==='cell'||stage==='sample'||stage==='search');
  if(stage==='playing')art.positionWeapon(xrSession?renderer.xr.getCamera(camera):camera,fireFlash>0);
  art.rifle.visible=stage==='playing';
  // Blackzone's Android fix: the native WebXR scene is intentionally EMPTY.
@@ -936,5 +956,5 @@ window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camer
 globalThis.__RodeadosDebug={get stage(){return stage},get game(){return G.copy(game)},get floorSize(){return floorSize},
  get yaw(){return yaw},get editorShift(){return {x:shift.x,z:shift.z}},
  get floorTransform(){return {x:art.root.position.x,y:art.root.position.y,z:art.root.position.z,q:art.root.quaternion.toArray()}},
- get player(){return {x:game.player.x,z:game.player.z}},get enemyCount(){return game.enemies.length},get renderedRobots(){return art.robotCount()},get tracking(){return {pose:trackingValid,limited:limitedTrackingSince>0,pausedByTracking}},get initialBotsSpawned(){return initialBotsSpawned},get openingEyePosition(){return openingEyePosition},get lastShotAt(){return lastShot},get shotStatus(){return lastShotStatus},get aimAge(){return latestAim?performance.now()-lastAimStamp:null},get aim(){return latestAim},get aimFailures(){return aimFailures},
+ get player(){return {x:game.player.x,z:game.player.z}},get enemyCount(){return game.enemies.length},get renderedRobots(){return art.robotCount()},get floorRendering(){return art.getFloorStatus()},get tracking(){return {pose:trackingValid,limited:limitedTrackingSince>0,pausedByTracking}},get initialBotsSpawned(){return initialBotsSpawned},get openingEyePosition(){return openingEyePosition},get lastShotAt(){return lastShot},get shotStatus(){return lastShotStatus},get aimAge(){return latestAim?performance.now()-lastAimStamp:null},get aim(){return latestAim},get aimFailures(){return aimFailures},
  get compositorFrames(){return arCompositor?.frames??0},get compositorCalls(){return arCompositor?.drawCalls??0},get compositorError(){return arCompositor?.error??null},get gridVisible(){return gridVisible},get selectedCell(){return selected},get calibrated(){return calibrated},get xr(){return !!xrSession},get online(){return online?.status||'off'}};
