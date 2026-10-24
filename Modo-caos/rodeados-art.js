@@ -11,7 +11,7 @@ export function createRodeadosArt(THREE,scene,camera){
  const material=(col,metal=.4,rough=.36,emit=0)=>new THREE.MeshStandardMaterial({color:col,metalness:metal,roughness:rough,
    emissive:emit?col:0x000000,emissiveIntensity:emit});
  const M={
-  steel:material(0x43849c,.46,.31,.25),dark:material(0x07101d,.54,.55),edge:material(0x7993ad,.6,.30,.16),
+  steel:material(0x263645,.72,.48,.045),dark:material(0x07101d,.54,.55),edge:material(0x495968,.78,.31,.055),
   light:material(0xa7bcd1,.66,.24),gold:material(0xffbe4f,.63,.23,.46),
   cyan:material(0x46f8e9,.38,.23,1.4),red:material(0xff4766,.28,.3,1.3),
   violet:material(0xb47cfa,.45,.3,.8),black:material(0x050811,.1,.9),
@@ -60,7 +60,8 @@ export function createRodeadosArt(THREE,scene,camera){
  function createRobot(e){
   const kind=e.type,elite=kind==='boss'||kind==='tank',scale=e.height/1.75;
   const shell=kind==='boss'?M.red:kind==='tank'?M.edge:kind==='fast'?M.violet:kind==='flanker'?M.gold:kind==='joker'?M.orange:M.steel;
-  const glow=kind==='boss'?M.red:kind==='joker'?M.orange:M.cyan;
+  const glow=kind==='boss'?M.orange:M.red;
+  const visorMat=M.red.clone();visorMat.emissiveIntensity=1.85;
   const group=new THREE.Group();root.add(group);group.scale.setScalar(scale);
   const body=new THREE.Group();group.add(body);
   // Narrow athletic 1.75m humanoid silhouette. No giant 1m boxes or toy head.
@@ -79,14 +80,22 @@ export function createRodeadosArt(THREE,scene,camera){
   }
   sphere(body,M.black,[0,1.48,0],[.110,.10,.10]);
   // Compact helmet: eye line at 1.61m, physical height ~1.77m.
-  sphere(body,M.dark,[0,1.605,0],[.172,.185,.172]);
-  sphere(body,shell,[0,1.675,-.015],[.158,.09,.145]);
-  sphere(body,M.black,[0,1.59,.112],[.145,.075,.086]);
-  sphere(body,glow,[0,1.603,.177],[.126,.035,.023]);
-  part(body,M.light,[0,1.704,.057],[.155,.025,.077]);
+  const head=new THREE.Group();head.position.set(0,1.605,0);body.add(head);
+  sphere(head,M.dark,[0,-.000,0],[.172,.185,.172]);
+  sphere(head,shell,[0,.070,-.015],[.158,.09,.145]);
+  sphere(head,M.black,[0,-.015,.112],[.145,.075,.086]);
+  sphere(head,visorMat,[0,-.002,.177],[.126,.035,.023]);
+  part(head,M.edge,[0,.099,.057],[.155,.025,.077]);
+  // Threatening angular facial plates and a split crimson eye, no cute cartoon dots.
   for(const side of [-1,1]){
-   sphere(body,M.black,[side*.17,1.597,0],[.034,.087,.080]);
-   part(body,glow,[side*.134,1.58,.145],[.016,.034,.020]);
+   const plate=part(head,M.dark,[side*.112,-.075,.142],[.12,.055,.06]);
+   plate.rotation.z=side*.23;
+   const spike=part(head,M.edge,[side*.10,.152,-.082],[.050,.10,.09]);
+   spike.rotation.z=-side*.22;
+  }
+  for(const side of [-1,1]){
+   sphere(head,M.black,[side*.17,-.008,0],[.034,.087,.080]);
+   part(head,visorMat,[side*.134,-.025,.145],[.016,.034,.020]);
   }
   const arms=[],legs=[];
   for(const side of [-1,1]){
@@ -108,6 +117,15 @@ export function createRodeadosArt(THREE,scene,camera){
    part(leg,shell,[0,-.760,.181],[.17,.050,.176]);
   }
   sphere(body,M.edge,[0,.86,0],[.22,.13,.15]);
+  // Angular armored ribs / dorsal fins add an intimidating hunter silhouette
+  // using cheap shared geometry (no heavyweight imported meshes).
+  for(const side of [-1,1]){
+   const shoulder=part(body,M.edge,[side*.37,1.42,-.08],[.095,.16,.22]);
+   shoulder.rotation.z=-side*.21;
+   const dorsal=part(body,M.black,[side*.20,1.35,-.195],[.07,.35,.14]);
+   dorsal.rotation.z=side*.13;
+   part(body,visorMat,[side*.245,1.23,.269],[.035,.09,.012]);
+  }
   for(const side of [-1,1]){
    sphere(body,M.dark,[side*.21,1.01,-.09],[.070,.15,.13]);
    part(body,glow,[side*.192,1.06,-.231],[.030,.15,.017]);
@@ -128,7 +146,7 @@ export function createRodeadosArt(THREE,scene,camera){
   const hpBar=part(group,M.green,[0,1.96,.031],[.35,.025,.035]);
   const weakSpot=new THREE.Mesh(geo.sphere,glow);
   weakSpot.position.set(0,1.34,.285);weakSpot.scale.set(.05,.045,.022);group.add(weakSpot);
-  return {group,body,arms,legs,portal,shadow,hpBack,hpBar,weakSpot,shell};
+  return {group,body,head,arms,legs,portal,shadow,hpBack,hpBar,weakSpot,shell,visorMat,phaseOffset:e.id*2.17};
  }
  function drawEnemies(game){
   const active=new Set();
@@ -136,15 +154,34 @@ export function createRodeadosArt(THREE,scene,camera){
    active.add(e.id);
    let a=actors.get(e.id);if(!a){a=createRobot(e);actors.set(e.id,a)}
    a.group.position.set(e.x,0,e.z);a.group.rotation.y=e.angle;
-   const speed=e.state==='dash'?12:e.state==='flank'?8:e.state==='advance'?6:3;
-   const walk=e.state==='advance'||e.state==='dash'||e.state==='flank'||e.state==='dodge';
-   const swing=walk?Math.sin(e.age*speed)*.48:Math.sin(e.age*3)*.08;
-   a.legs[0].rotation.x=swing;a.legs[1].rotation.x=-swing;
-   a.arms[0].rotation.x=-swing*.66;a.arms[1].rotation.x=swing*.66;
-   a.body.position.y=walk?Math.abs(Math.sin(e.age*speed))*.018:Math.sin(e.age*2)*.012;
-   a.body.rotation.z=e.state==='taunt'?Math.sin(e.age*14)*.18:e.state==='stunned'?.19:0;
-   a.body.rotation.y=e.state==='taunt'?Math.sin(e.age*8)*.3:0;
-   if(e.type==='joker'&&e.state==='taunt'){a.arms[0].rotation.z=.9;a.arms[1].rotation.z=-.9}
+   // Stalking rhythm differs per robot; sharp attack strike, head twitch,
+   // staggered gait and ominous almost-still pauses. All visual offsets stay
+   // under 6cm so actual hitboxes / world-anchored positioning remain fair.
+   const t=e.age+a.phaseOffset;
+   const moving=['advance','dash','flank','dodge'].includes(e.state);
+   const attacking=e.state==='attack';
+   const taunting=e.state==='taunt';
+   const stunned=e.state==='stunned';
+   const speed=e.state==='dash'?12:e.state==='flank'?8:6.5;
+   const walk=moving?Math.sin(t*speed)*.39:Math.sin(t*1.8)*.04;
+   const windup=attacking?Math.max(0,Math.sin(t*4.3))**5:0;
+   const snap=attacking?Math.sin(t*11.5)*.22:0;
+   const hitRecoil=e.lastHit>0?Math.sin((.31-e.lastHit)*31)*.13:0;
+   a.legs[0].rotation.x=walk+(attacking?.13:0);
+   a.legs[1].rotation.x=-walk-(attacking?.07:0);
+   a.arms[0].rotation.x=-walk*.65-(attacking?.80+windup*.60:0);
+   a.arms[1].rotation.x=walk*.65-(attacking?.62+windup*.38:0);
+   a.arms[0].rotation.z=attacking?-.26:taunting?.65:0;
+   a.arms[1].rotation.z=attacking?.26:taunting?-.65:0;
+   a.body.position.y=moving?Math.abs(Math.sin(t*speed))*.026:attacking?-.035+windup*.025:0;
+   a.body.rotation.z=hitRecoil+(moving?Math.sin(t*2.9)*.052:taunting?Math.sin(t*9)*.15:stunned?.10:0)+snap*.35;
+   a.body.rotation.y=moving?Math.sin(t*2.0)*.12:attacking?Math.sin(t*3.1)*.17:taunting?Math.sin(t*8)*.20:0;
+   a.body.rotation.x=attacking?-.15-windup*.12:stunned?.08:0;
+   a.head.rotation.y=attacking?Math.sin(t*3.6)*.11:Math.sin(t*1.5)*.14;
+   a.head.rotation.x=attacking?-.17:Math.sin(t*2.3)*.045;
+   a.head.rotation.z=taunting?Math.sin(t*10)*.12:Math.sin(t*3.2)*.035;
+   const blink=attacking?2.25+windup*1.4:stunned?.62:1.25+.36*Math.sin(t*5.9);
+   a.visorMat.emissiveIntensity=blink;
    a.portal.visible=e.portal>0;a.portal.scale.setScalar(.35+(1-e.portal/.72)*.55);
    a.portal.material.opacity=e.portal/.72*.85;
    a.body.visible=e.portal<.62;
@@ -153,7 +190,7 @@ export function createRodeadosArt(THREE,scene,camera){
    a.hpBar.visible=e.hp<e.maxHp;a.hpBack.visible=a.hpBar.visible;
    a.weakSpot.material=e.lastHit>0?M.red:(e.type==='boss'?M.gold:M.cyan);
   }
-  for(const [id,a] of actors)if(!active.has(id)){root.remove(a.group);actors.delete(id)}
+  for(const [id,a] of actors)if(!active.has(id)){root.remove(a.group);a.visorMat.dispose();actors.delete(id)}
  }
  function addSpark(pos,color,size=.045,ttl=.42){
   const mesh=new THREE.Mesh(geo.sphere,new THREE.MeshBasicMaterial({color,transparent:true,opacity:1,depthWrite:false}));
@@ -273,7 +310,7 @@ export function createRodeadosArt(THREE,scene,camera){
   for(const tr of tracers){root.remove(tr.mesh);tr.mesh.material.dispose()}tracers.length=0;
   for(const w of waves){root.remove(w.mesh);w.mesh.material.dispose();w.mesh.geometry.dispose()}waves.length=0;
   recoil=0;
-  for(const a of actors.values())root.remove(a.group);actors.clear();
+  for(const a of actors.values()){root.remove(a.group);a.visorMat.dispose()}actors.clear();
   for(const s of sparks){root.remove(s.mesh);s.mesh.material.dispose()}sparks.length=0;
  }
  return {root,arena,rifle,tiles,setFloor,drawEnemies,positionWeapon,drawShot,drawBombs,effect,updateSparks,clear,robotCount:()=>actors.size};
