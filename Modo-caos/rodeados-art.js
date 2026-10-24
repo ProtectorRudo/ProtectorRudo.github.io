@@ -11,7 +11,7 @@ export function createRodeadosArt(THREE,scene,camera){
  const material=(col,metal=.4,rough=.36,emit=0)=>new THREE.MeshStandardMaterial({color:col,metalness:metal,roughness:rough,
    emissive:emit?col:0x000000,emissiveIntensity:emit});
  const M={
-  steel:material(0x142436,.74),dark:material(0x07101d,.54,.55),edge:material(0x475774,.73),
+  steel:material(0x43849c,.46,.31,.25),dark:material(0x07101d,.54,.55),edge:material(0x7993ad,.6,.30,.16),
   light:material(0xa7bcd1,.66,.24),gold:material(0xffbe4f,.63,.23,.46),
   cyan:material(0x46f8e9,.38,.23,1.4),red:material(0xff4766,.28,.3,1.3),
   violet:material(0xb47cfa,.45,.3,.8),black:material(0x050811,.1,.9),
@@ -170,5 +170,5 @@ export function createRodeadosArt(THREE,scene,camera){
   for(const a of actors.values())root.remove(a.group);actors.clear();
   for(const s of sparks){root.remove(s.mesh);s.mesh.material.dispose()}sparks.length=0;
  }
- return {root,arena,rifle,tiles,setFloor,drawEnemies,positionWeapon,effect,updateSparks,clear};
+ return {root,arena,rifle,tiles,setFloor,drawEnemies,positionWeapon,effect,updateSparks,clear,robotCount:()=>actors.size};
 }
