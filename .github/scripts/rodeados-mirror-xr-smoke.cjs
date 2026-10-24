@@ -162,6 +162,14 @@ const server=http.createServer((req,res)=>{
  assert(degraded.meshes>=2,'real 3D robot models persist with ARCore emulated positioning');
  assert(await page.locator('#radarWrap').isVisible(),'360 radar still visible in limited positioning');
  await page.evaluate(()=>window.__simEmulated=false);
+ assert(await page.locator('#bomb').isVisible(),'area bomb button visible inside WebXR DOM overlay');
+ await page.locator('#bomb').tap();
+ assert.equal(await page.evaluate(()=>__RodeadosDebug.game.bombsUsed),1,
+  'real Android pointerdown throws one world-space bomb, never two');
+ assert(await page.locator('#bomb').isDisabled(),'team bomb limited by cooldown');
+ await page.waitForFunction(()=>__RodeadosDebug.game.bombHits>0,null,{timeout:8500});
+ assert((await page.evaluate(()=>__RodeadosDebug.game.fx.some(f=>f.type==='bombBlast')))||
+  (await page.evaluate(()=>__RodeadosDebug.game.bombHits))>0,'spatial explosion damages nearby robots');
  assert.equal(errors.length,0,'no WebXR Javascript errors '+errors.join(' | '));
  console.log('PASS: simulated WebXR placement, gestures, 25 cells, noncenter calibration, real-pose movement and floor lock.');
  }catch(e){console.error(e.stack||e);process.exitCode=1}
