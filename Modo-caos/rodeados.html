@@ -34,6 +34,11 @@ h1 span{color:#7bffe1;display:block}
 .note{font-size:11px!important;color:#9bbec7!important}
 #world{position:absolute;inset:0;pointer-events:none}
 #world canvas{display:block;width:100%;height:100%}
+/* Blackzone V25 proven AR workaround: world renders inside native XR DOM overlay.
+   Camera passthrough remains WebXR native. Models are NOT screen-anchored. */
+#arWorldOverlay{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;display:none}
+#arWorldOverlay canvas{display:block;width:100%!important;height:100%!important;pointer-events:none;background:transparent!important}
+
 #overlay{display:none;position:fixed;inset:0;z-index:25;background:transparent;pointer-events:none;overflow:hidden}
 #overlay button,#overlay select{pointer-events:auto}
 #topHud{position:absolute;top:max(10px,env(safe-area-inset-top));left:8px;right:8px;display:none;gap:5px;justify-content:space-between}
@@ -110,6 +115,7 @@ h1 span{color:#7bffe1;display:block}
 </main></section>
 <div id="world"></div>
 <div id="overlay" aria-label="Juego RODEADOS 360">
+<div id="arWorldOverlay" aria-hidden="true"></div>
 <div id="topHud"><div class="stat">VIDA<strong id="life">100</strong></div><div class="stat">PUNTOS<strong id="points">0</strong></div><div class="stat">OLEADA<strong id="wave">1</strong></div><div class="stat">TIEMPO<strong id="clock">90</strong></div></div>
 <div id="healthTrack"><div id="healthFill"></div></div>
 <button id="close" class="secondary">← SALIR</button><button id="sound" class="secondary">🔊</button>
@@ -128,5 +134,5 @@ h1 span{color:#7bffe1;display:block}
 </div>
 <script src="/Modo-caos/rodeados-core.js?v=2"></script><script src="/Modo-caos/rodeados-ux.js?v=2"></script><script src="/Modo-caos/rodeados-progression.js?v=1"></script>
 <script src="/Modo-caos/mc-config.js?v=2"></script><script src="/Modo-caos/mc-rooms-client.js?v=2"></script>
-<script type="module" src="/Modo-caos/rodeados-runtime.js?v=4"></script>
+<script type="module" src="/Modo-caos/rodeados-runtime.js?v=5"></script>
 </body></html>
