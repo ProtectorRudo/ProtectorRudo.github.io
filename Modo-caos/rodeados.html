@@ -54,6 +54,7 @@ h1 span{color:#7bffe1;display:block}
 #reticle{position:absolute;left:50%;top:50%;width:32px;height:32px;transform:translate(-50%,-50%);border:2px solid #b6ffeb;border-radius:50%;box-shadow:0 0 15px #55ffe899;pointer-events:none;display:none}
 #reticle:before,#reticle:after{content:'';position:absolute;left:50%;top:-10px;width:1px;height:48px;background:#b8fff1;transform:translateX(-50%) scaleY(.8)}
 #reticle:after{transform:translateX(-50%) rotate(90deg)}
+#botGuide{position:absolute;left:12%;right:12%;top:21%;z-index:7;display:none;text-align:center;font-size:14px;font-weight:950;line-height:1.35;color:#fff6ce;text-shadow:0 2px 9px #001823,0 0 9px #011528;pointer-events:none;letter-spacing:.3px}
 #radarWrap{position:absolute;left:12px;bottom:max(128px,env(safe-area-inset-bottom) + 110px);width:108px;height:108px;border-radius:50%;display:none;background:radial-gradient(circle,#0c253b9c 0%,#041523ad 80%);border:1px solid #77dfde92;box-shadow:0 0 13px #69e9d728;pointer-events:none}
 #radarWrap canvas{display:block;width:108px;height:108px}
 #radarWrap span{position:absolute;left:0;right:0;bottom:-16px;text-align:center;font-size:9px;letter-spacing:2px;color:#b2ebe5;text-shadow:0 2px 4px #000}
@@ -115,7 +116,7 @@ h1 span{color:#7bffe1;display:block}
 <div id="hint">BUSCÁ EL PISO CON LA CÁMARA</div><div id="notice" role="status" aria-live="polite"></div>
 <div id="touch" aria-label="Mover, agrandar, achicar y girar pista"></div><div id="placementHelp" role="status"></div><button id="manualPlace">📍 COLOCAR PISTA MANUALMENTE</button>
 <svg id="cellsvg" xmlns="http://www.w3.org/2000/svg" aria-label="Elegí tu celda"></svg>
-<div id="reticle"></div><div id="hitCross">✕</div><div id="damageFlash"></div><div id="waveBanner" role="status"></div><div id="combo"></div><div id="radarWrap"><canvas id="radar" width="216" height="216" aria-label="Radar de robots a 360 grados"></canvas><span>360° · VOS</span></div><div id="warning"></div><div id="online"></div>
+<div id="reticle"></div><div id="botGuide" role="status"></div><div id="hitCross">✕</div><div id="damageFlash"></div><div id="waveBanner" role="status"></div><div id="combo"></div><div id="radarWrap"><canvas id="radar" width="216" height="216" aria-label="Radar de robots a 360 grados"></canvas><span>360° · VOS</span></div><div id="warning"></div><div id="online"></div>
 <div id="calControls"><button id="smaller" class="secondary">−</button><button id="size" class="secondary" disabled>2,60 m</button><button id="larger" class="secondary">+</button><button id="turn" class="secondary">↻ 15°</button><button id="refreshFloor">🎯 CENTRAR EN EL PISO</button><button id="lock" class="gold">📍 FIJAR PISTA</button></div>
 <div id="cellControls"><div id="calprogress"><i id="calfill"></i></div><button id="center" class="secondary">👣 ESTOY EN LA CELDA CENTRAL</button><button id="begin" class="gold" disabled>▶ ¡DEFENDERME!</button><button id="changeCell" class="secondary">📍 ELEGIR OTRA CELDA</button></div>
 <div id="actions"><button id="recal" class="secondary">🎯 RECALIBRAR</button><button id="resume" class="gold">▶ CONTINUAR</button></div>
@@ -127,5 +128,5 @@ h1 span{color:#7bffe1;display:block}
 </div>
 <script src="/Modo-caos/rodeados-core.js?v=2"></script><script src="/Modo-caos/rodeados-ux.js?v=2"></script><script src="/Modo-caos/rodeados-progression.js?v=1"></script>
 <script src="/Modo-caos/mc-config.js?v=2"></script><script src="/Modo-caos/mc-rooms-client.js?v=2"></script>
-<script type="module" src="/Modo-caos/rodeados-runtime.js?v=3"></script>
+<script type="module" src="/Modo-caos/rodeados-runtime.js?v=4"></script>
 </body></html>

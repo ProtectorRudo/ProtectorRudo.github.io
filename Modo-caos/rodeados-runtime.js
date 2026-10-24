@@ -20,7 +20,7 @@ const art=createRodeadosArt(THREE,scene,camera);
 let game=G.create({mode:$('mode').value}),stage='home',xrSession=null,space=null,hitSource=null,hit=null,anchor=null,anchorOffset=null;
 let lastTime=0,lastHud=0,lastSnapshot=0,lastPing=0,lastRadar=0,anchorPending=false,feedbackLife=100,feedbackWave=0,feedbackCombo=0,waveUntil=0,damageUntil=0,crossUntil=0,comboUntil=0,basePos=new THREE.Vector3(),baseQ=new THREE.Quaternion(),yaw=0,shift=new THREE.Vector3(),floorSize=2.6;
 let fixedPos=new THREE.Vector3(),fixedQ=new THREE.Quaternion(),gridVisible=0,searchSince=0,lastVisibleAt=0,trackingValid=false,lastTracked=0,selected=-1,calStart=0,calSamples=[],calibrated=false,calOffset=new THREE.Vector3(),playerPos=new THREE.Vector3();
-let countdown=0,pausedForCalibration=false,demo=false,aimYaw=0,aimPitch=0,fireFlash=0,toastDeadline=0,missStreak=0;
+let trackingLostSince=0,pausedByTracking=false,limitedTrackingSince=0,initialBotsSpawned=false;let countdown=0,pausedForCalibration=false,demo=false,aimYaw=0,aimPitch=0,fireFlash=0,toastDeadline=0,missStreak=0;
 let sounds=true,vibration=true,ctx=null,lastLaugh=0,fxShown=new Set(),lastHitRay=null,performanceFrames=0,performanceTotal=0;
 let online=null,onlineBusy=false,onlineRoomCode=new URLSearchParams(location.search).get('room')?.toUpperCase()||'',roomTimer=0;
 const pointer=new Map();let lastPinch=null;
@@ -62,7 +62,7 @@ function relativeAngle(p){
  return Math.atan2(forward.x*toward.z-forward.z*toward.x,forward.x*toward.x+forward.z*toward.z);
 }
 function drawRadar(t){
- if(t-lastRadar<160||stage!=='playing')return;
+ if(t-lastRadar<160||(stage!=='playing'&&stage!=='paused'))return;
  lastRadar=t;
  const canvas=$('radar'),ctx=canvas.getContext('2d');if(!ctx)return;
  const c=108,R=82;
@@ -107,6 +107,21 @@ function updateBattleFeedback(t){
  $('combo').style.opacity=game.combo>=2?'1':'0';
  drawRadar(t);
 }
+function showBotDirection(){
+ if(stage!=='playing'&&stage!=='paused')return;
+ const cue=$('botGuide'),targets=game.enemies.filter(e=>e.hp>0&&e.portal<.3);
+ if(!targets.length){cue.textContent='🤖 ROBOTS ENTRANDO A LA PISTA';return}
+ const target=targets.slice().sort((a,b)=>
+  Math.hypot(a.x-game.player.x,a.z-game.player.z)-Math.hypot(b.x-game.player.x,b.z-game.player.z))[0];
+ const angle=relativeAngle(target);
+ if(angle>.66)cue.textContent='🤖 ROBOTS A TU DERECHA → GIRÁ EL CELULAR';
+ else if(angle<-.66)cue.textContent='← 🤖 ROBOTS A TU IZQUIERDA · GIRÁ EL CELULAR';
+ else{
+  const cam=demo?camera:renderer.xr.getCamera(camera);
+  cam.getWorldDirection(centerRay);
+  cue.textContent=centerRay.y<-.42?'⬆ LEVANTÁ EL CELULAR · ROBOT AL FRENTE':'🎯 ROBOT FRENTE A VOS · ¡APUNTÁ Y DISPARÁ!';
+ }
+}
 function renderThreats(){
  const war=$('warning');war.replaceChildren();
  if(stage!=='playing'||!game.enemies.length){war.style.display='none';return}
@@ -125,7 +140,7 @@ function setupGame(keepCalibration=false){
  const keepArena=floorSize;
  game=G.create({mode:$('mode').value,arena:keepArena,ownerId:online?.isHost?online.id:null,seed:online?.seed??Math.floor(Math.random()*2**32)});
  if(!keepCalibration){selected=-1;calibrated=false;calSamples=[];calOffset.set(0,0,0)}
- fxShown.clear();fireFlash=0;missStreak=0;lastHud=0;feedbackLife=100;feedbackWave=0;feedbackCombo=0;waveUntil=damageUntil=crossUntil=comboUntil=0;
+ fxShown.clear();initialBotsSpawned=false;pausedByTracking=false;trackingLostSince=0;limitedTrackingSince=0;fireFlash=0;missStreak=0;lastHud=0;feedbackLife=100;feedbackWave=0;feedbackCombo=0;waveUntil=damageUntil=crossUntil=comboUntil=0;
  $('result').style.display='none';visible('healthTrack',false);visible('topHud',false);
  updateHud(true);
 }
@@ -172,7 +187,7 @@ function setPhase(next){
  visible('manualPlace',next==='search'&&performance.now()-searchSince>1800,'block');
  visible('placementHelp',false);visible('healthTrack',['ready','countdown','playing','paused'].includes(next),'block');
  visible('combat',next==='playing');visible('reticle',next==='playing'||next==='countdown','block');
- visible('radarWrap',next==='playing','block');
+ visible('radarWrap',next==='playing'||next==='paused','block');visible('botGuide',next==='playing'||next==='paused','block');
  visible('pause',next==='playing'||next==='paused','block');visible('ammo',next==='playing','block');
  visible('actions',next==='paused');$('pause').textContent=next==='paused'?'▶ CONTINUAR':'Ⅱ PAUSA';
  $('topHud').style.display=['ready','countdown','playing','paused','finished'].includes(next)?'flex':'none';
@@ -182,7 +197,9 @@ function setPhase(next){
 function cameraXRView(frame){
  if(!frame||!space)return null;
  const pose=frame.getViewerPose(space);
- return pose&&!pose.emulatedPosition?pose:null;
+ // Android ARCore may keep a valid orientation while position is EMULATED.
+ // Treat it as limited tracking instead of losing the entire camera/view.
+ return pose||null;
 }
 function getHit(frame){
  if(!hitSource||!space)return null;
@@ -348,7 +365,7 @@ function drawCells(frame){
  }else visible('placementHelp',false);
 }
 function updateMotion(t,pose){
- if(!calibrated||!pose){if(stage==='playing'&&t-lastTracked>1100){game.paused=true;notice('📡 SEGUIMIENTO PERDIDO · PAUSA',2);setPhase('paused')}return}
+ if(!calibrated||!pose||pose.emulatedPosition===true)return;
  const p=pose.transform.position;
  const local=art.root.worldToLocal(THREEVec(p.x,p.y,p.z));
  const next=THREEVec(local.x+calOffset.x,0,local.z+calOffset.z);
@@ -369,9 +386,39 @@ function countdownBegin(){
  if(online&&online.room?.status!=='playing'){notice('LA SALA AÚN NO COMENZÓ · INICIÁ DESDE SALAS',3);return}
  countdown=3;setPhase('countdown');audio('reload');hint('PREPARATE · ROBOTS EN 360°');
 }
+function spawnOpeningEnemies(){
+ if(initialBotsSpawned||online&&!online.isHost)return;
+ initialBotsSpawned=true;
+ // Begin with actual life-size Three.js robots directly in front of the player's
+ // physical phone instead of random 360-degree sectors. All subsequent waves
+ // spawn normally; robots stay in arena/world space, NOT fixed to the HUD.
+ const pose=xrSession&&lastXRFrame&&space?lastXRFrame.getViewerPose(space):null;
+ let direction=THREEVec(0,0,-1);
+ if(pose?.transform?.orientation){
+  const q=pose.transform.orientation;
+  direction.applyQuaternion(new THREE.Quaternion(q.x,q.y,q.z,q.w));
+ }else if(demo){camera.getWorldDirection(direction)}
+ direction.y=0;
+ if(direction.lengthSq()<.01)direction.set(0,0,-1);
+ direction.normalize().applyQuaternion(art.root.quaternion.clone().invert());
+ direction.y=0;direction.normalize();
+ const sideways=THREEVec(-direction.z,0,direction.x);
+ for(const lateral of [-.40,.40]){
+  const e=G.spawn(game,'basic');
+  if(!e)continue;
+  e.x=game.player.x+direction.x*1.65+sideways.x*lateral;
+  e.z=game.player.z+direction.z*1.65+sideways.z*lateral;
+  e.angle=Math.atan2(game.player.x-e.x,game.player.z-e.z);
+  e.portal=0;e.age=.72;e.stun=1.7;e.state='stunned';
+ }
+ art.drawEnemies(game);
+}
 function startRound(){
  G.begin(game);game.paused=false;
- setPhase('playing');hint('');notice('¡RODEADOS! · GIRÁ PARA DEFENDERTE',1.7);audio('danger');vib(70);
+ spawnOpeningEnemies();
+ trackingLostSince=0;lastTracked=performance.now();
+ setPhase('playing');hint('');
+ notice('🤖 ¡DOS ROBOTS ADELANTE! · MIRÁ AL FRENTE Y DISPARÁ',3);audio('danger');vib(70);
 }
 function pause(){
  if(stage==='playing'){game.paused=true;setPhase('paused');hint('PAUSA · RECALIBRAR O CONTINUAR')}
@@ -536,7 +583,7 @@ function tickGame(dt,t){
   lastPing=t;
   const closest=game.enemies.filter(e=>e.portal<.05).sort((a,b)=>Math.hypot(a.x-game.player.x,a.z-game.player.z)-Math.hypot(b.x-game.player.x,b.z-game.player.z))[0];
   if(closest&&Math.hypot(closest.x-game.player.x,closest.z-game.player.z)<1.25&&Math.abs(relativeAngle(closest))>2.2){audio('danger',closest);vib(15);}
-  renderThreats();
+  renderThreats();showBotDirection();
  }
 }
 function animate(t,frame){
@@ -588,7 +635,26 @@ function animate(t,frame){
    if(stage==='playing'||stage==='paused'||stage==='ready')updateMotion(t,pose);
    if(stage==='cell'||stage==='sample'||stage==='edit')drawCells(frame);
   }
-  if(!pose&&stage==='playing'&&t-lastTracked>1000){game.paused=true;setPhase('paused');notice('CÁMARA SIN SEGUIMIENTO · RECALIBRÁ',3)}
+  // Only a truly missing XR viewer pose blocks aiming. Position estimation alone
+  // may degrade while the headset retains orientation; don't false-pause combat.
+  if(stage==='playing'&&!pose){
+   trackingLostSince||=t;
+   if(t-trackingLostSince>4200){
+    pausedByTracking=true;game.paused=true;setPhase('paused');
+    hint('📡 SEGUIMIENTO TEMPORALMENTE PERDIDO · APUNTÁ A UNA SUPERFICIE ILUMINADA');
+    notice('CÁMARA SIN SEGUIMIENTO · MOVER LENTAMENTE',3);
+   }
+  }else if(pose){
+   trackingLostSince=0;
+   if(pose.emulatedPosition===true&&stage==='playing'){
+    limitedTrackingSince||=t;
+    if(t-limitedTrackingSince>2000&&t-lastPing>1000)notice('📡 POSICIÓN LIMITADA · GIRÁ DESPACIO PARA RECUPERARLA',1.5);
+   }else limitedTrackingSince=0;
+   if(pausedByTracking&&stage==='paused'){
+    pausedByTracking=false;game.paused=false;setPhase('playing');
+    notice('✅ SEGUIMIENTO RECUPERADO · ¡CONTINUÁ DEFENDIÉNDOTE!',2);
+   }
+  }
  }else if(demo){
   camera.rotation.order='YXZ';camera.rotation.set(aimPitch,aimYaw,0,'YXZ');
   camera.position.set(0,1.59,0);
@@ -596,6 +662,7 @@ function animate(t,frame){
  if(stage==='edit')art.setFloor(floorSize,true,selected);
  else art.setFloor(floorSize,stage==='cell'||stage==='sample',selected,calibrated?game.player:null);
  if(stage==='playing'||stage==='paused'||stage==='countdown'||stage==='ready')art.drawEnemies(game);
+ if(stage==='paused'){drawRadar(t);if(t-lastPing>1200){lastPing=t;showBotDirection();}}
  tickGame(dt,t);
  if(stage==='playing')art.positionWeapon(xrSession?renderer.xr.getCamera(camera):camera,fireFlash>0);
  art.rifle.visible=stage==='playing';
@@ -721,5 +788,5 @@ window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camer
 globalThis.__RodeadosDebug={get stage(){return stage},get game(){return G.copy(game)},get floorSize(){return floorSize},
  get yaw(){return yaw},get editorShift(){return {x:shift.x,z:shift.z}},
  get floorTransform(){return {x:art.root.position.x,y:art.root.position.y,z:art.root.position.z,q:art.root.quaternion.toArray()}},
- get player(){return {x:game.player.x,z:game.player.z}},
+ get player(){return {x:game.player.x,z:game.player.z}},get enemyCount(){return game.enemies.length},get renderedRobots(){return art.robotCount()},get tracking(){return {pose:trackingValid,limited:limitedTrackingSince>0,pausedByTracking}},get initialBotsSpawned(){return initialBotsSpawned},
  get gridVisible(){return gridVisible},get selectedCell(){return selected},get calibrated(){return calibrated},get xr(){return !!xrSession},get online(){return online?.status||'off'}};
