@@ -21,7 +21,7 @@ const art=createRodeadosArt(THREE,scene,camera);
 let game=G.create({mode:$('mode').value}),stage='home',xrSession=null,space=null,hitSource=null,hit=null,anchor=null,anchorOffset=null,arCompositor=null;
 let lastTime=0,lastHud=0,lastSnapshot=0,lastPing=0,lastRadar=0,anchorPending=false,feedbackLife=100,feedbackWave=0,feedbackCombo=0,waveUntil=0,damageUntil=0,crossUntil=0,comboUntil=0,basePos=new THREE.Vector3(),baseQ=new THREE.Quaternion(),yaw=0,shift=new THREE.Vector3(),floorSize=2.6;
 let fixedPos=new THREE.Vector3(),fixedQ=new THREE.Quaternion(),gridVisible=0,searchSince=0,lastVisibleAt=0,trackingValid=false,lastTracked=0,selected=-1,calStart=0,calSamples=[],calibrated=false,calOffset=new THREE.Vector3(),playerPos=new THREE.Vector3();
-let trackingLostSince=0,pausedByTracking=false,limitedTrackingSince=0,initialBotsSpawned=false;let countdown=0,pausedForCalibration=false,demo=false,aimYaw=0,aimPitch=0,fireFlash=0,toastDeadline=0,missStreak=0;
+let trackingLostSince=0,pausedByTracking=false,limitedTrackingSince=0,initialBotsSpawned=false,openingEyePosition=null;let countdown=0,pausedForCalibration=false,demo=false,aimYaw=0,aimPitch=0,fireFlash=0,toastDeadline=0,missStreak=0;
 let sounds=true,vibration=true,ctx=null,lastLaugh=0,fxShown=new Set(),lastHitRay=null,performanceFrames=0,performanceTotal=0;
 let online=null,onlineBusy=false,onlineRoomCode=new URLSearchParams(location.search).get('room')?.toUpperCase()||'',roomTimer=0;
 const pointer=new Map();let lastPinch=null;
@@ -147,7 +147,7 @@ function setupGame(keepCalibration=false){
  const keepArena=floorSize;
  game=G.create({mode:$('mode').value,arena:keepArena,ownerId:online?.isHost?online.id:null,seed:online?.seed??Math.floor(Math.random()*2**32)});
  if(!keepCalibration){selected=-1;calibrated=false;calSamples=[];calOffset.set(0,0,0)}
- fxShown.clear();initialBotsSpawned=false;pausedByTracking=false;trackingLostSince=0;limitedTrackingSince=0;fireFlash=0;missStreak=0;lastHud=0;feedbackLife=100;feedbackWave=0;feedbackCombo=0;waveUntil=damageUntil=crossUntil=comboUntil=0;
+ fxShown.clear();initialBotsSpawned=false;openingEyePosition=null;pausedByTracking=false;trackingLostSince=0;limitedTrackingSince=0;fireFlash=0;missStreak=0;lastHud=0;feedbackLife=100;feedbackWave=0;feedbackCombo=0;waveUntil=damageUntil=crossUntil=comboUntil=0;
  $('result').style.display='none';visible('healthTrack',false);visible('topHud',false);
  updateHud(true);
 }
@@ -409,15 +409,25 @@ function spawnOpeningEnemies(){
  if(direction.lengthSq()<.01)direction.set(0,0,-1);
  direction.normalize().applyQuaternion(art.root.quaternion.clone().invert());
  direction.y=0;direction.normalize();
+ // Calibration maps the LOGICAL player to their selected tile, but it can
+ // differ from the actual physical XR eye by 0.5–1m. Always stage opening
+ // robots from the real phone pose, so they appear centered at 3.15m, not
+ // 3.15m from a virtual cell that might be behind the camera.
+ art.root.updateMatrixWorld(true);
+ const eyeWorld=pose?.transform?.position?
+  THREEVec(pose.transform.position.x,pose.transform.position.y,pose.transform.position.z):
+  demo?camera.getWorldPosition(new THREE.Vector3()):art.root.localToWorld(THREEVec(game.player.x,1.55,game.player.z));
+ const eyeLocal=art.root.worldToLocal(eyeWorld);
+ openingEyePosition={x:eyeLocal.x,z:eyeLocal.z};
  const sideways=THREEVec(-direction.z,0,direction.x);
  // The first 1.75m humanoid is 3.15m ahead, not 1.65m inside the phone.
  // The second starts diagonal 3.65m away; neither follows the screen.
  for(const slot of [{distance:3.15,lateral:0},{distance:3.65,lateral:.86}]){
   const e=G.spawn(game,'basic');
   if(!e)continue;
-  e.x=game.player.x+direction.x*slot.distance+sideways.x*slot.lateral;
-  e.z=game.player.z+direction.z*slot.distance+sideways.z*slot.lateral;
-  e.angle=Math.atan2(game.player.x-e.x,game.player.z-e.z);
+  e.x=eyeLocal.x+direction.x*slot.distance+sideways.x*slot.lateral;
+  e.z=eyeLocal.z+direction.z*slot.distance+sideways.z*slot.lateral;
+  e.angle=Math.atan2(eyeLocal.x-e.x,eyeLocal.z-e.z);
   e.portal=0;e.age=.72;e.stun=2;e.state='stunned';
  }
  art.drawEnemies(game);
@@ -811,5 +821,5 @@ window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camer
 globalThis.__RodeadosDebug={get stage(){return stage},get game(){return G.copy(game)},get floorSize(){return floorSize},
  get yaw(){return yaw},get editorShift(){return {x:shift.x,z:shift.z}},
  get floorTransform(){return {x:art.root.position.x,y:art.root.position.y,z:art.root.position.z,q:art.root.quaternion.toArray()}},
- get player(){return {x:game.player.x,z:game.player.z}},get enemyCount(){return game.enemies.length},get renderedRobots(){return art.robotCount()},get tracking(){return {pose:trackingValid,limited:limitedTrackingSince>0,pausedByTracking}},get initialBotsSpawned(){return initialBotsSpawned},get lastShotAt(){return lastShot},
+ get player(){return {x:game.player.x,z:game.player.z}},get enemyCount(){return game.enemies.length},get renderedRobots(){return art.robotCount()},get tracking(){return {pose:trackingValid,limited:limitedTrackingSince>0,pausedByTracking}},get initialBotsSpawned(){return initialBotsSpawned},get openingEyePosition(){return openingEyePosition},get lastShotAt(){return lastShot},
  get compositorFrames(){return arCompositor?.frames??0},get compositorCalls(){return arCompositor?.drawCalls??0},get compositorError(){return arCompositor?.error??null},get gridVisible(){return gridVisible},get selectedCell(){return selected},get calibrated(){return calibrated},get xr(){return !!xrSession},get online(){return online?.status||'off'}};
