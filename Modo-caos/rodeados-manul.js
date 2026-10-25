@@ -281,7 +281,20 @@ export async function installManulPreview({THREE,art,notice}){
   get actorStatus(){return art.getRobotAdapterStatus()},
   get savedName(){return savedName},
   get facing(){return adapter?.summary.facingDegrees??0},
-  get countLimit(){return art.getRobotAdapterStatus().maxExternal}
+  get countLimit(){return art.getRobotAdapterStatus().maxExternal},
+  testVisualBudget(count=8){
+   // Isolated lab-only diagnostic. Render synthetic enemies for one frame;
+   // does not mutate G.core, AR transforms, snapshots or scores.
+   if(!adapter)return null;
+   art.setRobotAdapter(adapter);
+   const enemies=Array.from({length:Math.max(1,Math.min(16,Math.floor(count)))},(_,i)=>({
+    id:10000+i,type:'basic',height:1.75,
+    x:(i%4-1.5)*.8,z:-2.5-Math.floor(i/4)*.7,angle:0,age:1.5,
+    state:'advance',portal:0,lastHit:0,hp:2,maxHp:2
+   }));
+   art.drawEnemies({enemies});
+   return art.getRobotAdapterStatus();
+  }
  };
  // Reuse user-supplied file on future visits. This is local and opt-outable;
  // do not silently fetch model content from Sketchfab or use external storage.
