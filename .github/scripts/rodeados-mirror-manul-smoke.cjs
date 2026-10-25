@@ -78,8 +78,11 @@ const server=http.createServer((req,res)=>{
   // Verify the whole user-facing process with this compatible package.
   await page.locator('#manulFile').setInputFiles({name:'sketchfab-test-gltf.zip',
    mimeType:'application/zip',buffer:officialLikeZip()});
-  await page.waitForFunction(()=>__RodeadosManulPreview.status.includes('MODELO CARGADO')&&
-   __RodeadosManulPreview.status.includes('sketchfab-test-gltf.zip'),null,{timeout:16000});
+  await page.waitForFunction(()=>__RodeadosManulPreview.status.includes('sketchfab-test-gltf.zip')||
+   __RodeadosManulPreview.status.startsWith('⚠'),null,{timeout:16000});
+  assert((await page.evaluate(()=>__RodeadosManulPreview.status)).includes('MODELO CARGADO'),
+   'ZIP must load real nested scene.gltf+scene.bin: '+
+   (await page.evaluate(()=>__RodeadosManulPreview.status))+'; errors: '+errors.join(' | '));
   await page.locator('#startDemo').click();
   await page.waitForFunction(()=>__RodeadosDebug.renderedRobots>=2,null,{timeout:11000});
   const loaded=await page.evaluate(()=>({visual:__RodeadosManulPreview.actorStatus,phase:__RodeadosDebug.stage}));
