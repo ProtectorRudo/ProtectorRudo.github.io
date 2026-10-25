@@ -43,3 +43,4 @@ jobs:
           node .github/scripts/rodeados-mirror-xr-smoke.cjs
           node .github/scripts/rodeados-mirror-manul-smoke.cjs
           node .github/scripts/rodeados-mirror-auto-robots-smoke.cjs
+          RODEADOS_REAL_ASSET=1 node .github/scripts/rodeados-mirror-auto-robots-smoke.cjs
