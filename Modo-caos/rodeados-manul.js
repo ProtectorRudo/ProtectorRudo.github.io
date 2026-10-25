@@ -195,7 +195,7 @@ export async function installManulPreview({THREE,art,notice}){
    art.setRobotAdapter(adapter);
    release?.();release=output.dispose;
    const s=adapter.summary;
-   setStatus('✅ MODELO CARGADO · '+s.tris.toLocaleString('es-AR')+' triángulos · '+
+   setStatus('✅ MODELO CARGADO · '+file.name+' · '+s.tris.toLocaleString('es-AR')+' triángulos · '+
     s.bones+' huesos · '+s.clips.length+' clips · texturas optimizadas '+s.texturesReduced+
     '. Probalo en ENTRENAMIENTO 3D o AR.');
    notice('🤖 M.A.N.U.L. listo para probar · modelo CC BY: Andrei Milin',4);
