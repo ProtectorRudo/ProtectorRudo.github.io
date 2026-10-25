@@ -7,7 +7,7 @@
  * This is an armored tactical enemy, NOT Sketchfab M.A.N.U.L.
  */
 import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.181.0/examples/jsm/loaders/GLTFLoader.js';
-import {buildAdapter} from './rodeados-manul.js?v=14';
+import {buildAdapter} from './rodeados-manul.js?v=15';
 
 const PRIMARY=new URL('./assets/rodeados/tactical-android.glb',import.meta.url).href;
 // Version-pinned mirror for redundancy if project hosting has not synchronized yet.
@@ -78,11 +78,13 @@ export async function installAutoRobots({THREE,art,signal,debug}){
   if(signal?.aborted)return stats;
   const render=upgradeAndroidMaterials(THREE,gltf.scene);
   const adapter=buildAdapter(THREE,gltf,{label:'ANDROIDES TÁCTICOS',source});
-  adapter.setFacing(180);
+  // Rig front already aligns with +Z, exactly matching e.angle in the core.
+  // A forced 180° turn had displayed every enemy's back on Android.
+  adapter.setFacing(0);
   art.setRobotAdapter(adapter);
   stats.phase='active';stats.source=source;
   stats.meshes=render.meshes;stats.clips=gltf.animations.length;
-  stats.triangles=adapter.summary.tris;stats.reason='';
+  stats.triangles=adapter.summary.tris;stats.facingDegrees=adapter.summary.facingDegrees;stats.selectedClips=adapter.summary.selectedClips;stats.reason='';
   return stats;
  }catch(e){
   stats.phase='fallback';stats.reason=String(e?.message||e);

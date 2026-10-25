@@ -79,17 +79,27 @@ function optimizeTextures(scene,THREE){
  });
  return reduced;
 }
+// The bundled GLB has >30 animations. Naïve substring matching selected
+// "aim_crouch_idle" and "aim_crouch_walk" FIRST for every bot, making every
+// soldier crouch and appear to float. Only deliberate, upright named clips
+// can drive an actor. Never loop a crouch/prone/downed/jump/death clip.
+const UPRIGHT_CLIPS=Object.freeze({
+ idle:['idle','ready_idle','aim_idle'],
+ walk:['walk','ready_walk','aim_walk'],
+ dash:['run','sprint','ready_run','aim_run'],
+ attack:['melee','shoot','ready_idle'],
+ stun:['hit','idle'],
+ taunt:['ready_idle','idle']
+});
 function findAction(clips,kind){
- const rules={
-  idle:/idle|breath|stand|wait|rest/i,
-  walk:/walk|run|march|locomot|move|stride/i,
-  dash:/run|sprint|charge|dash|walk/i,
-  attack:/attack|punch|hit|swing|strike|melee|shoot/i,
-  stun:/stun|stagger|hurt|damage|impact/i,
-  taunt:/taunt|idle|wait/i
- };
- return clips.find(c=>rules[kind]?.test(c.name||''))||null;
+ const allowed=UPRIGHT_CLIPS[kind]||UPRIGHT_CLIPS.idle;
+ for(const name of allowed){
+  const clip=clips.find(c=>(c.name||'').toLowerCase().trim()===name);
+  if(clip)return clip;
+ }
+ return null; // Procedural skeleton movement instead of unsafe crouch clip.
 }
+
 export function buildAdapter(THREE,gltf,meta){
  const stats=countTriangles(gltf.scene);
  if(stats.meshes===0||!stats.tris||stats.tris>MAX_TRIANGLES)
@@ -101,11 +111,12 @@ export function buildAdapter(THREE,gltf,meta){
  const texturesReduced=optimizeTextures(gltf.scene,THREE);
  const clips=gltf.animations||[];
  const bonesPrepared=stats.bones>0;
+ const selectedClips=Object.fromEntries(['idle','walk','dash','attack','stun','taunt'].map(kind=>[kind,findAction(clips,kind)?.name||null]));
  let facingRadians=0;
  const adapter={
   name:typeof meta==='object'&&meta?.label?meta.label:'Robot M.A.N.U.L.',
   setFacing(degrees){facingRadians=THREE.MathUtils.degToRad(degrees);adapter.summary.facingDegrees=degrees},
-  summary:{...stats,clips:clips.map(a=>a.name),texturesReduced,source:typeof meta==='string'?meta:(meta?.source||'')},
+  summary:{...stats,clips:clips.map(a=>a.name),selectedClips,texturesReduced,source:typeof meta==='string'?meta:(meta?.source||'')},
   create({actor,enemy}){
    // SkeletonUtils keeps bone/mesh bindings intact when several robots appear.
    const source=cloneSkinned(gltf.scene);
@@ -140,7 +151,7 @@ export function buildAdapter(THREE,gltf,meta){
        e.state==='taunt'?'taunt':['advance','flank','dodge'].includes(e.state)?'walk':'idle';
      pivot.visible=e.portal<.62;
      const now=e.age,delta=Math.max(0,Math.min(.07,now-elapsed));elapsed=now;
-     const next=actions[state]||actions.walk||actions.idle||null;
+     const next=actions[state]||(state==='walk'||state==='dash'?actions.walk:null)||actions.idle||null;
      if(next!==active){
       active?.fadeOut(.12);
       next?.reset().fadeIn(.12).play();active=next;

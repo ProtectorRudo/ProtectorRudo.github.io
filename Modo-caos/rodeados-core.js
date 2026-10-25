@@ -7,12 +7,12 @@
  const TAU=Math.PI*2, PI=Math.PI;
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const TYPES={
-  basic:{hp:2,speed:.31,range:2.70,damage:5,value:100,radius:.31,height:1.75},
-  flanker:{hp:2,speed:.49,range:2.72,damage:5,value:170,radius:.29,height:1.70},
-  tank:{hp:6,speed:.21,range:2.80,damage:9,value:350,radius:.45,height:2.0},
-  fast:{hp:1,speed:.70,range:2.67,damage:5,value:190,radius:.26,height:1.60},
-  joker:{hp:3,speed:.43,range:2.72,damage:4,value:320,radius:.30,height:1.75},
-  boss:{hp:22,speed:.22,range:2.90,damage:12,value:1600,radius:.56,height:2.20}
+  basic:{hp:2,speed:.62,range:2.54,damage:5,value:100,radius:.31,height:1.75},
+  flanker:{hp:2,speed:.68,range:2.55,damage:5,value:170,radius:.29,height:1.70},
+  tank:{hp:6,speed:.36,range:2.60,damage:9,value:350,radius:.45,height:2.0},
+  fast:{hp:1,speed:.82,range:2.53,damage:5,value:190,radius:.26,height:1.60},
+  joker:{hp:3,speed:.61,range:2.55,damage:4,value:320,radius:.30,height:1.75},
+  boss:{hp:22,speed:.39,range:2.64,damage:12,value:1600,radius:.56,height:2.20}
  };
  const MODES={
   survival:{duration:90,label:'SUPERVIVENCIA 360'},

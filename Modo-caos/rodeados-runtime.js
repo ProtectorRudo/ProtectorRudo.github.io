@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createRodeadosArt} from './rodeados-art.js?v=14';
+import {createRodeadosArt} from './rodeados-art.js?v=15';
 import {createRodeadosArCompositor} from './rodeados-ar-compositor.js';
 /* RODEADOS 360 — Native WebXR first-person game runtime.
    Floor and bots are WORLD-LOCKED. Only the weapon is camera-attached.
@@ -26,7 +26,7 @@ const art=createRodeadosArt(THREE,scene,camera);
    .then(({installManulPreview})=>installManulPreview({THREE,art,notice:msg=>console.info(msg)}))
    .catch(err=>console.warn('Developer preview unavailable',err));
  }else{
-  import('./rodeados-robots-auto.js?v=14')
+  import('./rodeados-robots-auto.js?v=15')
    .then(({installAutoRobots})=>installAutoRobots({THREE,art,debug:true}))
    .catch(err=>console.warn('Rodeados tactical skin unavailable; safe original bot fallback',err));
  }
@@ -457,7 +457,7 @@ function spawnOpeningEnemies(){
   e.x=eyeLocal.x+direction.x*slot.distance+sideways.x*slot.lateral;
   e.z=eyeLocal.z+direction.z*slot.distance+sideways.z*slot.lateral;
   e.angle=Math.atan2(eyeLocal.x-e.x,eyeLocal.z-e.z);
-  e.portal=0;e.age=.72;e.stun=2;e.state='stunned';
+  e.portal=0;e.age=.72;e.stun=.65;e.state='stunned';
  }
  art.drawEnemies(game);
 }
