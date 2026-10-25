@@ -5,6 +5,10 @@ export function createRodeadosArt(THREE,scene,camera){
  const root=new THREE.Group();scene.add(root);
  const arena=new THREE.Group();root.add(arena);
  const actors=new Map(),sparks=[],tracers=[],waves=[];let recoil=0,bombProjectile=null,robotAdapter=null;
+ // A 21k-triangle M.A.N.U.L. clone per enemy becomes expensive in WebXR.
+ // Render four premium robots at once; all other enemies remain visible
+ // as fast procedural robots, preserving real enemy count, shots and scoring.
+ const MAX_EXTERNAL_ROBOTS=4;
  const geo={box:new THREE.BoxGeometry(1,1,1),sphere:new THREE.SphereGeometry(1,16,12),
   cyl:new THREE.CylinderGeometry(1,1,1,12),disc:new THREE.CircleGeometry(1,34),
   ring:new THREE.TorusGeometry(1,.026,7,40),cone:new THREE.ConeGeometry(1,1,9)};
@@ -217,7 +221,7 @@ export function createRodeadosArt(THREE,scene,camera){
   weakSpot.position.set(0,1.34,.285);weakSpot.scale.set(.05,.045,.022);group.add(weakSpot);
   const actor={group,body,head,arms,legs,portal,shadow,hpBack,hpBar,weakSpot,shell,visorMat,phaseOffset:e.id*2.17,external:null};
   // The imported model is purely visual; head/body/leg hitboxes stay in core.
-  if(robotAdapter){
+  if(robotAdapter&&[...actors.values()].filter(a=>a.external).length<MAX_EXTERNAL_ROBOTS){
    try{actor.external=robotAdapter.create({actor,enemy:e,THREE});
     actor.weakSpot.visible=false;
    }catch(err){console.warn('MANUL actor fallback',err);actor.external=null}
@@ -402,7 +406,7 @@ export function createRodeadosArt(THREE,scene,camera){
  function getRobotAdapterStatus(){
   let external=0,fallback=0;
   for(const a of actors.values())if(a.external)external++;else fallback++;
-  return {enabled:!!robotAdapter,name:robotAdapter?.name||'ORIGINAL',external,fallback,robots:actors.size};
+  return {enabled:!!robotAdapter,name:robotAdapter?.name||'ORIGINAL',external,fallback,robots:actors.size,maxExternal:MAX_EXTERNAL_ROBOTS};
  }
  return {root,arena,rifle,tiles,setFloor,setFloorDamage,setRobotAdapter,getRobotAdapterStatus,
   getFloorStatus:()=>({plates:warMat.length,visible:warMarks.filter(d=>d.visible).length,

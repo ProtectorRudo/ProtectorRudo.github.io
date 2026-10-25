@@ -7,6 +7,31 @@ import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.181.0/examples/js
 import {clone as cloneSkinned} from 'https://cdn.jsdelivr.net/npm/three@0.181.0/examples/jsm/utils/SkeletonUtils.js';
 const MAX_ARCHIVE=55*1024*1024,MAX_TRIANGLES=90000,MAX_TEXTURE=1024;
 const CDN_ZIP='https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm';
+const DB_NAME='modo-caos-manul-local',DB_STORE='model-files';
+function assetMemory(method,value){
+ // Browser-local IndexedDB: the 3D file never goes to a server and isn't stored
+ // in any GitHub repository or Supabase shared with other apps.
+ return new Promise((resolve,reject)=>{
+  if(!globalThis.indexedDB)return reject(Error('Almacenamiento local no disponible'));
+  const open=indexedDB.open(DB_NAME,1);
+  open.onupgradeneeded=()=>open.result.createObjectStore(DB_STORE);
+  open.onerror=()=>reject(open.error||Error('No se puede abrir IndexedDB'));
+  open.onsuccess=()=>{
+   const db=open.result;
+   let req;
+   try{
+    const tx=db.transaction(DB_STORE,method==='get'?'readonly':'readwrite');
+    const store=tx.objectStore(DB_STORE);
+    req=method==='put'?store.put(value,'current'):method==='delete'?store.delete('current'):store.get('current');
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error||Error('Error del almacenamiento'));
+    tx.oncomplete=()=>db.close();
+    tx.onabort=()=>db.close();
+   }catch(e){db.close();reject(e)}
+  };
+ });
+}
+
 const cleanPath=p=>{
  const result=[];
  for(const part of decodeURIComponent(String(p).replace(/\\/g,'/')).split('/')){
@@ -76,13 +101,15 @@ function buildAdapter(THREE,gltf,meta){
  const texturesReduced=optimizeTextures(gltf.scene,THREE);
  const clips=gltf.animations||[];
  const bonesPrepared=stats.bones>0;
+ let facingRadians=0;
  const adapter={
   name:'Robot M.A.N.U.L.',
+  setFacing(degrees){facingRadians=THREE.MathUtils.degToRad(degrees);adapter.summary.facingDegrees=degrees},
   summary:{...stats,clips:clips.map(a=>a.name),texturesReduced,source:meta||''},
   create({actor,enemy}){
    // SkeletonUtils keeps bone/mesh bindings intact when several robots appear.
    const source=cloneSkinned(gltf.scene);
-   const pivot=new THREE.Group(),height=1.75;
+   const pivot=new THREE.Group();
    pivot.position.set(-center.x*factor,-box.min.y*factor,-center.z*factor);
    source.scale.setScalar(factor);pivot.add(source);
    actor.group.add(pivot);
@@ -104,7 +131,7 @@ function buildAdapter(THREE,gltf,meta){
     if(axis)joints.push({bone:o,base:o.rotation.clone(),axis,
       side:/left|_l\b|\.l$|\bl\b/.test(name)?-1:/right|_r\b|\.r$|\br\b/.test(name)?1:0});
    });
-   let elapsed=enemy.age,previous='',active=null;
+   let elapsed=enemy.age,active=null;
    return {
     root:pivot,
     update(e){
@@ -129,9 +156,9 @@ function buildAdapter(THREE,gltf,meta){
         walking?Math.sin(t+j.side*Math.PI)*-.18:Math.sin(t*.24)*.035;
        if(j.axis==='head')j.bone.rotation.y+=Math.sin(t*.30)*.10;
       }
-      pivot.rotation.y=Math.sin(t*.18)*.035;
+      pivot.rotation.y=facingRadians+Math.sin(t*.18)*.035;
       pivot.rotation.x=state==='attack'?-.11:0;
-     }else{pivot.rotation.set(0,0,0)}
+     }else{pivot.rotation.set(0,facingRadians,0)}
      if(e.lastHit>0)pivot.rotation.z=Math.sin(now*38)*Math.min(.10,e.lastHit*.4);
      else pivot.rotation.z=0;
     },
@@ -145,6 +172,10 @@ async function loadZip(file,THREE){
  const {default:JSZip}=await import(CDN_ZIP);
  const zip=await JSZip.loadAsync(await file.arrayBuffer());
  const files=Object.values(zip.files).filter(o=>!o.dir&&!o.name.startsWith('__MACOSX/'));
+ // Reject ZIP bombs before materializing large images into memory.
+ if(files.length>160)throw Error('Archivo con demasiados recursos (máximo 160)');
+ const uncompressed=files.reduce((sum,x)=>sum+Math.max(0,Number(x._data?.uncompressedSize)||0),0);
+ if(uncompressed>140*1024*1024)throw Error('ZIP descomprimido demasiado grande para Android (máximo 140 MB)');
  const entry=files.find(o=>/(^|\/)scene\.gltf$/i.test(o.name))||
   files.find(o=>/\.gltf$/i.test(o.name))||files.find(o=>/\.glb$/i.test(o.name));
  if(!entry)throw Error('El ZIP oficial no contiene scene.gltf ni ningún modelo GLB');
@@ -152,7 +183,6 @@ async function loadZip(file,THREE){
  const base=entry.name.slice(0,entry.name.lastIndexOf('/')+1);
  try{
   for(const v of files){
-   if(files.length>160)throw Error('Archivo con demasiados recursos');
    if(v===entry)continue;
    const bytes=await v.async('blob');if(bytes.size>MAX_ARCHIVE)throw Error('Textura excesiva');
    const url=URL.createObjectURL(bytes);urls.set(cleanPath(v.name),url);
@@ -173,41 +203,107 @@ export async function installManulPreview({THREE,art,notice}){
  const fileInput=document.getElementById('manulFile');
  const status=document.getElementById('manulStatus');
  const fallback=document.getElementById('manulFallback');
- if(!fileInput||!status||!fallback)return;
+ const remember=document.getElementById('manulRemember');
+ const facing=document.getElementById('manulFacing');
+ if(!fileInput||!status||!fallback||!remember||!facing)return;
  const setStatus=(t,bad=false)=>{status.textContent=t;status.style.color=bad?'#ffb7aa':'#a9ffe6'};
- let release=null;
+ let release=null,adapter=null,loadVersion=0,savedName=null;
  async function parseLocal(file){
-  if(!file||file.size>MAX_ARCHIVE)throw Error('Máximo 55 MB');
+  if(!file||file.size>MAX_ARCHIVE||file.size<=0)throw Error('ZIP/GLB vacío o mayor de 55 MB');
   if(/\.zip$/i.test(file.name))return loadZip(file,THREE);
-  if(!/\.glb$/i.test(file.name))throw Error('Solo ZIP de Sketchfab o GLB');
+  if(!/\.glb$/i.test(file.name))throw Error('Solo ZIP glTF oficial o GLB');
   const bytes=await file.arrayBuffer();
   const gltf=await new Promise((resolve,reject)=>new GLTFLoader().parse(bytes,'',resolve,reject));
   return {gltf,dispose:()=>{}};
  }
- fileInput.addEventListener('change',async()=>{
-  const file=fileInput.files?.[0];if(!file)return;
-  setStatus('⏳ Verificando geometría, texturas y esqueleto…');
+ async function load(file,restored=false){
+  const ticket=++loadVersion;
+  setStatus(restored?'⏳ Restaurando modelo guardado en el celular…':
+    '⏳ Verificando geometría, texturas y esqueleto…');
+  let output=null;
   try{
-   const output=await parseLocal(file);
-   let adapter;
-   try{adapter=buildAdapter(THREE,output.gltf,file.name)}
-   catch(err){output.dispose();throw err}
-   art.setRobotAdapter(adapter);
-   release?.();release=output.dispose;
-   const s=adapter.summary;
-   setStatus('✅ MODELO CARGADO · '+file.name+' · '+s.tris.toLocaleString('es-AR')+' triángulos · '+
-    s.bones+' huesos · '+s.clips.length+' clips · texturas optimizadas '+s.texturesReduced+
-    '. Probalo en ENTRENAMIENTO 3D o AR.');
-   notice('🤖 M.A.N.U.L. listo para probar · modelo CC BY: Andrei Milin',4);
-  }catch(e){console.error('MANUL import error',e);setStatus('⚠ '+(e.message||'No se pudo leer el modelo'),true)}
+   output=await parseLocal(file);
+   if(ticket!==loadVersion){output.dispose();return}
+   const next=buildAdapter(THREE,output.gltf,file.name);
+   next.setFacing(Number(facing.value)||0);
+   if(ticket!==loadVersion){output.dispose();return}
+   art.setRobotAdapter(next);
+   const oldRelease=release;
+   adapter=next;release=output.dispose;oldRelease?.();
+   const s=next.summary;
+   const extra=s.skins===0?' · sin skin: verificá articulaciones':
+    s.clips.length===0?' · sin clips: movimiento procedural':' · animaciones del modelo detectadas';
+   setStatus('✅ MODELO CARGADO · '+file.name+' · '+s.tris.toLocaleString('es-AR')+
+    ' triángulos · '+s.bones+' huesos · '+s.clips.length+' clips · '+
+    s.texturesReduced+' texturas reducidas'+extra+'.');
+   notice('🤖 Modelo 3D cargado en laboratorio · origen original: Andrei Milin',4);
+   if(!restored){
+    if(remember.checked){
+     try{
+      await assetMemory('put',{name:file.name,type:file.type||'',blob:file,savedAt:Date.now()});
+      savedName=file.name;
+      if(ticket===loadVersion)setStatus(status.textContent+' Guardado solo en este dispositivo.');
+     }catch(err){
+      console.warn('No se pudo guardar en el celular',err);
+      if(ticket===loadVersion)setStatus(status.textContent+' No se pudo guardar para la próxima visita.');
+     }
+    }else{try{await assetMemory('delete');savedName=null}catch(_){}}
+   }
+  }catch(e){
+   if(output)output.dispose();
+   if(ticket!==loadVersion)return;
+   console.error('MANUL import error',e);
+   setStatus('⚠ '+(e.message||'No se pudo leer el modelo')+' · Seguí con los robots originales.',true);
+  }
+ }
+ fileInput.addEventListener('change',()=>{const file=fileInput.files?.[0];if(file)void load(file)});
+ facing.addEventListener('change',()=>{
+  if(!adapter)return;
+  const degrees=Number(facing.value)||0;
+  adapter.setFacing(degrees);
+  // Recreate the current visual actors with updated front direction; physics
+  // remains authoritative and no player position or AR anchor is reset.
+  art.setRobotAdapter(adapter);
+  setStatus('🔄 Frente del robot corregido a '+degrees+'°. Entrá al entrenamiento para comprobarlo.');
  });
  fallback.addEventListener('click',()=>{
-  art.setRobotAdapter(null);release?.();release=null;fileInput.value='';
-  setStatus('↩ Robots originales restaurados. El juego y la mira no cambiaron.');
+  ++loadVersion;
+  art.setRobotAdapter(null);
+  release?.();release=null;adapter=null;fileInput.value='';
+  savedName=null;
+  assetMemory('delete').catch(e=>console.warn('No se pudo borrar archivo local',e));
+  setStatus('↩ Robots originales restaurados y archivo guardado borrado. La mira sigue igual.');
  });
- setStatus('Esperando el ZIP original descargado desde Sketchfab. El juego normal sigue intacto.');
+ const baseStatus='Descargá el ZIP glTF desde Sketchfab e importalo una sola vez. El juego normal sigue intacto.';
+ setStatus(baseStatus);
  globalThis.__RodeadosManulPreview={
   get status(){return status.textContent},
-  get actorStatus(){return art.getRobotAdapterStatus()}
+  get actorStatus(){return art.getRobotAdapterStatus()},
+  get savedName(){return savedName},
+  get facing(){return adapter?.summary.facingDegrees??0},
+  get countLimit(){return art.getRobotAdapterStatus().maxExternal},
+  testVisualBudget(count=8){
+   // Isolated lab-only diagnostic. Render synthetic enemies for one frame;
+   // does not mutate G.core, AR transforms, snapshots or scores.
+   if(!adapter)return null;
+   art.setRobotAdapter(adapter);
+   const enemies=Array.from({length:Math.max(1,Math.min(16,Math.floor(count)))},(_,i)=>({
+    id:10000+i,type:'basic',height:1.75,
+    x:(i%4-1.5)*.8,z:-2.5-Math.floor(i/4)*.7,angle:0,age:1.5,
+    state:'advance',portal:0,lastHit:0,hp:2,maxHp:2
+   }));
+   art.drawEnemies({enemies});
+   return art.getRobotAdapterStatus();
+  }
  };
+ // Reuse user-supplied file on future visits. This is local and opt-outable;
+ // do not silently fetch model content from Sketchfab or use external storage.
+ try{
+  const cached=await assetMemory('get');
+  if(loadVersion===0&&cached?.blob&&cached?.name&&/\.(zip|glb)$/i.test(cached.name)){
+   remember.checked=true;savedName=cached.name;
+   const file=new File([cached.blob],cached.name,{type:cached.type||''});
+   await load(file,true);
+  }
+ }catch(e){console.warn('MANUL sin almacenamiento persistente',e);setStatus(baseStatus)}
 }
