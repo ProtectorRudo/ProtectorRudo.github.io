@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createRodeadosArt} from './rodeados-art.js?v=13';
+import {createRodeadosArt} from './rodeados-art.js?v=14';
 import {createRodeadosArCompositor} from './rodeados-ar-compositor.js';
 /* RODEADOS 360 — Native WebXR first-person game runtime.
    Floor and bots are WORLD-LOCKED. Only the weapon is camera-attached.
@@ -18,19 +18,19 @@ const key=new THREE.DirectionalLight(0xfff0ce,2.2);key.position.set(-2.5,5,1.8);
 const cool=new THREE.PointLight(0x44fce0,1.7,7);cool.position.set(1,2,-1);scene.add(cool);
 if(!UX)throw Error('RODEADOS: falta el radar 360');
 const art=createRodeadosArt(THREE,scene,camera);
- // Opt-in isolated M.A.N.U.L. importer: public RODEADOS V11 never loads any 3D
- // model or extra library. Nothing in the shooter/AR core depends on this test.
- if(location.pathname.endsWith('/rodeados-manul.html')){
-  import('./rodeados-manul.js?v=13')
-   .then(({installManulPreview})=>installManulPreview({
-    THREE,art,notice:(msg,sec)=>{const n=document.getElementById('manulStatus');if(n)n.title=msg;console.info('MANUL',msg)}
-   }))
-   .catch(e=>{
-    console.error('RODEADOS MANUL TEST LOADER',e);
-    const status=document.getElementById('manulStatus');
-    if(status)status.textContent='⚠ No se cargó la herramienta 3D: '+(e.message||'error');
-   });
+ // No file picker in the consumer experience. Internal asset QA remains
+ // opt-in at ?dev=1, never surfaced to players or linked in the main menu.
+ if(location.pathname.endsWith('/rodeados-manul.html')&&
+   new URLSearchParams(location.search).get('dev')==='1'){
+  import('./rodeados-manul.js?v=14')
+   .then(({installManulPreview})=>installManulPreview({THREE,art,notice:msg=>console.info(msg)}))
+   .catch(err=>console.warn('Developer preview unavailable',err));
+ }else{
+  import('./rodeados-robots-auto.js?v=14')
+   .then(({installAutoRobots})=>installAutoRobots({THREE,art,debug:true}))
+   .catch(err=>console.warn('Rodeados tactical skin unavailable; safe original bot fallback',err));
  }
+
 let game=G.create({mode:$('mode').value}),stage='home',xrSession=null,space=null,hitSource=null,hit=null,anchor=null,anchorOffset=null,arCompositor=null;
 let lastTime=0,lastHud=0,lastSnapshot=0,lastPing=0,lastRadar=0,anchorPending=false,feedbackLife=100,feedbackWave=0,feedbackCombo=0,waveUntil=0,damageUntil=0,crossUntil=0,comboUntil=0,basePos=new THREE.Vector3(),baseQ=new THREE.Quaternion(),yaw=0,shift=new THREE.Vector3(),floorSize=2.6;
 let fixedPos=new THREE.Vector3(),fixedQ=new THREE.Quaternion(),gridVisible=0,searchSince=0,lastVisibleAt=0,trackingValid=false,lastTracked=0,selected=-1,calStart=0,calSamples=[],calibrated=false,calOffset=new THREE.Vector3(),playerPos=new THREE.Vector3();

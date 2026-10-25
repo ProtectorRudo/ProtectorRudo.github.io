@@ -3,6 +3,12 @@
 <meta name="theme-color" content="#061320">
 <meta name="description" content="RODEADOS 360 — tu habitación, una invasión robótica de tamaño real. Vos sos el protagonista.">
 <title>LAB M.A.N.U.L. V13 · RODEADOS 360</title>
+<script>
+/* Never show internal import/ZIP controls to players. Old laboratory links
+   open the actual ready-to-play arcade game automatically. */
+if(new URLSearchParams(location.search).get('dev')!=='1')
+ location.replace('./rodeados.html?v=14');
+</script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js"}}</script>
 <style>
 :root{--mint:#78ffe0;--gold:#ffc96c;--navy:#061320}
@@ -170,5 +176,5 @@ h1 span{color:#7bffe1;display:block}
 </div>
 <script src="/Modo-caos/rodeados-core.js?v=11"></script><script src="/Modo-caos/rodeados-ux.js?v=2"></script><script src="/Modo-caos/rodeados-progression.js?v=1"></script>
 <script src="/Modo-caos/mc-config.js?v=2"></script><script src="/Modo-caos/mc-rooms-client.js?v=2"></script>
-<script type="module" src="/Modo-caos/rodeados-runtime.js?v=13"></script>
+<script type="module" src="/Modo-caos/rodeados-runtime.js?v=14"></script>
 </body></html>

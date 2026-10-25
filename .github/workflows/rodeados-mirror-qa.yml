@@ -6,6 +6,7 @@ on:
       - '.github/scripts/rodeados-mirror-smoke.cjs'
       - '.github/scripts/rodeados-mirror-xr-smoke.cjs'
       - '.github/scripts/rodeados-mirror-manul-smoke.cjs'
+      - '.github/scripts/rodeados-mirror-auto-robots-smoke.cjs'
       - '.github/workflows/rodeados-mirror-qa.yml'
 permissions:
   contents: read
@@ -23,6 +24,10 @@ jobs:
           node --check Modo-caos/rodeados-ux.js
           node --check Modo-caos/rodeados-runtime.js
           node --check Modo-caos/rodeados-manul.js
+          node --check Modo-caos/rodeados-robots-auto.js
+          grep -q 'rodeados-robots-auto.js' Modo-caos/rodeados-runtime.js
+          grep -q 'type="importmap"' Modo-caos/rodeados.html
+          ! grep -q 'id="manulFile"' Modo-caos/rodeados.html
           test -f Modo-caos/rodeados-manul.html
           grep -q 'CC BY' Modo-caos/rodeados-manul.html
           node --check Modo-caos/rodeados-ar-compositor.js
@@ -37,3 +42,5 @@ jobs:
           node .github/scripts/rodeados-mirror-smoke.cjs
           node .github/scripts/rodeados-mirror-xr-smoke.cjs
           node .github/scripts/rodeados-mirror-manul-smoke.cjs
+          node .github/scripts/rodeados-mirror-auto-robots-smoke.cjs
+          RODEADOS_REAL_ASSET=1 node .github/scripts/rodeados-mirror-auto-robots-smoke.cjs

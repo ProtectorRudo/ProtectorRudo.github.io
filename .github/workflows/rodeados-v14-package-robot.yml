@@ -1,0 +1,49 @@
+name: RODEADOS V14 — package free tactical android for Pages
+on:
+  pull_request:
+    paths:
+      - .github/workflows/rodeados-v14-package-robot.yml
+  push:
+    branches: [release/rodeados-v14-auto-premium-robots]
+    paths:
+      - .github/workflows/rodeados-v14-package-robot.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          ref: release/rodeados-v14-auto-premium-robots
+      - name: Fetch CC BY licensed rigged model and verify integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p Modo-caos/assets/rodeados
+          curl -fsSL --retry 3 --connect-timeout 15 --max-time 120 \
+            "https://raw.githubusercontent.com/cktang88/3d-fps/130ac2a5c856401ec36e7d35afcfefe40c5801f4/public/assets/models/characters/soldier.glb" \
+            -o Modo-caos/assets/rodeados/tactical-android.glb
+          python3 - <<'PY'
+          import os,struct
+          p='Modo-caos/assets/rodeados/tactical-android.glb'
+          b=open(p,'rb').read(12)
+          magic,version,length=struct.unpack('<III',b)
+          assert magic==0x46546c67 and version==2
+          assert length==os.stat(p).st_size
+          assert 100000<length<8000000
+          print('Verified public Pages GLB',length)
+          PY
+      - name: Commit validated 3D character to public app
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Modo-caos/assets/rodeados/tactical-android.glb
+          if ! git diff --cached --quiet; then
+            git commit -m "asset: self-host CC BY tactical android for RODEADOS V14"
+            git push origin HEAD:release/rodeados-v14-auto-premium-robots
+          fi
