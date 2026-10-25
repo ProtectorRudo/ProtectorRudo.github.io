@@ -165,6 +165,8 @@ const server=http.createServer((req,res)=>{
  const war=await page.evaluate(()=>__RodeadosDebug.floorRendering);
  assert.equal(war.darkPlates,25,'world-locked war floor is present in Android WebXR overlay');
  assert.equal(war.visible,25,'every armor plate appears in gameplay, not only in calibration');
+ assert.equal(war.textured,true,'mobile WebXR compositor renders PBR battlefield texture');
+ assert.equal(war.perimeterPosts,4,'low-profile corner rails stay anchored to the floor');
 
  await page.evaluate(()=>window.__simEmulated=false);
  assert(await page.locator('#bomb').isVisible(),'area bomb button visible inside WebXR DOM overlay');
