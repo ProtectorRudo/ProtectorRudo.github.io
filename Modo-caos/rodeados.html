@@ -3,6 +3,7 @@
 <meta name="theme-color" content="#061320">
 <meta name="description" content="RODEADOS 360 — tu habitación, una invasión robótica de tamaño real. Vos sos el protagonista.">
 <title>RODEADOS 360 · MODO CAOS</title>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js"}}</script>
 <style>
 :root{--mint:#78ffe0;--gold:#ffc96c;--navy:#061320}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -112,11 +113,12 @@ h1 span{color:#7bffe1;display:block}
 <h1>RODEADOS <span>360°</span></h1>
 <p>¡Están por todos lados! Calibrá el piso como en Color Bash y defendete de robots de tamaño humano. Girás vos, apuntás con el celular y disparás. El Burlón se ríe de tus fallos... hasta que le das una lección.</p>
 <div class="hero"><div class="botArt"></div><strong>ESCUCHALOS · GIRÁ · REACCIONÁ</strong></div>
-<div class="tags"><b>🎯 APUNTADO REAL</b><b>🤖 ROBOTS A ESCALA</b><b>📍 25 CELDAS</b><b>💣 BOMBA CAOS</b></div>
+<div class="tags"><b>🎯 APUNTADO REAL</b><b>🤖 ANDROIDES TÁCTICOS 3D</b><b>📍 25 CELDAS</b><b>💣 BOMBA CAOS</b></div>
 <label for="mode" class="eyebrow">ELEGÍ TU MISIÓN</label>
 <select id="mode"><option value="survival">SUPERVIVENCIA 360 · 90 s</option><option value="infinite">CAOS INFINITO · sin límite</option><option value="reflex">REFLEJOS EXTREMOS · 60 s</option><option value="joker">EL BURLÓN · 75 s</option><option value="boss">JEFE FINAL · 90 s</option></select>
 <div class="buttons"><button id="startAR" class="gold">📷 ENTRAR EN REALIDAD AUMENTADA</button><button id="startDemo" class="secondary">🎮 ENTRENAMIENTO 3D SIN CÁMARA</button>
 <a href="https://modo-caos-eta.vercel.app/salas.html?game=rodeados-360" class="secondary">👥 SALAS DE 2 A 4 · BETA ESPACIAL</a></div>
+<p class="note" style="font-size:10px">Arte táctico 3D adaptado de <a href="https://sketchfab.com/3d-models/free-military-soldier-rigged-e9c56308a67d4a3db62e914fafa4d198" target="_blank" rel="noopener noreferrer" style="color:#b6ecdb">BAMEN</a> (CC BY 4.0); versión original alternativa disponible si falla el archivo.</p>
 <p class="note" id="support">Antes de jugar despejá el piso y mantenete en un espacio seguro. La cámara rastrea el CELULAR, no los pies. AR necesita Chrome Android, ARCore y HTTPS. El modo 3D permite practicar sin cámara.</p>
 <p class="note" id="daily">DESAFÍO DIARIO: CARGANDO…</p><p class="note" id="record">RÉCORD PERSONAL: 0</p>
 </main></section>
@@ -141,5 +143,5 @@ h1 span{color:#7bffe1;display:block}
 </div>
 <script src="/Modo-caos/rodeados-core.js?v=11"></script><script src="/Modo-caos/rodeados-ux.js?v=2"></script><script src="/Modo-caos/rodeados-progression.js?v=1"></script>
 <script src="/Modo-caos/mc-config.js?v=2"></script><script src="/Modo-caos/mc-rooms-client.js?v=2"></script>
-<script type="module" src="/Modo-caos/rodeados-runtime.js?v=11"></script>
+<script type="module" src="/Modo-caos/rodeados-runtime.js?v=14"></script>
 </body></html>
