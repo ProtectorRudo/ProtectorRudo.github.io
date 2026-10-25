@@ -90,7 +90,7 @@ function findAction(clips,kind){
  };
  return clips.find(c=>rules[kind]?.test(c.name||''))||null;
 }
-function buildAdapter(THREE,gltf,meta){
+export function buildAdapter(THREE,gltf,meta){
  const stats=countTriangles(gltf.scene);
  if(stats.meshes===0||!stats.tris||stats.tris>MAX_TRIANGLES)
   throw Error('Modelo inválido o demasiado pesado ('+stats.tris+' triángulos; máximo '+MAX_TRIANGLES+')');
@@ -103,9 +103,9 @@ function buildAdapter(THREE,gltf,meta){
  const bonesPrepared=stats.bones>0;
  let facingRadians=0;
  const adapter={
-  name:'Robot M.A.N.U.L.',
+  name:typeof meta==='object'&&meta?.label?meta.label:'Robot M.A.N.U.L.',
   setFacing(degrees){facingRadians=THREE.MathUtils.degToRad(degrees);adapter.summary.facingDegrees=degrees},
-  summary:{...stats,clips:clips.map(a=>a.name),texturesReduced,source:meta||''},
+  summary:{...stats,clips:clips.map(a=>a.name),texturesReduced,source:typeof meta==='string'?meta:(meta?.source||'')},
   create({actor,enemy}){
    // SkeletonUtils keeps bone/mesh bindings intact when several robots appear.
    const source=cloneSkinned(gltf.scene);
