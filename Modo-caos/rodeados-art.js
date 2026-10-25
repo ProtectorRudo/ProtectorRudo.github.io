@@ -4,7 +4,7 @@
 export function createRodeadosArt(THREE,scene,camera){
  const root=new THREE.Group();scene.add(root);
  const arena=new THREE.Group();root.add(arena);
- const actors=new Map(),sparks=[],tracers=[],waves=[];let recoil=0,bombProjectile=null;
+ const actors=new Map(),sparks=[],tracers=[],waves=[];let recoil=0,bombProjectile=null,robotAdapter=null;
  const geo={box:new THREE.BoxGeometry(1,1,1),sphere:new THREE.SphereGeometry(1,16,12),
   cyl:new THREE.CylinderGeometry(1,1,1,12),disc:new THREE.CircleGeometry(1,34),
   ring:new THREE.TorusGeometry(1,.026,7,40),cone:new THREE.ConeGeometry(1,1,9)};
@@ -215,7 +215,14 @@ export function createRodeadosArt(THREE,scene,camera){
   const hpBar=part(group,M.green,[0,1.96,.031],[.35,.025,.035]);
   const weakSpot=new THREE.Mesh(geo.sphere,glow);
   weakSpot.position.set(0,1.34,.285);weakSpot.scale.set(.05,.045,.022);group.add(weakSpot);
-  return {group,body,head,arms,legs,portal,shadow,hpBack,hpBar,weakSpot,shell,visorMat,phaseOffset:e.id*2.17};
+  const actor={group,body,head,arms,legs,portal,shadow,hpBack,hpBar,weakSpot,shell,visorMat,phaseOffset:e.id*2.17,external:null};
+  // The imported model is purely visual; head/body/leg hitboxes stay in core.
+  if(robotAdapter){
+   try{actor.external=robotAdapter.create({actor,enemy:e,THREE});
+    actor.weakSpot.visible=false;
+   }catch(err){console.warn('MANUL actor fallback',err);actor.external=null}
+  }
+  return actor;
  }
  function drawEnemies(game){
   const active=new Set();
@@ -253,13 +260,14 @@ export function createRodeadosArt(THREE,scene,camera){
    a.visorMat.emissiveIntensity=blink;
    a.portal.visible=e.portal>0;a.portal.scale.setScalar(.35+(1-e.portal/.72)*.55);
    a.portal.material.opacity=e.portal/.72*.85;
-   a.body.visible=e.portal<.62;
+   a.body.visible=e.portal<.62&&!a.external;
+   if(a.external){try{a.external.update(e)}catch(err){console.warn('MANUL animation fallback',err);a.external.dispose();a.external=null;a.weakSpot.visible=true}}
    const health=Math.max(0,e.hp/e.maxHp);
    a.hpBar.scale.x=.35*health;a.hpBar.position.x=-.175*(1-health);
    a.hpBar.visible=e.hp<e.maxHp;a.hpBack.visible=a.hpBar.visible;
    a.weakSpot.material=e.lastHit>0?M.red:(e.type==='boss'?M.gold:M.cyan);
   }
-  for(const [id,a] of actors)if(!active.has(id)){root.remove(a.group);a.visorMat.dispose();actors.delete(id)}
+  for(const [id,a] of actors)if(!active.has(id)){a.external?.dispose();root.remove(a.group);a.visorMat.dispose();actors.delete(id)}
  }
  function addSpark(pos,color,size=.045,ttl=.42){
   const mesh=new THREE.Mesh(geo.sphere,new THREE.MeshBasicMaterial({color,transparent:true,opacity:1,depthWrite:false}));
@@ -379,10 +387,24 @@ export function createRodeadosArt(THREE,scene,camera){
   for(const tr of tracers){root.remove(tr.mesh);tr.mesh.material.dispose()}tracers.length=0;
   for(const w of waves){root.remove(w.mesh);w.mesh.material.dispose();w.mesh.geometry.dispose()}waves.length=0;
   recoil=0;
-  for(const a of actors.values()){root.remove(a.group);a.visorMat.dispose()}actors.clear();
+  for(const a of actors.values()){a.external?.dispose();root.remove(a.group);a.visorMat.dispose()}actors.clear();
   for(const s of sparks){root.remove(s.mesh);s.mesh.material.dispose()}sparks.length=0;
  }
- return {root,arena,rifle,tiles,setFloor,setFloorDamage,
+ function setRobotAdapter(adapter){
+  if(adapter!==null&&typeof adapter?.create!=='function')throw Error('RODEADOS: adaptador visual inválido');
+  for(const a of actors.values()){
+   a.external?.dispose();
+   root.remove(a.group);
+   a.visorMat.dispose();
+  }
+  actors.clear();robotAdapter=adapter;
+ }
+ function getRobotAdapterStatus(){
+  let external=0,fallback=0;
+  for(const a of actors.values())if(a.external)external++;else fallback++;
+  return {enabled:!!robotAdapter,name:robotAdapter?.name||'ORIGINAL',external,fallback,robots:actors.size};
+ }
+ return {root,arena,rifle,tiles,setFloor,setFloorDamage,setRobotAdapter,getRobotAdapterStatus,
   getFloorStatus:()=>({plates:warMat.length,visible:warMarks.filter(d=>d.visible).length,
    darkPlates:tiles.filter((t,i)=>t.material===warMat[i]).length,
    scars:warBurn.map(b=>b.material.opacity),cracks:warCracks.map(c=>c.material.opacity)}),
