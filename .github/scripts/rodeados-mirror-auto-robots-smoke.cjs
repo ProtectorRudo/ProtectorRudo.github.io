@@ -26,7 +26,7 @@ function testGlb(){
  return Buffer.concat([header,j,jpad,b,bin]);
 }
 const real=process.env.RODEADOS_REAL_ASSET==='1';
-const glb=real?fs.readFileSync(path.resolve(root,'assets/rodeados/tactical-android.glb')):testGlb();
+const glb=real?fs.readFileSync(path.resolve(root,'Modo-caos/assets/rodeados/tactical-android.glb')):testGlb();
 const server=http.createServer((req,res)=>{
  let url;try{url=decodeURIComponent(new URL(req.url,'http://localhost').pathname)}catch{return res.writeHead(400).end()}
  if(url==='/assets/rodeados/tactical-android.glb'){
