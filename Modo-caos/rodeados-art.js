@@ -31,8 +31,70 @@ export function createRodeadosArt(THREE,scene,camera){
  };
  const part=(parent,mat,p,s)=>box(parent,mat,p,s);
  const sphere=(parent,mat,p,s)=>box(parent,mat,p,s,geo.sphere);
- const warMat=Array.from({length:25},()=>new THREE.MeshBasicMaterial({
-  color:0x24343b,transparent:true,opacity:.76,depthTest:false,depthWrite:false,toneMapped:false,side:THREE.DoubleSide
+ // Baked military armor plate: one procedural PBR atlas shared by all 25
+ // world-locked cells. The AR camera remains visible through the floor.
+ // Canvas art gives scratches, vents, warning paint, rivets and bevels without
+ // requesting external textures or downloading textures at run time.
+ function battlePlateTexture(){
+  const canvas=document.createElement('canvas');canvas.width=384;canvas.height=384;
+  const c=canvas.getContext('2d');if(!c)return null;
+  let seed=0xCA05;
+  const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
+  c.fillStyle='#25323a';c.fillRect(0,0,384,384);
+  const back=c.createLinearGradient(0,0,384,384);
+  back.addColorStop(0,'#45535a');back.addColorStop(.3,'#2e3c43');
+  back.addColorStop(.78,'#17232b');back.addColorStop(1,'#485254');
+  c.fillStyle=back;c.fillRect(11,11,362,362);
+  c.fillStyle='#101b23';c.fillRect(20,20,344,344);
+  const steel=c.createLinearGradient(25,20,360,370);
+  steel.addColorStop(0,'#45515a');steel.addColorStop(.2,'#34404a');
+  steel.addColorStop(.55,'#242e36');steel.addColorStop(1,'#485258');
+  c.fillStyle=steel;c.fillRect(25,25,334,334);
+  // Three-tier physical bevel gives the tile some depth without geometry.
+  c.strokeStyle='#77888d';c.lineWidth=3;c.strokeRect(25,25,334,334);
+  c.strokeStyle='#0c141b';c.lineWidth=6;c.strokeRect(33,33,318,318);
+  c.strokeStyle='#54636a';c.lineWidth=2;c.strokeRect(40,40,304,304);
+  c.strokeStyle='rgba(166,186,190,.11)';c.lineWidth=1;
+  for(let i=0;i<680;i++){
+   const x=35+random()*315,y=35+random()*315,len=3+random()*44;
+   c.beginPath();c.moveTo(x,y);c.lineTo(x+len,y-(random()-.5)*3);c.stroke();
+  }
+  for(let i=0;i<950;i++){
+   const lum=random()>.56?'rgba(182,209,209,.10)':'rgba(5,12,18,.24)';
+   c.fillStyle=lum;c.fillRect(40+random()*303,40+random()*303,1+random()*4,1+random()*2);
+  }
+  // Raised central anti-slip tread/maintenance hatch.
+  c.fillStyle='rgba(11,19,26,.77)';c.fillRect(79,145,226,94);
+  c.strokeStyle='#667b82';c.lineWidth=3;c.strokeRect(79,145,226,94);
+  c.strokeStyle='rgba(171,203,204,.25)';c.lineWidth=2;
+  for(let i=0;i<11;i++){
+   const x=90+i*19;
+   c.beginPath();c.moveTo(x,163);c.lineTo(x-8,187);c.lineTo(x+2,212);c.stroke();
+  }
+  // Orange danger chevrons look like stencilled industrial paint, not a toy.
+  c.save();c.translate(192,192);c.rotate(-Math.PI/4);
+  for(const y of [-190,190]){
+   c.fillStyle='rgba(197,121,49,.86)';c.fillRect(-68,y-8,136,16);
+   c.fillStyle='rgba(13,22,28,.85)';
+   for(let k=-3;k<4;k++)c.fillRect(k*26,y-8,11,16);
+  }
+  c.restore();
+  // Chunky dark bolt sockets with nickel highlights.
+  for(const [x,y] of [[57,57],[327,57],[57,327],[327,327]]){
+   c.fillStyle='#0c151c';c.beginPath();c.arc(x,y,10,0,Math.PI*2);c.fill();
+   c.strokeStyle='#8c9b9b';c.lineWidth=2;c.beginPath();c.arc(x,y,7,0,Math.PI*2);c.stroke();
+   c.strokeStyle='#1a2930';c.lineWidth=3;c.beginPath();c.moveTo(x-4,y+3);c.lineTo(x+4,y-3);c.stroke();
+  }
+  const map=new THREE.CanvasTexture(canvas);
+  map.colorSpace=THREE.SRGBColorSpace;
+  map.anisotropy=2;return map;
+ }
+ const warTexture=battlePlateTexture();
+ const warMat=Array.from({length:25},(_,i)=>new THREE.MeshStandardMaterial({
+  color:new THREE.Color(0xa3b4bd).multiplyScalar(.89+(i%7)*.018),
+  map:warTexture,metalness:.67,roughness:.73,side:THREE.DoubleSide,
+  transparent:true,opacity:.86,depthTest:false,depthWrite:false,
+  emissive:0x0b151a,emissiveIntensity:.13
  }));
  const warMarks=[],warBurn=[],warCracks=[],warScars=[];
  // One lightweight procedural scorch texture shared across all 25 cells.
@@ -76,6 +138,90 @@ export function createRodeadosArt(THREE,scene,camera){
    color:0xff7d45,transparent:true,opacity:0,depthTest:false,depthWrite:false,toneMapped:false}));
   deck.add(crack);warCracks.push(crack);warScars.push(-1);
  }
+ // Physical-looking rubble and electrical rim are scenery only. Instancing
+ // replaces 75 separate draw calls and never changes actual walkable surfaces.
+ let battlefieldSide=2.6,battlefieldEditing=true,activeDebris=0,lastDebrisKey='';
+ const fragmentCount=75;
+ const fragments=new THREE.InstancedMesh(new THREE.TetrahedronGeometry(1,0),
+  new THREE.MeshStandardMaterial({color:0x56616a,metalness:.45,roughness:.95,
+   transparent:true,opacity:.92,depthTest:false,depthWrite:false}),fragmentCount);
+ fragments.frustumCulled=false;
+ arena.add(fragments);
+ const fragmentDummy=new THREE.Object3D();
+ const battlefieldCorners=new THREE.Group();arena.add(battlefieldCorners);
+ const nodeMat=new THREE.MeshStandardMaterial({color:0x29363e,metalness:.73,roughness:.53,
+  transparent:true,opacity:.82,depthWrite:false,depthTest:false});
+ const beaconMat=new THREE.MeshBasicMaterial({color:0xd37945,transparent:true,opacity:.63,
+  depthWrite:false,depthTest:false,toneMapped:false});
+ for(const x of [-1,1])for(const z of [-1,1]){
+  const g=new THREE.Group();battlefieldCorners.add(g);g.userData={x,z};
+  const rim=new THREE.Mesh(geo.box,nodeMat);rim.scale.set(.13,.035,.13);rim.position.y=.044;g.add(rim);
+  const signal=new THREE.Mesh(geo.box,beaconMat);signal.scale.set(.10,.010,.10);signal.position.y=.076;g.add(signal);
+  const knee=new THREE.Mesh(geo.box,nodeMat);knee.scale.set(.075,.12,.075);knee.position.y=.11;g.add(knee);
+  const eye=new THREE.Mesh(geo.box,beaconMat);eye.scale.set(.047,.018,.047);eye.position.y=.177;g.add(eye);
+ }
+ function updateBattlefieldRubble(game,editing=false){
+  const key=battlefieldSide+':'+editing+':'+
+   (game?.floorDamage||[]).map(v=>Math.round(v*8)/8).join(',');
+  if(key===lastDebrisKey)return;
+  lastDebrisKey=key;
+  let visible=0;
+  const side=(battlefieldSide||2.6)/5;
+  for(let i=0;i<25;i++){
+   const damage=editing?0:game?.floorDamage?.[i]||0;
+   for(let j=0;j<3;j++){
+    const n=i*3+j;
+    const seed=i*11+j*17;
+    const level=j===0?.31:j===1?.55:.78;
+    if(damage>level){
+     fragmentDummy.position.set(
+      (i%5-2)*side+((seed*19)%23-11)/30*side,
+      .08+j*.019,
+      (Math.floor(i/5)-2)*side+((seed*7)%19-9)/27*side);
+     fragmentDummy.rotation.set(.23+j*.2,seed*1.15,.25+j*.18);
+     const scale=side*(.10+.09*damage);
+     fragmentDummy.scale.set(scale,scale*(.65+j*.18),scale*.67);
+     visible++;
+    }else{
+     fragmentDummy.position.set(0,-20,0);
+     fragmentDummy.scale.setScalar(0);
+    }
+    fragmentDummy.updateMatrix();
+    fragments.setMatrixAt(n,fragmentDummy.matrix);
+   }
+  }
+  activeDebris=visible;
+  fragments.instanceMatrix.needsUpdate=true;
+  fragments.visible=visible>0&&!editing;
+  battlefieldCorners.visible=!editing;
+ }
+ // Ambient ash is restrained: one GPU points draw call, not CPU-heavy sprites.
+ const ashCount=26,ashGeometry=new THREE.BufferGeometry();
+ const ashPositions=new Float32Array(ashCount*3),ashBase=new Float32Array(ashCount*3);
+ for(let i=0;i<ashCount;i++){
+  const theta=(i*.61803398875%1)*Math.PI*2;
+  const radial=Math.sqrt(((i*71+17)%101)/101)*.42;
+  ashBase[i*3]=Math.cos(theta)*radial;
+  ashBase[i*3+1]=.12+((i*13)%17)/40;
+  ashBase[i*3+2]=Math.sin(theta)*radial;
+ }
+ ashGeometry.setAttribute('position',new THREE.BufferAttribute(ashPositions,3));
+ const ashCloud=new THREE.Points(ashGeometry,new THREE.PointsMaterial({
+  size:.029,color:0xd2b9a2,transparent:true,opacity:.3,sizeAttenuation:true,
+  depthTest:false,depthWrite:false}));
+ ashCloud.frustumCulled=false;arena.add(ashCloud);
+ let ashTime=0;
+ function updateBattlefieldAtmosphere(dt){
+  if(battlefieldEditing){ashCloud.visible=false;return}
+  ashCloud.visible=true;ashTime+=dt;
+  for(let i=0;i<ashCount;i++){
+   const k=i*3,base=ashBase;
+   ashPositions[k]=(base[k]+Math.sin(ashTime*.18+i*3)*.08)*battlefieldSide;
+   ashPositions[k+1]=.09+((base[k+1]+ashTime*(.07+i%3*.025))%1.2);
+   ashPositions[k+2]=(base[k+2]+Math.cos(ashTime*.15+i*2)*.06)*battlefieldSide;
+  }
+  ashGeometry.attributes.position.needsUpdate=true;
+ }
  const tiles=[],edges=[];
  const center=new THREE.Group();arena.add(center);
  for(let i=0;i<25;i++){
@@ -90,6 +236,12 @@ export function createRodeadosArt(THREE,scene,camera){
  part(compass,M.gold,[0,.06,-.14],[.048,.04,.18]);box(compass,M.cyan,[0,.07,-.27],[.07,.04,.08],geo.cone).rotation.x=-Math.PI/2;
  function setFloor(side,editing,cell=-1,player=null){
   const pitch=side/5,half=side*.5;
+  battlefieldSide=side;battlefieldEditing=editing;
+  // These four low metal marker posts are grounded on the four AR arena
+  // corners. Never place a wall in front of the physical user's camera.
+  for(const group of battlefieldCorners.children){
+   group.position.set(group.userData.x*(half-.08),0,group.userData.z*(half-.08));
+  }
   for(let i=0;i<25;i++){const tile=tiles[i];
    tile.position.set((i%5-2)*pitch,.024,(Math.floor(i/5)-2)*pitch);
    tile.scale.set(pitch*.95,.012,pitch*.95);
@@ -104,6 +256,8 @@ export function createRodeadosArt(THREE,scene,camera){
   }
   // Cyan outline in editing; restrained amber hazard boundary in live combat.
   borderMat.color.set(editing?0x65ffe6:0xd8a55c);
+  battlefieldCorners.visible=!editing;
+  ashCloud.visible=!editing;
   compass.position.set(0,.015,-half+.35);compass.visible=editing;
   center.visible=editing||!!player;
   if(player)center.position.set(player.x,.025,player.z);
@@ -112,6 +266,9 @@ export function createRodeadosArt(THREE,scene,camera){
   marker.material.color.set(editing?0xeaffcb:0x63ffc2);
  }
  function setFloorDamage(game,editing=false){
+  battlefieldEditing=editing;
+  battlefieldCorners.visible=!editing;
+  ashCloud.visible=!editing;
   for(let i=0;i<25;i++){
    const damage=game?.floorDamage?.[i]||0;
    const time=game?.floorHeat?.[i]??-100;
@@ -119,8 +276,11 @@ export function createRodeadosArt(THREE,scene,camera){
    const step=Math.round(damage*25)/25,heat=Math.round(hot*6)/6;
    if(warScars[i]!==step+heat*10){
     warScars[i]=step+heat*10;
-    warMat[i].color.set(0x24343b).lerp(new THREE.Color(0x271514),Math.min(1,step*.95));
-    warMat[i].opacity=.76+step*.12;
+    warMat[i].color.setRGB(.84+(i%7)*.014,.91,.94)
+      .lerp(new THREE.Color(0x8b6255),Math.min(1,step*.70));
+    warMat[i].opacity=.84+step*.08;
+    warMat[i].emissive.set(step>.3?0x622418:0x101e24);
+    warMat[i].emissiveIntensity=.12+step*.16+heat*.35;
     warBurn[i].material.opacity=Math.min(.7,damage*.58+heat*.12);
     warCracks[i].material.opacity=damage<.16?0:Math.min(.92,(damage-.16)*1.30+heat*.17);
     const border=warMarks[i].children[0].material;
@@ -129,6 +289,9 @@ export function createRodeadosArt(THREE,scene,camera){
    }
    warMarks[i].visible=!editing;
   }
+  // Armor debris remains local to original damaged tiles, even after
+  // camera moves or AR anchor recalibration. Zero extra physics/collision.
+  updateBattlefieldRubble(game,editing);
  }
  function createRobot(e){
   const kind=e.type,elite=kind==='boss'||kind==='tank',scale=e.height/1.75;
@@ -339,11 +502,23 @@ export function createRodeadosArt(THREE,scene,camera){
   for(const f of game.fx||[]){const key=f.type+':'+f.id+':'+f.t;if(lastFx.has(key))continue;
    lastFx.add(key);
    if(f.type==='hit'||f.type==='destroy'){for(let i=0;i<(f.type==='destroy'?18:7);i++)addSpark({x:f.x,y:f.y,z:f.z},i%3?0xffd870:0x4cffee,.02+Math.random()*.04,.3+Math.random()*.45)}
+   if(f.type==='bombBlast')blastWave(f.x,f.z,f.radius||2.5);
+   if(f.type==='damage'&&Number.isFinite(f.x)&&Number.isFinite(f.z)){
+    // Low shockwave follows the collision tile, not the phone or camera.
+    const mat=new THREE.MeshBasicMaterial({color:0xff6c34,transparent:true,opacity:.82,
+     depthTest:false,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(1,.035,6,30),mat);
+    ring.position.set(f.x,.095,f.z);ring.rotation.x=-Math.PI/2;ring.scale.setScalar(.12);
+    root.add(ring);waves.push({mesh:ring,maxRadius:.78,age:0,ttl:.4,delay:0});
+    for(let i=0;i<11;i++)addSpark({x:f.x,y:.12,z:f.z},
+     i%3?0xf7a354:0xb4c3ba,.018+Math.random()*.025,.2+Math.random()*.3);
+   }
    if(f.type==='pulse')for(let i=0;i<18;i++){const a=Math.PI*2*i/18;addSpark({x:game.player.x+Math.sin(a)*.6,y:.15,z:game.player.z+Math.cos(a)*.6},0x6fffd8,.06,.5)}
   }
   if(lastFx.size>120){const keep=[...lastFx].slice(-50);lastFx.clear();keep.forEach(x=>lastFx.add(x))}
  }
  function updateSparks(dt){
+  updateBattlefieldAtmosphere(dt);
   recoil=Math.max(0,recoil-dt*6.5);
   for(let i=tracers.length-1;i>=0;i--){
    const tr=tracers[i];tr.ttl-=dt;
@@ -411,6 +586,9 @@ export function createRodeadosArt(THREE,scene,camera){
  return {root,arena,rifle,tiles,setFloor,setFloorDamage,setRobotAdapter,getRobotAdapterStatus,
   getFloorStatus:()=>({plates:warMat.length,visible:warMarks.filter(d=>d.visible).length,
    darkPlates:tiles.filter((t,i)=>t.material===warMat[i]).length,
-   scars:warBurn.map(b=>b.material.opacity),cracks:warCracks.map(c=>c.material.opacity)}),
+   scars:warBurn.map(b=>b.material.opacity),cracks:warCracks.map(c=>c.material.opacity),
+   textured:warMat.every(m=>m.map===warTexture&&m.isMeshStandardMaterial),
+   fragmentCount:activeDebris,ashCount:ashCloud.visible?ashCount:0,
+   perimeterPosts:battlefieldCorners.visible?battlefieldCorners.children.length:0}),
   drawEnemies,positionWeapon,drawShot,drawBombs,effect,updateSparks,clear,robotCount:()=>actors.size};
 }
