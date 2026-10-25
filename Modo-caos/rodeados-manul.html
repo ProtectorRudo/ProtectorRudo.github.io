@@ -2,7 +2,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#061320">
 <meta name="description" content="RODEADOS 360 — tu habitación, una invasión robótica de tamaño real. Vos sos el protagonista.">
-<title>LAB M.A.N.U.L. · RODEADOS 360</title>
+<title>LAB M.A.N.U.L. V13 · RODEADOS 360</title>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js"}}</script>
 <style>
 :root{--mint:#78ffe0;--gold:#ffc96c;--navy:#061320}
@@ -111,6 +111,9 @@ h1 span{color:#7bffe1;display:block}
 #manulPanel .manulRow{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
 #manulPanel a{display:inline-block;text-decoration:none;border:1px solid #74b5b1;border-radius:11px;padding:11px 13px;color:#d8fff3;font-size:12px;background:#0b3442}
 #manulFile{font:750 12px system-ui;max-width:100%;margin:4px 0;color:white}
+.manulRemember{display:flex;gap:10px;align-items:center;font-size:12px;color:#e0fff2;line-height:1.35;margin-top:10px}
+.manulRemember input{width:20px;height:20px;flex-shrink:0;accent-color:#75ffce}
+#manulFacing{width:100%;margin:6px 0 9px}
 #manulStatus{font-size:12px;color:#a9ffe6;padding:9px 0;line-height:1.4}
 #manulFallback{background:#243b4a;color:white;border:1px solid #679ba8}
 </style></head>
@@ -128,8 +131,14 @@ h1 span{color:#7bffe1;display:block}
  <div class="manulRow"><a href="https://sketchfab.com/3d-models/robot-manul-9e95bc80bfa643d8b890cfa4f83e8b3d" target="_blank" rel="noopener noreferrer">1. DESCARGAR M.A.N.U.L. EN SKETCHFAB</a></div>
  <p>2. Descargá el <b>ZIP glTF</b> oficial y seleccioná ese archivo aquí (también sirve un GLB exportado desde Blender).</p>
  <input id="manulFile" type="file" accept=".zip,.glb,application/zip,model/gltf-binary" aria-label="Seleccionar M.A.N.U.L. ZIP glTF o archivo GLB"/>
+ <label class="manulRemember"><input id="manulRemember" type="checkbox" checked> Recordar este modelo solamente en este celular (podés borrarlo cuando quieras)</label>
+ <label for="manulFacing" style="display:block;margin-top:9px;color:#d5f7f0;font-size:12px">Orientación del robot: si aparece de espaldas, elegí 180°</label>
+ <select id="manulFacing" aria-label="Girar el robot para mirar al jugador">
+  <option value="0">De frente · 0°</option><option value="90">Girar 90°</option><option value="180">Girar 180°</option><option value="270">Girar 270°</option>
+ </select>
+ <p style="color:#ffdaa4">Por rendimiento se mostrarán hasta 4 M.A.N.U.L. simultáneos; los demás usan el robot anterior. Ningún enemigo se vuelve invisible.</p>
  <div id="manulStatus" role="status" aria-live="polite">Cargando herramienta de prueba 3D…</div>
- <button id="manulFallback" class="secondary" type="button">↩ VOLVER A ROBOTS ORIGINALES</button>
+ <button id="manulFallback" class="secondary" type="button">↩ RESTAURAR ROBOTS Y BORRAR MODELO GUARDADO</button>
  <p>Modelo original: <a href="https://sketchfab.com/3d-models/robot-manul-9e95bc80bfa643d8b890cfa4f83e8b3d" target="_blank" rel="noopener noreferrer">Robot M.A.N.U.L. por Andrei Milin — CC BY</a>. La escala de los enemigos y los hitboxes siguen gobernados por RODEADOS.</p>
  <p><a href="/Modo-caos/rodeados.html">Salir de la prueba y abrir la versión estable</a></p>
 </div>
@@ -161,5 +170,5 @@ h1 span{color:#7bffe1;display:block}
 </div>
 <script src="/Modo-caos/rodeados-core.js?v=11"></script><script src="/Modo-caos/rodeados-ux.js?v=2"></script><script src="/Modo-caos/rodeados-progression.js?v=1"></script>
 <script src="/Modo-caos/mc-config.js?v=2"></script><script src="/Modo-caos/mc-rooms-client.js?v=2"></script>
-<script type="module" src="/Modo-caos/rodeados-runtime.js?v=12"></script>
+<script type="module" src="/Modo-caos/rodeados-runtime.js?v=13"></script>
 </body></html>
