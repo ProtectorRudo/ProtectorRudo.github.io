@@ -83,6 +83,20 @@ const server=http.createServer((req,res)=>{
   assert((await page.evaluate(()=>__RodeadosManulPreview.status)).includes('MODELO CARGADO'),
    'ZIP must load real nested scene.gltf+scene.bin: '+
    (await page.evaluate(()=>__RodeadosManulPreview.status))+'; errors: '+errors.join(' | '));
+
+  // One-time manual import must survive page reload WITHOUT uploading to a
+  // server or asking the player to browse Android Downloads each round.
+  await page.waitForFunction(()=>__RodeadosManulPreview.savedName==='sketchfab-test-gltf.zip',null,{timeout:5500});
+  await page.reload({waitUntil:'load'});
+  await page.waitForFunction(()=>!!globalThis.__RodeadosManulPreview &&
+   __RodeadosManulPreview.status.includes('MODELO CARGADO'),null,{timeout:20000});
+  assert.equal(await page.evaluate(()=>__RodeadosManulPreview.actorStatus.enabled),true,
+    'saved GLTF should restore automatically from browser-local IndexedDB');
+  assert.equal(await page.evaluate(()=>__RodeadosManulPreview.savedName),'sketchfab-test-gltf.zip');
+  assert.equal(await page.evaluate(()=>__RodeadosManulPreview.countLimit),4,'max four imported enemies simultaneously for AR');
+  await page.locator('#manulFacing').selectOption('180');
+  assert.equal(await page.evaluate(()=>__RodeadosManulPreview.facing),180,
+    'player can rotate imported model when Sketchfab rig faces backwards');
   await page.locator('#startDemo').click();
   await page.waitForFunction(()=>__RodeadosDebug.renderedRobots>=2,null,{timeout:11000});
   const loaded=await page.evaluate(()=>({visual:__RodeadosManulPreview.actorStatus,phase:__RodeadosDebug.stage}));
@@ -92,14 +106,28 @@ const server=http.createServer((req,res)=>{
   assert((await page.evaluate(()=>__RodeadosDebug.game.shots))>=1,'hit system untouched with GLB model');
   assert.equal(await page.evaluate(()=>__RodeadosDebug.game.ammo),28,'unlimited ammo retained');
   await page.locator('#pause').tap();
+  // Force eight visually distinct enemies while paused; test quality
+  // fallback budget does NOT remove enemies or suppress hitboxes.
+  const budget=await page.evaluate(()=>__RodeadosManulPreview.testVisualBudget(8));
+
+  assert.equal(budget.external,4,'only 4 premium animated models can render on mobile: '+JSON.stringify(budget));
+  assert(budget.fallback>=4,'remaining enemies use fast original visuals rather than becoming invisible');
   await page.locator('#manulFallback').evaluate(el=>el.click());
   const fallback=await page.evaluate(()=>__RodeadosManulPreview.actorStatus);
   assert.equal(fallback.enabled,false,'fallback instantly restores original enemy renderer');
-  await page.locator('#resume').tap();
-  await page.waitForFunction(()=>__RodeadosDebug.renderedRobots>0,null,{timeout:6500});
-  assert.equal((await page.evaluate(()=>__RodeadosManulPreview.actorStatus)).external,0,'all robots back to originals');
+  await page.waitForTimeout(450);
+  await page.reload({waitUntil:'load'});
+  await page.waitForFunction(()=>!!globalThis.__RodeadosManulPreview,null,{timeout:20000});
+  assert.equal(await page.evaluate(()=>__RodeadosManulPreview.actorStatus.enabled),false,
+   'reset deletes browser-local model cache as advertised');
+  assert.equal(await page.evaluate(()=>__RodeadosManulPreview.savedName),null,
+   'deleted file is never restored automatically');
+
+  // A new page reload resets the preview to home, with original robots.
+  assert.equal((await page.evaluate(()=>__RodeadosManulPreview.actorStatus)).external,0,
+   'all avatars restored to default after reset and reload');
   assert.deepEqual(errors,[],'no Three.js/asset-loader browser errors: '+errors.join(' | '));
-  console.log('PASS M.A.N.U.L. LAB: real synthetic GLB parse, optional 3D skins, robust fallback, untouched combat and ammo');
+  console.log('PASS M.A.N.U.L. V13: GLB+ZIP, IndexedDB local restore/clear, 4-clone budget, facing rotation and unchanged gun');
  }catch(e){console.error(e.stack||e);process.exitCode=1}
  finally{await browser?.close();await new Promise(r=>server.close(r))}
 })();
