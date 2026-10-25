@@ -1,0 +1,165 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#061320">
+<meta name="description" content="RODEADOS 360 — tu habitación, una invasión robótica de tamaño real. Vos sos el protagonista.">
+<title>LAB M.A.N.U.L. · RODEADOS 360</title>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js"}}</script>
+<style>
+:root{--mint:#78ffe0;--gold:#ffc96c;--navy:#061320}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--navy);color:#edfffc;font-family:system-ui,-apple-system,Arial,sans-serif}
+button,select,a{font:800 13px system-ui;touch-action:manipulation}
+button{border:0;border-radius:13px;background:var(--mint);color:#042626;padding:13px 17px;cursor:pointer}
+button:disabled{opacity:.48;cursor:not-allowed}
+button.secondary{background:#122e40;color:#d4fff3;border:1px solid #4d8f96}
+button.gold{background:linear-gradient(120deg,#fff1a9,#ffb650)}
+button.danger{background:#4b1b33;color:#fff;border:1px solid #b35b68}
+#home{position:absolute;z-index:80;inset:0;overflow-y:auto;background:radial-gradient(ellipse at 48% 28%,#15576a 0%,#0a2139 45%,#05101f 94%);padding:30px 20px}
+#home main{max-width:590px;margin:auto}
+#back{color:#b7e6e4;text-decoration:none;font-size:12px;font-weight:850}
+.eyebrow{font-size:10px;letter-spacing:3px;color:#88ffda;font-weight:1000}
+h1{font-size:clamp(50px,12vw,85px);font-weight:1000;letter-spacing:-4px;line-height:.9;margin:23px 0 15px}
+h1 span{color:#7bffe1;display:block}
+#home p{color:#c0dbe2;font-size:14px;line-height:1.5}
+.hero{height:clamp(160px,31vh,290px);margin:17px -9px;position:relative;overflow:hidden;display:flex;justify-content:center;align-items:center;border:1px solid #2d6a84;border-radius:24px;background:radial-gradient(ellipse at 50% 83%,#20cca149,#09223a 58%,#040e1c);box-shadow:inset 0 0 80px #051624}
+.hero:after{content:'';position:absolute;width:90%;height:60px;border-radius:50%;border:4px solid #5fffe4;bottom:-33px;box-shadow:0 0 35px #2bf9cc;transform:perspective(160px) rotateX(54deg)}
+.botArt{width:115px;height:145px;background:linear-gradient(120deg,#132b42,#7e99b8 54%,#203c52);border:8px solid #183c55;border-radius:30px 30px 18px 18px;position:relative;box-shadow:0 0 35px #3cdeff44;transform:rotate(-9deg)}
+.botArt:before{content:'◉  ◉';font-size:23px;color:#67ffdb;letter-spacing:8px;text-shadow:0 0 19px #55ffea;position:absolute;left:8px;right:0;top:20px}
+.botArt:after{content:'';position:absolute;width:150px;height:60px;top:70px;left:-25px;background:linear-gradient(110deg,#152438,#638099,#121f2c);border:7px solid #223b4e;border-radius:16px}
+.hero strong{position:absolute;bottom:23px;z-index:2;color:#ffe6ae;letter-spacing:3px;font-size:11px;text-shadow:0 3px 7px #000}
+.tags{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+.tags b{background:#113d4f;border:1px solid #4d8c97;border-radius:8px;padding:6px 8px;font-size:10px}
+#home select{width:100%;border:1px solid #6fcac1;border-radius:11px;background:#082a3b;color:white;padding:14px;margin:8px 0 12px}
+#home .buttons{display:grid;gap:9px}
+#home .buttons button,#home .buttons a{width:100%;min-height:49px;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center}
+.note{font-size:11px!important;color:#9bbec7!important}
+#world{position:absolute;inset:0;pointer-events:none}
+#world canvas{display:block;width:100%;height:100%}
+/* Blackzone V25 proven AR workaround: world renders inside native XR DOM overlay.
+   Camera passthrough remains WebXR native. Models are NOT screen-anchored. */
+#arWorldOverlay{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;display:none}
+#arWorldOverlay canvas{display:block;width:100%!important;height:100%!important;pointer-events:none;background:transparent!important}
+
+#overlay{display:none;position:fixed;inset:0;z-index:25;background:transparent;pointer-events:none;overflow:hidden}
+#overlay button,#overlay select{pointer-events:auto}
+#topHud{position:absolute;top:max(10px,env(safe-area-inset-top));left:8px;right:8px;display:none;gap:5px;justify-content:space-between}
+.stat{background:#06192ccc;border:1px solid #4d7a90;border-radius:9px;padding:7px 8px;text-align:center;min-width:19%;font-size:9px;letter-spacing:1px;color:#a6d1df}
+.stat strong{font-size:19px;color:#ecfff9;display:block;font-variant-numeric:tabular-nums}
+#healthTrack{position:absolute;top:77px;left:12px;right:12px;height:4px;border-radius:9px;background:#9e274a66;display:none}
+#healthFill{height:100%;width:100%;background:#66ffd3;border-radius:9px;transition:width .15s}
+#close{position:absolute;left:9px;top:max(95px,env(safe-area-inset-top) + 80px);padding:9px 11px;background:#071b31d9;color:#defee8;border:1px solid #376077;z-index:14}
+#sound{position:absolute;right:9px;top:max(95px,env(safe-area-inset-top) + 80px);padding:9px 11px;background:#071b31d9;color:#defee8;border:1px solid #376077}
+#hint{position:absolute;top:18%;left:13%;right:13%;text-align:center;font-size:clamp(14px,3.3vw,18px);font-weight:900;text-shadow:0 3px 14px #000;line-height:1.35;pointer-events:none}
+#notice{position:absolute;left:10%;right:10%;top:34%;text-align:center;color:#ffc87d;font-weight:1000;text-shadow:0 2px 8px #000;pointer-events:none}
+#touch{position:absolute;left:0;right:0;top:20%;bottom:22%;touch-action:none;pointer-events:auto;display:none;z-index:10}
+#cellsvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:none;z-index:15;filter:drop-shadow(0 0 4px #5bffe9aa)}
+#placementHelp{position:absolute;top:40%;left:13%;right:13%;display:none;text-align:center;color:#fff3b7;font-weight:900;font-size:14px;text-shadow:0 2px 8px #000;pointer-events:none}
+#manualPlace{position:absolute;left:12%;right:12%;bottom:max(16px,env(safe-area-inset-bottom));display:none;z-index:18;pointer-events:auto;background:#ffcc70;color:#1f2023;font-size:16px}
+#refreshFloor{background:#0d4555;color:#edfff1;border:1px solid #91e7d3}
+
+#reticle{position:absolute;left:50%;top:50%;width:32px;height:32px;transform:translate(-50%,-50%);border:2px solid #b6ffeb;border-radius:50%;box-shadow:0 0 15px #55ffe899;pointer-events:none;display:none}
+#reticle:before,#reticle:after{content:'';position:absolute;left:50%;top:-10px;width:1px;height:48px;background:#b8fff1;transform:translateX(-50%) scaleY(.8)}
+#reticle:after{transform:translateX(-50%) rotate(90deg)}
+#botGuide{position:absolute;left:12%;right:12%;top:21%;z-index:7;display:none;text-align:center;font-size:14px;font-weight:950;line-height:1.35;color:#fff6ce;text-shadow:0 2px 9px #001823,0 0 9px #011528;pointer-events:none;letter-spacing:.3px}
+#radarWrap{position:absolute;left:12px;bottom:max(128px,env(safe-area-inset-bottom) + 110px);width:108px;height:108px;border-radius:50%;display:none;background:radial-gradient(circle,#0c253b9c 0%,#041523ad 80%);border:1px solid #77dfde92;box-shadow:0 0 13px #69e9d728;pointer-events:none}
+#radarWrap canvas{display:block;width:108px;height:108px}
+#radarWrap span{position:absolute;left:0;right:0;bottom:-16px;text-align:center;font-size:9px;letter-spacing:2px;color:#b2ebe5;text-shadow:0 2px 4px #000}
+#damageFlash{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse,transparent 42%,#ff285169 96%);transition:opacity .18s;z-index:6}
+#waveBanner{position:absolute;top:26%;left:12px;right:12px;text-align:center;font-size:clamp(21px,6vw,35px);font-weight:1000;letter-spacing:2px;color:#ffe6ab;text-shadow:0 2px 14px #001729,0 0 22px #ffc35b;opacity:0;transform:scale(.9);transition:opacity .22s,transform .22s;pointer-events:none}
+#combo{position:absolute;top:91px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:950;letter-spacing:1.4px;color:#ffe3a2;opacity:0;transition:opacity .2s;pointer-events:none;text-shadow:0 2px 8px #000}
+#hitCross{position:absolute;left:50%;top:50%;font-size:33px;line-height:1;transform:translate(-50%,-50%);color:#fff3b9;text-shadow:0 0 13px #faffbd;opacity:0;pointer-events:none}
+#warning{position:absolute;inset:15% 0;pointer-events:none;display:none}
+#warning i{position:absolute;left:50%;top:50%;width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-bottom:17px solid #ffbd62;transform-origin:50% 50%;filter:drop-shadow(0 0 8px #ff783c)}
+#calControls,#cellControls,#actions{position:absolute;left:8px;right:8px;bottom:max(14px,env(safe-area-inset-bottom));display:none;gap:7px;z-index:16;justify-content:center;align-items:center;pointer-events:auto}
+#calControls{flex-wrap:wrap;bottom:max(20px,env(safe-area-inset-bottom) + 5px)}
+#calControls button{flex:1;min-width:60px}
+#lock{width:100%;font-size:17px;min-height:53px}
+#cellControls{flex-direction:column}
+#cellControls #center{font-size:12px}
+#begin{min-width:60%;min-height:52px}
+#calprogress{width:190px;height:4px;background:#16354d;border-radius:10px;overflow:hidden}
+#calprogress i{display:block;background:#7bffdb;height:100%;width:0}
+#actions{bottom:max(18px,env(safe-area-inset-bottom))}
+#actions button{flex:1}
+#combat{display:none;position:absolute;right:12px;bottom:max(19px,env(safe-area-inset-bottom));gap:7px;flex-direction:column;align-items:end;pointer-events:auto;z-index:17}
+#fire{width:112px;height:86px;border-radius:30px;background:radial-gradient(circle at 35% 26%,#ffdf95,#e86848 83%);box-shadow:0 0 30px #ff8d5766;border:4px solid #ffd1a4;font-size:17px;color:#281011}
+
+#special{min-width:100px;background:#4e3576;color:white;border:1px solid #be8cfb}
+#bomb{min-width:112px;background:linear-gradient(135deg,#e8b854,#c35c37);color:#171d24;border:1px solid #ffe3a0;font-weight:1000;
+ box-shadow:0 2px 16px #ffb45b55;touch-action:manipulation}
+#bomb:disabled{background:#173746cc;color:#bed9d4;border:1px solid #63919a;box-shadow:none}
+#shotPulse{position:absolute;left:50%;top:50%;width:88px;height:88px;transform:translate(-50%,-50%) scale(.5);
+ border:3px solid #ffe39a;border-radius:50%;box-shadow:0 0 22px #ffcc73c5;pointer-events:none;z-index:14;opacity:0}
+#shotPulse.boom{animation:shotRecoil .18s ease-out}
+@keyframes shotRecoil{0%{opacity:.95;transform:translate(-50%,-50%) scale(.4)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.45)}}
+#pause{position:absolute;bottom:max(25px,env(safe-area-inset-bottom));left:9px;display:none;background:#081c2ce6;color:white;border:1px solid #4a758b}
+#ammo{position:absolute;left:12px;bottom:max(85px,env(safe-area-inset-bottom) + 69px);font-size:23px;font-weight:1000;text-shadow:0 2px 8px #000;display:none}
+#result{position:absolute;inset:0;display:none;z-index:65;align-items:center;justify-content:center;background:#041020f0;pointer-events:auto;padding:18px}
+.resultCard{width:min(100%,430px);max-height:91vh;overflow:auto;text-align:center;background:linear-gradient(140deg,#11394a,#091d31);border:1px solid #6bccba;border-radius:24px;padding:24px}
+.resultCard h2{font-size:clamp(35px,9vw,50px);line-height:1;margin:12px 0;color:#acffdd}
+.resultCard p{color:#c4dce0;font-size:12px;line-height:1.6}
+.resultCard button{display:block;width:100%;margin:9px 0}
+#resultStats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:17px 0}
+#resultStats div{background:#051f34;border-radius:11px;padding:12px;font-size:11px;color:#adccd4}
+#resultStats strong{display:block;font-size:23px;color:#e9fff1}
+#mini{position:absolute;bottom:12px;left:12px;right:140px;font-size:11px;color:#d2fff0;text-shadow:0 1px 7px black;display:none}
+#online{position:absolute;left:15%;right:15%;top:max(97px,env(safe-area-inset-top) + 82px);text-align:center;display:none;background:#071d31b9;border-radius:8px;padding:6px;font-size:11px;color:#cbffe4;pointer-events:none}
+@media(max-height:630px){#topHud{top:5px}.stat strong{font-size:16px}#healthTrack{top:62px}#close,#sound{top:76px}#hint{top:13%}#ammo{bottom:79px}#fire{height:72px}}
+#manulPanel{background:#061e2e;border:1px solid #c49656;border-radius:18px;padding:15px;margin:14px 0;box-shadow:0 10px 32px #0005}
+#manulPanel strong{display:block;color:#ffd18a;font-size:14px;margin-bottom:7px}
+#manulPanel p{font-size:12px;margin:6px 0 10px;color:#c7d9df}
+#manulPanel .manulRow{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+#manulPanel a{display:inline-block;text-decoration:none;border:1px solid #74b5b1;border-radius:11px;padding:11px 13px;color:#d8fff3;font-size:12px;background:#0b3442}
+#manulFile{font:750 12px system-ui;max-width:100%;margin:4px 0;color:white}
+#manulStatus{font-size:12px;color:#a9ffe6;padding:9px 0;line-height:1.4}
+#manulFallback{background:#243b4a;color:white;border:1px solid #679ba8}
+</style></head>
+<body>
+<section id="home"><main>
+<a id="back" href="https://modo-caos-eta.vercel.app/">← VOLVER A MODO CAOS</a>
+<div class="eyebrow" style="margin-top:33px">TU CASA · UNA INVASIÓN · VOS SOS EL PROTAGONISTA</div>
+<h1>RODEADOS <span>360°</span></h1>
+<p>¡Están por todos lados! Calibrá el piso como en Color Bash y defendete de robots de tamaño humano. Girás vos, apuntás con el celular y disparás. El Burlón se ríe de tus fallos... hasta que le das una lección.</p>
+<div class="hero"><div class="botArt"></div><strong>ESCUCHALOS · GIRÁ · REACCIONÁ</strong></div>
+<div class="tags"><b>🎯 APUNTADO REAL</b><b>🤖 ROBOTS A ESCALA</b><b>📍 25 CELDAS</b><b>💣 BOMBA CAOS</b></div>
+<div id="manulPanel">
+ <strong>🧪 LAB M.A.N.U.L. · MODELO 3D REAL</strong>
+ <p>Modo de prueba aislado: el juego normal conserva sus robots, pistola, headshots, AR y Bomba Caos. Sketchfab exige iniciar sesión para la descarga oficial gratuita.</p>
+ <div class="manulRow"><a href="https://sketchfab.com/3d-models/robot-manul-9e95bc80bfa643d8b890cfa4f83e8b3d" target="_blank" rel="noopener noreferrer">1. DESCARGAR M.A.N.U.L. EN SKETCHFAB</a></div>
+ <p>2. Descargá el <b>ZIP glTF</b> oficial y seleccioná ese archivo aquí (también sirve un GLB exportado desde Blender).</p>
+ <input id="manulFile" type="file" accept=".zip,.glb,application/zip,model/gltf-binary" aria-label="Seleccionar M.A.N.U.L. ZIP glTF o archivo GLB"/>
+ <div id="manulStatus" role="status" aria-live="polite">Cargando herramienta de prueba 3D…</div>
+ <button id="manulFallback" class="secondary" type="button">↩ VOLVER A ROBOTS ORIGINALES</button>
+ <p>Modelo original: <a href="https://sketchfab.com/3d-models/robot-manul-9e95bc80bfa643d8b890cfa4f83e8b3d" target="_blank" rel="noopener noreferrer">Robot M.A.N.U.L. por Andrei Milin — CC BY</a>. La escala de los enemigos y los hitboxes siguen gobernados por RODEADOS.</p>
+ <p><a href="/Modo-caos/rodeados.html">Salir de la prueba y abrir la versión estable</a></p>
+</div>
+<label for="mode" class="eyebrow">ELEGÍ TU MISIÓN</label>
+<select id="mode"><option value="survival">SUPERVIVENCIA 360 · 90 s</option><option value="infinite">CAOS INFINITO · sin límite</option><option value="reflex">REFLEJOS EXTREMOS · 60 s</option><option value="joker">EL BURLÓN · 75 s</option><option value="boss">JEFE FINAL · 90 s</option></select>
+<div class="buttons"><button id="startAR" class="gold">📷 ENTRAR EN REALIDAD AUMENTADA</button><button id="startDemo" class="secondary">🎮 ENTRENAMIENTO 3D SIN CÁMARA</button>
+<a href="https://modo-caos-eta.vercel.app/salas.html?game=rodeados-360" class="secondary">👥 SALAS DE 2 A 4 · BETA ESPACIAL</a></div>
+<p class="note" id="support">Antes de jugar despejá el piso y mantenete en un espacio seguro. La cámara rastrea el CELULAR, no los pies. AR necesita Chrome Android, ARCore y HTTPS. El modo 3D permite practicar sin cámara.</p>
+<p class="note" id="daily">DESAFÍO DIARIO: CARGANDO…</p><p class="note" id="record">RÉCORD PERSONAL: 0</p>
+</main></section>
+<div id="world"></div>
+<div id="overlay" aria-label="Juego RODEADOS 360">
+<div id="arWorldOverlay" aria-hidden="true"></div>
+<div id="topHud"><div class="stat">VIDA<strong id="life">100</strong></div><div class="stat">PUNTOS<strong id="points">0</strong></div><div class="stat">OLEADA<strong id="wave">1</strong></div><div class="stat">TIEMPO<strong id="clock">90</strong></div></div>
+<div id="healthTrack"><div id="healthFill"></div></div>
+<button id="close" class="secondary">← SALIR</button><button id="sound" class="secondary">🔊</button>
+<div id="hint">BUSCÁ EL PISO CON LA CÁMARA</div><div id="notice" role="status" aria-live="polite"></div>
+<div id="touch" aria-label="Mover, agrandar, achicar y girar pista"></div><div id="placementHelp" role="status"></div><button id="manualPlace">📍 COLOCAR PISTA MANUALMENTE</button>
+<svg id="cellsvg" xmlns="http://www.w3.org/2000/svg" aria-label="Elegí tu celda"></svg>
+<div id="reticle"></div><div id="shotPulse" aria-hidden="true"></div><div id="botGuide" role="status"></div><div id="hitCross">✕</div><div id="damageFlash"></div><div id="waveBanner" role="status"></div><div id="combo"></div><div id="radarWrap"><canvas id="radar" width="216" height="216" aria-label="Radar de robots a 360 grados"></canvas><span>360° · VOS</span></div><div id="warning"></div><div id="online"></div>
+<div id="calControls"><button id="smaller" class="secondary">−</button><button id="size" class="secondary" disabled>2,60 m</button><button id="larger" class="secondary">+</button><button id="turn" class="secondary">↻ 15°</button><button id="refreshFloor">🎯 CENTRAR EN EL PISO</button><button id="lock" class="gold">📍 FIJAR PISTA</button></div>
+<div id="cellControls"><div id="calprogress"><i id="calfill"></i></div><button id="center" class="secondary">👣 ESTOY EN LA CELDA CENTRAL</button><button id="begin" class="gold" disabled>▶ ¡DEFENDERME!</button><button id="changeCell" class="secondary">📍 ELEGIR OTRA CELDA</button></div>
+<div id="actions"><button id="recal" class="secondary">🎯 RECALIBRAR</button><button id="resume" class="gold">▶ CONTINUAR</button></div>
+<div id="ammo">∞  BALAS</div><div id="combat"><button id="bomb" aria-label="Lanzar Bomba Caos, explosión de área">💣 BOMBA CAOS</button><button id="special">⚡ EMP</button><button id="fire">◎ DISPARAR</button></div>
+<button id="pause">Ⅱ PAUSA</button><div id="mini"></div>
+<div id="result"><div class="resultCard"><div class="eyebrow">MODO CAOS · RESULTADO</div><h2 id="outcome">MISIÓN TERMINADA</h2><p id="summary"></p><div id="resultStats"></div><p id="achievements"></p><p id="localRank"></p>
+<button id="rematch" class="gold">↻ REVANCHA RÁPIDA</button><button id="share" class="secondary">↗ COMPARTIR MARCA</button>
+<button id="reposition" class="secondary">📍 AJUSTAR PISTA</button><button id="menu" class="secondary">← SALIR AL MENÚ</button></div></div>
+</div>
+<script src="/Modo-caos/rodeados-core.js?v=11"></script><script src="/Modo-caos/rodeados-ux.js?v=2"></script><script src="/Modo-caos/rodeados-progression.js?v=1"></script>
+<script src="/Modo-caos/mc-config.js?v=2"></script><script src="/Modo-caos/mc-rooms-client.js?v=2"></script>
+<script type="module" src="/Modo-caos/rodeados-runtime.js?v=12"></script>
+</body></html>
