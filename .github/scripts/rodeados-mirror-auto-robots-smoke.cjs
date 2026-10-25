@@ -26,10 +26,10 @@ function testGlb(){
  return Buffer.concat([header,j,jpad,b,bin]);
 }
 const real=process.env.RODEADOS_REAL_ASSET==='1';
-const glb=real?fs.readFileSync(path.resolve(root,'Modo-caos/assets/rodeados/tactical-android.glb')):testGlb();
+const glb=real?fs.readFileSync(path.resolve(root,'assets/rodeados/tactical-android.glb')):testGlb();
 const server=http.createServer((req,res)=>{
  let url;try{url=decodeURIComponent(new URL(req.url,'http://localhost').pathname)}catch{return res.writeHead(400).end()}
- if(url==='/Modo-caos/assets/rodeados/tactical-android.glb'){
+ if(url==='/assets/rodeados/tactical-android.glb'){
   return res.writeHead(200,{'content-type':'model/gltf-binary','access-control-allow-origin':'*','content-length':glb.length}).end(glb);
  }
  const file=path.resolve(root,'.'+url);
@@ -47,7 +47,7 @@ const server=http.createServer((req,res)=>{
   const base='http://127.0.0.1:'+server.address().port;
   // Even old LAB URLs open the game directly, not a requirement to download.
   await page.goto(base+'/Modo-caos/rodeados-manul.html?v=13',{waitUntil:'domcontentloaded'});
-  await page.waitForURL('**/rodeados.html?v=14',{timeout:6500});
+  await page.waitForURL('**/rodeados.html?v=15',{timeout:6500});
   assert.equal(await page.locator('#manulFile').count(),0,'no consumer-visible ZIP/GLB input');
   assert.equal(await page.locator('#manulPanel').count(),0,'manual integration panel cannot appear in arcade');
   await page.waitForFunction(()=>!!globalThis.__RodeadosAutoRobots,null,{timeout:20000});
@@ -58,6 +58,13 @@ const server=http.createServer((req,res)=>{
    assert(ready.triangles>1500,'real 3D character must have nontrivial geometry: '+JSON.stringify(ready));
    assert(ready.meshes>0,'licensed PBR model must have meshes');
    assert(ready.clips>0,'licensed character must have actual animation clips');
+   assert.equal(ready.facingDegrees,0,'robots must display FRONT, not back; core e.angle points at viewer');
+   assert.equal(ready.selectedClips?.idle,'idle','standing upright idle must not play crouch idle');
+   assert.equal(ready.selectedClips?.walk,'walk','forward walking must not choose aim_crouch_walk');
+   assert.equal(ready.selectedClips?.dash,'run');
+   assert.equal(ready.selectedClips?.attack,'melee');
+   assert(Object.values(ready.selectedClips||{}).every(name=>!name||!/crouch|prone|jump|down|slide/i.test(name)),
+     'never play non-upright animations while attacking player: '+JSON.stringify(ready.selectedClips));
   }
   assert.equal(ready.maxExternal,4,'protect mobile WebXR by limiting simultaneous animated GLBs');
   await page.locator('#startDemo').click();
