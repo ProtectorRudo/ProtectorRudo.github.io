@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js';
-import {createRodeadosArt} from './rodeados-art.js?v=11';
+import {createRodeadosArt} from './rodeados-art.js?v=13';
 import {createRodeadosArCompositor} from './rodeados-ar-compositor.js';
 /* RODEADOS 360 — Native WebXR first-person game runtime.
    Floor and bots are WORLD-LOCKED. Only the weapon is camera-attached.
@@ -21,7 +21,7 @@ const art=createRodeadosArt(THREE,scene,camera);
  // Opt-in isolated M.A.N.U.L. importer: public RODEADOS V11 never loads any 3D
  // model or extra library. Nothing in the shooter/AR core depends on this test.
  if(location.pathname.endsWith('/rodeados-manul.html')){
-  import('./rodeados-manul.js?v=12')
+  import('./rodeados-manul.js?v=13')
    .then(({installManulPreview})=>installManulPreview({
     THREE,art,notice:(msg,sec)=>{const n=document.getElementById('manulStatus');if(n)n.title=msg;console.info('MANUL',msg)}
    }))
