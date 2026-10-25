@@ -25,7 +25,8 @@ function testGlb(){
  b.writeUInt32LE(bin.length,0);b.writeUInt32LE(0x004e4942,4);
  return Buffer.concat([header,j,jpad,b,bin]);
 }
-const glb=testGlb();
+const real=process.env.RODEADOS_REAL_ASSET==='1';
+const glb=real?fs.readFileSync(path.resolve(root,'Modo-caos/assets/rodeados/tactical-android.glb')):testGlb();
 const server=http.createServer((req,res)=>{
  let url;try{url=decodeURIComponent(new URL(req.url,'http://localhost').pathname)}catch{return res.writeHead(400).end()}
  if(url==='/Modo-caos/assets/rodeados/tactical-android.glb'){
@@ -53,6 +54,11 @@ const server=http.createServer((req,res)=>{
   await page.waitForFunction(()=>['active','fallback'].includes(__RodeadosAutoRobots.status.phase),null,{timeout:20000});
   const ready=await page.evaluate(()=>__RodeadosAutoRobots.status);
   assert.equal(ready.phase,'active','automatic loader must actually install a 3D enemy without user action: '+JSON.stringify(ready));
+  if(real){
+   assert(ready.triangles>1500,'real 3D character must have nontrivial geometry: '+JSON.stringify(ready));
+   assert(ready.meshes>0,'licensed PBR model must have meshes');
+   assert(ready.clips>0,'licensed character must have actual animation clips');
+  }
   assert.equal(ready.maxExternal,4,'protect mobile WebXR by limiting simultaneous animated GLBs');
   await page.locator('#startDemo').click();
   await page.waitForFunction(()=>__RodeadosDebug.renderedRobots>=2,null,{timeout:11000});
@@ -62,7 +68,7 @@ const server=http.createServer((req,res)=>{
   assert((await page.evaluate(()=>__RodeadosDebug.game.shots))>0,'shot still works with automatic GLB');
   assert.equal(await page.evaluate(()=>__RodeadosDebug.game.ammo),28,'infinite bullets must stay unlimited');
   assert.deepEqual(errors,[],'no runtime errors when automatically loading GLB');
-  console.log('PASS: legacy lab auto-redirects, no file picker; new 3D enemies spawn automatically with 4-avatar budget, shooter/AR core unaffected');
+  console.log('PASS: '+(real?'ACTUAL SELF-HOSTED LICENSED GLB':'synthetic GLB')+' auto-load; legacy LAB redirects, no file picker; robots spawned automatically, gun intact');
  }catch(e){console.error(e.stack||e);process.exitCode=1}
  finally{await browser?.close();await new Promise(r=>server.close(r))}
 })();
