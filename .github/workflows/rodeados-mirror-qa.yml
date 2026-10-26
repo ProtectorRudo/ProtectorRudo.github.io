@@ -29,6 +29,7 @@ jobs:
           node --check Modo-caos/rodeados-robots-auto.js
           node --check Modo-caos/rodeados-spider.js
           test -f Modo-caos/assets/rodeados/tactical-heavy.glb
+          test $(stat -c%s Modo-caos/assets/rodeados/tactical-heavy.glb) -gt 4000000
           node --test .github/scripts/rodeados-mirror-spider-v16.test.cjs
           grep -q 'rodeados-robots-auto.js' Modo-caos/rodeados-runtime.js
           grep -q 'type="importmap"' Modo-caos/rodeados.html
