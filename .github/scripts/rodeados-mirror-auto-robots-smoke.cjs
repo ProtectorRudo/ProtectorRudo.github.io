@@ -29,7 +29,7 @@ const real=process.env.RODEADOS_REAL_ASSET==='1';
 const glb=real?fs.readFileSync(path.resolve(root,'Modo-caos/assets/rodeados/tactical-android.glb')):testGlb();
 const server=http.createServer((req,res)=>{
  let url;try{url=decodeURIComponent(new URL(req.url,'http://localhost').pathname)}catch{return res.writeHead(400).end()}
- if(url==='/assets/rodeados/tactical-android.glb'){
+ if(url==='/Modo-caos/assets/rodeados/tactical-android.glb'){
   return res.writeHead(200,{'content-type':'model/gltf-binary','access-control-allow-origin':'*','content-length':glb.length}).end(glb);
  }
  const file=path.resolve(root,'.'+url);
@@ -47,7 +47,7 @@ const server=http.createServer((req,res)=>{
   const base='http://127.0.0.1:'+server.address().port;
   // Even old LAB URLs open the game directly, not a requirement to download.
   await page.goto(base+'/Modo-caos/rodeados-manul.html?v=13',{waitUntil:'domcontentloaded'});
-  await page.waitForURL('**/rodeados.html?v=15',{timeout:6500});
+  await page.waitForURL('**/rodeados.html?v=16',{timeout:6500});
   assert.equal(await page.locator('#manulFile').count(),0,'no consumer-visible ZIP/GLB input');
   assert.equal(await page.locator('#manulPanel').count(),0,'manual integration panel cannot appear in arcade');
   await page.waitForFunction(()=>!!globalThis.__RodeadosAutoRobots,null,{timeout:20000});
@@ -67,10 +67,16 @@ const server=http.createServer((req,res)=>{
      'never play non-upright animations while attacking player: '+JSON.stringify(ready.selectedClips));
   }
   assert.equal(ready.maxExternal,4,'protect mobile WebXR by limiting simultaneous animated GLBs');
+  assert(Array.isArray(ready.models)&&ready.models.length===2,
+   'both humanoid models should be attempted and tracked: '+JSON.stringify(ready.models));
+  if(real)assert(ready.models[1].triangles>400,
+   'second actual licensed humanoid GLB must load (not silently reuse first): '+JSON.stringify(ready.models));
   await page.locator('#startDemo').click();
   await page.waitForFunction(()=>__RodeadosDebug.renderedRobots>=2,null,{timeout:11000});
   const shown=await page.evaluate(()=>__RodeadosAutoRobots.status);
   assert(shown.external>=2,'new imported models must replace original visuals at round start: '+JSON.stringify(shown));
+  assert(shown.variants.standard>=1&&shown.variants.heavy>=1,
+    'initial two humanoids must use different visual models: '+JSON.stringify(shown.variants));
   await page.locator('#fire').tap();
   assert((await page.evaluate(()=>__RodeadosDebug.game.shots))>0,'shot still works with automatic GLB');
   assert.equal(await page.evaluate(()=>__RodeadosDebug.game.ammo),28,'infinite bullets must stay unlimited');
