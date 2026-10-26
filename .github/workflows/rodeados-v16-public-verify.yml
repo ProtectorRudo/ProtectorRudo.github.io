@@ -1,0 +1,62 @@
+name: RODEADOS V16 — public three-enemy verification
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rodeados-v16-public-verify.yml'
+      - 'Modo-caos/rodeados.html'
+      - 'Modo-caos/rodeados-core.js'
+      - 'Modo-caos/rodeados-art.js'
+      - 'Modo-caos/rodeados-runtime.js'
+      - 'Modo-caos/rodeados-robots-auto.js'
+      - 'Modo-caos/rodeados-spider.js'
+      - 'Modo-caos/assets/rodeados/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Read actual GitHub Pages CDN bytes for V16
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://protectorrudo.github.io/Modo-caos'
+          for i in $(seq 1 12); do
+            if curl -fsSL --max-time 15 "$BASE/rodeados.html?v=16" -o /tmp/play.html \
+              && grep -q 'rodeados-runtime.js?v=16' /tmp/play.html \
+              && grep -q 'rodeados-core.js?v=16' /tmp/play.html; then
+              break
+            fi
+            echo "Waiting public CDN V16 propagation ${i}/12"
+            sleep 5
+          done
+          grep -q 'rodeados-runtime.js?v=16' /tmp/play.html
+          grep -q 'rodeados-core.js?v=16' /tmp/play.html
+          ! grep -q 'id="manulFile"' /tmp/play.html
+          curl -fsSL --max-time 15 "$BASE/rodeados-core.js?v=16" -o /tmp/core.js
+          curl -fsSL --max-time 15 "$BASE/rodeados-art.js?v=16" -o /tmp/art.js
+          curl -fsSL --max-time 15 "$BASE/rodeados-runtime.js?v=16" -o /tmp/runtime.js
+          curl -fsSL --max-time 15 "$BASE/rodeados-spider.js?v=16" -o /tmp/spider.js
+          curl -fsSL --max-time 15 "$BASE/rodeados-robots-auto.js?v=16" -o /tmp/robots.js
+          grep -q 'spider:{hp:3' /tmp/core.js
+          grep -q "createWolfSpider" /tmp/art.js
+          grep -q 'Eight' /tmp/spider.js || grep -q 'eight' /tmp/spider.js
+          grep -q "PRIMARY" /tmp/robots.js
+          grep -q "SECONDARY" /tmp/robots.js
+          grep -q "rodeados-spider.js?v=16" /tmp/art.js
+          grep -q "rodeados-robots-auto.js?v=16" /tmp/runtime.js
+          for name in tactical-android tactical-heavy; do
+            curl -fsSL --max-time 30 "$BASE/assets/rodeados/${name}.glb" -o "/tmp/${name}.glb"
+            python3 - "$name" <<'PY'
+          import os,sys,struct
+          name=sys.argv[1];p=f'/tmp/{name}.glb'
+          with open(p,'rb') as f: magic,version,length=struct.unpack('<III',f.read(12))
+          assert magic==0x46546c67 and version==2 and length==os.path.getsize(p)
+          assert 100000<length<8000000
+          print('GLB REAL PUBLICADO',name,length)
+          PY
+          done
+          echo 'PUBLIC V16 VERIFIED: TWO BUNDLED HUMANOIDS + WOLF SPIDER, NO USER DOWNLOAD'
