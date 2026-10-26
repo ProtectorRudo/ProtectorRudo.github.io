@@ -1,3 +1,4 @@
+import {createWolfSpider} from './rodeados-spider.js?v=16';
 /* RODEADOS 360 — original stylized, articulated robot art.
    Techniques adapted from our Blackzone Three.js pipeline: real meter scale,
    MeshStandardMaterial, limb pivots, stable ground shadows and true 3-D objects. */
@@ -294,6 +295,7 @@ export function createRodeadosArt(THREE,scene,camera){
   updateBattlefieldRubble(game,editing);
  }
  function createRobot(e){
+  if(e.type==='spider')return createWolfSpider(THREE,root,e);
   const kind=e.type,elite=kind==='boss'||kind==='tank',scale=e.height/1.75;
   const shell=kind==='boss'?M.red:kind==='tank'?M.edge:kind==='fast'?M.violet:kind==='flanker'?M.gold:kind==='joker'?M.orange:M.steel;
   const glow=kind==='boss'?M.orange:M.red;
@@ -397,6 +399,10 @@ export function createRodeadosArt(THREE,scene,camera){
    active.add(e.id);
    let a=actors.get(e.id);if(!a){a=createRobot(e);actors.set(e.id,a)}
    a.group.position.set(e.x,0,e.z);a.group.rotation.y=e.angle;
+   if(a.kind==='spider'){
+    a.update(e);
+    continue;
+   }
    // Stalking rhythm differs per robot; sharp attack strike, head twitch,
    // staggered gait and ominous almost-still pauses. All visual offsets stay
    // under 6cm so actual hitboxes / world-anchored positioning remain fair.
@@ -434,7 +440,9 @@ export function createRodeadosArt(THREE,scene,camera){
    a.hpBar.visible=e.hp<e.maxHp;a.hpBack.visible=a.hpBar.visible;
    a.weakSpot.material=e.lastHit>0?M.red:(e.type==='boss'?M.gold:M.cyan);
   }
-  for(const [id,a] of actors)if(!active.has(id)){a.external?.dispose();root.remove(a.group);a.visorMat.dispose();actors.delete(id)}
+  for(const [id,a] of actors)if(!active.has(id)){
+    if(a.kind==='spider')a.dispose();else{a.external?.dispose();root.remove(a.group);a.visorMat.dispose()}actors.delete(id)
+   }
  }
  function addSpark(pos,color,size=.045,ttl=.42){
   const mesh=new THREE.Mesh(geo.sphere,new THREE.MeshBasicMaterial({color,transparent:true,opacity:1,depthWrite:false}));
@@ -566,22 +574,25 @@ export function createRodeadosArt(THREE,scene,camera){
   for(const tr of tracers){root.remove(tr.mesh);tr.mesh.material.dispose()}tracers.length=0;
   for(const w of waves){root.remove(w.mesh);w.mesh.material.dispose();w.mesh.geometry.dispose()}waves.length=0;
   recoil=0;
-  for(const a of actors.values()){a.external?.dispose();root.remove(a.group);a.visorMat.dispose()}actors.clear();
+  for(const a of actors.values()){if(a.kind==='spider')a.dispose();else{a.external?.dispose();root.remove(a.group);a.visorMat.dispose()}}actors.clear();
   for(const s of sparks){root.remove(s.mesh);s.mesh.material.dispose()}sparks.length=0;
  }
  function setRobotAdapter(adapter){
   if(adapter!==null&&typeof adapter?.create!=='function')throw Error('RODEADOS: adaptador visual inválido');
   for(const a of actors.values()){
-   a.external?.dispose();
-   root.remove(a.group);
-   a.visorMat.dispose();
+   if(a.kind==='spider')a.dispose();else{a.external?.dispose();root.remove(a.group);a.visorMat.dispose()}
   }
   actors.clear();robotAdapter=adapter;
  }
  function getRobotAdapterStatus(){
-  let external=0,fallback=0;
-  for(const a of actors.values())if(a.external)external++;else fallback++;
-  return {enabled:!!robotAdapter,name:robotAdapter?.name||'ORIGINAL',external,fallback,robots:actors.size,maxExternal:MAX_EXTERNAL_ROBOTS};
+  let external=0,fallback=0,spiders=0;const variants={standard:0,heavy:0};
+  for(const a of actors.values()){
+   if(a.kind==='spider'){spiders++;continue}
+   if(a.external){external++;const v=a.external.variant||'standard';variants[v]=(variants[v]||0)+1}
+   else fallback++;
+  }
+  return {enabled:!!robotAdapter,name:robotAdapter?.name||'ORIGINAL',external,fallback,spiders,variants,
+   robots:actors.size,maxExternal:MAX_EXTERNAL_ROBOTS};
  }
  return {root,arena,rifle,tiles,setFloor,setFloorDamage,setRobotAdapter,getRobotAdapterStatus,
   getFloorStatus:()=>({plates:warMat.length,visible:warMarks.filter(d=>d.visible).length,

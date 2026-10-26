@@ -7,6 +7,8 @@ on:
       - '.github/scripts/rodeados-mirror-xr-smoke.cjs'
       - '.github/scripts/rodeados-mirror-manul-smoke.cjs'
       - '.github/scripts/rodeados-mirror-auto-robots-smoke.cjs'
+      - '.github/scripts/rodeados-mirror-spider-v16.test.cjs'
+      - '.github/scripts/rodeados-mirror-spider-browser-v16.cjs'
       - '.github/workflows/rodeados-mirror-qa.yml'
 permissions:
   contents: read
@@ -25,6 +27,10 @@ jobs:
           node --check Modo-caos/rodeados-runtime.js
           node --check Modo-caos/rodeados-manul.js
           node --check Modo-caos/rodeados-robots-auto.js
+          node --check Modo-caos/rodeados-spider.js
+          test -f Modo-caos/assets/rodeados/tactical-heavy.glb
+          test $(stat -c%s Modo-caos/assets/rodeados/tactical-heavy.glb) -gt 4000000
+          node --test .github/scripts/rodeados-mirror-spider-v16.test.cjs
           grep -q 'rodeados-robots-auto.js' Modo-caos/rodeados-runtime.js
           grep -q 'type="importmap"' Modo-caos/rodeados.html
           ! grep -q 'id="manulFile"' Modo-caos/rodeados.html
@@ -44,3 +50,4 @@ jobs:
           node .github/scripts/rodeados-mirror-manul-smoke.cjs
           node .github/scripts/rodeados-mirror-auto-robots-smoke.cjs
           RODEADOS_REAL_ASSET=1 node .github/scripts/rodeados-mirror-auto-robots-smoke.cjs
+          node .github/scripts/rodeados-mirror-spider-browser-v16.cjs

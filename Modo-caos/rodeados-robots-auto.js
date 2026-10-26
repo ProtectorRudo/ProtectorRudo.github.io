@@ -7,11 +7,13 @@
  * This is an armored tactical enemy, NOT Sketchfab M.A.N.U.L.
  */
 import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.181.0/examples/jsm/loaders/GLTFLoader.js';
-import {buildAdapter} from './rodeados-manul.js?v=15';
+import {buildAdapter} from './rodeados-manul.js?v=16';
 
 const PRIMARY=new URL('./assets/rodeados/tactical-android.glb',import.meta.url).href;
 // Version-pinned mirror for redundancy if project hosting has not synchronized yet.
 const BACKUP='https://cdn.jsdelivr.net/gh/cktang88/3d-fps@130ac2a5c856401ec36e7d35afcfefe40c5801f4/public/assets/models/characters/soldier.glb';
+const SECONDARY=new URL('./assets/rodeados/tactical-heavy.glb',import.meta.url).href;
+const BACKUP_HEAVY='https://cdn.jsdelivr.net/gh/cktang88/3d-fps@130ac2a5c856401ec36e7d35afcfefe40c5801f4/public/assets/models/characters/soldier_tac.glb';
 const TIMEOUT_MS=11500;
 const failAfter=(promise,timeout)=>Promise.race([promise,new Promise((_,reject)=>{
  const id=setTimeout(()=>reject(Error('timeout')),timeout);
@@ -60,35 +62,62 @@ function upgradeAndroidMaterials(THREE,scene){
  return {meshes,materials};
 }
 
+async function prepareOne({THREE,art,primary,backup,label,facing=0}){
+ let buffer=null,source='';
+ for(const url of [primary,backup]){
+  try{buffer=await fetchValidatedGLB(url);source=url===primary?'bundled':'pinned-cdn';break}
+  catch(e){console.warn('RODEADOS asset fallback',label,url,e)}
+ }
+ if(!buffer)throw Error('No se pudo cargar '+label);
+ const gltf=await failAfter(new Promise((res,rej)=>new GLTFLoader().parse(buffer,'',res,rej)),8500);
+ const render=upgradeAndroidMaterials(THREE,gltf.scene);
+ const adapter=buildAdapter(THREE,gltf,{label,source});
+ adapter.setFacing(facing);
+ return {adapter,render,source,gltf};
+}
 export async function installAutoRobots({THREE,art,signal,debug}){
- const stats={phase:'loading',source:'',meshes:0,clips:0,triangles:0,external:0,reason:''};
+ const stats={phase:'loading',source:'',meshes:0,clips:0,triangles:0,models:[],external:0,reason:''};
  if(debug)Object.defineProperty(globalThis,'__RodeadosAutoRobots',{
   configurable:true,value:{get status(){return {...stats,...art.getRobotAdapterStatus()}}}
  });
- let buffer,source='';
- for(const url of [PRIMARY,BACKUP]){
+ let standard=null,heavy=null;
+ try{
+  standard=await prepareOne({THREE,art,primary:PRIMARY,backup:BACKUP,label:'ANDROID TACTICAL'});
   if(signal?.aborted)return stats;
-  try{buffer=await fetchValidatedGLB(url);source=url===PRIMARY?'bundled':'pinned-cdn';break}
-  catch(e){stats.reason=String(e?.message||e);console.warn('Tactical enemy asset unavailable:',source||url,e)}
- }
- if(!buffer){stats.phase='fallback';return stats}
+ }catch(e){stats.phase='fallback';stats.reason=e.message;return stats}
+ // The two actual humanoid GLBs are separate, independently licensed
+ // downloaded models. Heavy is optional if its URL is unavailable.
+ try{
+  heavy=await prepareOne({THREE,art,primary:SECONDARY,backup:BACKUP_HEAVY,label:'ARMORED GUARD'});
+ }catch(e){console.warn('Second humanoid unavailable, using standard armored material fallback',e)}
  if(signal?.aborted)return stats;
  try{
-  const gltf=await failAfter(new Promise((res,rej)=>new GLTFLoader().parse(buffer,'',res,rej)),8000);
-  if(signal?.aborted)return stats;
-  const render=upgradeAndroidMaterials(THREE,gltf.scene);
-  const adapter=buildAdapter(THREE,gltf,{label:'ANDROIDES TÁCTICOS',source});
-  // Rig front already aligns with +Z, exactly matching e.angle in the core.
-  // A forced 180° turn had displayed every enemy's back on Android.
-  adapter.setFacing(0);
+  const adapter={
+   name:'ANDROIDES DE COMBATE · 2 TIPOS',
+   create({actor,enemy,THREE:engine}){
+    const wantsHeavy=enemy.type==='tank'||enemy.type==='boss'||enemy.id%2===0;
+    const variant=wantsHeavy&&heavy?heavy:standard;
+    const anim=variant.adapter.create({actor,enemy,THREE:engine});
+    anim.variant=wantsHeavy?'heavy':'standard';
+    return anim;
+   },
+   setFacing(deg){standard.adapter.setFacing(deg);heavy?.adapter.setFacing(deg)}
+  };
   art.setRobotAdapter(adapter);
-  stats.phase='active';stats.source=source;
-  stats.meshes=render.meshes;stats.clips=gltf.animations.length;
-  stats.triangles=adapter.summary.tris;stats.facingDegrees=adapter.summary.facingDegrees;stats.selectedClips=adapter.summary.selectedClips;stats.reason='';
+  stats.phase='active';
+  stats.source=standard.source;
+  stats.models=[{name:'TACTICAL',source:standard.source,triangles:standard.adapter.summary.tris},
+   {name:'HEAVY',source:heavy?.source||'fallback',triangles:heavy?.adapter.summary.tris||0}];
+  stats.meshes=standard.render.meshes+(heavy?.render.meshes||0);
+  stats.clips=standard.gltf.animations.length+(heavy?.gltf.animations.length||0);
+  stats.triangles=standard.adapter.summary.tris;
+  stats.facingDegrees=standard.adapter.summary.facingDegrees;
+  stats.selectedClips=standard.adapter.summary.selectedClips;
+  stats.reason=heavy?'':'Second 3D variant unavailable: same original robot with different states';
   return stats;
  }catch(e){
-  stats.phase='fallback';stats.reason=String(e?.message||e);
-  console.warn('RODEADOS native enemies preserved after GLB failure',e);
+  stats.phase='fallback';stats.reason=e.message;
+  console.warn('RODEADOS old enemy models kept',e);
   return stats;
  }
 }

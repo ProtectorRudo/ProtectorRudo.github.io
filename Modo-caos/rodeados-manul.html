@@ -7,7 +7,7 @@
 /* Never show internal import/ZIP controls to players. Old laboratory links
    open the actual ready-to-play arcade game automatically. */
 if(new URLSearchParams(location.search).get('dev')!=='1')
- location.replace('./rodeados.html?v=15');
+ location.replace('./rodeados.html?v=16');
 </script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js"}}</script>
 <style>
@@ -125,7 +125,7 @@ h1 span{color:#7bffe1;display:block}
 </style></head>
 <body>
 <section id="home"><main>
-<a id="back" href="https://modo-caos-eta.vercel.app/">← VOLVER A MODO CAOS</a>
+<a id="back" href="/">← VOLVER A MODO CAOS</a>
 <div class="eyebrow" style="margin-top:33px">TU CASA · UNA INVASIÓN · VOS SOS EL PROTAGONISTA</div>
 <h1>RODEADOS <span>360°</span></h1>
 <p>¡Están por todos lados! Calibrá el piso como en Color Bash y defendete de robots de tamaño humano. Girás vos, apuntás con el celular y disparás. El Burlón se ríe de tus fallos... hasta que le das una lección.</p>
@@ -151,7 +151,7 @@ h1 span{color:#7bffe1;display:block}
 <label for="mode" class="eyebrow">ELEGÍ TU MISIÓN</label>
 <select id="mode"><option value="survival">SUPERVIVENCIA 360 · 90 s</option><option value="infinite">CAOS INFINITO · sin límite</option><option value="reflex">REFLEJOS EXTREMOS · 60 s</option><option value="joker">EL BURLÓN · 75 s</option><option value="boss">JEFE FINAL · 90 s</option></select>
 <div class="buttons"><button id="startAR" class="gold">📷 ENTRAR EN REALIDAD AUMENTADA</button><button id="startDemo" class="secondary">🎮 ENTRENAMIENTO 3D SIN CÁMARA</button>
-<a href="https://modo-caos-eta.vercel.app/salas.html?game=rodeados-360" class="secondary">👥 SALAS DE 2 A 4 · BETA ESPACIAL</a></div>
+<a href="/salas.html?game=rodeados-360" class="secondary">👥 SALAS DE 2 A 4 · BETA ESPACIAL</a></div>
 <p class="note" id="support">Antes de jugar despejá el piso y mantenete en un espacio seguro. La cámara rastrea el CELULAR, no los pies. AR necesita Chrome Android, ARCore y HTTPS. El modo 3D permite practicar sin cámara.</p>
 <p class="note" id="daily">DESAFÍO DIARIO: CARGANDO…</p><p class="note" id="record">RÉCORD PERSONAL: 0</p>
 </main></section>
