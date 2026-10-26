@@ -1,0 +1,38 @@
+name: RODEADOS V16 — vendor heavy android GLB to Pages
+on:
+  pull_request:
+    paths:
+      - .github/workflows/rodeados-v16-vendor.yml
+      - Modo-caos/rodeados-robots-auto.js
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/rodeados-v16-androids-wolf-spider
+          persist-credentials: true
+      - name: Download second commercial-use CC BY GLB, pinned original source
+        run: |
+          set -euo pipefail
+          mkdir -p Modo-caos/assets/rodeados
+          curl -fLsS --retry 3 --max-time 90 "https://raw.githubusercontent.com/cktang88/3d-fps/130ac2a5c856401ec36e7d35afcfefe40c5801f4/public/assets/models/characters/soldier_tac.glb" -o Modo-caos/assets/rodeados/tactical-heavy.glb
+          python3 - <<'PY'
+          import os,struct
+          p='Modo-caos/assets/rodeados/tactical-heavy.glb'
+          with open(p,'rb') as f: magic,ver,size=struct.unpack('<III',f.read(12))
+          assert magic==0x46546C67 and ver==2 and size==os.path.getsize(p)
+          print('TACTICAL HEAVY REAL ASSET',size)
+          PY
+      - name: Commit binary without touching other projects
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Modo-caos/assets/rodeados/tactical-heavy.glb
+          if ! git diff --cached --quiet; then
+            git commit -m "asset(rodeados): CC BY armored second humanoid for Pages"
+            git push origin HEAD:release/rodeados-v16-androids-wolf-spider
+          fi
