@@ -85,6 +85,25 @@ input[type=text]:focus{border-color:#42bcca}
 #pause{width:40px;height:40px;left:12px;bottom:max(14px,env(safe-area-inset-bottom));font-size:19px}
 #controls{font-size:9px;left:62px;bottom:max(24px,env(safe-area-inset-bottom));opacity:.5}
 @media(max-width:370px){.score{width:108px;padding:8px}.score .num{font-size:23px}#rank{min-width:101px}.rankrow{font-size:9px}}
+/* Close to the clean 2D/2.5D visual grammar of territory arcade games.
+   Translucent ribbons and no giant floating UI panels. */
+.top{top:max(11px,env(safe-area-inset-top));left:11px;gap:8px;align-items:flex-start}
+.score{width:118px;background:transparent;box-shadow:none;border:0!important;border-radius:0;padding:0}
+.score small{font-size:9px;letter-spacing:.55px;color:#378b83;text-shadow:0 1px #eafff3}
+.score .num{font-size:27px;color:#286d66;font-weight:900;text-shadow:0 1px 2px #f7fff8}
+.progress{height:4px;background:#93c9bd77;border-radius:0;width:114px;margin-top:5px}
+.progress i{border-radius:0;background:#16bfb2}
+#boostline{font-size:8px;margin-top:4px;opacity:.7}
+#boostbar{height:2px;opacity:.7}
+#kills{background:transparent;box-shadow:none;border-radius:0;color:#39746b;font-size:12px;padding:16px 1px 0}
+#rank{top:max(10px,env(safe-area-inset-top));right:8px;min-width:119px;max-width:39vw;gap:4px;filter:none}
+.rankrow{background:#8cd9babb;box-shadow:none;border-radius:3px;padding:3px 6px;color:#235d60;font-weight:750;font-size:11px;min-height:23px;gap:6px}
+.rankrow span{max-width:76px}
+.rankrow b{font-size:10px}
+#mini{width:66px;height:66px;right:11px;bottom:max(15px,env(safe-area-inset-bottom));border:2px solid #eafff6a1;background:#eafff6bd;box-shadow:none;opacity:.89}
+#pause{width:35px;height:35px;bottom:max(14px,env(safe-area-inset-bottom));left:12px;border-radius:50%;font-size:16px;box-shadow:none;background:#eafff6be}
+#controls{font-size:9px;left:52px;color:#4f9c8d;opacity:.5;bottom:max(24px,env(safe-area-inset-bottom))}
+@media(max-width:370px){#rank{min-width:108px}.rankrow{font-size:10px}.score .num{font-size:25px}}
 </style>
 </head>
 <body>
@@ -133,8 +152,53 @@ const mapCtx=mapCanvas.getContext('2d',{alpha:true});
 for(let y=0;y<N;y++)for(let x=0;x<N;x++){const dx=(x+.5)*CELL-CX,dy=(y+.5)*CELL-CY,k=y*N+x;if(dx*dx+dy*dy<(R-5)*(R-5)){inArena[k]=1;landCount++;}}
 function idx(x,y){let gx=Math.floor(x/CELL),gy=Math.floor(y/CELL);return gx<0||gy<0||gx>=N||gy>=N?-1:gy*N+gx;}
 function inside(x,y){return (x-CX)**2+(y-CY)**2<(R-16)**2;}
+function territoryLoops(v){
+ // Convert a filled grid into connected directed contour loops; diagonal contacts
+ // are disambiguated clockwise so separate territories never become jagged rectangles.
+ const starts=new Map(),step=N+1;
+ function edge(x,y,tx,ty,dir){
+  const k=x+y*step;let list=starts.get(k);if(!list){list=[];starts.set(k,list);}
+  list.push({x,y,tx,ty,dir,used:false});
+ }
+ for(let y=1;y<N-1;y++)for(let x=1;x<N-1;x++){
+  const k=y*N+x;if(land[k]!==v)continue;
+  if(land[k-N]!==v)edge(x,y,x+1,y,0);
+  if(land[k+1]!==v)edge(x+1,y,x+1,y+1,1);
+  if(land[k+N]!==v)edge(x+1,y+1,x,y+1,2);
+  if(land[k-1]!==v)edge(x,y+1,x,y,3);
+ }
+ const loops=[];
+ for(const list of starts.values())for(const start of list){
+  if(start.used)continue;
+  const points=[],sx=start.x,sy=start.y;let at=start;
+  for(let n=0;n<22000;n++){
+   if(!at||at.used)break;at.used=true;points.push({x:at.x*CELL,y:at.y*CELL});
+   if(at.tx===sx&&at.ty===sy)break;
+   const choices=(starts.get(at.tx+at.ty*step)||[]).filter(a=>!a.used);
+   if(!choices.length)break;
+   const order=[(at.dir+1)&3,at.dir,(at.dir+3)&3,(at.dir+2)&3];
+   at=choices.length===1?choices[0]:(choices.slice().sort((a,b)=>order.indexOf(a.dir)-order.indexOf(b.dir))[0]);
+  }
+  if(points.length>=3)loops.push(points);
+ }
+ return loops;
+}
+function contourPath(ctx,loops,ox=0,oy=0){
+ ctx.beginPath();
+ for(const points of loops){
+  const n=points.length;if(n<3)continue;
+  const last=points[n-1],first=points[0];
+  ctx.moveTo((last.x+first.x)/2+ox,(last.y+first.y)/2+oy);
+  for(let i=0;i<n;i++){
+   const a=points[i],b=points[(i+1)%n];
+   ctx.quadraticCurveTo(a.x+ox,a.y+oy,(a.x+b.x)/2+ox,(a.y+b.y)/2+oy);
+  }
+  ctx.closePath();
+ }
+}
 function updateMap(){
- // Minimap retains a tiny terrain bitmap; on-screen territories use exact world pixels.
+ // Capture physics keeps the accurate occupancy grid. Presentation uses smooth
+ // connected vector contours rather than thousands of low-res circular stamps.
  const data=terrainCtx.createImageData(N,N),buf=data.data,active=new Uint8Array(12);
  for(let k=0;k<SIZE;k++){
   const v=land[k];if(!inArena[k]||!v)continue;
@@ -143,18 +207,19 @@ function updateMap(){
  }
  terrainCtx.putImageData(data,0,0);
  mapCtx.clearRect(0,0,WORLD,WORLD);
- // Union of circle-shaped cells: round, anti-aliased edges with no bitmap upscaling.
- // Radius > half the cell diagonal ensures solid region interiors.
- const rad=CELL*.74,tau=Math.PI*2;
+ mapCtx.lineJoin='round';mapCtx.lineCap='round';
  for(let v=1;v<=12;v++){
   if(!active[v-1])continue;
-  mapCtx.beginPath();mapCtx.fillStyle=COLORS[(v-1+settingColor)%12];
-  for(let k=0;k<SIZE;k++){
-   if(land[k]!==v)continue;
-   const x=((k%N)+.5)*CELL,y=(((k/N)|0)+.5)*CELL;
-   mapCtx.moveTo(x+rad,y);mapCtx.arc(x,y,rad,0,tau);
-  }
-  mapCtx.fill();
+  const loops=territoryLoops(v);if(!loops.length)continue;
+  const rgb=colorToRGB(COLORS[(v-1+settingColor)%12]);
+  contourPath(mapCtx,loops,0,7);
+  mapCtx.fillStyle='rgba('+Math.floor(rgb[0]*.77)+','+Math.floor(rgb[1]*.77)+','+Math.floor(rgb[2]*.77)+',1)';
+  mapCtx.fill('evenodd');
+  contourPath(mapCtx,loops);
+  mapCtx.fillStyle=COLORS[(v-1+settingColor)%12];mapCtx.fill('evenodd');
+  mapCtx.strokeStyle='rgba(34,67,71,.22)';mapCtx.lineWidth=1.5;mapCtx.stroke();
+  contourPath(mapCtx,loops,0,-1.7);
+  mapCtx.strokeStyle='rgba(255,255,255,.12)';mapCtx.lineWidth=2;mapCtx.stroke();
  }
 }
 function burstAt(x,y,color,count=16,strength=85){
@@ -345,13 +410,13 @@ function showHud(){
  $('boostfill').style.width=boost+'%';$('boostnumber').textContent=boost+'%';
  if(boost>80)$('boostline').classList.add('active');else $('boostline').classList.remove('active');
  const ownRank=game.ordered.findIndex(q=>q.id===0);
- const arr=ownRank>=4?[...game.ordered.slice(0,3),game.people[0]]:game.ordered.slice(0,4);
- $('rank').innerHTML=arr.map((q,i)=>'<div class="rankrow" style="border-left:4px solid '+COLORS[(q.id+settingColor)%12]+';'+(q.id===0?'background:#d7fff5;':'')+'"><span>'+(q.id===0?ownRank+1:game.ordered.indexOf(q)+1)+'. '+safe(q.name)+'</span><b>'+q.score.toFixed(1)+'%</b></div>').join('');
+ const arr=ownRank>=3?[...game.ordered.slice(0,2),game.people[0]]:game.ordered.slice(0,3);
+ $('rank').innerHTML=arr.map((q,i)=>'<div class="rankrow" style="background:'+COLORS[(q.id+settingColor)%12]+'b8;"><span>'+(q.id===0?ownRank+1:game.ordered.indexOf(q)+1)+'. '+safe(q.name)+'</span><b>'+q.score.toFixed(1)+'%</b></div>').join('');
  drawMini();
 }
 function safe(s){return s.replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function drawMini(){
- const w=182;mc.clearRect(0,0,w,w);mc.fillStyle='#eafbf6';mc.beginPath();mc.arc(w/2,w/2,89,0,Math.PI*2);mc.fill();mc.save();mc.beginPath();mc.arc(91,91,88,0,7);mc.clip();
+ const w=182;mc.clearRect(0,0,w,w);mc.fillStyle='#eafff3';mc.beginPath();mc.arc(w/2,w/2,89,0,Math.PI*2);mc.fill();mc.save();mc.beginPath();mc.arc(91,91,88,0,7);mc.clip();
  const img=terrainCanvas;mc.imageSmoothingEnabled=true;mc.drawImage(img,0,0,w,w);
  const player=game.people[0],closest=game.people.filter(p=>p.id!==0&&p.alive).sort((a,b)=>dist(a,player)-dist(b,player)).slice(0,4);
  for(const p of closest){mc.fillStyle='#ffffff';mc.strokeStyle=COLORS[(p.id+settingColor)%12];mc.lineWidth=2.2;mc.beginPath();mc.arc(p.x/WORLD*w,p.y/WORLD*w,3.8,0,7);mc.fill();mc.stroke();}
@@ -366,47 +431,44 @@ function drawUnit(p){
  if(p.outside&&p.trailPoints.length){
   c.beginPath();c.moveTo(p.trailPoints[0].x,p.trailPoints[0].y);
   for(let i=1;i<p.trailPoints.length;i++)c.lineTo(p.trailPoints[i].x,p.trailPoints[i].y);
-  c.lineTo(p.x,p.y);c.lineCap='round';c.lineJoin='round';c.strokeStyle=col;c.lineWidth=20;c.stroke();
-  c.lineWidth=3;c.strokeStyle='#ffffff38';c.stroke();
+  c.lineTo(p.x,p.y);
+  c.lineCap='round';c.lineJoin='round';
+  c.save();c.translate(0,3.6);c.strokeStyle='rgba(21,69,65,.20)';c.lineWidth=14.5;c.stroke();c.restore();
+  c.strokeStyle=col;c.lineWidth=14;c.stroke();
  }
+ // Compact toy-like block with hard edges and a restrained 3D extrusion.
  c.save();c.translate(p.x,p.y);c.rotate(p.angle+Math.PI/2);
- c.fillStyle='#4b746744';c.beginPath();c.ellipse(3,13,16,9,0,0,Math.PI*2);c.fill();
- c.fillStyle=col;c.strokeStyle='#ffffffec';c.lineWidth=2;
- c.beginPath();c.roundRect(-13,-13,26,26,5);c.fill();c.stroke();
- c.fillStyle='#ffffff65';c.beginPath();c.roundRect(-10,-10,20,9,3);c.fill();
- c.strokeStyle='#ffffffb3';c.lineWidth=1.3;c.beginPath();c.moveTo(-9,10);c.lineTo(9,10);c.stroke();
+ c.fillStyle='rgba(18,62,59,.15)';c.beginPath();c.ellipse(3,11,12,6,0,0,Math.PI*2);c.fill();
+ c.fillStyle='rgba(32,70,73,.27)';c.beginPath();c.roundRect(-9,-5,19,19,3);c.fill();
+ c.fillStyle=col;c.beginPath();c.roundRect(-10,-12,20,20,2.7);c.fill();
+ c.strokeStyle='rgba(255,255,255,.55)';c.lineWidth=1.2;c.stroke();
+ c.fillStyle='rgba(255,255,255,.22)';c.beginPath();c.moveTo(-8,-9);c.lineTo(8,-9);c.lineTo(7,-5);c.lineTo(-7,-5);c.closePath();c.fill();
  const skin=p.id===0?selectedSkin:0;
- if(skin===1){ // An original fox-inspired rounded-square skin
-  c.fillStyle=col;c.strokeStyle='#ffffff';c.lineWidth=2;
-  c.beginPath();c.moveTo(-11,-9);c.lineTo(-13,-22);c.lineTo(-3,-13);c.lineTo(3,-13);c.lineTo(13,-22);c.lineTo(11,-9);c.closePath();c.fill();c.stroke();
- }
- if(skin===2){c.fillStyle='#fff9ab';c.beginPath();for(let j=0;j<10;j++){let a=-Math.PI/2+j*Math.PI/5,r=j%2?7:13;c.lineTo(Math.cos(a)*r,Math.sin(a)*r);}c.closePath();c.fill();}
- if(skin===3){c.fillStyle='#fff2a8';c.beginPath();c.moveTo(-7,-5);c.lineTo(-4,4);c.lineTo(2,4);c.lineTo(5,-5);c.closePath();c.fill();}
- if(skin!==2){c.fillStyle='#ffffff';c.beginPath();c.arc(-5,-2,3.3,0,7);c.arc(5,-2,3.3,0,7);c.fill();
- c.fillStyle='#325369';c.beginPath();c.arc(-4.4,-2,1.4,0,7);c.arc(5.6,-2,1.4,0,7);c.fill();}
- if(p.id===0&&clock<p.boostUntil){c.strokeStyle='#ffb94a';c.lineWidth=3;c.strokeRect(-18,-18,36,36);}
+ if(skin===1){c.fillStyle='#ffffffcc';c.beginPath();c.moveTo(-7,-9);c.lineTo(-9,-14);c.lineTo(-2,-11);c.moveTo(7,-9);c.lineTo(9,-14);c.lineTo(2,-11);c.fill();}
+ if(skin===2){c.fillStyle='#fff0a7';c.beginPath();for(let j=0;j<10;j++){let a=-Math.PI/2+j*Math.PI/5,r=j%2?3.7:6.5;c.lineTo(Math.cos(a)*r,Math.sin(a)*r);}c.closePath();c.fill();}
+ if(skin===3){c.fillStyle='#fff2b0';c.fillRect(-3.5,-5,7,10);}
+ if(p.id===0&&clock<p.boostUntil){c.strokeStyle='#ffcf51';c.lineWidth=2;c.beginPath();c.roundRect(-12,-14,24,24,4);c.stroke();}
  c.restore();
- if(p.id!==0){c.fillStyle='#42635d';c.font='bold 13px system-ui';c.textAlign='center';c.fillText(p.name,p.x,p.y-24);}
- else {c.fillStyle='#277c85';c.font='900 14px system-ui';c.textAlign='center';c.fillText(p.name,p.x,p.y-27);}
+ c.fillStyle='rgba(38,73,75,.77)';c.font='600 12px system-ui';c.textAlign='center';c.fillText(p.name,p.x,p.y-19);
 }
 function render(){
  c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,screenW,screenH);
- c.fillStyle='#b8f5e9';c.fillRect(0,0,screenW,screenH);
+ c.fillStyle='#79e4df';c.fillRect(0,0,screenW,screenH);
  if(!game)return;
  const ref=Math.min(screenW,screenH*0.75);
- zoom=clamp(ref/430,.7,1.28);
+ zoom=clamp(ref/520,.68,1.12);
  c.save();c.translate(screenW/2,screenH/2);c.scale(zoom,zoom);c.translate(-camX,-camY);
  // Ocean and map boundary, matching the soft arcade look.
- c.save();c.shadowColor='#458b8170';c.shadowBlur=24;c.fillStyle='#effff7';c.beginPath();c.arc(CX,CY,R+4,0,7);c.fill();c.restore();
+ c.fillStyle='#eafff3';c.beginPath();c.arc(CX,CY,R+4,0,7);c.fill();
  c.save();c.beginPath();c.arc(CX,CY,R,0,7);c.clip();
  c.drawImage(mapCanvas,0,0,WORLD,WORLD);
- // Very faint dots add surface texture without obscuring the territory.
- c.fillStyle='#62ae9a12';const dotStep=84;
+ // Reference uses a quiet clean mint floor: keep a nearly invisible grid.
+ c.fillStyle='#72b9ad09';const dotStep=108;
  const minX=Math.max(0,Math.floor((camX-screenW/zoom)/dotStep)),maxX=Math.min(40,Math.ceil((camX+screenW/zoom)/dotStep));
  const minY=Math.max(0,Math.floor((camY-screenH/zoom)/dotStep)),maxY=Math.min(40,Math.ceil((camY+screenH/zoom)/dotStep));
  for(let dx=minX;dx<=maxX;dx++)for(let dy=minY;dy<=maxY;dy++){c.beginPath();c.arc(dx*dotStep,dy*dotStep,1.25,0,7);c.fill();}
  c.restore();
- c.strokeStyle='#68b9b39c';c.lineWidth=5;c.beginPath();c.arc(CX,CY,R+2,0,7);c.stroke();
+ c.strokeStyle='#4caca666';c.lineWidth=3;c.beginPath();c.arc(CX,CY,R+2,0,7);c.stroke();
  drawEffects();
  for(let i=1;i<game.people.length;i++)drawUnit(game.people[i]);
  drawUnit(game.people[0]);c.restore();
