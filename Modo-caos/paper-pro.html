@@ -120,14 +120,57 @@ input[type=text]:focus{border-color:#42bcca}
 #mini{opacity:.7;width:60px;height:60px;right:14px;bottom:max(15px,env(safe-area-inset-bottom))}
 #controls{opacity:.3!important}
 @media(max-width:390px){.score{width:112px}.score .num{font-size:27px}#rank{min-width:88px}.rankrow{font-size:9px}}
+
+/* 2026-10-27 Arcade 2.5D reference pass. Prior HUD style intentionally overridden. */
+#hud{font-family:system-ui,-apple-system,Arial,sans-serif}
+#progressRail{position:absolute;left:7.5%;right:7.5%;height:28px;top:max(42px,env(safe-area-inset-top) + 29px);border:2.4px solid #1241a2;border-radius:12px;background:#6652cd;box-shadow:0 2px 0 #143b95,0 5px 0 #192f8c36;z-index:3}
+.railTrack{position:absolute;inset:0;overflow:hidden;border-radius:9px;background:linear-gradient(180deg,#7e70e4,#6258c7)}
+#railFill{width:0%;height:100%;background:linear-gradient(180deg,#b3f152,#7acc28);border-right:2px solid #f6ffdc;transition:width .3s}
+.railProgress{position:absolute;left:9px;top:1px;color:#fff;font-size:15px;font-weight:1000;text-shadow:-1.5px -1.5px #11319a,1.5px -1.5px #11319a,-1.5px 1.5px #11319a,1.5px 1.5px #11319a}
+.milestone{width:31px;height:31px;position:absolute;top:-19px;background:#ffe65e;border:3px solid #fff;border-radius:50%;outline:2px solid #153da7;box-shadow:0 2px 0 #4352a1;display:grid;place-items:center;color:#e68b08;font-size:21px;font-weight:1000}
+.milestone.m1{left:5%}.milestone.m2{left:27%}.milestone.m3{left:47%;background:#e9b5ff;color:#a43ad1;border-radius:8px;transform:rotate(45deg)}
+.milestone.m3 span{transform:rotate(-45deg)}.milestone.m4{right:-13px;top:-15px;width:36px;height:36px;color:#fbbd00;background:#fcf5ff;font-size:26px}
+#recordPointer{position:absolute;left:53%;top:25px;text-align:center;transform:translateX(-50%);color:#ffe449;text-shadow:-1px -1px #103eb3,1px 1px #103eb3,-1px 1px #103eb3,1px -1px #103eb3;display:grid;justify-items:center;font-weight:1000;font-size:10px;letter-spacing:.4px}
+#recordPointer span{font-size:14px;line-height:12px}
+#hud .top{top:max(99px,env(safe-area-inset-top) + 83px);left:10px;display:block}
+#hud .score{position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none}
+#hud #kills{padding:0;width:91px;height:37px;background:#fffffff2;border:1px solid #b1c6e8;border-radius:19px;box-shadow:0 2px 0 #b8c0d8,0 4px 10px #1d59a41a;display:flex;align-items:center;justify-content:space-between;gap:5px;color:#1235a2;font-size:15px}
+.killIcon{display:grid;place-items:center;width:42px;height:42px;margin-left:-4px;color:#14339a;background:#fff;border:3px solid #1d43b2;border-radius:50%;font-size:27px;line-height:1;text-shadow:1px 2px #bdd3ff}
+#hud #kills b{font-weight:1000;min-width:24px;padding-right:10px;text-align:center}
+#hud #rank{top:max(99px,env(safe-area-inset-top) + 83px);right:0;min-width:0;max-width:none;width:148px;gap:6px;filter:none;opacity:1}
+#rank .rankrow{border:2px solid #fff!important;background:#eff6ff!important;border-right:0!important;border-radius:10px 0 0 10px;min-height:38px;max-height:38px;display:flex;align-items:center;justify-content:space-between;position:relative;color:#fff;font-weight:1000;font-size:16px;padding:0 8px 0 24px;box-shadow:0 1px 0 #162f9863,0 3px 9px #3b76c327;opacity:1}
+#rank .rankrow:before{content:"";position:absolute;inset:0 0 0 17px;background:var(--rcolor);border-radius:0;z-index:0}
+#rank .rankrow>*{position:relative;z-index:1}
+#rank .rankrow b{text-align:right;flex:none;color:#fff;font-size:13px;letter-spacing:-.5px;white-space:nowrap;text-shadow:-1px -1px #113ca2,1px -1px #113ca2,1px 1px #113ca2,-1px 1px #113ca2}
+#rank .rankrow span:not(.rankAvatar){display:none}
+#rank .rankrow .rankAvatar{position:absolute;left:-1px;top:-3px;width:43px;height:43px;border-radius:10px;border:2.6px solid #1442b2;background:var(--rcolor);box-shadow:inset 0 0 0 2px #fff,1px 3px #1e54a544;display:grid;place-items:center;font-size:22px;color:#fff;text-shadow:1px 2px #2247aa;z-index:2}
+#rank .rankrow .rankPlace{position:absolute;left:-5px;bottom:-7px;color:#ffe65e;font-size:14px;-webkit-text-stroke:.8px #1443a5;z-index:3}
+#rank .rankrow.isMe{outline:2px solid #d8fd4d;outline-offset:0}
+#rank .rankrow .rankName{margin-left:24px;margin-right:3px;font-size:10px;font-weight:850;color:#fff;overflow:hidden;text-overflow:ellipsis;max-width:42px;white-space:nowrap;text-shadow:0 1px 1px #213a8eaa}
+#hud #mini{left:15px;right:auto;bottom:max(38px,env(safe-area-inset-bottom) + 16px);width:112px;height:104px;border:0;border-radius:0;box-shadow:none;background:transparent;opacity:1}
+#hud #pause{left:auto;right:13px;bottom:max(19px,env(safe-area-inset-bottom) + 8px);width:37px;height:37px;background:#ffffffc6;color:#173c9c;border:2px solid #3561b1;box-shadow:0 2px #3561b17a;font-weight:900}
+#hud #controls{left:50%;transform:translateX(-50%);bottom:max(16px,env(safe-area-inset-bottom) + 5px);font-size:10px;color:#4c7c79;opacity:.46!important;white-space:nowrap}
+#hud #msg{text-shadow:2px 3px #143f9a,-2px -1px #143f9a,0 0 13px #eaf0f7;top:35%;color:#ffed42}
+@media(max-width:390px){#hud #rank{width:134px}#rank .rankrow{min-height:35px;max-height:35px;font-size:13px}#rank .rankrow .rankAvatar{width:39px;height:39px}#rank .rankrow .rankName{margin-left:18px;max-width:33px}#rank .rankrow b{font-size:12px}#progressRail{left:6%;right:6%}}
+@media(max-height:680px){#progressRail{top:max(31px,env(safe-area-inset-top) + 20px)}#hud .top,#hud #rank{top:max(83px,env(safe-area-inset-top) + 69px)}#hud #rank{gap:3px}#rank .rankrow{min-height:33px;max-height:33px}#rank .rankrow .rankAvatar{width:36px;height:36px}}
 </style>
 </head>
 <body>
 <canvas id="game" aria-label="Juego de conquista de territorio"></canvas>
 <div id="hud">
- <div class="top"><div class="score"><small>ÁREA CONQUISTADA</small><div class="num" id="percent">0.0%</div><div class="best-live">BEST <b id="bestCurrent">0.0%</b></div><div class="progress"><i id="bar"></i></div><div id="boostline"><span>EXTRA SPEED</span><b id="boostnumber">0%</b></div><div id="boostbar"><i id="boostfill"></i></div></div><div id="kills">× 0</div></div>
+ <div id="progressRail" aria-label="Progreso de conquista">
+  <div class="railTrack"><div id="railFill"></div></div>
+  <div class="railProgress" id="railPercent">0.0%</div>
+  <div class="milestone m1"><span>◎</span></div><div class="milestone m2"><span>◎</span></div>
+  <div class="milestone m3"><span>⬡</span></div><div class="milestone m4"><span>★</span></div>
+  <div id="recordPointer"><span>▲</span><b>MEJOR</b></div>
+ </div>
+ <div class="top">
+   <div class="score"><small>ÁREA CONQUISTADA</small><div class="num" id="percent">0.0%</div><div class="best-live">BEST <b id="bestCurrent">0.0%</b></div><div class="progress"><i id="bar"></i></div><div id="boostline"><span>EXTRA SPEED</span><b id="boostnumber">0%</b></div><div id="boostbar"><i id="boostfill"></i></div></div>
+   <div id="kills"><span class="killIcon">☠</span><b id="killCount">0</b></div>
+ </div>
  <div id="rank"></div><canvas id="mini" width="182" height="182"></canvas><button id="pause" aria-label="Pausar partida">Ⅱ</button><div id="msg"></div>
- <div id="controls">ARRASTRÁ PARA GIRAR · CERRÁ CIRCUITOS</div>
+ <div id="controls">ARRASTRÁ PARA DIRIGIR</div>
 </div>
 <section id="home" class="overlay"><div class="panel">
  <div class="brand">MODO CAOS · ARCADE ORIGINAL</div><h1>TERRITORY <em>LOOP</em></h1>
@@ -233,7 +276,24 @@ function updateMap(){
   mapCtx.fill('evenodd');
   contourPath(mapCtx,loops);
   mapCtx.fillStyle=COLORS[(v-1+settingColor)%12];mapCtx.fill('evenodd');
-  mapCtx.strokeStyle='rgba(34,67,71,.22)';mapCtx.lineWidth=1.5;mapCtx.stroke();
+  // Intricate but subtle procedural motif, clipped inside owned territory.
+  // No copyrighted sprite sheets, no image downloads, no noisy background.
+  mapCtx.save();contourPath(mapCtx,loops);mapCtx.clip('evenodd');
+  mapCtx.strokeStyle='rgba(255,255,255,.20)';mapCtx.fillStyle='rgba(255,255,255,.20)';
+  for(let gy=92;gy<WORLD;gy+=172)for(let gx=85;gx<WORLD;gx+=178){
+   const ix=idx(gx,gy);if(ix<0||land[ix]!==v)continue;
+   const twist=(v*29+gx*3+gy)%7,rad=18+twist*2;
+   mapCtx.lineWidth=2.3;mapCtx.beginPath();mapCtx.arc(gx,gy,rad,.35,5.1);mapCtx.stroke();
+   mapCtx.lineWidth=1.4;mapCtx.beginPath();mapCtx.arc(gx,gy,rad*.63,0,Math.PI*1.7);mapCtx.stroke();
+   mapCtx.beginPath();mapCtx.roundRect(gx-9,gy-9,18,18,5);mapCtx.stroke();
+   for(let j=0;j<4;j++){
+    const a=j*Math.PI/2+twist*.14;
+    const nx=gx+Math.cos(a)*(rad+10),ny=gy+Math.sin(a)*(rad+10);
+    mapCtx.beginPath();mapCtx.arc(nx,ny,2.8,0,Math.PI*2);mapCtx.fill();
+   }
+  }
+  mapCtx.restore();
+  contourPath(mapCtx,loops);mapCtx.strokeStyle='rgba(23,57,107,.25)';mapCtx.lineWidth=2.1;mapCtx.stroke();
   contourPath(mapCtx,loops,0,-1.7);
   mapCtx.strokeStyle='rgba(255,255,255,.12)';mapCtx.lineWidth=2;mapCtx.stroke();
  }
@@ -422,66 +482,118 @@ function step(dt){
 function showHud(){
  const p=game.people[0],v=p.score.toFixed(1);
  $('bestCurrent').textContent=Math.max(readBest(),game.record,p.score).toFixed(1)+'%';
- $('percent').textContent=v+'%';$('bar').style.width=clamp(p.score,0,100)+'%';$('kills').textContent='× '+Math.max(1,game.kills+1);
+ $('percent').textContent=v+'%';$('railPercent').textContent=v+'%';$('railFill').style.width=clamp(p.score,0,100)+'%';$('bar').style.width=clamp(p.score,0,100)+'%';$('killCount').textContent=game.kills;
  const boost=Math.round(100*(clock<p.boostUntil?1:p.edgeCharge));
  $('boostfill').style.width=boost+'%';$('boostnumber').textContent=boost+'%';
  if(boost>80)$('boostline').classList.add('active');else $('boostline').classList.remove('active');
  const ownRank=game.ordered.findIndex(q=>q.id===0);
- const arr=ownRank>=3?[...game.ordered.slice(0,2),game.people[0]]:game.ordered.slice(0,3);
- $('rank').innerHTML=arr.map((q,i)=>'<div class="rankrow" style="background:'+COLORS[(q.id+settingColor)%12]+'b8;"><span>'+(q.id===0?ownRank+1:game.ordered.indexOf(q)+1)+'. '+safe(q.name)+'</span><b>'+q.score.toFixed(1)+'%</b></div>').join('');
+ const arr=ownRank>=3?[...game.ordered.slice(0,3),game.people[0]]:game.ordered.slice(0,4);
+ const glyph=['✧','◆','◉','✦','⬢','✸','⬟','●','✪','✧','▣','☀'];
+ $('rank').innerHTML=arr.map((q)=>'<div class="rankrow '+(q.id===0?'isMe':'')+'" style="--rcolor:'+COLORS[(q.id+settingColor)%12]+'"><span class="rankAvatar">'+glyph[q.id]+'</span><span class="rankPlace">'+(game.ordered.indexOf(q)+1)+'</span><span class="rankName">'+safe(q.name)+'</span><b>'+q.score.toFixed(2)+'%</b></div>').join('');
+ const best=Math.max(readBest(),game.record,p.score);
+ $('recordPointer').style.left=clamp(best,8,92)+'%';
  drawMini();
 }
 function safe(s){return s.replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function drawMini(){
- const w=182;mc.clearRect(0,0,w,w);mc.fillStyle='#eafff3';mc.beginPath();mc.arc(w/2,w/2,89,0,Math.PI*2);mc.fill();mc.save();mc.beginPath();mc.arc(91,91,88,0,7);mc.clip();
- const img=terrainCanvas;mc.imageSmoothingEnabled=true;mc.drawImage(img,0,0,w,w);
- const player=game.people[0],closest=game.people.filter(p=>p.id!==0&&p.alive).sort((a,b)=>dist(a,player)-dist(b,player)).slice(0,4);
- for(const p of closest){mc.fillStyle='#ffffff';mc.strokeStyle=COLORS[(p.id+settingColor)%12];mc.lineWidth=2.2;mc.beginPath();mc.arc(p.x/WORLD*w,p.y/WORLD*w,3.8,0,7);mc.fill();mc.stroke();}
- const mx=player.x/WORLD*w,my=player.y/WORLD*w;
- mc.save();mc.translate(mx,my);mc.rotate(player.angle+Math.PI/2);mc.fillStyle='#ffffff';mc.strokeStyle='#146f8b';mc.lineWidth=2.5;
- mc.beginPath();mc.moveTo(0,-9);mc.lineTo(6,6);mc.lineTo(-6,6);mc.closePath();mc.fill();mc.stroke();mc.restore();
- mc.restore();mc.strokeStyle='#ffffff';mc.lineWidth=5;mc.beginPath();mc.arc(91,91,87,0,7);mc.stroke();
+ const w=182;mc.clearRect(0,0,w,w);mc.save();
+ // A clean blue contour over the actual arena; the minimap has no opaque plate.
+ mc.strokeStyle='#1646b1';mc.lineWidth=4.2;mc.lineJoin='round';mc.beginPath();
+ for(let i=0;i<=96;i++){
+  const a=i/96*Math.PI*2,r=79+Math.sin(a*7)*2.4+Math.cos(a*12)*1.3;
+  const x=91+Math.cos(a)*r,y=91+Math.sin(a)*r;
+  if(i===0)mc.moveTo(x,y);else mc.lineTo(x,y);
+ }
+ mc.closePath();mc.stroke();
+ mc.save();mc.beginPath();mc.arc(91,91,78,0,7);mc.clip();
+ mc.globalAlpha=.91;mc.imageSmoothingEnabled=true;
+ mc.drawImage(terrainCanvas,9,9,164,164);mc.globalAlpha=1;
+ for(const p of game.people){
+  if(!p.alive||p.id===0)continue;
+  const x=9+p.x/WORLD*164,y=9+p.y/WORLD*164;
+  mc.fillStyle=COLORS[(p.id+settingColor)%12];mc.strokeStyle='#1740a6';mc.lineWidth=1.2;
+  mc.beginPath();mc.arc(x,y,4.3,0,7);mc.fill();mc.stroke();
+ }
+ const player=game.people[0],mx=9+player.x/WORLD*164,my=9+player.y/WORLD*164;
+ mc.translate(mx,my);mc.rotate(player.angle+Math.PI/2);
+ mc.fillStyle='#fff';mc.strokeStyle='#1640b0';mc.lineWidth=3;
+ mc.beginPath();mc.moveTo(0,-10);mc.lineTo(7,8);mc.lineTo(-7,8);mc.closePath();mc.fill();mc.stroke();
+ mc.restore();mc.restore();
 }
 function drawUnit(p){
  if(!p.alive)return;
  const col=COLORS[(p.id+settingColor)%12];
  if(p.outside&&p.trailPoints.length){
+  // Raised, neon-rimmed ribbons: visually continuous even through a sharp turn.
   c.beginPath();c.moveTo(p.trailPoints[0].x,p.trailPoints[0].y);
   for(let i=1;i<p.trailPoints.length;i++)c.lineTo(p.trailPoints[i].x,p.trailPoints[i].y);
   c.lineTo(p.x,p.y);
   c.lineCap='round';c.lineJoin='round';
-  c.save();c.translate(0,3.6);c.strokeStyle='rgba(21,69,65,.20)';c.lineWidth=14.5;c.stroke();c.restore();
-  c.strokeStyle=col;c.lineWidth=14;c.stroke();
+  c.save();c.translate(0,5);c.strokeStyle='rgba(21,52,94,.22)';c.lineWidth=16.5;c.stroke();c.restore();
+  c.strokeStyle='#2448b5';c.lineWidth=17;c.stroke();
+  c.strokeStyle=col;c.lineWidth=12.5;c.stroke();
+  c.strokeStyle='#ffffffb5';c.lineWidth=2.0;c.stroke();
  }
- // Compact toy-like block with hard edges and a restrained 3D extrusion.
+ const theme=p.id===0?selectedSkin:p.id%4;
+ const pulse=1+Math.sin(clock*6+p.id)*.06;
  c.save();c.translate(p.x,p.y);c.rotate(p.angle+Math.PI/2);
- c.fillStyle='rgba(18,62,59,.15)';c.beginPath();c.ellipse(3,11,12,6,0,0,Math.PI*2);c.fill();
- c.fillStyle='rgba(32,70,73,.27)';c.beginPath();c.roundRect(-9,-5,19,19,3);c.fill();
- c.fillStyle=col;c.beginPath();c.roundRect(-10,-12,20,20,2.7);c.fill();
- c.strokeStyle='rgba(255,255,255,.55)';c.lineWidth=1.2;c.stroke();
- c.fillStyle='rgba(255,255,255,.22)';c.beginPath();c.moveTo(-8,-9);c.lineTo(8,-9);c.lineTo(7,-5);c.lineTo(-7,-5);c.closePath();c.fill();
- const skin=p.id===0?selectedSkin:0;
- if(skin===1){c.fillStyle='#ffffffcc';c.beginPath();c.moveTo(-7,-9);c.lineTo(-9,-14);c.lineTo(-2,-11);c.moveTo(7,-9);c.lineTo(9,-14);c.lineTo(2,-11);c.fill();}
- if(skin===2){c.fillStyle='#fff0a7';c.beginPath();for(let j=0;j<10;j++){let a=-Math.PI/2+j*Math.PI/5,r=j%2?3.7:6.5;c.lineTo(Math.cos(a)*r,Math.sin(a)*r);}c.closePath();c.fill();}
- if(skin===3){c.fillStyle='#fff2b0';c.fillRect(-3.5,-5,7,10);}
- if(p.id===0&&clock<p.boostUntil){c.strokeStyle='#ffcf51';c.lineWidth=2;c.beginPath();c.roundRect(-12,-14,24,24,4);c.stroke();}
+ c.fillStyle='rgba(21,52,67,.19)';c.beginPath();c.ellipse(3,13,19,10,0,0,Math.PI*2);c.fill();
+ // Six-point lens flare: drawn beneath the hero, not as a screen overlay.
+ if(p.id===0){c.globalAlpha=.28+.14*Math.sin(clock*5);c.strokeStyle=col;c.lineWidth=2.3;c.beginPath();c.arc(0,0,18*pulse,0,Math.PI*2);c.stroke();c.globalAlpha=1;}
+ // Extruded underside and cobalt outer frame.
+ c.fillStyle='#1c3777';c.beginPath();c.roundRect(-14,-10,28,30,5);c.fill();
+ c.fillStyle='#eef8ff';c.beginPath();c.roundRect(-15,-15,30,29,6);c.fill();
+ c.fillStyle='#1837b0';c.beginPath();c.roundRect(-13,-13,26,25,4.6);c.fill();
+ c.fillStyle=col;c.beginPath();c.roundRect(-10.5,-10.5,21,20,3.3);c.fill();
+ // Metallic roof bevel and four gold hardware caps.
+ c.fillStyle='rgba(255,255,255,.70)';c.beginPath();c.moveTo(-9,-9);c.lineTo(9,-9);c.lineTo(6,-5);c.lineTo(-6,-5);c.closePath();c.fill();
+ c.fillStyle='#f9dc64';c.strokeStyle='#fffaaf';c.lineWidth=.65;
+ for(const xx of [-10,10])for(const yy of [-10,9]){c.beginPath();c.roundRect(xx-2.5,yy-2.5,5,5,1);c.fill();c.stroke();}
+ // Individual skins are original geometric machines, not copied character art.
+ if(theme===0){
+  c.fillStyle='#c4ff77';c.beginPath();c.roundRect(-7,-6,14,14,3);c.fill();
+  c.strokeStyle='#2a9c6c';c.lineWidth=1.6;c.stroke();
+  c.fillStyle='#5aca38';c.beginPath();c.arc(0,0,4.4,0,Math.PI*2);c.fill();
+  c.fillStyle='#ffffffeb';c.beginPath();c.arc(-1.5,-1.8,1.5,0,Math.PI*2);c.fill();
+  c.fillStyle='#fe72bd';c.fillRect(-9,-3,2.4,5);c.fillRect(7,-3,2.4,5);
+ }else if(theme===1){
+  c.fillStyle='#fff7bb';c.beginPath();c.roundRect(-8,-7,16,15,5);c.fill();
+  c.fillStyle='#2453cb';c.beginPath();c.arc(-3.2,-1,2.2,0,7);c.arc(3.2,-1,2.2,0,7);c.fill();
+  c.strokeStyle='#f2a545';c.lineWidth=1.5;c.beginPath();c.arc(0,2,4,-.2,Math.PI+.2);c.stroke();
+ }else if(theme===2){
+  c.fillStyle='#ffdb74';c.beginPath();c.moveTo(0,-9);c.lineTo(7,-2);c.lineTo(3,8);c.lineTo(-6,2);c.closePath();c.fill();
+  c.fillStyle='#f7ffff';c.beginPath();c.arc(0,0,3.5,0,7);c.fill();
+ }else{
+  c.fillStyle='#e0f9ff';c.beginPath();c.arc(0,0,8,0,7);c.fill();
+  c.strokeStyle='#39a4ff';c.lineWidth=2.2;c.stroke();
+  c.fillStyle='#1d69a1';c.fillRect(-4,-2,8,4);
+ }
+ // Side stabilizers and rear jet on the player's craft.
+ if(p.id===0){
+  c.fillStyle='#f4ffff';c.strokeStyle='#5ca8de';c.lineWidth=1.4;
+  for(const xx of [-1,1]){c.save();c.scale(xx,1);c.beginPath();c.moveTo(12,-7);c.lineTo(17,-3);c.lineTo(17,7);c.lineTo(12,9);c.closePath();c.fill();c.stroke();c.restore();}
+  c.fillStyle='#ffe768';c.beginPath();c.moveTo(-5,16);c.lineTo(0,21);c.lineTo(5,16);c.closePath();c.fill();
+ }
+ if(p.id===0&&clock<p.boostUntil){c.strokeStyle='#fff1a6';c.lineWidth=2;c.beginPath();c.roundRect(-18,-18,36,35,6);c.stroke();}
  c.restore();
- c.fillStyle='rgba(51,78,74,.73)';c.font='600 10px system-ui';c.textAlign='center';c.fillText(p.name,p.x,p.y-20);
+ // Text stays readable without putting a huge comic heading over the actor.
+ c.font='900 14px system-ui';c.textAlign='center';c.lineWidth=3.6;c.strokeStyle='#153da7';
+ c.strokeText(p.name,p.x,p.y-28);c.fillStyle='#fff';c.fillText(p.name,p.x,p.y-28);
 }
 function render(){
  c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,screenW,screenH);
- c.fillStyle='#e6efeb';c.fillRect(0,0,screenW,screenH);
+ c.fillStyle='#e5fff4';c.fillRect(0,0,screenW,screenH);
  if(!game)return;
  const ref=Math.min(screenW,screenH*0.75);
  zoom=clamp(ref/520,.68,1.12);
  c.save();c.translate(screenW/2,screenH/2);c.scale(zoom,zoom);c.translate(-camX,-camY);
  // Ocean and map boundary, matching the soft arcade look.
- c.fillStyle='#eff8f4';c.beginPath();c.arc(CX,CY,R+4,0,7);c.fill();
+ c.fillStyle='#e5fff4';c.beginPath();c.arc(CX,CY,R+4,0,7);c.fill();
  c.save();c.beginPath();c.arc(CX,CY,R,0,7);c.clip();
  c.drawImage(mapCanvas,0,0,WORLD,WORLD);
- // A barely visible paper-square grid. No decorative dots or glass effects.
+ // Very low-contrast floor markings leave the visual focus on the territories.
  const tileStep=74;
- c.strokeStyle='rgba(97,153,136,0.043)';c.lineWidth=1;
+ c.strokeStyle='rgba(112,164,153,0.014)';c.lineWidth=1;
  const minX=Math.max(0,Math.floor((camX-screenW/zoom)/tileStep)-1),maxX=Math.min(35,Math.ceil((camX+screenW/zoom)/tileStep)+1);
  const minY=Math.max(0,Math.floor((camY-screenH/zoom)/tileStep)-1),maxY=Math.min(35,Math.ceil((camY+screenH/zoom)/tileStep)+1);
  c.beginPath();
