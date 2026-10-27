@@ -220,6 +220,9 @@ input[type=text]:focus{border-color:#42bcca}
 #shop{align-items:flex-start;padding-top:max(10px,env(safe-area-inset-top));padding-bottom:max(10px,env(safe-area-inset-bottom))}
 #shop .panel{margin:auto;flex:none}
 @media(prefers-reduced-motion:reduce){.heroChoice,.shopItem,.shopTab{transition:none!important}}
+
+#hud #emoteButton{position:absolute;right:60px;bottom:max(19px,env(safe-area-inset-bottom) + 8px);pointer-events:auto;width:42px;height:42px;border:2px solid #4a65b9;border-radius:13px;background:linear-gradient(#ffffffef,#d9f4ffdf);box-shadow:0 2px 0 #3257a287,0 3px 10px #234da12a;font-size:22px;cursor:pointer;display:grid;place-items:center}
+#hud #emoteButton:active{transform:translateY(2px);box-shadow:0 1px 0 #3257a287}
 </style>
 </head>
 <body>
@@ -236,7 +239,7 @@ input[type=text]:focus{border-color:#42bcca}
    <div class="score"><small>ÁREA CONQUISTADA</small><div class="num" id="percent">0.0%</div><div class="best-live">BEST <b id="bestCurrent">0.0%</b></div><div class="progress"><i id="bar"></i></div><div id="boostline"><span>EXTRA SPEED</span><b id="boostnumber">0%</b></div><div id="boostbar"><i id="boostfill"></i></div></div>
    <div id="kills"><span class="killIcon">☠</span><b id="killCount">0</b></div>
  </div>
- <div id="rank"></div><div id="rewardToast" aria-live="polite"><span id="rewardIcon">✦</span><div><strong id="rewardTitle">RECOMPENSA</strong><small id="rewardDesc">¡Buen trabajo!</small></div></div><canvas id="mini" width="182" height="182"></canvas><button id="pause" aria-label="Pausar partida">Ⅱ</button><div id="msg"></div>
+ <div id="rank"></div><div id="rewardToast" aria-live="polite"><span id="rewardIcon">✦</span><div><strong id="rewardTitle">RECOMPENSA</strong><small id="rewardDesc">¡Buen trabajo!</small></div></div><canvas id="mini" width="182" height="182"></canvas><button id="pause" aria-label="Pausar partida">Ⅱ</button><button id="emoteButton" aria-label="Hacer gesto de tu personaje">👋</button><div id="msg"></div>
  <div id="controls">ARRASTRÁ PARA DIRIGIR</div>
 </div>
 <section id="home" class="overlay"><div class="panel">
@@ -738,7 +741,7 @@ function step(dt){
 function showHud(){
  const p=game.people[0],v=p.score.toFixed(1);
  $('bestCurrent').textContent=Math.max(readBest(),game.record,p.score).toFixed(1)+'%';
- $('percent').textContent=v+'%';$('railPercent').textContent=v+'%';$('railFill').style.width=clamp(p.score/25*100,0,100)+'%';$('bar').style.width=clamp(p.score,0,100)+'%';$('killCount').textContent=game.kills;
+ $('percent').textContent=v+'%';$('railPercent').textContent=v+'%';$('railFill').style.width=clamp(p.score/25*100,0,100)+'%';$('bar').style.width=clamp(p.score,0,100)+'%';$('killCount').textContent=game.kills;$('emoteButton').textContent=SHOP_ITEMS.find(x=>x.id===wardrobe.equipped.emote)?.icon||'👋';
  const boost=Math.round(100*(clock<p.boostUntil?1:p.edgeCharge));
  $('boostfill').style.width=boost+'%';$('boostnumber').textContent=boost+'%';
  if(boost>80)$('boostline').classList.add('active');else $('boostline').classList.remove('active');
@@ -908,6 +911,7 @@ document.addEventListener('keyup',e=>{keys[e.code]=false;});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='play')pause();});
 $('start').onclick=start;$('again').onclick=start;$('restart').onclick=start;
 $('pause').onclick=pause;$('resume').onclick=resume;
+$('emoteButton').onclick=()=>{if(mode!=='play'||!game||!game.people[0].alive)return;if(clock<emoteUntil)return;emoteFor(game.people[0],'manual');};
 $('leave').onclick=goHome;$('tohome').onclick=goHome;
 $('homeback').onclick=()=>{location.href='https://modo-caos-eta.vercel.app/';};
 $('share').onclick=()=>{const text='¡Conquisté '+game.people[0].score.toFixed(1)+'% en Territory Loop! ¿Me superás? '+location.href;if(navigator.share)navigator.share({title:'Territory Loop',text}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(text).then(()=>popup('ENLACE COPIADO')).catch(()=>{});};
