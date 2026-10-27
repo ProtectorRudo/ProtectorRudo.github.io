@@ -104,12 +104,28 @@ input[type=text]:focus{border-color:#42bcca}
 #pause{width:35px;height:35px;bottom:max(14px,env(safe-area-inset-bottom));left:12px;border-radius:50%;font-size:16px;box-shadow:none;background:#eafff6be}
 #controls{font-size:9px;left:52px;color:#4f9c8d;opacity:.5;bottom:max(24px,env(safe-area-inset-bottom))}
 @media(max-width:370px){#rank{min-width:108px}.rankrow{font-size:10px}.score .num{font-size:25px}}
+/* Paper-style HUD: tiny numerical score, best run and compact multiplier */
+.score{width:130px;padding:0;background:transparent;border:0!important;box-shadow:none}
+.score small{font-size:9px;color:#5d8a80;letter-spacing:.35px;font-weight:850}
+.score .num{font-size:30px;font-weight:950;letter-spacing:-1px;color:#3f726a;text-shadow:none}
+.best-live{font-size:10px;color:#7a9e93;margin-top:-1px;font-weight:900;letter-spacing:.6px}
+.best-live b{color:#548377;margin-left:3px;font-variant-numeric:tabular-nums}
+.progress{display:none}
+#boostline,#boostbar{display:none}
+#boostline.active{display:flex;position:absolute;top:74px;left:12px;width:115px;border-radius:4px;padding:3px 5px;background:#f8dfa1c9;color:#7b5f27}
+#kills{background:transparent;font-size:17px;font-weight:900;color:#547b70;padding:10px 5px 0;box-shadow:none}
+#rank{opacity:.82;right:8px;top:max(11px,env(safe-area-inset-top));max-width:34vw;min-width:94px;gap:3px}
+.rankrow{min-height:21px;font-size:10px;padding:2px 5px;color:#2f5e58;opacity:.82}
+.rankrow b{font-size:10px}
+#mini{opacity:.7;width:60px;height:60px;right:14px;bottom:max(15px,env(safe-area-inset-bottom))}
+#controls{opacity:.3!important}
+@media(max-width:390px){.score{width:112px}.score .num{font-size:27px}#rank{min-width:88px}.rankrow{font-size:9px}}
 </style>
 </head>
 <body>
 <canvas id="game" aria-label="Juego de conquista de territorio"></canvas>
 <div id="hud">
- <div class="top"><div class="score"><small>TERRITORIO</small><div class="num" id="percent">0.0%</div><div class="progress"><i id="bar"></i></div><div id="boostline"><span>VELOCIDAD EXTRA</span><b id="boostnumber">0%</b></div><div id="boostbar"><i id="boostfill"></i></div></div><div id="kills">☠ 0</div></div>
+ <div class="top"><div class="score"><small>ÁREA CONQUISTADA</small><div class="num" id="percent">0.0%</div><div class="best-live">BEST <b id="bestCurrent">0.0%</b></div><div class="progress"><i id="bar"></i></div><div id="boostline"><span>EXTRA SPEED</span><b id="boostnumber">0%</b></div><div id="boostbar"><i id="boostfill"></i></div></div><div id="kills">× 0</div></div>
  <div id="rank"></div><canvas id="mini" width="182" height="182"></canvas><button id="pause" aria-label="Pausar partida">Ⅱ</button><div id="msg"></div>
  <div id="controls">ARRASTRÁ PARA GIRAR · CERRÁ CIRCUITOS</div>
 </div>
@@ -405,7 +421,8 @@ function step(dt){
 }
 function showHud(){
  const p=game.people[0],v=p.score.toFixed(1);
- $('percent').textContent=v+'%';$('bar').style.width=clamp(p.score,0,100)+'%';$('kills').textContent='KO '+game.kills;
+ $('bestCurrent').textContent=Math.max(readBest(),game.record,p.score).toFixed(1)+'%';
+ $('percent').textContent=v+'%';$('bar').style.width=clamp(p.score,0,100)+'%';$('kills').textContent='× '+Math.max(1,game.kills+1);
  const boost=Math.round(100*(clock<p.boostUntil?1:p.edgeCharge));
  $('boostfill').style.width=boost+'%';$('boostnumber').textContent=boost+'%';
  if(boost>80)$('boostline').classList.add('active');else $('boostline').classList.remove('active');
@@ -449,26 +466,30 @@ function drawUnit(p){
  if(skin===3){c.fillStyle='#fff2b0';c.fillRect(-3.5,-5,7,10);}
  if(p.id===0&&clock<p.boostUntil){c.strokeStyle='#ffcf51';c.lineWidth=2;c.beginPath();c.roundRect(-12,-14,24,24,4);c.stroke();}
  c.restore();
- c.fillStyle='rgba(38,73,75,.77)';c.font='600 12px system-ui';c.textAlign='center';c.fillText(p.name,p.x,p.y-19);
+ c.fillStyle='rgba(51,78,74,.73)';c.font='600 10px system-ui';c.textAlign='center';c.fillText(p.name,p.x,p.y-20);
 }
 function render(){
  c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,screenW,screenH);
- c.fillStyle='#79e4df';c.fillRect(0,0,screenW,screenH);
+ c.fillStyle='#e6efeb';c.fillRect(0,0,screenW,screenH);
  if(!game)return;
  const ref=Math.min(screenW,screenH*0.75);
  zoom=clamp(ref/520,.68,1.12);
  c.save();c.translate(screenW/2,screenH/2);c.scale(zoom,zoom);c.translate(-camX,-camY);
  // Ocean and map boundary, matching the soft arcade look.
- c.fillStyle='#eafff3';c.beginPath();c.arc(CX,CY,R+4,0,7);c.fill();
+ c.fillStyle='#eff8f4';c.beginPath();c.arc(CX,CY,R+4,0,7);c.fill();
  c.save();c.beginPath();c.arc(CX,CY,R,0,7);c.clip();
  c.drawImage(mapCanvas,0,0,WORLD,WORLD);
- // Reference uses a quiet clean mint floor: keep a nearly invisible grid.
- c.fillStyle='#72b9ad09';const dotStep=108;
- const minX=Math.max(0,Math.floor((camX-screenW/zoom)/dotStep)),maxX=Math.min(40,Math.ceil((camX+screenW/zoom)/dotStep));
- const minY=Math.max(0,Math.floor((camY-screenH/zoom)/dotStep)),maxY=Math.min(40,Math.ceil((camY+screenH/zoom)/dotStep));
- for(let dx=minX;dx<=maxX;dx++)for(let dy=minY;dy<=maxY;dy++){c.beginPath();c.arc(dx*dotStep,dy*dotStep,1.25,0,7);c.fill();}
+ // A barely visible paper-square grid. No decorative dots or glass effects.
+ const tileStep=74;
+ c.strokeStyle='rgba(97,153,136,0.043)';c.lineWidth=1;
+ const minX=Math.max(0,Math.floor((camX-screenW/zoom)/tileStep)-1),maxX=Math.min(35,Math.ceil((camX+screenW/zoom)/tileStep)+1);
+ const minY=Math.max(0,Math.floor((camY-screenH/zoom)/tileStep)-1),maxY=Math.min(35,Math.ceil((camY+screenH/zoom)/tileStep)+1);
+ c.beginPath();
+ for(let i=minX;i<=maxX;i++){c.moveTo(i*tileStep,Math.max(0,minY*tileStep));c.lineTo(i*tileStep,Math.min(WORLD,maxY*tileStep));}
+ for(let j=minY;j<=maxY;j++){c.moveTo(Math.max(0,minX*tileStep),j*tileStep);c.lineTo(Math.min(WORLD,maxX*tileStep),j*tileStep);}
+ c.stroke();
  c.restore();
- c.strokeStyle='#4caca666';c.lineWidth=3;c.beginPath();c.arc(CX,CY,R+2,0,7);c.stroke();
+ c.strokeStyle='rgba(102,149,137,.32)';c.lineWidth=2;c.beginPath();c.arc(CX,CY,R+2,0,7);c.stroke();
  drawEffects();
  for(let i=1;i<game.people.length;i++)drawUnit(game.people[i]);
  drawUnit(game.people[0]);c.restore();
