@@ -70,6 +70,21 @@ input[type=text]:focus{border-color:#42bcca}
 .rowbtn{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:15px}
 .rowbtn button{width:100%}
 @media(max-height:680px){.panel{padding:15px 18px}.preview{height:106px;margin:10px 0}.description{margin:8px 3px}.colors{margin:8px 0}}
+/* VISUAL AUDIT: compact one-thumb HUD on Android */
+.top{top:max(9px,env(safe-area-inset-top));left:9px;gap:5px}
+.score{width:121px;border-radius:13px;padding:8px 10px;box-shadow:0 2px 11px #4b968c27}
+.score small{font-size:9px;letter-spacing:.65px;margin-bottom:2px}
+.score .num{font-size:26px;letter-spacing:-.7px}
+.progress{margin-top:5px;height:5px}
+#boostline{font-size:8px;margin-top:5px;letter-spacing:.1px}
+#boostbar{height:3px}
+#kills{border-radius:11px;font-size:12px;padding:9px 10px;box-shadow:0 2px 11px #4b968c27}
+#rank{top:max(10px,env(safe-area-inset-top));right:9px;gap:4px;min-width:109px;max-width:39vw}
+.rankrow{padding:5px 7px;font-size:10px;gap:7px;border-radius:12px;box-shadow:0 2px 8px #4d93872b}
+#mini{width:74px;height:74px;right:11px;bottom:max(14px,env(safe-area-inset-bottom));border-width:2px;box-shadow:0 2px 10px #4b968c32}
+#pause{width:40px;height:40px;left:12px;bottom:max(14px,env(safe-area-inset-bottom));font-size:19px}
+#controls{font-size:9px;left:62px;bottom:max(24px,env(safe-area-inset-bottom));opacity:.5}
+@media(max-width:370px){.score{width:108px;padding:8px}.score .num{font-size:23px}#rank{min-width:101px}.rankrow{font-size:9px}}
 </style>
 </head>
 <body>
@@ -113,40 +128,35 @@ let screenW=innerWidth, screenH=innerHeight, dpr=1,game=null,mode='home',clock=0
 const land=new Uint8Array(SIZE),trails=new Uint16Array(SIZE),inArena=new Uint8Array(SIZE);
 let landCount=0, terrainCanvas=document.createElement('canvas');terrainCanvas.width=N;terrainCanvas.height=N;
 const terrainCtx=terrainCanvas.getContext('2d',{alpha:true});
-let mapCanvas=document.createElement('canvas');mapCanvas.width=N*3;mapCanvas.height=N*3;
+let mapCanvas=document.createElement('canvas');mapCanvas.width=WORLD;mapCanvas.height=WORLD;
 const mapCtx=mapCanvas.getContext('2d',{alpha:true});
 for(let y=0;y<N;y++)for(let x=0;x<N;x++){const dx=(x+.5)*CELL-CX,dy=(y+.5)*CELL-CY,k=y*N+x;if(dx*dx+dy*dy<(R-5)*(R-5)){inArena[k]=1;landCount++;}}
 function idx(x,y){let gx=Math.floor(x/CELL),gy=Math.floor(y/CELL);return gx<0||gy<0||gx>=N||gy>=N?-1:gy*N+gx;}
 function inside(x,y){return (x-CX)**2+(y-CY)**2<(R-16)**2;}
 function updateMap(){
- const data=terrainCtx.createImageData(N,N),buf=data.data;
- for(let k=0;k<SIZE;k++){const v=land[k];if(!inArena[k]||!v)continue;const rgb=colorToRGB(COLORS[(v-1+settingColor)%12]);let o=k*4;buf[o]=rgb[0];buf[o+1]=rgb[1];buf[o+2]=rgb[2];buf[o+3]=255;}
- terrainCtx.putImageData(data,0,0);mapCtx.clearRect(0,0,N*3,N*3);
- mapCtx.imageSmoothingEnabled=true;mapCtx.imageSmoothingQuality='high';mapCtx.drawImage(terrainCanvas,0,0,N*3,N*3);
- // Soft overlapping discs remove the sharp pixel corners of the territory raster.
- // Cached on each capture, never re-created each animation frame.
- for(let y=1;y<N-1;y++)for(let x=1;x<N-1;x++){
-  const k=y*N+x,v=land[k];if(!v||!inArena[k])continue;
-  if(land[k-1]===v&&land[k+1]===v&&land[k-N]===v&&land[k+N]===v)continue;
-  mapCtx.fillStyle=COLORS[(v-1+settingColor)%12];
-  mapCtx.beginPath();mapCtx.arc((x+.5)*3,(y+.5)*3,2.65,0,Math.PI*2);mapCtx.fill();
+ // Minimap retains a tiny terrain bitmap; on-screen territories use exact world pixels.
+ const data=terrainCtx.createImageData(N,N),buf=data.data,active=new Uint8Array(12);
+ for(let k=0;k<SIZE;k++){
+  const v=land[k];if(!inArena[k]||!v)continue;
+  active[v-1]=1;const rgb=colorToRGB(COLORS[(v-1+settingColor)%12]),o=k*4;
+  buf[o]=rgb[0];buf[o+1]=rgb[1];buf[o+2]=rgb[2];buf[o+3]=255;
  }
- // A subtle perimeter gives claimed regions the finished look of the reference.
- mapCtx.lineCap='round';mapCtx.lineJoin='round';mapCtx.lineWidth=1.45;
+ terrainCtx.putImageData(data,0,0);
+ mapCtx.clearRect(0,0,WORLD,WORLD);
+ // Union of circle-shaped cells: round, anti-aliased edges with no bitmap upscaling.
+ // Radius > half the cell diagonal ensures solid region interiors.
+ const rad=CELL*.74,tau=Math.PI*2;
  for(let v=1;v<=12;v++){
-  mapCtx.beginPath();let edges=0;
-  for(let y=1;y<N-1;y++)for(let x=1;x<N-1;x++){
-   const k=y*N+x;if(land[k]!==v)continue;
-   const X=x*3,Y=y*3;
-   if(land[k-N]!==v){mapCtx.moveTo(X,Y);mapCtx.lineTo(X+3,Y);edges++;}
-   if(land[k+N]!==v){mapCtx.moveTo(X,Y+3);mapCtx.lineTo(X+3,Y+3);edges++;}
-   if(land[k-1]!==v){mapCtx.moveTo(X,Y);mapCtx.lineTo(X,Y+3);edges++;}
-   if(land[k+1]!==v){mapCtx.moveTo(X+3,Y);mapCtx.lineTo(X+3,Y+3);edges++;}
+  if(!active[v-1])continue;
+  mapCtx.beginPath();mapCtx.fillStyle=COLORS[(v-1+settingColor)%12];
+  for(let k=0;k<SIZE;k++){
+   if(land[k]!==v)continue;
+   const x=((k%N)+.5)*CELL,y=(((k/N)|0)+.5)*CELL;
+   mapCtx.moveTo(x+rad,y);mapCtx.arc(x,y,rad,0,tau);
   }
-  if(edges){mapCtx.strokeStyle='rgba(27,72,84,0.19)';mapCtx.stroke();}
+  mapCtx.fill();
  }
 }
-
 function burstAt(x,y,color,count=16,strength=85){
  for(let i=0;i<count;i++){
   if(particles.length>220)particles.shift();
@@ -330,19 +340,24 @@ function step(dt){
 }
 function showHud(){
  const p=game.people[0],v=p.score.toFixed(1);
- $('percent').textContent=v+'%';$('bar').style.width=clamp(p.score,0,100)+'%';$('kills').textContent='☠ '+game.kills;
+ $('percent').textContent=v+'%';$('bar').style.width=clamp(p.score,0,100)+'%';$('kills').textContent='KO '+game.kills;
  const boost=Math.round(100*(clock<p.boostUntil?1:p.edgeCharge));
  $('boostfill').style.width=boost+'%';$('boostnumber').textContent=boost+'%';
  if(boost>80)$('boostline').classList.add('active');else $('boostline').classList.remove('active');
- const arr=game.ordered.slice(0,6);
- $('rank').innerHTML=arr.map((q,i)=>'<div class="rankrow" style="border-left:5px solid '+COLORS[(q.id+settingColor)%12]+';'+(q.id===0?'background:#d7fff5;':'')+'"><span>'+(i+1)+'. '+safe(q.name)+'</span><b>'+q.score.toFixed(1)+'%</b></div>').join('');
+ const ownRank=game.ordered.findIndex(q=>q.id===0);
+ const arr=ownRank>=4?[...game.ordered.slice(0,3),game.people[0]]:game.ordered.slice(0,4);
+ $('rank').innerHTML=arr.map((q,i)=>'<div class="rankrow" style="border-left:4px solid '+COLORS[(q.id+settingColor)%12]+';'+(q.id===0?'background:#d7fff5;':'')+'"><span>'+(q.id===0?ownRank+1:game.ordered.indexOf(q)+1)+'. '+safe(q.name)+'</span><b>'+q.score.toFixed(1)+'%</b></div>').join('');
  drawMini();
 }
 function safe(s){return s.replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function drawMini(){
- const w=182;mc.clearRect(0,0,w,w);mc.fillStyle='#e9fff6';mc.beginPath();mc.arc(w/2,w/2,89,0,Math.PI*2);mc.fill();mc.save();mc.beginPath();mc.arc(91,91,88,0,7);mc.clip();
+ const w=182;mc.clearRect(0,0,w,w);mc.fillStyle='#eafbf6';mc.beginPath();mc.arc(w/2,w/2,89,0,Math.PI*2);mc.fill();mc.save();mc.beginPath();mc.arc(91,91,88,0,7);mc.clip();
  const img=terrainCanvas;mc.imageSmoothingEnabled=true;mc.drawImage(img,0,0,w,w);
- for(const p of game.people){if(!p.alive)continue;mc.fillStyle=p.id===0?'white':'#263b44';mc.beginPath();mc.arc(p.x/WORLD*w,p.y/WORLD*w,p.id===0?6:3,0,7);mc.fill();if(p.id===0){mc.strokeStyle='#0f869b';mc.lineWidth=3;mc.stroke();}}
+ const player=game.people[0],closest=game.people.filter(p=>p.id!==0&&p.alive).sort((a,b)=>dist(a,player)-dist(b,player)).slice(0,4);
+ for(const p of closest){mc.fillStyle='#ffffff';mc.strokeStyle=COLORS[(p.id+settingColor)%12];mc.lineWidth=2.2;mc.beginPath();mc.arc(p.x/WORLD*w,p.y/WORLD*w,3.8,0,7);mc.fill();mc.stroke();}
+ const mx=player.x/WORLD*w,my=player.y/WORLD*w;
+ mc.save();mc.translate(mx,my);mc.rotate(player.angle+Math.PI/2);mc.fillStyle='#ffffff';mc.strokeStyle='#146f8b';mc.lineWidth=2.5;
+ mc.beginPath();mc.moveTo(0,-9);mc.lineTo(6,6);mc.lineTo(-6,6);mc.closePath();mc.fill();mc.stroke();mc.restore();
  mc.restore();mc.strokeStyle='#ffffff';mc.lineWidth=5;mc.beginPath();mc.arc(91,91,87,0,7);mc.stroke();
 }
 function drawUnit(p){
@@ -358,7 +373,8 @@ function drawUnit(p){
  c.fillStyle='#4b746744';c.beginPath();c.ellipse(3,13,16,9,0,0,Math.PI*2);c.fill();
  c.fillStyle=col;c.strokeStyle='#ffffffec';c.lineWidth=2;
  c.beginPath();c.roundRect(-13,-13,26,26,5);c.fill();c.stroke();
- c.fillStyle='#ffffff55';c.beginPath();c.roundRect(-10,-10,20,9,3);c.fill();
+ c.fillStyle='#ffffff65';c.beginPath();c.roundRect(-10,-10,20,9,3);c.fill();
+ c.strokeStyle='#ffffffb3';c.lineWidth=1.3;c.beginPath();c.moveTo(-9,10);c.lineTo(9,10);c.stroke();
  const skin=p.id===0?selectedSkin:0;
  if(skin===1){ // An original fox-inspired rounded-square skin
   c.fillStyle=col;c.strokeStyle='#ffffff';c.lineWidth=2;
@@ -385,12 +401,12 @@ function render(){
  c.save();c.beginPath();c.arc(CX,CY,R,0,7);c.clip();
  c.drawImage(mapCanvas,0,0,WORLD,WORLD);
  // Very faint dots add surface texture without obscuring the territory.
- c.fillStyle='#62ae9a22';const dotStep=68;
+ c.fillStyle='#62ae9a12';const dotStep=84;
  const minX=Math.max(0,Math.floor((camX-screenW/zoom)/dotStep)),maxX=Math.min(40,Math.ceil((camX+screenW/zoom)/dotStep));
  const minY=Math.max(0,Math.floor((camY-screenH/zoom)/dotStep)),maxY=Math.min(40,Math.ceil((camY+screenH/zoom)/dotStep));
- for(let dx=minX;dx<=maxX;dx++)for(let dy=minY;dy<=maxY;dy++){c.beginPath();c.arc(dx*dotStep,dy*dotStep,1.6,0,7);c.fill();}
+ for(let dx=minX;dx<=maxX;dx++)for(let dy=minY;dy<=maxY;dy++){c.beginPath();c.arc(dx*dotStep,dy*dotStep,1.25,0,7);c.fill();}
  c.restore();
- c.strokeStyle='#68b9b39c';c.lineWidth=8;c.beginPath();c.arc(CX,CY,R+2,0,7);c.stroke();
+ c.strokeStyle='#68b9b39c';c.lineWidth=5;c.beginPath();c.arc(CX,CY,R+2,0,7);c.stroke();
  drawEffects();
  for(let i=1;i<game.people.length;i++)drawUnit(game.people[i]);
  drawUnit(game.people[0]);c.restore();
