@@ -1,0 +1,107 @@
+{
+  "source": "https://store.godotengine.org/asset/styloo/chibi/",
+  "license": "CC0 1.0 Universal",
+  "author": "Styloo",
+  "models": [
+    {
+      "name": "archer.glb",
+      "bytes": 3601824,
+      "sha256": "13931196060501d886b3abe8489e860c61c1cc7971e4f53ad4f8aae2fd209cda",
+      "animations": [
+        "anim_crouch",
+        "anim_crouchiddle",
+        "anim_dying",
+        "anim_flip",
+        "anim_iddle",
+        "anim_iddle.001",
+        "anim_jump",
+        "anim_push",
+        "anim_run",
+        "anim_uncrouch",
+        "anim_walk"
+      ],
+      "nodes": 88,
+      "meshes": 9
+    },
+    {
+      "name": "merchant.glb",
+      "bytes": 3412152,
+      "sha256": "3539510646451a625a35a80b7d6cede58c9e5e5a87b8fb6879762200db21df84",
+      "animations": [
+        "anim_crouch",
+        "anim_crouchiddle",
+        "anim_dying",
+        "anim_flip",
+        "anim_iddle",
+        "anim_iddle.001",
+        "anim_jump",
+        "anim_push",
+        "anim_run",
+        "anim_uncrouch",
+        "anim_walk"
+      ],
+      "nodes": 88,
+      "meshes": 9
+    },
+    {
+      "name": "student.glb",
+      "bytes": 3753900,
+      "sha256": "1d177f7241f4099a3007e129503da745f9686eacf568028d658895b4fbb99340",
+      "animations": [
+        "anim_crouch",
+        "anim_crouchiddle",
+        "anim_dying",
+        "anim_flip",
+        "anim_iddle",
+        "anim_iddle.001",
+        "anim_jump",
+        "anim_push",
+        "anim_run",
+        "anim_uncrouch",
+        "anim_walk"
+      ],
+      "nodes": 88,
+      "meshes": 9
+    },
+    {
+      "name": "ninja.glb",
+      "bytes": 3255296,
+      "sha256": "4945961b116830f8b6239aba1b321e8c2995ec1e2843a81d1a0decb2d49b3cc7",
+      "animations": [
+        "crouchanim_",
+        "crouchiddleanim_",
+        "dyinganim_",
+        "flipanim_",
+        "iddle.001anim_",
+        "iddleanim_",
+        "jumpanim_",
+        "pushanim_",
+        "runanim_",
+        "uncrouchanim_",
+        "walkanim_"
+      ],
+      "nodes": 89,
+      "meshes": 10
+    },
+    {
+      "name": "knight.glb",
+      "bytes": 7007020,
+      "sha256": "292be9c83f72dad176668c642c3ba3e75098273c3589c5e38c97a30e1351fe88",
+      "animations": [
+        "crouchanim_",
+        "crouchiddleanim_",
+        "dyinganim_",
+        "flipanim_",
+        "iddle.001anim_",
+        "iddleanim_",
+        "jumpanim_",
+        "pushanim_",
+        "runanim_",
+        "uncrouchanim_",
+        "walkanim_"
+      ],
+      "nodes": 95,
+      "meshes": 16
+    }
+  ]
+}
