@@ -48,7 +48,7 @@ $('#audioBtn').addEventListener('click',()=>score.toggle());
 
 // 3D STAGE
 const host=$('#canvasHost');const scene=new THREE.Scene();scene.background=null;
-const camera=new THREE.PerspectiveCamera(33,1,.045,150);camera.position.set(5.2,3.85,9.25);
+const camera=new THREE.PerspectiveCamera(33,1,.045,150);camera.position.set(innerWidth<=680?3.4:5.2,innerWidth<=680?2.65:3.85,innerWidth<=680?6.55:9.25);
 let renderer,controls;const sculpt=new THREE.Group();scene.add(sculpt);sculpt.position.y=-.29;
 const art=new THREE.Group();sculpt.add(art);const foliage=new THREE.Group();art.add(foliage);
 const brass=new THREE.MeshPhysicalMaterial({color:0xc5a06d,metalness:.88,roughness:.22,clearcoat:.8,clearcoatRoughness:.13});
@@ -123,7 +123,7 @@ function buildBotanical(){
  for(let i=0;i<31;i++){const a=i*2.39996;const r=.18+.72*random(i*71);const y=.65+2.2*random(i*29+30);
   const s=sprite(foliage,[r*Math.cos(a),y,r*Math.sin(a)],.11+.09*random(i),.32+.24*random(i+12));motes.push({obj:s,seed:i*1.27,baseY:y});
  }
- foliage.scale.set(1,.12,1);foliage.position.y=.45;
+ foliage.scale.set(1.22,.12,1.22);foliage.position.y=.45;
 }
 function buildMemoryMarkers(){
  const ps=[[-.76,1.70,.73],[.75,2.03,.44],[0,2.48,.7]];
@@ -132,6 +132,10 @@ function buildMemoryMarkers(){
   add(g,sphere,new THREE.MeshPhysicalMaterial({color:0xe6ba9f,metalness:.87,roughness:.16,emissive:0x5e3429,emissiveIntensity:.14}),[0,0,0],[0,0,0],[.085,.085,.085]);
   add(g,new THREE.TorusGeometry(.15,.009,8,64),brightBrass,[0,0,0],[0,0,0]);
   add(g,new THREE.TorusGeometry(.198,.003,6,80),brass,[0,0,0],[0,.24,0]);
+  const portraitMat=new THREE.MeshBasicMaterial({color:0xe2b5a2,side:THREE.DoubleSide});
+  const portrait=add(g,new THREE.CircleGeometry(.071,32),portraitMat,[0,0,.088]);
+  const frameLip=add(g,new THREE.TorusGeometry(.105,.011,8,48),brightBrass,[0,0,.083]);
+  const portraitTexture=new THREE.TextureLoader().load(mem[i].photo,tex=>{tex.colorSpace=THREE.SRGBColorSpace;portraitMat.map=tex;portraitMat.needsUpdate=true;},undefined,()=>{});
   const halo=sprite(g,[0,0,0],.69,.66);
   g.userData.index=i;g.userData.halo=halo;g.visible=false;
   memoryMarkers.push(g);
@@ -162,13 +166,13 @@ function handlePointer(ev){if(app.ar){placeInAR();return}
  if(app.phase!=='memories'||app.ar)return;const b=renderer.domElement.getBoundingClientRect();const coord=new THREE.Vector2(((ev.clientX-b.left)/b.width)*2-1,-((ev.clientY-b.top)/b.height)*2+1);const ray=new THREE.Raycaster();ray.setFromCamera(coord,camera);const hits=ray.intersectObjects(memoryMarkers,true);if(hits.length){let group=hits[0].object;while(group&&!Number.isInteger(group.userData.index))group=group.parent;if(group){openMemory(group.userData.index);return}}}
 let t=0;function renderFrame(timestamp,frame){const dt=clock.getDelta();t+=Math.min(dt,.07);if(app.phase==='opening'){
  const elapsed=(performance.now()-app.revealAt)/(prefersReduced?220:3700),v=clamp(elapsed,0,1);
- const cl=EASE(clamp(v/.66,0,1));cloche.position.y=cl*3.0;cloche.scale.setScalar(1+cl*.1);glass.opacity=.42*(1-cl)+.035;
- const grow=EASE(clamp((v-.18)/.72,0,1));foliage.scale.y=.12+grow*.88;foliage.position.y=.45*(1-grow);
+ const cl=EASE(clamp(v/.66,0,1));cloche.position.y=cl*3.0;cloche.scale.setScalar(1+cl*.1);glass.opacity=.42*(1-cl)+.035;cloche.visible=v<.81;
+ const grow=EASE(clamp((v-.18)/.72,0,1));foliage.scale.y=.12+grow*1.05;foliage.position.y=.45*(1-grow)-.07*grow;
  memoryMarkers.forEach((g,i)=>{g.visible=v>.63;g.scale.setScalar(clamp((v-.67)*6,0,1));});
- if(v>=1){app.phase='memories';showAct(1);score.sparkle()}
+ if(v>=1){cloche.visible=false;app.phase='memories';showAct(1);score.sparkle()}
  }
- if(app.phase==='sealed'){cloche.rotation.y=Math.sin(t*.19)*.03;foliage.scale.y=.55;foliage.position.y=.18}
- if(app.phase==='memories'||app.phase==='final'){memoryMarkers.forEach((g,i)=>{g.visible=true;g.position.y+=Math.sin(t*1.35+i*2)*.0009;g.rotation.y+=.002;g.userData.halo.material.opacity=(app.visited.has(i)?.22:.48)+.12*Math.sin(t*2+i)});}
+ if(app.phase==='sealed'){cloche.rotation.y=Math.sin(t*.19)*.03;foliage.scale.y=.49;foliage.position.y=.18}
+ if(app.phase==='memories'||app.phase==='final'){memoryMarkers.forEach((g,i)=>{g.visible=true;g.position.y+=Math.sin(t*1.35+i*2)*.0009;g.quaternion.copy(camera.quaternion);g.userData.halo.material.opacity=(app.visited.has(i)?.22:.48)+.12*Math.sin(t*2+i)});}
  if(app.phase==='final'){art.rotation.y+=.00065;particleField.material.opacity=.26+.11*Math.sin(t*1.3)}
  else particleField.rotation.y+=.00008;
  motes.forEach(({obj,seed,baseY})=>{obj.position.y=baseY+Math.sin(t*.83+seed)*.025;obj.material.opacity=.32+.19*Math.sin(t+seed)});
@@ -195,7 +199,7 @@ $('#primaryBtn').addEventListener('click',()=>{if(app.phase==='sealed')openRelic
 $$('[data-memory]').forEach(x=>x.addEventListener('click',()=>openMemory(Number(x.dataset.memory))));
 $('#closeMemory').addEventListener('click',closeMemory);$('#nextMemory').addEventListener('click',closeMemory);
 $('#finalClose').addEventListener('click',()=>{$('#finalOverlay').hidden=true;score.sparkle()});
-$('#resetView').addEventListener('click',()=>{controls.reset();camera.position.set(5.2,3.85,9.25);controls.target.set(0,1.58,0);controls.update();toast('Vista centrada')});
+$('#resetView').addEventListener('click',()=>{controls.reset();camera.position.set(innerWidth<=680?3.4:5.2,innerWidth<=680?2.65:3.85,innerWidth<=680?6.55:9.25);controls.target.set(0,1.58,0);controls.update();toast('Vista centrada')});
 window.addEventListener('keydown',ev=>{if(ev.key==='Escape'){closeMemory();$('#finalOverlay').hidden=true;$('#arDialog').hidden=true}});
 // AR: Genuine immersive WebXR with hit testing on supporting Android devices.
 // In iOS we prepare a glTF model for Quick Look with Google's model-viewer.
