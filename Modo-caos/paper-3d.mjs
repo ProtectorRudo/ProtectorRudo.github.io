@@ -361,4 +361,13 @@ function frame(ms){
   for(const k of Object.keys(window.Paper3DReady))delete window.Paper3DReady[k];
   canvas.style.display='none';}
 }
+if(new URLSearchParams(location.search).has('qa')){
+ window.PaperMascotQA=()=>({
+  models:sourceAssets.filter(x=>x?.procedural).length,
+  menuReady:window.PaperMenuReady,
+  vsReady:window.PaperVSReady,
+  versus:vsCharacters.map(x=>x?.mascotRig?{hero:x.hero,left:x.mascotRig.left.rotation.z,right:x.mascotRig.right.rotation.z}:null),
+  gameCharacters:instances.size
+ });
+}
 if(!failed)requestAnimationFrame(frame);
