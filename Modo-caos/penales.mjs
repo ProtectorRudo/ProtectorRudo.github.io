@@ -200,9 +200,7 @@ function enterReady(){
 $('startButton').onclick=async()=>{
  if(mode==='online'){
   try{
-   await rooms.setReady(room.id,true);await refreshRoom();
-   if(room.hostUserId===me){if(room.players.length!==2||!room.players.every(p=>p.ready)){toast('Esperá a que tu amigo esté listo.');return;}await rooms.startRoom(room.id);await refreshRoom();}
-   else{phase('wait');label('LISTO','Esperando que el anfitrión inicie la tanda.');}
+   await onlineStageStart();
   }catch(e){toast(e.message||'No se pudo iniciar');}return;
  }
  beginLocal();
@@ -276,57 +274,131 @@ $('gesture').addEventListener('pointerup',e=>{
  else if(localStriker)localShot(shot);else localSave({x:shot.x,y:shot.y});
 });
 $('gesture').addEventListener('pointercancel',()=>pointer=null);
+
+let onlineState={isHost:false,ready:false,started:false,connected:false,channel:null};
 async function setupOnline(){
- if(rooms)return;
+ if(supabase)return;
  const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.91.0/+esm');
- const c=window.ModoCaosConfig;if(!c?.url||!c?.publishableKey)throw Error('No se encontró la conexión multijugador');
- supabase=createClient(c.url,c.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
- rooms=window.ModoCaosRooms.createClient(supabase);me=await rooms.userId();
+ const c=window.ModoCaosConfig;if(!c?.url||!c?.publishableKey)throw Error('Sin configuración Realtime');
+ supabase=createClient(c.url,c.publishableKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+ me=crypto.randomUUID();
 }
 function onlineName(){const s=$('playerName').value.trim();if(!s||s.length>24)throw Error('Ingresá un apodo de 1 a 24 letras');return s;}
-function showOnlineError(e){safeText('onlineNote',e.message||String(e));toast(e.message||'No se pudo conectar');}
-$('createRoom').onclick=async()=>{try{await setupOnline();const r=await rooms.createRoom('penales-ar',onlineName(),2);await enterRoom(r.room_id,r.room_code);}catch(e){showOnlineError(e);}};
-$('joinRoom').onclick=()=>{$('joinBox').style.display='block';};
-$('confirmJoin').onclick=async()=>{try{await setupOnline();let code=$('joinCode').value.trim().toUpperCase();const r=await rooms.joinRoom(code,onlineName());await enterRoom(r.room_id,code);}catch(e){showOnlineError(e);}};
-async function enterRoom(id,code){
- roomCode=code;room={id,code,players:[],status:'lobby'};
- safeText('roomCode',code);$('roomInvite').style.display='block';
+function newRoomCode(){return Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join('').toUpperCase();}
+const roomCodeValid=s=>/^[A-F0-9]{32}$/.test(String(s||'').toUpperCase());
+function getPeers(){
+ if(!onlineState.channel)return [];
+ const entries=Object.values(onlineState.channel.presenceState()).flat();
+ const users=new Map();
+ for(const item of entries){
+  if(item&&/^[0-9a-f-]{36}$/i.test(item.id||'')&&['host','guest'].includes(item.role)&&typeof item.name==='string'){
+   users.set(item.id,{userId:item.id,role:item.role,name:item.name.slice(0,24),ready:!!item.ready});
+  }
+ }
+ return [...users.values()].sort((a,b)=>(a.role==='host'?-1:1)-(b.role==='host'?-1:1));
+}
+function refreshRoom(){
+ if(!room)return;
+ const peers=getPeers(),host=peers.find(x=>x.role==='host'),guest=peers.find(x=>x.role==='guest');
+ room.players=[host,guest].filter(Boolean);
+ room.hostUserId=host?.userId||null;
+ safeText('roomDetails',room.players.length+' / 2 jugadores · '+room.players.map(x=>x.name+(x.ready?' ✓':'')).join(' · ')+(onlineState.started?' · EN JUEGO':''));
+ $('readyRoom').textContent=onlineState.ready?'✓ LISTO':'✓ ESTOY LISTO';
+ $('beginRoom').style.display=onlineState.isHost?'block':'none';
+ $('beginRoom').disabled=!(room.players.length===2&&room.players.every(p=>p.ready))||onlineState.started;
+ if(stage==='ready'&&mode==='online')$('startButton').textContent=onlineState.isHost?'▶ INICIAR DUELO':'✓ ESTOY LISTO';
+ if(onlineState.started)startOnlineMatch();
+}
+async function enterRoom(code,isHost){
+ if(!roomCodeValid(code))throw Error('Necesitás el enlace completo del duelo.');
  if(conn)await conn.close();
- conn=await rooms.connectRoom(id,{onStatus:(s)=>{safeText('onlineNote',s==='SUBSCRIBED'?'🟢 Conectado a la sala':'Sala: '+s);},
- onRefresh:()=>refreshRoom(),onPresence:()=>refreshRoom(),onGameEvent:payload=>{receiveOnline(payload).catch(e=>toast('No se pudo sincronizar: '+e.message));}});
- await refreshRoom();
- clearInterval(pollTimer);pollTimer=setInterval(()=>refreshRoom(),2200);
- if(stage==='home'&&params.get('room'))toast('¡Sala encontrada! Podés preparar tu cancha.');
+ onlineState={isHost,ready:false,started:false,connected:false,channel:null};
+ roomCode=code;room={id:code,code,players:[],hostUserId:null,status:'lobby'};
+ $('roomInvite').style.display='block';
+ safeText('roomCode',code.slice(0,8)+'…'+code.slice(-4));
+ safeText('onlineNote','Conectando al canal temporal…');
+ const channel=supabase.channel('penales-duel:'+code,{config:{private:false,presence:{key:me},broadcast:{self:false,ack:true}}});
+ onlineState.channel=channel;
+ channel.on('presence',{event:'sync'},()=>refreshRoom())
+ .on('broadcast',{event:'penales'},({payload})=>{
+   if(!payload||payload.userId===me)return;
+   const peer=room?.players?.find(p=>p.userId===payload.userId);
+   if(!peer)return;
+   if(payload.kind==='start'){
+     if(peer.role!=='host'||onlineState.started)return;
+     onlineState.started=true;room.status='playing';startOnlineMatch();refreshRoom();
+   }else receiveOnline(payload).catch(e=>toast('Error de conexión: '+e.message));
+ });
+ let connected=false;
+ conn={
+  get connected(){return connected},
+  async sendGameEvent(payload){
+   if(!connected)throw Error('Esperando conexión de la sala');
+   const resp=await channel.send({type:'broadcast',event:'penales',payload:{...payload,userId:me}});
+   if(resp!=='ok')throw Error('No se entregó el mensaje: '+resp);
+  },
+  async notify(){refreshRoom()},
+  async close(){connected=false;try{await channel.untrack();}catch(e){}await supabase.removeChannel(channel)}
+ };
+ channel.subscribe(async(status)=>{
+   connected=status==='SUBSCRIBED';onlineState.connected=connected;
+   safeText('onlineNote',connected?'🟢 Conectado · enlace de invitación temporal':'Estado de sala: '+status);
+   if(connected){
+     try{await channel.track({id:me,name:onlineName(),role:isHost?'host':'guest',ready:onlineState.ready});}
+     catch(e){safeText('onlineNote','No se pudo registrar presencia: '+e.message)}
+     refreshRoom();
+   }
+ });
 }
-async function refreshRoom(){
- if(!room||refreshing)return;
- refreshing=true;
- try{
-  const r=await rooms.getRoom(room.id);room=r;
-  mySide=r.hostUserId===me?0:1;
-  const p=r.players.find(p=>p.userId===me);
-  safeText('roomDetails',(r.players.length||0)+' / 2 jugadores · '+r.players.map(x=>x.name+(x.ready?' ✓':'')).join(' · ')+' · '+(r.status==='playing'?'EN JUEGO':'SALA'));
-  $('readyRoom').textContent=p?.ready?'✓ LISTO':'✓ ESTOY LISTO';
-  $('beginRoom').style.display=mySide===0?'block':'none';
-  $('beginRoom').disabled=!(r.players.length===2&&r.players.every(x=>x.ready)&&r.status==='lobby');
-  if(stage==='ready'&&mode==='online')$('startButton').textContent=mySide===0?'▶ INICIAR DUELO':'✓ ESTOY LISTO';
-  if(r.status==='playing'&&mode==='online'&&stage!=='home'&&!match){match=C.createMatch('online');online={commit:null,pending:null,save:null,revealed:false};scoreView();beginTurn();}
- }catch(e){safeText('onlineNote','Conexión: '+e.message);}finally{refreshing=false;}
-}
-function roomLink(){return new URL('penales.html?room='+encodeURIComponent(roomCode),location.href).href;}
-$('shareRoom').onclick=()=>window.open('https://wa.me/?text='+encodeURIComponent('¡Te reto a PENALES AR! Entrá a mi sala: '+roomLink()),'_blank','noopener,noreferrer');
-$('copyRoom').onclick=async()=>{try{await navigator.clipboard.writeText(roomLink());toast('¡Enlace copiado!')}catch(e){toast('Copiá este enlace: '+roomLink())}};
-$('readyRoom').onclick=async()=>{try{const p=room.players.find(p=>p.userId===me);await rooms.setReady(room.id,!p?.ready);await refreshRoom();await conn?.notify();}catch(e){showOnlineError(e)}};
-$('beginRoom').onclick=async()=>{try{await rooms.startRoom(room.id);await conn?.notify();await refreshRoom();}catch(e){showOnlineError(e)}};
-$('online3D').onclick=()=>openStage('3d');
-$('onlineAR').onclick=()=>openStage('ar');
-function startOnlineWhenReady(){
- if(match){beginTurn();return;}
- phase('ready');label('CANCHA PREPARADA','Marcá LISTO y esperá el comienzo del duelo.');
- $('startButton').textContent=mySide===0?'▶ INICIAR DUELO':'✓ ESTOY LISTO';
+$('createRoom').onclick=async()=>{try{await setupOnline();onlineName();await enterRoom(newRoomCode(),true);}catch(e){showOnlineError(e)}};
+$('joinRoom').onclick=()=>{$('joinBox').style.display='block';};
+$('confirmJoin').onclick=async()=>{
+ try{await setupOnline();onlineName();await enterRoom($('joinCode').value.trim().toUpperCase(),false);}
+ catch(e){showOnlineError(e)}
+};
+function showOnlineError(e){safeText('onlineNote',e.message||String(e));toast(e.message||'No se pudo conectar');}
+async function toggleReady(){
+ if(!conn?.connected)throw Error('Esperá a que la sala se conecte');
+ onlineState.ready=!onlineState.ready;
+ const res=await onlineState.channel.track({id:me,name:onlineName(),role:onlineState.isHost?'host':'guest',ready:onlineState.ready});
+ if(res!=='ok')throw Error('No se pudo actualizar la presencia');
  refreshRoom();
 }
-async function onlineSend(data){if(!conn?.connected)throw Error('La sala está reconectando.');await conn.sendGameEvent({game:'penales-ar',...data});}
+$('readyRoom').onclick=async()=>{try{await toggleReady()}catch(e){showOnlineError(e)}};
+async function hostStart(){
+ refreshRoom();
+ if(!onlineState.isHost||!onlineState.ready||room.players.length!==2||!room.players.every(p=>p.ready))throw Error('Los dos jugadores deben estar conectados y listos');
+ await conn.sendGameEvent({game:'penales-ar',kind:'start',turn:0});
+ onlineState.started=true;room.status='playing';startOnlineMatch();refreshRoom();
+}
+$('beginRoom').onclick=async()=>{try{await hostStart()}catch(e){showOnlineError(e)}};
+function startOnlineMatch(){
+ if(!onlineState.started||stage==='home'||match)return;
+ match=C.createMatch('online');scoreView();beginTurn();
+}
+async function onlineStageStart(){
+ if(!onlineState.ready)await toggleReady();
+ refreshRoom();
+ if(onlineState.isHost&&room.players.length===2&&room.players.every(p=>p.ready)){
+  await hostStart();
+ }else{
+  phase('wait');
+  label(onlineState.isHost?'ESPERANDO AL AMIGO':'¡LISTO!','La tanda comienza cuando ambos estén preparados.');
+ }
+}
+function startOnlineWhenReady(){
+ if(onlineState.started){startOnlineMatch();return;}
+ phase('ready');label('CANCHA PREPARADA','Dos jugadores conectados, sin registro.');
+ $('startButton').textContent=onlineState.isHost?'▶ INICIAR DUELO':'✓ ESTOY LISTO';
+ refreshRoom();
+}
+function roomLink(){return new URL('penales.html?room='+encodeURIComponent(roomCode),location.href).href;}
+$('shareRoom').onclick=()=>window.open('https://wa.me/?text='+encodeURIComponent('¡Jugamos PENALES AR! Entrá desde este enlace: '+roomLink()),'_blank','noopener,noreferrer');
+$('copyRoom').onclick=async()=>{try{await navigator.clipboard.writeText(roomLink());toast('¡Enlace copiado!')}catch(e){toast('Copiá este enlace: '+roomLink())}};
+$('online3D').onclick=()=>openStage('3d');
+$('onlineAR').onclick=()=>openStage('ar');
+async function onlineSend(data){if(!conn?.connected)throw Error('Sala desconectada');await conn.sendGameEvent({game:'penales-ar',...data});}
+
 function numericShot(a){return {x:Math.round(clamp(a.x,-1.3,1.3)*1000)/1000,y:Math.round(clamp(a.y,-.2,1.3)*1000)/1000,power:Math.round(clamp(a.power||.75,.25,1)*1000)/1000};}
 async function hashShot(aim,nonce){const raw=[aim.x,aim.y,aim.power,nonce].join('|');const buff=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw));return Array.from(new Uint8Array(buff),x=>x.toString(16).padStart(2,'0')).join('');}
 async function onlineShoot(raw){
@@ -376,6 +448,6 @@ async function teardownOnline(){
  conn=null;room=null;match=null;
  $('roomInvite').style.display='none';
 }
-if(params.has('room')&&/^[a-f0-9]{8}$/i.test(params.get('room'))){
+if(params.has('room')&&/^[a-f0-9]{32}$/i.test(params.get('room'))){
  selectMode('friend');$('joinBox').style.display='block';$('joinCode').value=params.get('room').toUpperCase();toast('Ingresá tu apodo y tocá ENTRAR para unirte al duelo.');
 }
