@@ -1,4 +1,5 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+import * as THREE from 'three';
+import {installPremiumRigs,tickRigs,resetRigs,kickRigs,poseRigs} from './penales-rig.mjs';
 const C=window.PenalesCore;
 if(!C)throw Error('Faltan las reglas de PENALES AR');
 const $=id=>document.getElementById(id),clamp=C.clamp;
@@ -94,15 +95,18 @@ function buildScene(){
  // Ambient flags and lightweight stadium light strips without obstructing real-world camera.
  for(const s of [-1,1]){mesh(geometry.box(.13,.24,.84),side,world,s*1.81,.23,-1.0);const led=mesh(geometry.box(.028,.10,.77),mat(s<0?'#53ffe2':'#ffca78',.3,.25),world,s*1.81,.38,-1);led.castShadow=false;}
  renderer.setAnimationLoop(render);
+ installPremiumRigs(keepers,shooter);
  addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 }
 function resetPose(){
  ball.position.set(0,.16,1.52);ball.rotation.set(0,0,0);
+ resetRigs(keepers,shooter);
  keepers.root.position.set(0,0,-1.46);keepers.person.rotation.set(0,0,0);keepers.arms[0].rotation.z=-.27;keepers.arms[1].rotation.z=.27;
  shooter.legs.forEach(o=>o.rotation.x=0);shooter.person.rotation.set(0,0,0);
 }
 function render(t,frame){
  const now=t*.001,dt=clamp(now-lastTime,0,.04);lastTime=now;frameId++;
+ tickRigs(dt,keepers,shooter);
  if(session&&frame&&refSpace){
   if(!anchored){
    if(!hitSource)return;
@@ -125,6 +129,7 @@ function render(t,frame){
    keepers.root.position.x=save.x*1.06*ease;
    keepers.person.rotation.z=-save.x*.76*ease;
    keepers.person.position.y=save.y*.34*ease;
+   poseRigs(keepers,shooter,save,ease,launch);
    keepers.arms[0].rotation.z=-1.0;keepers.arms[1].rotation.z=1.0;
   }
   if(a===1){kick=null;finishKick();}
@@ -217,7 +222,7 @@ function beginTurn(){
 function shootMotion(aim,save){
  if(stage==='anim'||!match)return;
  clearTimeout(autoTimer);phase('anim');label('¡DISPARO!','');
- tone('kick');kick={aim,save,start:performance.now()*.001,duration:.91};
+ tone('kick');kickRigs(keepers,shooter);kick={aim,save,start:performance.now()*.001,duration:.91};
 }
 let lastResult=null;
 function finishKick(){
