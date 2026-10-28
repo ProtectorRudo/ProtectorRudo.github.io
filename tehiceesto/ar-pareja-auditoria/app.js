@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 
 /* TE HICE ESTO · EL LUGAR DONDE VIVE LO NUESTRO
  * Independent author concept. No data is written to production. 3D authored in code.
@@ -200,16 +199,15 @@ window.addEventListener('keydown',ev=>{if(ev.key==='Escape'){closeMemory();$('#f
 // AR: Genuine immersive WebXR with hit testing on supporting Android devices.
 // In iOS we prepare a glTF model for Quick Look with Google's model-viewer.
 let nativeViewerReady=false;
-async function prepareNativeAR(){if(app.glbUrl||app.exporterBusy)return app.glbUrl;app.exporterBusy=true;
- try{
-  const exportGroup=art.clone(true);const foliageCopy=exportGroup.getObjectByName('left')?.parent;
-  // Export a fully-grown sculpture (no ephemeral particles) for native AR.
-  exportGroup.traverse(o=>{if(o.isSprite)o.visible=false});
-  const cl=exportGroup.children.find(x=>x.type==='Group'&&x.children.some(y=>y.geometry?.type==='LatheGeometry'));if(cl)cl.position.y=0;
-  const botanical=exportGroup.children.find(x=>x.children.some(z=>z.name==='left'));if(botanical){botanical.scale.set(1,1,1);botanical.position.y=0}
-  const exporter=new GLTFExporter();const arr=await exporter.parseAsync(exportGroup,{binary:true,maxTextureSize:512});const blob=new Blob([arr],{type:'model/gltf-binary'});app.glbUrl=URL.createObjectURL(blob);
-  const mv=$('#iosARModel');mv.setAttribute('src',app.glbUrl);return app.glbUrl;
- }catch(e){console.warn('AR export unavailable',e);return null}finally{app.exporterBusy=false}
+async function prepareNativeAR(){
+ // Pre-baked, optimized custom GLB under the same audit-only origin.
+ // A publicly addressable GLB is required by external Android Scene Viewer
+ // and by iOS Quick Look USDZ conversion; a blob URL cannot be shared reliably.
+ if(app.glbUrl)return app.glbUrl;
+ const resource=new URL('./relicario.glb',import.meta.url).href;
+ app.glbUrl=resource;
+ $('#iosARModel').setAttribute('src',resource);
+ return resource;
 }
 let xrSupported=false;
 (async()=>{try{xrSupported=!!(navigator.xr&&await navigator.xr.isSessionSupported('immersive-ar'))}catch{};})();
