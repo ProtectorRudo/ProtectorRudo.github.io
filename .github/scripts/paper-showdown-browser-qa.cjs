@@ -32,17 +32,17 @@ const {chromium}=require('playwright');
   const names=await page.evaluate(()=>({you:document.querySelector('#vsPlayerName').textContent,rival:document.querySelector('#vsRivalName').textContent}));
   assert.equal(names.you,'AXI');assert.notEqual(names.rival,'AXI');
   const poses=[];
-  for(let i=0;i<5;i++){
+  for(let i=0;i<9;i++){
    poses.push(await page.evaluate(()=>window.PaperMascotQA().versus.map(a=>({left:a.left,right:a.right,hero:a.hero}))));
-   await page.waitForTimeout(145);
+   await page.waitForTimeout(270);
   }
   for(let i=1;i<poses.length;i++)for(let j=0;j<2;j++){
    assert.ok(Math.abs(poses[i][j].left-poses[i-1][j].left)<.9,'Left arm flicked or accumulated transforms');
    assert.ok(Math.abs(poses[i][j].right-poses[i-1][j].right)<.9,'Right arm flicked or accumulated transforms');
    assert.ok(Math.abs(poses[i][j].left)<2.2&&Math.abs(poses[i][j].right)<2.2,'Arms exceed natural envelope');
   }
-  const motion=Math.abs(poses.at(-1)[0].left-poses[0][0].left)+Math.abs(poses.at(-1)[0].right-poses[0][0].right);
-  assert.ok(motion>.04,'Six-Seven arms appear frozen');
+  const range=(joint)=>Math.max(...poses.map(x=>x[0][joint]))-Math.min(...poses.map(x=>x[0][joint]));
+  assert.ok(range('left')+range('right')>.08,'Six-Seven animation never visibly changed over the 2.4-second test');
   await page.screenshot({path:'/tmp/cvdom-versus-mobile.png'});
   await page.evaluate(()=>document.getElementById('vsPlayNow').click());
   await page.waitForFunction(()=>window.territoryQA?.mode==='play',null,{timeout:9000});
