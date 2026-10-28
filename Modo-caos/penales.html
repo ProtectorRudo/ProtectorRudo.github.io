@@ -81,11 +81,11 @@ select,input{background:#102a3d;color:white;border:1px solid #50818a;border-radi
 <p id="cupInfo" class="helper"></p>
 <div class="buttons"><button id="playAR" class="gold">📷 JUGAR AR</button><button id="play3D" class="alt">🎮 JUGAR 3D</button></div>
 <p class="helper">AR: Chrome Android + ARCore, superficie despejada. 3D: funciona sin cámara y permite probar todos los controles.</p></section>
-<section id="onlineSetup"><h2>VS AMIGO · SALA PRIVADA</h2><label for="playerName">TU APODO</label><input id="playerName" maxlength="24" placeholder="Tu nombre" autocomplete="nickname" value="Jugador"><div class="buttons"><button id="createRoom">CREAR SALA</button><button id="joinRoom" class="alt">UNIRME</button></div>
-<div id="joinBox" style="display:none"><label for="joinCode">CÓDIGO DE 8 CARACTERES</label><input id="joinCode" maxlength="8" placeholder="ABCD1234"><button style="width:100%;margin-top:8px" id="confirmJoin">ENTRAR</button></div>
+<section id="onlineSetup"><h2>VS AMIGO · SALA POR ENLACE</h2><label for="playerName">TU APODO</label><input id="playerName" maxlength="24" placeholder="Tu nombre" autocomplete="nickname" value="Jugador"><div class="buttons"><button id="createRoom">CREAR SALA</button><button id="joinRoom" class="alt">UNIRME</button></div>
+<div id="joinBox" style="display:none"><label for="joinCode">CÓDIGO COMPLETO DEL ENLACE</label><input id="joinCode" maxlength="32" placeholder="32 caracteres del enlace"><button style="width:100%;margin-top:8px" id="confirmJoin">ENTRAR</button></div>
 <div id="roomInvite"><div id="roomCode">────────</div><div id="roomDetails">Conectando…</div><div class="buttons"><button id="shareRoom" class="alt">↗ WHATSAPP</button><button id="copyRoom" class="alt">COPIAR LINK</button></div>
 <div class="buttons" style="margin-top:8px"><button id="readyRoom" class="gold">✓ ESTOY LISTO</button><button id="beginRoom" style="display:none">▶ INICIAR</button></div>
-<div class="buttons" style="margin-top:8px"><button id="onlineAR" class="alt">📷 CANCHA AR</button><button id="online3D" class="alt">🎮 CANCHA 3D</button></div></div><p class="helper" id="onlineNote">Ambos jugadores colocan su propio arco. Las decisiones se sincronizan por Supabase Realtime.</p>
+<div class="buttons" style="margin-top:8px"><button id="onlineAR" class="alt">📷 CANCHA AR</button><button id="online3D" class="alt">🎮 CANCHA 3D</button></div></div><p class="helper" id="onlineNote">Los dos colocan su propio arco. La sala es temporal y se comparte mediante un enlace difícil de adivinar. Sin cuenta ni guardado de resultados.</p>
 </section>
 <p class="helper">Sin descargas ni registro · MODO CAOS · Versión inicial para probar</p></div></main>
 <div id="stage"><div id="viewport"></div><div id="overlay">
