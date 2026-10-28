@@ -10,6 +10,34 @@ const tmpQ=new THREE.Quaternion();
 const tmpN=new THREE.Vector3();
 const v3=new THREE.Vector3();
 const clamp=(v,min,max)=>Math.min(max,Math.max(min,v));
+const arGuide=$('arSurfaceGuide'),arPolygon=$('arSurfacePolygon'),arPoint=$('arSurfacePoint');
+const viewMatrix=new THREE.Matrix4(),projectionMatrix=new THREE.Matrix4(),viewProjection=new THREE.Matrix4();
+const clipPosition=new THREE.Vector4();
+function clearFloorGuide(){if(arGuide)arGuide.hidden=true;}
+export function projectSurfaceToScreen(view,position,screenWidth,screenHeight){
+ if(!view?.projectionMatrix||!view?.transform?.inverse?.matrix)return null;
+ viewMatrix.fromArray(view.transform.inverse.matrix);
+ projectionMatrix.fromArray(view.projectionMatrix);
+ viewProjection.multiplyMatrices(projectionMatrix,viewMatrix);
+ clipPosition.set(position.x,position.y,position.z,1).applyMatrix4(viewProjection);
+ if(clipPosition.w<=.015)return null;
+ const x=clipPosition.x/clipPosition.w,y=clipPosition.y/clipPosition.w;
+ if(!Number.isFinite(x)||!Number.isFinite(y))return null;
+ return {x:(x+1)*screenWidth/2,y:(1-y)*screenHeight/2,visible:Math.abs(x)<1&&Math.abs(y)<1};
+}
+function drawFloorGuide(viewer,position,width){
+ if(!arGuide||!viewer?.views?.length)return false;
+ const w=window.innerWidth,h=window.innerHeight;
+ arGuide.setAttribute('viewBox',`0 0 ${w} ${h}`);
+ const view=viewer.views[0],r=width*.63,y=position.y+.012;
+ const ps=[[-r,-r],[r,-r],[r,r],[-r,r]].map(([dx,dz])=>projectSurfaceToScreen(view,{x:position.x+dx,y,z:position.z+dz},w,h));
+ const center=projectSurfaceToScreen(view,position,w,h);
+ if(!center || !ps.every(Boolean)){clearFloorGuide();return false;}
+ arPolygon.setAttribute('points',ps.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '));
+ arPoint.setAttribute('cx',center.x.toFixed(1));arPoint.setAttribute('cy',center.y.toFixed(1));
+ arGuide.hidden=!center.visible;
+ return center.visible;
+}
 
 export function horizontalPose(pose,minDot=.68){
  if(!pose?.transform?.orientation)return false;
@@ -38,7 +66,7 @@ export class RelicarioSpatialAR {
   this.overlay=overlay;this.modelUrl=modelUrl;this.onState=onState;this.onEnd=onEnd;
   this.stage='inactive';this.width=BASE_WIDTH;this.rotation=0;this.session=null;
   this.renderer=null;this.scene=null;this.root=null;this.camera=null;this.canvas=null;this.hitSource=null;
-  this.anchor=null;this.latestHit=null;this.frames=0;this.drawCalls=0;this.modelReady=false;
+  this.anchor=null;this.latestHit=null;this.frames=0;this.drawCalls=0;clearFloorGuide();this.modelReady=false;
   this.hitSeenAt=0;this.worldPosition=new THREE.Vector3();this.initialMaterialCount=0;
   this.loadPromise=this.loadModel();this._statusTime=0;
  }
@@ -144,7 +172,7 @@ export class RelicarioSpatialAR {
   if(this.stage!=='preview'||!this.latestHit||!this.modelReady||!this.drawCalls)return false;
   const hit=this.latestHit;
   this.worldPosition.copy(this.root.position);
-  this.marker.visible=false;
+  this.marker.visible=false;clearFloorGuide();
   this._status('fixed','03 · RELICARIO FIJADO','La pieza permanecerá en este lugar. Podés caminar a su alrededor.');
   if(typeof hit.createAnchor==='function'){
    try{const anchor=await hit.createAnchor();if(this.stage==='fixed'&&this.session){this.anchor=anchor;
@@ -155,7 +183,7 @@ export class RelicarioSpatialAR {
  }
  reposition(){
   this.anchor?.delete?.();this.anchor=null;this.latestHit=null;this.marker&&(this.marker.visible=false);
-  this.root&&(this.root.visible=false);
+  this.root&&(this.root.visible=false);clearFloorGuide();
   this._status('scan','01 · BUSCÁ UNA MESA O EL PISO','Apuntá el teléfono a una superficie real para volver a colocar la pieza.');
  }
  onFrame(time,frame){
@@ -176,9 +204,10 @@ export class RelicarioSpatialAR {
      this.root.visible=this.modelReady&&!!this.asset?.model.parent;
      this.latestHit=hit.result;
      this.hitSeenAt=time;
+     drawFloorGuide(viewer,this.worldPosition,this.width);
      if(this.root.visible&&this.stage!=='preview')this._status('preview','02 · AJUSTÁ EL RELICARIO','El anillo está sobre una superficie real. Agrandá, girá y tocá «Fijar».');
     }else if(time-this.hitSeenAt>850){
-     this.marker.visible=false;this.root.visible=false;this.latestHit=null;
+     this.marker.visible=false;this.root.visible=false;this.latestHit=null;clearFloorGuide();
      if(this.stage!=='scan')this._status('scan','01 · BUSCÁ UNA MESA O EL PISO','Todavía no detecté una superficie horizontal. Mové lentamente el teléfono.');
     }
    }else if(this.stage==='fixed'&&this.anchor){
@@ -189,7 +218,7 @@ export class RelicarioSpatialAR {
    this.renderer.render(this.scene,this.camera);
    this.drawCalls=this.renderer.info.render.calls;
    if(time-this._statusTime>1600){
-    const info=this.modelReady?`${this.asset.meshes} mallas · render ${this.drawCalls} · ${this.frames} frames`:'Cargando modelo…';
+    const info=this.modelReady?`${this.asset.meshes} mallas · GPU ${this.drawCalls} dibujos · ${this.frames} frames · suelo ${this.latestHit?'DETECTADO':'buscando'}`:'Cargando modelo 3D…';
     this.onState?.({stage:this.stage,message:null,detail:null,diagnostic:info,draws:this.drawCalls,frames:this.frames,modelReady:this.modelReady});
     this._statusTime=time;
    }
