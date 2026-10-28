@@ -7,6 +7,7 @@ on:
       - '.github/workflows/relicario-audit.yml'
       - 'scripts/relicario-audit.mjs'
       - 'scripts/relicario-ar-audit.mjs'
+      - 'scripts/relicario-xr-geometry-audit.mjs'
   workflow_dispatch:
 permissions:
   contents: read
@@ -29,6 +30,8 @@ jobs:
         run: node scripts/relicario-audit.mjs
       - name: Audit mobile AR camera fallback and visible placement
         run: node scripts/relicario-ar-audit.mjs
+      - name: Audit real XR pose projection and prevent invisible placement
+        run: node scripts/relicario-xr-geometry-audit.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
