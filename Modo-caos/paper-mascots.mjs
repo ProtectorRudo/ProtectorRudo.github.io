@@ -79,8 +79,13 @@ export function buildMascot(THREE,index){
  for(const side of [-1,1]){
   const arm=new THREE.Group();arm.position.set(side*.87,2.93,.03);root.add(arm);
   ellipse(arm,m.coat,side*.28,-.42,0,.32,.68,.35);
-  ellipse(arm,m.fur,side*.34,-1.05,.10,.31,.32,.32);
+  // Separate wrist and bright palm: the Six-Seven gesture needs to read
+  // as two hands comparing weights, not two arms flailing in a circle.
+  const palm=new THREE.Group();palm.position.set(side*.34,-1.05,.10);arm.add(palm);
+  ellipse(palm,m.fur,0,0,0,.33,.29,.27);
+  ellipse(palm,m.light,0,-.04,.23,.26,.18,.055);
   rig[side<0?'left':'right']=arm;
+  rig[side<0?'leftPalm':'rightPalm']=palm;
  }
  // Giant head, roughly 55% of total character height.
  const head=new THREE.Group();head.position.set(0,4.85,.22);root.add(head);rig.head=head;
@@ -168,29 +173,42 @@ export function buildMascot(THREE,index){
 }
 export function animateMascot(actor,seconds,mode='idle',opponent=false){
  const rig=actor.mascotRig;if(!rig)return;
- const speed=mode==='dance'?2.4:mode==='run'?8.4:1.9;
- const phase=seconds*speed+(opponent?Math.PI*.31:0);
- // Crucial: absolute angles relative to rest. No cumulative quaternions.
- const rising=Math.sin(phase),falling=Math.sin(phase+Math.PI);
+ // Absolute, time-derived poses. Nothing is multiplied onto last frame.
+ const t=Math.max(0,Number.isFinite(seconds)?seconds:0);
+ const speed=mode==='dance'?2*Math.PI*.76:mode==='run'?8.4:1.9;
+ const phase=t*speed+(opponent?.30:0);
  if(mode==='dance'){
-  rig.left.rotation.z= -1.55 + rising*.28;
-  rig.right.rotation.z= 1.55 - falling*.28;
-  rig.left.rotation.x=.1;rig.right.rotation.x=-.1;
-  rig.head.rotation.z=Math.sin(phase*.5)*.035;
-  rig.body.rotation.z=Math.sin(phase)*.055;
-  rig.feet[0].node.rotation.x=Math.sin(phase*.5)*.1;
-  rig.feet[1].node.rotation.x=Math.sin(phase*.5+Math.PI)*.1;
+  // Six-Seven: alternating, open palms moving gently in opposite directions.
+  // Shoulders stay above the waist and within safe anatomical rotation limits.
+  const wave=Math.sin(phase);
+  const raiseLeft=-wave,raiseRight=wave;
+  const leadIn=Math.min(1,t/.32);
+  const blend=leadIn*leadIn*(3-2*leadIn);
+  rig.left.rotation.z=-.16+blend*(-1.11+.27*raiseLeft);
+  rig.right.rotation.z=.16+blend*(1.11+.27*raiseRight);
+  rig.left.rotation.x=blend*.10;
+  rig.right.rotation.x=-blend*.10;
+  if(rig.leftPalm){rig.leftPalm.rotation.z=blend*(-.18+.13*raiseLeft);rig.leftPalm.rotation.x=blend*.2;}
+  if(rig.rightPalm){rig.rightPalm.rotation.z=blend*(.18+.13*raiseRight);rig.rightPalm.rotation.x=blend*-.2;}
+  rig.head.rotation.z=Math.sin(phase*.5)*.028;
+  rig.body.rotation.z=Math.sin(phase)*.038;
+  rig.feet[0].node.rotation.x=Math.sin(phase*.5)*.055;
+  rig.feet[1].node.rotation.x=Math.sin(phase*.5+Math.PI)*.055;
  }else if(mode==='run'){
   rig.left.rotation.z=-.12+Math.sin(phase)*.22;
   rig.right.rotation.z=.12+Math.sin(phase+Math.PI)*.22;
   rig.left.rotation.x=rig.right.rotation.x=0;
   rig.head.rotation.z=0;rig.body.rotation.z=0;
   for(const leg of rig.feet)leg.node.rotation.x=Math.sin(phase+(leg.side===1?Math.PI:0))*.43;
+  if(rig.leftPalm){rig.leftPalm.rotation.z=0;rig.leftPalm.rotation.x=0;}
+  if(rig.rightPalm){rig.rightPalm.rotation.z=0;rig.rightPalm.rotation.x=0;}
  }else{
   rig.left.rotation.z=-.10+Math.sin(phase)*.045;
   rig.right.rotation.z=.10-Math.sin(phase)*.045;
   rig.left.rotation.x=rig.right.rotation.x=0;
   rig.body.rotation.z=rig.head.rotation.z=0;
   rig.feet.forEach(l=>l.node.rotation.x=0);
+  if(rig.leftPalm){rig.leftPalm.rotation.z=0;rig.leftPalm.rotation.x=0;}
+  if(rig.rightPalm){rig.rightPalm.rotation.z=0;rig.rightPalm.rotation.x=0;}
  }
 }
