@@ -52,7 +52,7 @@ await test("Mobile narrative: open, three memories, final and AR integration",as
  await page.locator("#arDialog:visible").waitFor({timeout:4000});
  await page.screenshot({path:"visual-smoke/relicario/mobile-ar-intent.png"});
  const glb=await page.locator("#iosARModel").getAttribute("src");
- if(!glb?.endsWith("/relicario.glb"))throw Error("Native AR GLB not configured: "+glb);
+ if(!glb?.endsWith("/relicario-ar.glb"))throw Error("Native AR GLB not configured: "+glb);
  const h=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
  if(h>6)throw Error("Mobile horizontal overflow "+h);
  console.log("MOBILE_AR_MODEL",glb);
