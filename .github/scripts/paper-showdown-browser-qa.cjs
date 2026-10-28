@@ -22,6 +22,14 @@ const {chromium}=require('playwright');
   await page.goto(uri,{waitUntil:'domcontentloaded',timeout:70000});
 
   await page.waitForTimeout(2200);
+  console.log('MENU_IMAGE_DIAG',JSON.stringify(await page.evaluate(()=>({
+   url:location.href,title:document.title,mode:window.territoryQA?.mode,
+   rosterHTML:document.getElementById('heroPicker')?.innerHTML?.slice(0,650),
+   portraits:Array.from(document.querySelectorAll('#heroPicker img')).map(im=>({src:im.src,complete:im.complete,w:im.naturalWidth,h:im.naturalHeight})),
+   galleryCount:document.querySelectorAll('#heroPicker img.hero3DThumbnail').length,
+   menuImage:document.getElementById('menuHeroPortrait')?.src,
+   error:document.body?.innerText?.slice(0,120)
+  }))));console.log('PAGE_ERRORS',JSON.stringify(errors));console.log('PAGE_MISSING',JSON.stringify(missing));
   await page.waitForFunction(()=>Array.from(document.querySelectorAll('#heroPicker img.hero3DThumbnail')).length===4 && Array.from(document.querySelectorAll('#heroPicker img.hero3DThumbnail')).every(im=>im.complete&&im.naturalWidth>100),null,{timeout:25000});
   const gallery=await page.evaluate(()=>({
    portraits:Array.from(document.querySelectorAll('#heroPicker img.hero3DThumbnail')).map(im=>({src:im.getAttribute('src'),width:im.naturalWidth,height:im.naturalHeight})),
