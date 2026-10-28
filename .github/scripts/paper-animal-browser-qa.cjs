@@ -51,6 +51,12 @@ const {chromium}=require('playwright');
   assert.ok(boxes.stage.width>250&&boxes.playerAvatar>0&&boxes.rivalAvatar>0);
   await page.screenshot({path:'/tmp/paper-animal-vs.png'});
   assert.equal(showdown.player,'TORA');assert.notEqual(showdown.opponent,'TORA');
+  const portraitLayer=await page.evaluate(()=>({
+   opacity:getComputedStyle(document.getElementById('vsPortraits')).opacity,
+   ready:window.PaperVSReady===true
+  }));
+  console.log('ANIMAL_VS_LAYER',JSON.stringify(portraitLayer));
+  if(portraitLayer.ready)assert.equal(Number(portraitLayer.opacity),0,'Static characters must not hide real 3D performers');
   const before=await page.evaluate(()=>window.territoryQA?.mode);
   if(before==='versus')await page.evaluate(()=>document.getElementById('vsPlayNow').click());
   await page.waitForFunction(()=>window.territoryQA?.mode==='play',null,{timeout:10000});
