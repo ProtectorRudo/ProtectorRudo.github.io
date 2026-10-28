@@ -68,8 +68,9 @@
   <div class="ar-center-marker" id="arCenterMarker" aria-hidden="true"><span></span></div>
   <div class="ar-toolbar">
     <div class="ar-toolrow"><button id="arSmaller" type="button" aria-label="Achicar relicario">−</button><span id="arSizeLabel">TAMAÑO · 40 CM</span><button id="arBigger" type="button" aria-label="Agrandar relicario">+</button><button id="arRotate" type="button" aria-label="Girar relicario">↻</button></div>
-    <button id="arPlace" class="ar-fix" type="button">FIJAR RELICARIO EN ESTE LUGAR</button>
+    <button id="arPlace" class="ar-fix" type="button" disabled>FIJAR RELICARIO EN ESTE LUGAR</button>
     <button id="arReposition" type="button" hidden>REUBICAR EL RELICARIO</button>
+    <button id="arCompatible" type="button">VER CON CÁMARA · MODO COMPATIBLE</button>
     <button id="exitAR" type="button">VOLVER AL RECORRIDO ✕</button>
   </div>
 </div>
@@ -91,5 +92,5 @@
 <model-viewer hidden id="iosARModel" ar ar-modes="quick-look scene-viewer webxr" ar-scale="auto" camera-controls auto-rotate shadow-intensity="1" environment-image="neutral" alt="Relicario de vidrio y ramas doradas entrelazadas" loading="eager" style="width:100%;height:60svh;background:radial-gradient(circle,#66525a,#211924);">
   <button slot="ar-button" id="nativeARButton" type="button" class="native-launch">COLOCAR EN MI ESPACIO ↗</button>
 </model-viewer>
-<script type="module" src="./app.js?v=8"></script>
+<script type="module" src="./app.js?v=9"></script>
 </body></html>
