@@ -1,0 +1,98 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#06121e"><title>PENALES AR | MODO CAOS</title>
+<style>
+:root{--bg:#06121e;--ink:#effffb;--mint:#65f8cb;--gold:#ffd07d;--muted:#afc6d6}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;width:100%;margin:0;overflow:hidden;font:15px system-ui,-apple-system,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+button,input{font:inherit}button{cursor:pointer;border:0;border-radius:15px;min-height:48px;padding:11px 16px;font-weight:900;background:var(--mint);color:#032526;touch-action:manipulation}button:disabled{opacity:.42;cursor:not-allowed}
+button.alt{background:#163447;border:1px solid #467a88;color:#eafff7}
+button.gold{background:linear-gradient(120deg,#ffe4a0,#f4ab5f);color:#25201c}
+a{color:#a4ffe1;text-decoration:none}
+#home{position:fixed;inset:0;z-index:30;overflow:auto;background:radial-gradient(ellipse at 65% 0%,#204c4e 0%,#0b1a33 45%,#050d1b 90%);padding:20px 17px 50px}
+.wrap{width:min(100%,480px);margin:auto}
+.eyebrow{color:#a6f7de;font-weight:1000;letter-spacing:2px;font-size:11px;margin:15px 0 7px}
+h1{font-size:clamp(44px,11vw,69px);line-height:.98;letter-spacing:-3px;margin:8px 0 12px;font-weight:1000}
+h1 em{font-style:normal;color:#ffe1a2}
+.lead{color:#b6ceda;font-size:13px;line-height:1.6;margin:4px 0 19px;max-width:370px}
+.hero{height:176px;overflow:hidden;position:relative;border-radius:24px;border:1px solid #4e9b91;background:radial-gradient(ellipse at 50% 87%,#34855b 0%,#123d4c 48%,#091a38 90%);box-shadow:0 12px 45px #03111d85}
+.hero:before{content:"";position:absolute;left:15%;right:15%;bottom:11%;height:60%;border:6px solid #eeffff;box-shadow:0 0 0 2px #77d5c676,0 0 24px #50ffb888;background:repeating-linear-gradient(90deg,transparent 0 20px,#ffffff10 21px 22px)}
+.hero:after{content:"⚽";position:absolute;bottom:0;left:21%;font-size:66px;filter:drop-shadow(0 8px 8px #0008)}
+.hero .keeper{position:absolute;bottom:20%;left:49%;font-size:87px;transform:translateX(-50%) rotate(-15deg);filter:drop-shadow(0 12px 13px #000b)}
+.hero .light{position:absolute;top:0;right:20%;width:70px;height:150px;transform:rotate(35deg);background:linear-gradient(#ffffd024,transparent);filter:blur(5px)}
+.hero .tag{position:absolute;left:13px;top:12px;font-size:9px;font-weight:1000;background:#041a2cd9;border:1px solid #6ddcc9;border-radius:8px;padding:7px 9px;letter-spacing:1.1px}
+.modes{display:grid;gap:9px;margin:17px 0}
+.mode{display:flex;gap:12px;text-align:left;align-items:center;justify-content:flex-start;border:1px solid #426a7a;background:linear-gradient(135deg,#193749,#0a2239);color:white;padding:15px 13px;width:100%;min-height:74px;box-shadow:0 7px 18px #0005}
+.mode .ico{font-size:28px;width:44px;text-align:center}
+.mode strong{display:block;font-size:16px}.mode small{display:block;color:#abc8cf;line-height:1.4;font-size:11px;font-weight:600;margin-top:3px}
+.mode.selected{border-color:var(--mint);background:#205049}
+#options,#onlineSetup{display:none;background:#071a2ae8;border:1px solid #407c78;border-radius:20px;padding:14px;margin-top:11px}
+#options h2,#onlineSetup h2{font-size:18px;margin:0 0 9px}
+.buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.helper{font-size:11px;line-height:1.5;color:#a9c7d1;margin-top:12px}
+label{display:block;font-size:11px;color:#b5d5d5;font-weight:900;margin:8px 0 5px}
+select,input{background:#102a3d;color:white;border:1px solid #50818a;border-radius:11px;padding:12px;width:100%;min-height:43px}
+#onlineSetup .buttons{margin-top:12px}#roomCode{font-size:25px;letter-spacing:4px;font-weight:1000;text-align:center;color:#ffe2a0;margin:13px}
+#roomDetails{line-height:1.55;font-size:12px;color:#cce7e7;margin:12px 0}
+#roomInvite{display:none}
+#stage{display:none;position:fixed;inset:0;background:radial-gradient(ellipse at 50% 70%,#102f3b,#030814);overflow:hidden}
+#viewport{position:absolute;inset:0}
+#viewport canvas{display:block;width:100%;height:100%;touch-action:none}
+#overlay{position:absolute;inset:0;z-index:3;pointer-events:none}
+#hud{position:absolute;left:10px;right:10px;top:max(10px,env(safe-area-inset-top));display:flex;gap:8px;justify-content:space-between;align-items:start}
+#exit{min-height:38px;padding:8px 10px;pointer-events:auto;background:#092436d9;border:1px solid #5a9195;color:#e8fff8;font-size:11px}
+#score{background:#091b2ce3;border:1px solid #61958f;border-radius:16px;min-width:185px;max-width:66%;padding:8px 12px;text-align:center;box-shadow:0 6px 22px #0007}
+#scoreNames{display:flex;justify-content:space-between;font-size:10px;font-weight:1000;color:#c3f7ea}
+#numbers{font-size:28px;font-weight:1000;letter-spacing:5px;line-height:1.1;color:#fff}
+#dots{display:flex;justify-content:space-between;gap:7px;margin-top:5px;font-size:9px}
+#dots span{white-space:nowrap;letter-spacing:2px}
+#round{font-size:10px;letter-spacing:1px;color:#f5ce87;font-weight:1000;text-align:center;margin-top:6px}
+#mute{pointer-events:auto;background:#092436d9;border:1px solid #5a9195;color:#fff;min-height:38px;padding:8px 10px}
+#callout{position:absolute;top:22%;left:5%;right:5%;text-align:center;text-shadow:0 4px 18px #000,0 0 15px #000a;font-size:clamp(24px,7vw,42px);line-height:1.05;font-weight:1000;letter-spacing:-.7px}
+#callout small{font-size:12px;display:block;font-weight:850;letter-spacing:.3px;color:#baf5e6;margin-top:10px;line-height:1.45}
+#gesture{position:absolute;inset:25% 0 11%;pointer-events:auto;touch-action:none}
+#guide{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);border:2px solid #d5fff8aa;width:65px;height:65px;border-radius:50%;box-shadow:0 0 0 14px #b6ffe519,0 0 24px #6dffe68c;display:none}
+#guide:after{content:'+';position:absolute;inset:0;text-align:center;line-height:56px;font-size:40px;color:#e5fff9aa}
+#feedback{position:absolute;left:10%;right:10%;bottom:19%;text-align:center;font-size:11px;color:#e7fffd;font-weight:900;text-shadow:0 2px 8px #000;min-height:17px}
+#bottom{position:absolute;bottom:max(17px,env(safe-area-inset-bottom));left:13px;right:13px;display:flex;justify-content:center;align-items:center;gap:8px;pointer-events:auto}
+#bottom button{font-size:12px;min-height:47px}
+#placePanel{display:none;justify-content:center;gap:7px;width:100%;flex-wrap:wrap}
+#placePanel button{flex:1;min-width:57px}
+#placePanel #fix{width:100%;min-width:100%;min-height:53px}
+#startButton{display:none;min-width:60%}
+#waiting{display:none;padding:11px;background:#092c34e8;border:1px solid #509989;border-radius:13px;font-size:12px;text-align:center}
+#gameOver{display:none;position:absolute;inset:0;z-index:20;pointer-events:auto;align-items:center;justify-content:center;background:#05101be8;padding:20px;backdrop-filter:blur(9px)}
+.result{background:linear-gradient(155deg,#1b4250,#08192f);border:1px solid #66afa0;border-radius:25px;padding:24px 18px;text-align:center;width:min(420px,100%);box-shadow:0 18px 65px #0009}
+.result .trophy{font-size:53px}.result h2{font-size:clamp(30px,9vw,44px);letter-spacing:-1px;margin:7px 0;color:#ffde9f}.result p{color:#c3dce2;line-height:1.6;font-size:13px}
+.result button{display:block;width:100%;margin-top:9px}
+#cupProgress{font-size:12px;color:#ffe3af;line-height:1.5;margin:8px}
+#toast{position:fixed;z-index:80;top:13%;left:8%;right:8%;text-align:center;pointer-events:none;font-weight:850;background:#152f42e8;border:1px solid #d3a87b;border-radius:11px;padding:10px;display:none}
+@media(max-height:720px){#callout{top:19%}#score{padding:6px}#numbers{font-size:22px}#guide{top:42%}#feedback{bottom:17%}}
+</style></head><body>
+<main id="home"><div class="wrap">
+<a href="https://modo-caos-eta.vercel.app/" style="font-size:12px;font-weight:900">← MODO CAOS</a><div class="eyebrow">TU HABITACIÓN. TU FINAL.</div>
+<h1>PENALES <em>AR</em></h1>
+<p class="lead">Cinco penales por lado. Tu dedo decide el gol, tu reflejo decide la atajada. En tu habitación o en la arena 3D.</p>
+<div class="hero" aria-label="Arco y pelota de fútbol"><div class="light"></div><div class="tag">NUEVO · PENALTYS ARCADE</div><div class="keeper">🧤</div></div>
+<div class="modes">
+<button class="mode" id="cpuMode"><span class="ico">⚽</span><span><strong>VS COMPUTADORA</strong><small>Partida instantánea · tres dificultades</small></span></button>
+<button class="mode" id="friendMode"><span class="ico">⚔️</span><span><strong>VS AMIGO ONLINE</strong><small>Enlace por WhatsApp · misma tanda</small></span></button>
+<button class="mode" id="cupMode"><span class="ico">🏆</span><span><strong>MODO COPA</strong><small>32 equipos · grupos, octavos, cuartos, semis y final</small></span></button>
+</div>
+<section id="options"><h2 id="choiceTitle">PREPARÁ TU PARTIDA</h2><div id="difficultyWrap"><label for="difficulty">DIFICULTAD</label><select id="difficulty"><option value="0">PRINCIPIANTE</option><option value="1" selected>PROFESIONAL</option><option value="2">LEYENDA</option></select></div>
+<p id="cupInfo" class="helper"></p>
+<div class="buttons"><button id="playAR" class="gold">📷 JUGAR AR</button><button id="play3D" class="alt">🎮 JUGAR 3D</button></div>
+<p class="helper">AR: Chrome Android + ARCore, superficie despejada. 3D: funciona sin cámara y permite probar todos los controles.</p></section>
+<section id="onlineSetup"><h2>VS AMIGO · SALA PRIVADA</h2><label for="playerName">TU APODO</label><input id="playerName" maxlength="24" placeholder="Tu nombre" autocomplete="nickname" value="Jugador"><div class="buttons"><button id="createRoom">CREAR SALA</button><button id="joinRoom" class="alt">UNIRME</button></div>
+<div id="joinBox" style="display:none"><label for="joinCode">CÓDIGO DE 8 CARACTERES</label><input id="joinCode" maxlength="8" placeholder="ABCD1234"><button style="width:100%;margin-top:8px" id="confirmJoin">ENTRAR</button></div>
+<div id="roomInvite"><div id="roomCode">────────</div><div id="roomDetails">Conectando…</div><div class="buttons"><button id="shareRoom" class="alt">↗ WHATSAPP</button><button id="copyRoom" class="alt">COPIAR LINK</button></div>
+<div class="buttons" style="margin-top:8px"><button id="readyRoom" class="gold">✓ ESTOY LISTO</button><button id="beginRoom" style="display:none">▶ INICIAR</button></div>
+<div class="buttons" style="margin-top:8px"><button id="onlineAR" class="alt">📷 CANCHA AR</button><button id="online3D" class="alt">🎮 CANCHA 3D</button></div></div><p class="helper" id="onlineNote">Ambos jugadores colocan su propio arco. Las decisiones se sincronizan por Supabase Realtime.</p>
+</section>
+<p class="helper">Sin descargas ni registro · MODO CAOS · Versión inicial para probar</p></div></main>
+<div id="stage"><div id="viewport"></div><div id="overlay">
+<div id="hud"><button id="exit">← SALIR</button><div id="score"><div id="scoreNames"><span id="nameA">VOS</span><span id="nameB">CPU</span></div><div id="numbers">0 : 0</div><div id="dots"><span id="dotsA">○○○○○</span><span id="dotsB">○○○○○</span></div><div id="round">PENAL 1 DE 5</div></div><button id="mute">🔊</button></div>
+<div id="callout">BUSCÁ EL PISO<small>Mové despacio el celular para encontrar una superficie.</small></div><div id="gesture" aria-label="Deslizá para patear o atajar"></div><div id="guide"></div><div id="feedback"></div>
+<div id="bottom"><div id="placePanel"><button id="smaller" class="alt">−</button><button id="larger" class="alt">＋</button><button id="rotate" class="alt">↻ GIRAR</button><button id="fix" class="gold" disabled>📍 FIJAR EL ARCO</button></div><button id="startButton" class="gold">▶ EMPEZAR PARTIDA</button><div id="waiting">ESPERANDO AL OTRO JUGADOR…</div></div>
+<div id="gameOver"><div class="result"><div class="trophy">🏆</div><h2 id="endTitle">¡GANASTE!</h2><p id="endText"></p><div id="cupProgress"></div><button id="nextMatch" class="gold">SIGUIENTE</button><button id="rematch" class="alt">↻ REVANCHA</button><button id="leave" class="alt">← VOLVER AL MENÚ</button></div></div>
+</div></div><div id="toast" role="status" aria-live="polite"></div>
+<script defer src="/Modo-caos/penales-core.js?v=1"></script><script defer src="/Modo-caos/penales-config.js?v=1"></script><script defer src="/Modo-caos/penales-rooms-client.js?v=1"></script><script type="module" src="/Modo-caos/penales.mjs?v=1"></script>
+</body></html>
