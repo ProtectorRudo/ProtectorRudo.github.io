@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RelicarioSpatialAR } from './relicario-xr.js';
 
 /* TE HICE ESTO · EL LUGAR DONDE VIVE LO NUESTRO
  * Independent author concept. No data is written to production. 3D authored in code.
@@ -305,8 +306,7 @@ let t=0;function renderFrame(timestamp,frame){const dt=clock.getDelta();t+=Math.
  if(app.phase==='final'){art.rotation.y+=.00065;particleField.material.opacity=.26+.11*Math.sin(t*1.3)}
  else particleField.rotation.y+=.00008;
  motes.forEach(({obj,seed,baseY})=>{obj.position.y=baseY+Math.sin(t*.83+seed)*.025;obj.material.opacity=.32+.19*Math.sin(t+seed)});
- if(!app.ar){if(!app.cameraMode)controls?.update();}
- else {try{updateARPreview(timestamp,frame)}catch(e){if(arFrameCount%60===0)console.error('XR placement frame',e);xrModelOnScreen=false;$('#arPlace').disabled=true;}}
+ if(!app.ar&&!app.cameraMode)controls?.update();
  renderer.render(scene,camera);
 }
 // NARRATIVE
@@ -364,58 +364,61 @@ function resetXRState(){
  sculpt.visible=true;sculpt.position.set(0,-.29,0);sculpt.scale.setScalar(1);sculpt.rotation.y=0;
  $('#arOverlay').hidden=true;scene.background=null;controls.enabled=true;resetARControls();resize();
 }
+
+/* Dedicated hit-test engine. Same real-floor-then-fix workflow as Modo Caos. */
+const floorAR=new RelicarioSpatialAR({
+ overlay:$('#arOverlay'),modelUrl:new URL('./relicario.glb',import.meta.url).href,
+ onState({stage,message,detail,diagnostic,draws=0,modelReady=false}){
+  if(message)$('#arTip').textContent=message;
+  if(detail)$('#arTracking').textContent=detail;
+  if(diagnostic)$('#arDiagnostic').textContent=diagnostic;
+  const preview=stage==='preview',fixed=stage==='fixed';
+  $('#arPlace').hidden=fixed;
+  $('#arPlace').disabled=!preview||!modelReady||draws<1;
+  $('#arReposition').hidden=!fixed;
+  $('#arCenterMarker').hidden=fixed;
+  $('#arTracking').dataset.stage=stage;
+  if(stage==='error')$('#arCompatible').textContent='CAMBIAR A VISTA CON CÁMARA';
+ },
+ onEnd(){
+  app.ar=false;app.placed=false;app.xrSession=null;
+  $('#arOverlay').hidden=true;
+  controls.enabled=true;renderer.setAnimationLoop(renderFrame);resize();
+ }
+});
+function syncARSize(){ $('#arSizeLabel').textContent='DIÁMETRO · '+Math.round(floorAR.width*100)+' CM' }
 async function launchXR(){
  if(!navigator.xr||!xrSupported)return false;
- let session;
+ $('#arOverlay').hidden=false;$('#arDialog').hidden=true;
+ $('#arTip').textContent='01 · BUSCÁ UNA MESA O EL PISO';
+ $('#arTracking').textContent='ESCANEANDO SUPERFICIES REALES…';
+ $('#arDiagnostic').textContent='Preparando motor XR independiente…';
+ $('#arPlace').hidden=false;$('#arPlace').disabled=true;
+ $('#arReposition').hidden=true;$('#arCenterMarker').hidden=false;
+ syncARSize();
  try{
-  // Modo Caos shows the overlay before asking WebXR for dom-overlay permission.
-  // Otherwise some mobile runtimes start XR but suppress the placement controls.
-  $('#arOverlay').hidden=false;
-  // User activation MUST be used synchronously: don't await isSessionSupported here.
-  session=await navigator.xr.requestSession('immersive-ar',{
-    requiredFeatures:['hit-test'],
-    optionalFeatures:['dom-overlay','anchors','local-floor'],
-    domOverlay:{root:$('#arOverlay')}
-  });
-  app.ar=true;app.placed=false;app.xrSession=session;
-  arScale=.21;arYaw=0;xrPoseValid=false;xrModelOnScreen=false;resetARControls();
-  sculpt.visible=true;sculpt.scale.setScalar(arScale);
-  reticle.visible=false;xrHitResult=null;xrAnchor=null;xrTracking='booting';arFrameCount=0;
-  $('#arDialog').hidden=true;$('#arOverlay').hidden=false;controls.enabled=false;scene.background=null;
-  renderer.xr.setReferenceSpaceType('local');
-  await renderer.xr.setSession(session);
-  // Show a provisional object before the FIRST hit-test pose.
-  const cam=renderer.xr.getCamera();
-  cam?.updateMatrixWorld?.(true);
-  const viewerSpace=await session.requestReferenceSpace('viewer');
-  try{xrHitSource=await session.requestHitTestSource({space:viewerSpace});}
-  catch(err){xrHitSource=null;console.info('Hit-test unavailable: manual XR placement remains active',err)}
-  // DOM overlay buttons are the only placement action; native XR 'select' used to fix invisible objects.
-  session.addEventListener('end',resetXRState,{once:true});
-  arStatus('MIRÁ HACIA UNA MESA · EL RELICARIO ESTÁ DELANTE TUYO','BUSCANDO SUPERFICIE…');
+  await floorAR.start();
+  app.ar=true;app.xrSession=floorAR.session;
+  controls.enabled=false;renderer.setAnimationLoop(null);
   return true;
- }catch(err){
-  console.warn('Spatial AR startup',err);
-  if(session){try{await session.end()}catch{}}
-  resetXRState();
+ }catch(e){
+  console.warn('Relicario floor AR',e);
+  $('#arDialog').hidden=false;$('#arOverlay').hidden=true;
+  $('#arMessage').textContent='No pude iniciar el seguimiento espacial: '+String(e?.message||e)+'. Podés probar la vista con cámara.';
   return false;
  }
 }
-$('#arPlace').addEventListener('click',()=>void placeInAR());
-$('#arReposition').addEventListener('click',rePlaceAR);
-$('#arSmaller').addEventListener('click',()=>updateARScale(-.025));
-$('#arBigger').addEventListener('click',()=>updateARScale(.025));
-$('#arRotate').addEventListener('click',rotateAR);
-$('#exitAR').addEventListener('click',()=>{if(app.xrSession)void app.xrSession.end()});
+$('#arPlace').addEventListener('click',()=>void floorAR.fix());
+$('#arReposition').addEventListener('click',()=>floorAR.reposition());
+$('#arSmaller').addEventListener('click',()=>{floorAR.adjustSize(-.05);syncARSize()});
+$('#arBigger').addEventListener('click',()=>{floorAR.adjustSize(.05);syncARSize()});
+$('#arRotate').addEventListener('click',()=>floorAR.rotate());
+$('#exitAR').addEventListener('click',()=>{void floorAR.end()});
 $('#arCompatible').addEventListener('click',async()=>{
-  // A guaranteed visible camera compositing option even on AR runtimes where 3D rendering fails.
-  // It is clearly labeled non-spatial, never described as an anchored virtual object.
-  const btn=$('#arCompatible');btn.disabled=true;btn.textContent='PREPARANDO VISTA CON CÁMARA…';
-  try{
-    if(app.xrSession)await app.xrSession.end();
-    if(!await startCameraView())toast('La cámara está bloqueada. Habilitá el permiso y volvé a intentar.');
-  }catch(e){console.warn('Compatible camera mode',e);toast('No se pudo abrir la cámara compatible.');}
-  finally{btn.disabled=false;btn.textContent='VER CON CÁMARA · MODO COMPATIBLE'}
+ const btn=$('#arCompatible');btn.disabled=true;btn.textContent='PREPARANDO CÁMARA…';
+ try{await floorAR.end();if(!await startCameraView())toast('No pude abrir la cámara. Revisá los permisos.')}
+ catch(e){console.warn('Compatible camera',e);toast('No se pudo abrir la vista con cámara.')}
+ finally{btn.disabled=false;btn.textContent='VER CON CÁMARA · MODO COMPATIBLE'}
 });
 let cameraStream=null,cameraActiveBefore=null,cameraOriginalPos=null,cameraOriginalRot=null,cameraOriginalOverflow=null,cameraScale=1;
 async function startCameraView(){
@@ -494,6 +497,6 @@ $('#launchAR').addEventListener('click',async()=>{
  }
  btn.disabled=false;btn.textContent='ENTRAR EN REALIDAD AUMENTADA ↗';
 });
-window.addEventListener('pagehide',()=>{stopCameraView();if(app.xrSession)void app.xrSession.end()});
+window.addEventListener('pagehide',()=>{stopCameraView();void floorAR.end()});
 // If WebGL cannot start, never trap visitors with a blank viewport.
 try{init3D()}catch(e){console.error('WebGL scene error:',e);$('#sceneLoading').innerHTML='<strong>EL OBJETO NO PUDO CARGARSE</strong><small>Probá Chrome, Safari o activá la aceleración gráfica.</small>';$('#primaryBtn').disabled=true;toast('No se pudo iniciar el motor 3D en este navegador')}
