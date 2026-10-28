@@ -1,0 +1,102 @@
+{
+  "license": "CC0 1.0 Universal",
+  "source": "https://gobkit.com/api/free",
+  "assets": [
+    {
+      "name": "marmot",
+      "url": "https://gobkit.com/freebies/animalB/Marmot.glb",
+      "bytes": 165892,
+      "sha256": "0dfe1f8d955c1f017fd2ec7b1e12eeec652d8b77100d81d638935c4e0d9a3b2e",
+      "animations": [
+        "idle",
+        "attack",
+        "dead",
+        "walk"
+      ]
+    },
+    {
+      "name": "fox",
+      "url": "https://gobkit.com/freebies/animal006/Fox.glb",
+      "bytes": 95328,
+      "sha256": "6b21cee3fbfc1c84510b020d9bc75e69a4f6401e7715109f25fdcce4fe10f6bf",
+      "animations": [
+        "idle",
+        "attack",
+        "dead",
+        "walk"
+      ]
+    },
+    {
+      "name": "platypus",
+      "url": "https://gobkit.com/freebies/animal/Platypus.glb",
+      "bytes": 108016,
+      "sha256": "191d40cd5ae9969d22221426f5d7e15bcdc67bbaede6c24d5f5dee204df3b7d7",
+      "animations": [
+        "idle",
+        "attack",
+        "dead",
+        "walk"
+      ]
+    },
+    {
+      "name": "penguin",
+      "url": "https://gobkit.com/freebies/birds/Penguin.glb",
+      "bytes": 89488,
+      "sha256": "1148c57f2332029904e6f7fb44f40c155ab7133345c0d3f7edd2e648ce2567de",
+      "animations": [
+        "idle",
+        "attack",
+        "dead",
+        "walk"
+      ]
+    },
+    {
+      "name": "seaotter",
+      "url": "https://gobkit.com/freebies/animal007/SeaOtter.glb",
+      "bytes": 102896,
+      "sha256": "27f54f879846af5ca48419da73a9e92e3b8c107b0cb0f0eabf8c89c99e99569f",
+      "animations": [
+        "idle",
+        "attack",
+        "dead",
+        "walk"
+      ]
+    },
+    {
+      "name": "koala",
+      "url": "https://gobkit.com/freebies/animal007/Koala.glb",
+      "bytes": 104716,
+      "sha256": "41e008751c798c662560fc0da4711c1beb8a69d9ac515a72cb812020448f7f6c",
+      "animations": [
+        "idle",
+        "attack",
+        "dead",
+        "walk"
+      ]
+    },
+    {
+      "name": "corgi",
+      "url": "https://gobkit.com/freebies/animal/Corgi.glb",
+      "bytes": 106928,
+      "sha256": "7137f257c72d7171ae5416dabf1df75b3b4ebfd5cab226354b14dc0ae720cf68",
+      "animations": [
+        "idle",
+        "attack",
+        "dead",
+        "walk"
+      ]
+    },
+    {
+      "name": "tiger",
+      "url": "https://gobkit.com/freebies/animal008/Tiger.glb",
+      "bytes": 106812,
+      "sha256": "1d6920ffae3cc64a655f41bdeaa9a978532e32018f02abc2a9d051dd6d548976",
+      "animations": [
+        "idle",
+        "attack",
+        "dead",
+        "walk"
+      ]
+    }
+  ]
+}
