@@ -16,6 +16,8 @@ await audit("Mobile camera fallback visibly renders the real relicario",async()=
  const response=await page.goto(url,{waitUntil:"domcontentloaded",timeout:45000});
  if(response.status()!==200)throw Error("HTTP "+response.status());
  await page.locator("#sceneLoading.gone").waitFor({state:"attached",timeout:25000});
+ await page.locator("#enterBtn").click();
+ await page.locator("#entryOverlay").waitFor({state:"detached",timeout:6000});
  await page.locator("#arBtn").click();
  await page.locator("#arDialog:visible").waitFor();
  await page.locator("#launchAR").click();
