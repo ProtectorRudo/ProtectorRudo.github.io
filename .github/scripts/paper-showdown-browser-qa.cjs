@@ -36,7 +36,10 @@ const {chromium}=require('playwright');
   }));
   assert.equal(preview.stageVisible,true);
   await page.screenshot({path:'/tmp/paper-vs-android.png'});
-  await page.locator('#vsPlayNow').click();
+  console.log('BROWSER_QA_PREVIEW',JSON.stringify({startNames,preview,assetHeads:glbs}));
+  const before=await page.evaluate(()=>window.territoryQA?.mode);
+  if(before==='versus')await page.locator('#vsPlayNow').click();
+  else assert.equal(before,'play','The game should auto-start if VS has already finished');
   await page.waitForFunction(()=>window.territoryQA?.mode==='play',{timeout:15000});
   await page.waitForTimeout(1100);
   const state=await page.evaluate(()=>({
@@ -49,7 +52,10 @@ const {chromium}=require('playwright');
   assert.equal(state.mode,'play');assert.equal(state.players,12);assert.equal(state.playing,true);
   await page.screenshot({path:'/tmp/paper-game-android.png'});
   // Paused restart is required to show the VS again.
-  await page.locator('#pause').click();await page.locator('#restart').click();
+  const beforeReplay=await page.evaluate(()=>window.territoryQA?.mode);
+  if(beforeReplay==='play'){await page.locator('#pause').click();await page.locator('#restart').click();}
+  else if(beforeReplay==='result')await page.locator('#again').click();
+  else throw new Error('Unexpected state before restart: '+beforeReplay);
   await page.waitForFunction(()=>window.territoryQA?.mode==='versus',{timeout:8000});
   console.log('BROWSER_QA',JSON.stringify({startNames,preview,state,assetHeads:glbs,errors}));
   assert.equal(errors.filter(e=>!/WebGL|GPU|console:/.test(e)).length,0,'Unexpected gameplay page errors: '+errors.join('; '));
