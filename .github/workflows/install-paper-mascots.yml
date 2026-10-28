@@ -1,0 +1,55 @@
+name: Install CC0 animal mascots for Territory Loop
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/install-paper-mascots.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install only verified public CC0 rigged animal GLBs
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from urllib.request import urlopen,Request
+          import struct,json,hashlib
+          base=Path('Modo-caos/assets/mascots');base.mkdir(parents=True,exist_ok=True)
+          models={
+            'marmot':'https://gobkit.com/freebies/animalB/Marmot.glb',
+            'fox':'https://gobkit.com/freebies/animal006/Fox.glb',
+            'platypus':'https://gobkit.com/freebies/animal/Platypus.glb',
+            'penguin':'https://gobkit.com/freebies/birds/Penguin.glb',
+            'seaotter':'https://gobkit.com/freebies/animal007/SeaOtter.glb',
+            'koala':'https://gobkit.com/freebies/animal007/Koala.glb',
+            'corgi':'https://gobkit.com/freebies/animal/Corgi.glb',
+            'tiger':'https://gobkit.com/freebies/animal008/Tiger.glb',
+          }
+          out=[]
+          for name,url in models.items():
+            with urlopen(Request(url,headers={'User-Agent':'ModoCaosAssetVerifier/1.0'}),timeout=30) as response:data=response.read(4_000_000)
+            assert len(data)>500 and data[:4]==b'glTF',f'Invalid {name}'
+            magic,version,n=struct.unpack_from('<III',data)
+            assert version==2 and n==len(data),f'GLB length mismatch: {name}'
+            chunkLength,chunkType=struct.unpack_from('<II',data,12)
+            assert chunkType==0x4e4f534a
+            doc=json.loads(data[20:20+chunkLength])
+            assert doc.get('meshes') and doc.get('skins') and doc.get('animations'),f'Not rigged/animated {name}'
+            (base/(name+'.glb')).write_bytes(data)
+            out.append({'name':name,'url':url,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest(),'animations':[x.get('name') for x in doc['animations']]})
+          (base/'manifest.json').write_text(json.dumps({'license':'CC0 1.0 Universal','source':'https://gobkit.com/api/free','assets':out},indent=2))
+          print('MASCOT_AUDIT',json.dumps(out))
+          PY
+      - name: Commit selected models
+        run: |
+          git config user.name 'modo-caos-asset-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -- Modo-caos/assets/mascots/
+          if ! git diff --cached --quiet; then
+            git commit -m 'assets(paper): verified free CC0 3D animated animal mascots'
+            git push origin HEAD:main
+          fi
