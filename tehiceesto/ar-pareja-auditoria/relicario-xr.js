@@ -68,7 +68,8 @@ export class RelicarioSpatialAR {
   this.renderer=null;this.scene=null;this.root=null;this.camera=null;this.canvas=null;this.hitSource=null;
   this.anchor=null;this.latestHit=null;this.frames=0;this.drawCalls=0;clearFloorGuide();this.modelReady=false;
   this.hitSeenAt=0;this.worldPosition=new THREE.Vector3();this.initialMaterialCount=0;
-  this.loadPromise=this.loadModel();this._statusTime=0;
+  this.hitSourceDown=null;this.lastSource='none';this.previewReady=false;
+  this.loadPromise=this.loadModel();this.loadPromise.catch(()=>{});this._statusTime=0;
  }
  async loadModel(){
   try{
@@ -138,6 +139,19 @@ export class RelicarioSpatialAR {
    const key=new THREE.DirectionalLight(0xffdfb0,5.2);key.position.set(-2,4,3);this.scene.add(key);
    const fill=new THREE.DirectionalLight(0xfff2e9,2.2);fill.position.set(3,2,-2);this.scene.add(fill);
    this.root=new THREE.Group();this.scene.add(this.root);this.root.visible=false;
+   // A visible, lightweight preview means AR is never an empty camera while scanning.
+   // It is explicitly NOT a physical placement; only a real XR hit enables fixing.
+   this.previewKit=new THREE.Group();this.root.add(this.previewKit);
+   const previewGold=new THREE.MeshStandardMaterial({color:0xe6bd82,metalness:.78,roughness:.25,emissive:0x6d3e19,emissiveIntensity:.28});
+   const previewBase=new THREE.Mesh(new THREE.CylinderGeometry(1.03,1.12,.14,64),previewGold);
+   previewBase.position.y=.07;this.previewKit.add(previewBase);
+   const previewFrame=new THREE.Mesh(new THREE.TorusGeometry(.87,.065,12,80),previewGold);
+   previewFrame.position.y=1.3;this.previewKit.add(previewFrame);
+   const previewInner=new THREE.Mesh(new THREE.IcosahedronGeometry(.48,1),new THREE.MeshStandardMaterial({color:0xf9d7b0,metalness:.36,roughness:.2,emissive:0x633f28,emissiveIntensity:.3}));
+   previewInner.position.y=1.32;this.previewKit.add(previewInner);
+   const previewHalo=new THREE.Mesh(new THREE.TorusGeometry(1.15,.014,8,96),new THREE.MeshBasicMaterial({color:0xfce1ba,transparent:true,opacity:.83,side:THREE.DoubleSide,depthWrite:false}));
+   previewHalo.rotation.x=-Math.PI/2;previewHalo.position.y=.16;this.previewKit.add(previewHalo);
+   this.updateSize();
    this.marker=new THREE.Group();this.scene.add(this.marker);this.marker.visible=false;
    const ring=new THREE.Mesh(new THREE.RingGeometry(.16,.174,72),new THREE.MeshBasicMaterial({color:0xf0cdab,side:THREE.DoubleSide,transparent:true,opacity:.95,depthWrite:false}));
    ring.rotation.x=-Math.PI/2;ring.position.y=.006;this.marker.add(ring);
@@ -145,12 +159,22 @@ export class RelicarioSpatialAR {
    disk.rotation.x=-Math.PI/2;disk.position.y=.003;this.marker.add(disk);
    await this.renderer.xr.setSession(session);
    const ref=await session.requestReferenceSpace('viewer');
-   this.hitSource=await session.requestHitTestSource({space:ref});
+   this.hitSource=await session.requestHitTestSource({space:ref,entityTypes:['plane','point']}).catch(()=>session.requestHitTestSource({space:ref}));
+   // A second, mildly downward ray improves discovery of tables and floors when the
+   // camera is held naturally instead of pointed directly into the ground.
+   try {
+    if(typeof XRRay!=='undefined') {
+     const ray=new XRRay({x:0,y:0,z:0,w:1},{x:0,y:-.38,z:-1,w:0});
+     this.hitSourceDown=await session.requestHitTestSource({space:ref,offsetRay:ray,entityTypes:['plane','point']});
+    }
+   } catch(err){console.info('Supplemental XR floor ray unavailable',err)}
+   this.previewReady=true;
    this._status('scan','01 · BUSCÁ UNA MESA O EL PISO','Mové lentamente el teléfono hasta que aparezca un anillo dorado sobre una superficie real.');
    this.renderer.setAnimationLoop((time,frame)=>this.onFrame(time,frame));
    this.loadPromise.then(asset=>{
     if(!this.session||!this.root)return;
     this.root.add(asset.model);
+    this.previewKit.visible=false;
     this.updateSize();
     this._status('scan','01 · BUSCÁ UNA SUPERFICIE','La escultura está cargada. Apuntá hacia una mesa o el piso.');
    }).catch(err=>{this._status('error','NO SE PUDO CARGAR EL RELICARIO',String(err.message||err));});
@@ -162,8 +186,8 @@ export class RelicarioSpatialAR {
   }
  }
  updateSize(){
-  if(!this.root||!this.asset)return;
-  this.root.scale.setScalar(this.width/this.asset.objectWidth);
+  if(!this.root)return;
+  this.root.scale.setScalar(this.width/(this.asset?.objectWidth||2.3));
  }
  adjustSize(delta){this.width=clamp(this.width+delta,.2,.75);this.updateSize();return Math.round(this.width*100);}
  rotate(){this.rotation+=Math.PI/12;if(this.root)this.root.rotation.y=this.rotation;return Math.round(this.rotation*180/Math.PI)%360;}
@@ -194,21 +218,38 @@ export class RelicarioSpatialAR {
    if(!viewer)return;
    this.frames++;
    if(this.stage==='scan'||this.stage==='preview'){
-    const hit=chooseFloorHit(frame,this.hitSource,space,viewer);
+    const hit=chooseFloorHit(frame,this.hitSource,space,viewer)||chooseFloorHit(frame,this.hitSourceDown,space,viewer);
     if(hit){
      const p=hit.pose.transform.position;
      this.worldPosition.set(p.x,p.y,p.z);
      this.marker.position.copy(this.worldPosition);this.marker.visible=true;
      this.root.position.copy(this.worldPosition);
      this.root.rotation.y=this.rotation;
-     this.root.visible=this.modelReady&&!!this.asset?.model.parent;
+     this.root.visible=true;
      this.latestHit=hit.result;
      this.hitSeenAt=time;
+     this.lastSource='real-plane';
      drawFloorGuide(viewer,this.worldPosition,this.width);
-     if(this.root.visible&&this.stage!=='preview')this._status('preview','02 · AJUSTÁ EL RELICARIO','El anillo está sobre una superficie real. Agrandá, girá y tocá «Fijar».');
-    }else if(time-this.hitSeenAt>850){
-     this.marker.visible=false;this.root.visible=false;this.latestHit=null;clearFloorGuide();
-     if(this.stage!=='scan')this._status('scan','01 · BUSCÁ UNA MESA O EL PISO','Todavía no detecté una superficie horizontal. Mové lentamente el teléfono.');
+     if(this.modelReady&&this.stage!=='preview')this._status('preview','02 · SUPERFICIE REAL DETECTADA','Relicario sobre el piso o mesa. Ajustá el tamaño y tocá «Fijar».');
+     if(!this.modelReady&&this.stage==='preview')this._status('scan','CARGANDO EL RELICARIO','Superficie detectada. Preparando la pieza original…');
+    }else if(time-this.hitSeenAt>650){
+     this.marker.visible=false;this.latestHit=null;clearFloorGuide();
+     // AR preview follows the camera ONLY during scanning. It is never anchored
+     // and cannot be confused with successful hit-testing or a fixed object.
+     const pose=viewer.transform;
+     const q=pose.orientation,p=pose.position;
+     if(q&&p){
+      tmpQ.set(q.x,q.y,q.z,q.w).normalize();
+      const dir=v3.set(0,0,-1).applyQuaternion(tmpQ).normalize();
+      const scale=this.root.scale.x||.2;
+      const localHeight=this.asset?.height||2.5;
+      this.root.position.set(p.x,p.y,p.z).addScaledVector(dir,.95);
+      this.root.position.y-=localHeight*scale*.5;
+      this.root.rotation.y=this.rotation;
+      this.root.visible=true;
+     }
+     this.lastSource='camera-preview';
+     if(this.stage!=='scan')this._status('scan','01 · BUSCÁ UNA MESA O EL PISO','Vista previa móvil · todavía NO está fijado. Apuntá al piso y mové lentamente el teléfono.');
     }
    }else if(this.stage==='fixed'&&this.anchor){
     const pose=frame.getPose(this.anchor.anchorSpace,space);
@@ -218,7 +259,7 @@ export class RelicarioSpatialAR {
    this.renderer.render(this.scene,this.camera);
    this.drawCalls=this.renderer.info.render.calls;
    if(time-this._statusTime>1600){
-    const info=this.modelReady?`${this.asset.meshes} mallas · GPU ${this.drawCalls} dibujos · ${this.frames} frames · suelo ${this.latestHit?'DETECTADO':'buscando'}`:'Cargando modelo 3D…';
+    const info=this.modelReady?`${this.asset.meshes} mallas · GPU ${this.drawCalls} dibujos · ${this.frames} frames · piso ${this.latestHit?'REAL ✓':'buscando'} · ${this.lastSource}`:`Vista de diagnóstico · GPU ${this.drawCalls} · modelo ${this.assetError?'ERROR':'cargando'} · piso ${this.latestHit?'REAL ✓':'buscando'}`;
     this.onState?.({stage:this.stage,message:null,detail:null,diagnostic:info,draws:this.drawCalls,frames:this.frames,modelReady:this.modelReady});
     this._statusTime=time;
    }
@@ -230,10 +271,11 @@ export class RelicarioSpatialAR {
  stopFromSession(){
   this.renderer?.setAnimationLoop(null);
   this.hitSource?.cancel?.();this.hitSource=null;
+  this.hitSourceDown?.cancel?.();this.hitSourceDown=null;this.previewReady=false;
   this.anchor?.delete?.();this.anchor=null;
   this.renderer?.dispose();this.renderer?.forceContextLoss?.();this.renderer=null;
   this.canvas?.remove();this.canvas=null;
-  this.session=null;this.root=null;this.marker=null;this.scene=null;this.camera=null;
+  this.session=null;this.root=null;this.marker=null;this.previewKit=null;this.scene=null;this.camera=null;
   this.latestHit=null;this.frames=0;this.drawCalls=0;
   this._status('inactive','','');
   this.onEnd?.();
