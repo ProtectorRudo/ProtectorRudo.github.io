@@ -293,7 +293,7 @@ async function prepareNativeAR(){
  return resource;
 }
 
-let xrSupported=false,xrHitSource=null;
+let xrSupported=false;
 (async()=>{try{xrSupported=!!(navigator.xr&&await navigator.xr.isSessionSupported('immersive-ar'))}catch{xrSupported=false}})();
 function showArDialog(){
  $('#arMessage').textContent='El relicario aparece en cuanto se abre AR. Ajustá el tamaño y tocá «Fijar» cuando encuentres el lugar.';
