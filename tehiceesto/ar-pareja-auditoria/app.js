@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { RelicarioSpatialAR } from './relicario-xr.js';
+import { RelicarioSpatialAR } from './relicario-xr.js?v=piso-13';
 
 /* TE HICE ESTO · EL LUGAR DONDE VIVE LO NUESTRO
  * Independent author concept. No data is written to production. 3D authored in code.
@@ -346,7 +346,7 @@ async function prepareNativeAR(){
 let xrSupported=false;
 (async()=>{try{xrSupported=!!(navigator.xr&&await navigator.xr.isSessionSupported('immersive-ar'))}catch{xrSupported=false}})();
 function showArDialog(){
- $('#arMessage').textContent='El relicario aparece en cuanto se abre AR. Ajustá el tamaño y tocá «Fijar» cuando encuentres el lugar.';
+ $('#arMessage').textContent='Vas a ver una vista previa mientras buscás el piso o una mesa. Cuando el sensor encuentre una superficie REAL, vas a poder fijar allí la escultura.';
  $('#arDialog').hidden=false;void prepareNativeAR();
 }
 $('#arBtn').addEventListener('click',showArDialog);
@@ -375,6 +375,7 @@ const floorAR=new RelicarioSpatialAR({
   const preview=stage==='preview',fixed=stage==='fixed';
   $('#arPlace').hidden=fixed;
   $('#arPlace').disabled=!preview||!modelReady||draws<1;
+   $('#arPlace').textContent=preview?'03 · FIJAR RELICARIO SOBRE LA SUPERFICIE':'03 · ESPERANDO SUPERFICIE REAL';
   $('#arReposition').hidden=!fixed;
   $('#arCenterMarker').hidden=fixed;
   $('#arTracking').dataset.stage=stage;
@@ -464,7 +465,7 @@ async function showNativeViewer(){
  try{
   const mv=$('#iosARModel');const host=$('#nativeViewerHost');
   host.appendChild(mv);mv.hidden=false;$('#arDialog').hidden=true;$('#nativeAR').hidden=false;
-  mv.setAttribute('src',prepareNativeAR());
+  mv.setAttribute('src',await prepareNativeAR());
   // Visible, full-size preview (not the former invisible 1px component).
   await import('https://cdn.jsdelivr.net/npm/@google/model-viewer@4.1.0/dist/model-viewer.min.js');
   await customElements.whenDefined('model-viewer');
