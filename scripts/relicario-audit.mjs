@@ -13,7 +13,7 @@ async function open(viewport,label){
  page.on("console",message=>{if(message.type()==="error")console.error("CONSOLEERROR",label,message.text().slice(0,400))});
  const res=await page.goto(url,{waitUntil:"domcontentloaded",timeout:50000});
  if(res.status()!==200)throw Error("HTTP "+res.status());
- await page.locator("#sceneLoading.gone").waitFor({timeout:45000});
+ await page.locator("#sceneLoading.gone").waitFor({state:"attached",timeout:45000});
  const info=await page.evaluate(()=>({canvas:document.querySelectorAll("#canvasHost canvas").length,ready:!!window.WebGLRenderingContext,bytes:document.querySelector("#canvasHost canvas")?.width,ratio:document.documentElement.scrollWidth/innerWidth}));
  if(info.canvas!==1||!info.bytes)throw Error("3D renderer not ready "+JSON.stringify(info));
  console.log("3D",label,JSON.stringify(info));
