@@ -227,6 +227,37 @@ input[type=text]:focus{border-color:#42bcca}
 #hud #emoteButton:active{transform:translateY(2px);box-shadow:0 1px 0 #3257a287}
 
 /* Character renderer: 3D rigged models enhance this canvas; fallback art is fully animated chibi. */
+
+/* 2026 premium roster refresh. Eliminate the retired geometric avatar demo. */
+#home .panel{max-width:480px}
+#home .description{font-size:12px;line-height:1.45;margin:8px 0 11px}
+#menuHeroStage{position:relative;width:100%;height:clamp(200px,33dvh,290px);margin:8px 0 11px;isolation:isolate;border:2px solid #4873b2;border-radius:20px;overflow:hidden;background:radial-gradient(ellipse at 50% 56%,#4a70be 0%,#233c87 49%,#14285d 100%);box-shadow:inset 0 1px 20px #9cf5ff15,0 7px 20px #1e39742e}
+#menuFallbackCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}
+#versus3dCanvas.menuPosition{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;opacity:1}
+#versus3dCanvas.vsPosition{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
+#menuHeroStage .menuFloor{position:absolute;z-index:1;bottom:13%;width:52%;height:13%;left:24%;background:radial-gradient(ellipse,#58d9f778 0%,#a8eafa38 45%,transparent 72%);border-radius:50%}
+#menuHeroStage .menuSparks{position:absolute;inset:0;z-index:1;pointer-events:none}
+#menuHeroStage .menuSparks span{position:absolute;color:#f8ee9c;font-weight:900;text-shadow:0 0 12px #f8f4af}
+.menuSparks span:nth-child(1){left:18%;top:19%;font-size:22px}
+.menuSparks span:nth-child(2){right:17%;top:12%;font-size:34px}
+.menuSparks span:nth-child(3){right:29%;bottom:34%;font-size:18px}
+.menuSparks span:nth-child(4){left:25%;bottom:29%;font-size:22px}
+#menuHeroStage .menuHeroStamp{position:absolute;left:12px;bottom:10px;display:flex;flex-direction:column;gap:0;z-index:5;color:#fff;text-shadow:0 2px #10296a;pointer-events:none}
+.menuHeroStamp strong{font-weight:1000;font-size:21px;letter-spacing:-.7px}
+.menuHeroStamp small{font-size:10px;font-weight:750;color:#c5ebff}
+#menuHeroStage .menuStatus{position:absolute;top:9px;right:9px;padding:4px 7px;border:1px solid #c5e2fe88;border-radius:6px;color:#d5f7ff;background:#152c6575;z-index:5;font-size:8px;font-weight:950;letter-spacing:.7px}
+.menuModelLoader{z-index:5;position:absolute;top:9px;left:9px;display:flex;align-items:center;gap:5px;padding:5px 7px;border-radius:8px;background:#142d6c9b;color:#eef9ff;font-size:8px;font-weight:950;letter-spacing:.6px}
+.menuModelLoader.loaded{display:none}
+.loaderPulse{width:6px;height:6px;border-radius:50%;background:#f5e67b;box-shadow:0 0 8px #f5e67b;animation:menuPulse 1s ease-in-out infinite alternate}
+@keyframes menuPulse{to{opacity:.25;transform:scale(.7)}}
+#home .heroRosterHead{font-size:10px;color:#387998;margin:8px 0 7px}
+#home .heroChoice{background:#ecf3fd;border-color:#b7d0f0;border-radius:13px}
+#home .heroChoice.selected{background:#e0f5ff;border-color:#358cef;box-shadow:0 3px 0 #2b80c2}
+#home .heroChoice b{color:#1f538b}
+#home .heroChoice small{color:#548ba7}
+@media(max-height:750px){#menuHeroStage{height:clamp(180px,28dvh,220px)}#home .description{margin:4px 0 8px}#home .heroRosterHead{margin:5px 0}}
+@media(prefers-reduced-motion:reduce){.loaderPulse{animation:none}}
+
 #game{position:relative;z-index:0}
 #characterStage{position:fixed;inset:0;z-index:2;pointer-events:none;display:block;user-select:none}
 #hud{z-index:5}
@@ -342,7 +373,7 @@ input[type=text]:focus{border-color:#42bcca}
   <div class="versusPanel">
     <div class="vsTopline"><span class="vsGameTag">TERRITORY LOOP <b>SHOWDOWN</b></span><span class="vsFightTag">ANTES DEL COMBATE</span></div>
     <div class="versusHeader"><h2>¡CARA A CARA!</h2><p>Dos personajes. Un territorio. Muchos motivos para festejar.</p></div>
-    <div class="versusStage">
+    <div id="versusStage" class="versusStage">
       <canvas id="versusCanvas" width="760" height="790" aria-label="Dos personajes animados haciendo el gesto Six Seven"></canvas><canvas id="versus3dCanvas" aria-hidden="true"></canvas>
       <div class="vsNamePlate vsNameLeft"><small>TU PERSONAJE</small><strong id="vsPlayerName">NOVA</strong><span id="vsPlayerRole">La audaz</span></div>
       <div class="vsNamePlate vsNameRight"><small>RIVAL DESTACADO</small><strong id="vsRivalName">BOMBO</strong><span id="vsRivalRole">El bromista</span></div>
@@ -359,7 +390,14 @@ input[type=text]:focus{border-color:#42bcca}
 <section id="home" class="overlay"><div class="panel">
  <div class="brand">MODO CAOS · ARCADE ORIGINAL</div><h1>TERRITORY <em>LOOP</em></h1>
  <p class="description">Pintá el mapa, cerrá circuitos y cortá las estelas enemigas. Si alguien toca tu estela mientras estás afuera, perdés.</p>
- <div class="preview"><div class="trace"></div><div class="avatarDemo"></div><div class="floating">⚡</div></div>
+ <div id="menuHeroStage" class="menuHeroStage">
+ <div class="menuSparks" aria-hidden="true"><span>✦</span><span>✧</span><span>✦</span><span>✧</span></div>
+ <canvas id="menuFallbackCanvas" width="500" height="390" aria-label="Vista previa del personaje seleccionado"></canvas>
+ <div id="menuModelLoader" class="menuModelLoader"><span class="loaderPulse"></span>PREPARANDO TU PERSONAJE 3D</div>
+ <span class="menuFloor" aria-hidden="true"></span>
+ <div class="menuHeroStamp"><strong id="menuCharacterLabel">NOVA</strong><small id="menuCharacterTagline">¡A por todo!</small></div>
+ <span id="menu3dStatus" class="menuStatus">VISTA PREVIA ANIMADA</span>
+</div>
  <input id="nick" maxlength="16" type="text" placeholder="Tu nombre" value="VOS" aria-label="Nombre de jugador">
  <div class="colors" id="colors"></div><div class="heroRosterHead">ELEGÍ UN PERSONAJE CON PERSONALIDAD</div><div class="heroRoster" id="heroPicker"></div><div id="heroDetails"></div><div class="walletBar"><span>🪙 MONEDAS</span><b id="homeCoins">0</b></div><button class="storeButton" id="openShopHome">✦ TIENDA DE ROPA, GESTOS Y FESTEJOS</button>
  <button class="primary" id="start">▶ JUGAR AHORA</button>
@@ -474,6 +512,9 @@ function renderHeroPicker(){
  $('heroPicker').innerHTML=HEROES.map((x,i)=>'<button class="heroChoice '+(i===wardrobe.hero?'selected':'')+'" data-hero="'+i+'" aria-label="Seleccionar '+x.name+'"><span class="heroMini heroMini'+i+'" style="--hero:'+x.color+'"><i class="miniHat"></i><i class="miniFace"><em class="miniEyes"></em></i><i class="miniTorso"></i><i class="miniFeet"></i></span><b>'+x.name+'</b><small>'+x.role+'</small></button>').join('');
  $('heroDetails').innerHTML='<strong>'+h.name+' · '+h.role+'</strong><span>'+h.bio+'</span><i>“'+h.motto+'”</i>';
  $('heroName').textContent=h.name;
+ $('menuCharacterLabel').textContent=h.name;
+ $('menuCharacterTagline').textContent=h.motto;
+ if(window.PaperMenuHeroChanged)window.PaperMenuHeroChanged(h.id);
 }
 function openShop(from='home'){
  if(mode==='play')return;
@@ -1148,6 +1189,21 @@ function versusActor(ctx,index,x,y,scale,elapsed,flipped,wear){
  if(wear==='outfit_scarf'){ctx.fillStyle='#f9597f';ctx.beginPath();ctx.roundRect(-27,-75,54,12,4);ctx.fill();ctx.fillRect(24,-70,11,34);}
  ctx.restore();
 }
+
+function drawMenuHeroFallback(ms){
+ if(mode!=='home'||window.PaperMenuReady)return;
+ const cv=$('menuFallbackCanvas'),ctx=cv.getContext('2d');if(!ctx)return;
+ const w=cv.width,h=cv.height,seconds=ms*.001;
+ ctx.clearRect(0,0,w,h);
+ const radial=ctx.createRadialGradient(w/2,h*.53,8,w/2,h*.53,w*.4);
+ radial.addColorStop(0,'#6ce4fd3a');radial.addColorStop(1,'#6ce4fd00');
+ ctx.fillStyle=radial;ctx.fillRect(0,0,w,h);
+ ctx.save();
+ // Until the authentic GLB loads, show a full humanoid—not the retired square.
+ versusActor(ctx,wardrobe.hero,w/2,h*.88,1.19,seconds,false,wardrobe.equipped.outfit);
+ ctx.restore();
+}
+
 function drawVersus(ms){
  if(mode!=='versus')return;
  const cv=$('versusCanvas'),ctx=cv.getContext('2d');if(!ctx)return;
@@ -1231,12 +1287,12 @@ COLORS.slice(0,6).forEach((col,i)=>{const b=document.createElement('button');b.s
 $('best').textContent='TU RÉCORD: '+readBest().toFixed(1)+'%';
 fit();window.addEventListener('resize',fit);
 let last=performance.now(),acc=0;
-function frame(t){const dt=Math.min(.05,Math.max(0,(t-last)/1000));last=t;if(mode==='versus')drawVersus(t);if(mode==='play'&&game){acc=Math.min(acc+dt,.13);let loops=0;while(acc>=RUN&&loops<7){step(RUN);acc-=RUN;loops++;}}else acc=0;render();requestAnimationFrame(frame);}
+function frame(t){const dt=Math.min(.05,Math.max(0,(t-last)/1000));last=t;if(mode==='versus')drawVersus(t);else if(mode==='home')drawMenuHeroFallback(t);if(mode==='play'&&game){acc=Math.min(acc+dt,.13);let loops=0;while(acc>=RUN&&loops<7){step(RUN);acc-=RUN;loops++;}}else acc=0;render();requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 // The 3D renderer is a separate, optional visual layer. Expose only the
 // lightweight read-only coordinates it needs; all gameplay stays unchanged.
 window.Paper3DState=()=>({
- playing:!!game&&mode==='play',previewing:mode==='versus',vsHero:wardrobe.hero,vsRival,vsSeconds:vsLastElapsed,clock,camX,camY,zoom,screenW,screenH,
+ playing:!!game&&mode==='play',menuing:mode==='home',menuHero:wardrobe.hero,previewing:mode==='versus',vsHero:wardrobe.hero,vsRival,vsSeconds:vsLastElapsed,clock,camX,camY,zoom,screenW,screenH,
  outfit:wardrobe.equipped.outfit,
  people:game?game.people.map(p=>({
   id:p.id,x:p.x,y:p.y,angle:p.angle,alive:p.alive,

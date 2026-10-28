@@ -22,6 +22,7 @@ const gltfLoader=new GLTFLoader();
 const sourceAssets=new Array(models.length).fill(null),instances=new Map();
 window.Paper3DReady=Object.create(null);
 window.PaperVSReady=false;
+window.PaperMenuReady=false;
 let scene,camera,renderer,started=false,failed=false,last=0,activeHero=-1;
 try{
  renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,powerPreference:'low-power',premultipliedAlpha:false});
@@ -148,7 +149,7 @@ function adjustSize(width,height){
 function sync(dt){
  if(failed)return;
  const state=getState();
- if(state&&(state.playing||state.previewing))startLoading();
+ if(state&&(state.playing||state.previewing||state.menuing))startLoading();
  if(!state||!state.playing){
   for(const p of instances.values())p.root.visible=false;
   renderer.clear();return;
@@ -246,12 +247,57 @@ function danceBones(item,seconds,mirror){
   }
  }
 }
+/* One WebGL context for BOTH the hero menu and VS. Reparenting the same canvas
+   prevents a third GPU context on older Android devices and keeps one GLB cache. */
+function attachShowcase(target,cssClass){
+ if(vsCanvas.parentElement?.id!==target)document.getElementById(target)?.appendChild(vsCanvas);
+ if(vsCanvas.className!==cssClass)vsCanvas.className=cssClass;
+}
+function syncMenu(state,dt){
+ if(!state?.menuing)return;
+ vsCreate();if(vsFailure||!vsRenderer)return;
+ const hero=state.menuHero;
+ if(!sourceAssets[hero]){window.PaperMenuReady=false;return;}
+ try{
+  attachShowcase('menuHeroStage','menuPosition');
+  const previous=vsCharacters[0];
+  if(vsCharacters.length!==1||!previous||previous.hero!==hero){
+   clearVSActors();vsCharacters=[vsActor(hero)];
+  }
+  const actor=vsCharacters[0];
+  if(!actor){window.PaperMenuReady=false;return;}
+  const width=Math.max(1,vsCanvas.clientWidth||360),height=Math.max(1,vsCanvas.clientHeight||240);
+  const dpr=Math.min(devicePixelRatio||1,1.25);
+  if(vsCanvas.width!==Math.round(width*dpr)||vsCanvas.height!==Math.round(height*dpr))
+   vsRenderer.setSize(width,height,false);
+  vsCamera.left=-width/2;vsCamera.right=width/2;
+  vsCamera.top=height/2;vsCamera.bottom=-height/2;vsCamera.updateProjectionMatrix();
+  const t=performance.now()/1000;
+  actor.root.visible=true;
+  actor.root.scale.setScalar(height*.70/RIG_HEIGHT);
+  actor.root.position.set(0,-height*.34+Math.sin(t*2.3)*2,0);
+  actor.root.rotation.y=Math.sin(t*.9)*.2;
+  actor.root.rotation.z=Math.sin(t*1.8)*.015;
+  if(actor.mixer)actor.mixer.update(Math.min(dt,.04));
+  updateOutfit(actor,state.outfit);
+  vsRenderer.render(vsScene,vsCamera);
+  window.PaperMenuReady=true;
+  vsCanvas.style.opacity='1';
+  const status=document.getElementById('menu3dStatus');
+  if(status)status.textContent='PERSONAJE 3D ORIGINAL';
+  document.getElementById('menuModelLoader')?.classList.add('loaded');
+ }catch(error){
+  console.warn('Menu GLB preview fallback enabled',error);
+  window.PaperMenuReady=false;vsCanvas.style.opacity='0';
+ }
+}
 function syncVS(state,dt){
- if(!state?.previewing){window.PaperVSReady=false;if(vsCanvas)vsCanvas.style.opacity='0';return;}
+ if(!state?.previewing){window.PaperVSReady=false;return;}
  const wanted=[state.vsHero,state.vsRival];
  if(!wanted.every(i=>sourceAssets[i])){window.PaperVSReady=false;if(vsCanvas)vsCanvas.style.opacity='0';return;}
  vsCreate();if(vsFailure||!vsRenderer)return;
  try{
+  attachShowcase('versusStage','vsPosition');
   if(vsCharacters.length!==2||vsCharacters.some((a,i)=>!a||a.hero!==wanted[i])){
    clearVSActors();vsCharacters=wanted.map(vsActor);
   }
@@ -286,7 +332,7 @@ function syncVS(state,dt){
 function frame(ms){
  requestAnimationFrame(frame);
  const dt=Math.min(.06,(ms-last)/1000||0);last=ms;
- if(!failed)try{const state=getState();sync(dt);syncVS(state,dt);}catch(e){console.warn('3D actor display disabled; chibi sprites stay available',e);failed=true;
+ if(!failed)try{const state=getState();sync(dt);if(state?.menuing)syncMenu(state,dt);else if(state?.previewing)syncVS(state,dt);else{window.PaperMenuReady=false;window.PaperVSReady=false;vsCanvas.style.opacity='0';}}catch(e){console.warn('3D actor display disabled; chibi sprites stay available',e);failed=true;
   for(const k of Object.keys(window.Paper3DReady))delete window.Paper3DReady[k];
   canvas.style.display='none';}
 }
