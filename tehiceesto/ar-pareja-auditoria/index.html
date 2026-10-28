@@ -7,7 +7,7 @@
   <title>Lo nuestro, fuera de la pantalla — Estudio Te Hice Esto</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Italiana&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css?v=6">
+  <link rel="stylesheet" href="./style.css?v=7">
   <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}</script>
 </head>
 <body>
@@ -62,7 +62,7 @@
   <div class="memory-modal-content"><span id="memoryCaption" class="memory-caption">ARCHIVO PERSONAL / 01</span><h2 id="memoryHeading">El primer nosotros.</h2><p id="memoryText">En algún momento dejamos de ser dos historias distintas.</p><div class="memory-modal-foot"><span>UN RECUERDO REAL · UNA HISTORIA QUE CONTINÚA</span><button id="nextMemory" type="button">VOLVER AL RELICARIO ↗</button></div></div>
 </div>
 <div id="finalOverlay" class="final-overlay" hidden><div class="final-overlay-inner"><span class="final-kicker">LA ÚLTIMA COSA QUE QUIERO DECIRTE</span><div class="quote-mark">“</div><h2 id="finalWords">Si pudiera volver a aquel primer día…</h2><p>JULIÁN, PARA EMMA <span class="small-heart">♥</span></p><button id="finalClose" type="button">VOLVER A CONTEMPLAR LA PIEZA ↗</button></div></div>
-<div id="arDialog" class="ar-dialog" role="dialog" aria-modal="true" aria-labelledby="arTitle" hidden><div class="ar-card"><button id="closeArDialog" class="ar-close" type="button">✕</button><span class="ar-kicker">LLEVAR A MI ESPACIO</span><h2 id="arTitle">Que esta historia tenga un lugar en tu mundo.</h2><p id="arMessage">En un teléfono compatible, podés colocar la escultura sobre una mesa y contemplarla a tu alrededor.</p><div class="ar-instructions"><span><b>01</b> Permití el uso de la cámara</span><span><b>02</b> Buscá una superficie iluminada</span><span><b>03</b> Tocá para colocar la pieza</span></div><div class="ar-actions"><button id="launchAR" class="ar-launch" type="button">ENTRAR EN REALIDAD AUMENTADA ↗</button><button id="keep3d" class="ar-secondary" type="button">QUEDARME EN LA EXPERIENCIA 3D</button></div><p class="ar-disclaimer" id="arDisclaimer">En iPhone se utiliza el visor AR de Apple si el dispositivo lo permite; la interacción narrativa se disfruta aquí, en la experiencia 3D.</p></div></div>
+<div id="arDialog" class="ar-dialog" role="dialog" aria-modal="true" aria-labelledby="arTitle" hidden><div class="ar-card"><button id="closeArDialog" class="ar-close" type="button">✕</button><span class="ar-kicker">LLEVAR A MI ESPACIO</span><h2 id="arTitle">Que esta historia tenga un lugar en tu mundo.</h2><p id="arMessage">En un teléfono compatible, podés colocar la escultura sobre una mesa y contemplarla a tu alrededor.</p><div class="ar-instructions"><span><b>01</b> Permití el uso de la cámara</span><span><b>02</b> Buscá una superficie iluminada</span><span><b>03</b> Tocá para colocar la pieza</span></div><div class="ar-actions"><button id="launchAR" class="ar-launch" type="button">COLOCAR EN MI ESPACIO · AR NATIVA ↗</button><button id="webXRAdvanced" class="ar-secondary" type="button">PROBAR SEGUIMIENTO EXPERIMENTAL</button><button id="keep3d" class="ar-secondary" type="button">QUEDARME EN LA EXPERIENCIA 3D</button></div><p class="ar-disclaimer" id="arDisclaimer">En iPhone se utiliza el visor AR de Apple si el dispositivo lo permite; la interacción narrativa se disfruta aquí, en la experiencia 3D.</p></div></div>
 <div id="arOverlay" class="ar-active-overlay" hidden>
   <div class="ar-info"><b>TE HICE ESTO <span class="ar-live-dot">●</span> AR ESPACIAL</b><span id="arTip">EL RELICARIO ESTÁ DELANTE TUYO · BUSCÁ UNA MESA</span><span id="arTracking">INICIANDO SEGUIMIENTO…</span><span id="arDiagnostic" class="ar-diagnostic" aria-live="polite">Motor XR independiente · comprobando suelo</span></div>
   <svg id="arSurfaceGuide" class="ar-surface-guide" viewBox="0 0 390 844" preserveAspectRatio="none" aria-hidden="true" hidden><polygon id="arSurfacePolygon" points="" fill="#d9b08c" fill-opacity=".13" stroke="#f7d6b0" stroke-width="2.4" stroke-dasharray="8 6"/><circle id="arSurfacePoint" cx="-100" cy="-100" r="10" fill="#f8dfc3" stroke="#a3765d" stroke-width="2"/></svg>
@@ -71,6 +71,7 @@
     <div class="ar-toolrow"><button id="arSmaller" type="button" aria-label="Achicar relicario">−</button><span id="arSizeLabel">TAMAÑO · 40 CM</span><button id="arBigger" type="button" aria-label="Agrandar relicario">+</button><button id="arRotate" type="button" aria-label="Girar relicario">↻</button></div>
     <button id="arPlace" class="ar-fix" type="button" disabled>03 · FIJAR RELICARIO SOBRE LA SUPERFICIE</button>
     <button id="arReposition" type="button" hidden>REUBICAR EL RELICARIO</button>
+    <button id="arNativeFallback" class="ar-native-fallback" type="button">COLOCAR CON ARCORE · VISOR NATIVO</button>
     <button id="arCompatible" type="button">VER CON CÁMARA · MODO COMPATIBLE</button>
     <button id="exitAR" type="button">VOLVER AL RECORRIDO ✕</button>
   </div>
@@ -86,12 +87,12 @@
 </div>
 <div id="nativeAR" class="native-ar" hidden>
   <div class="native-ar-top"><span>TE HICE ESTO · AR NATIVA</span><button id="closeNative" type="button">✕ SALIR</button></div>
-  <p>El relicario ya está listo. Tocá «Colocar en mi espacio» para abrir el visor nativo de tu teléfono.</p>
+  <p id="nativeViewerHint">El relicario está preparado a escala real. Tocá «Colocar en mi espacio» para abrir ARCore y buscar el piso.</p>
   <div id="nativeViewerHost"></div>
 </div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<model-viewer hidden id="iosARModel" ar ar-modes="quick-look scene-viewer webxr" ar-scale="auto" camera-controls auto-rotate shadow-intensity="1" environment-image="neutral" alt="Relicario de vidrio y ramas doradas entrelazadas" loading="eager" style="width:100%;height:60svh;background:radial-gradient(circle,#66525a,#211924);">
+<model-viewer hidden id="iosARModel" ar ar-modes="scene-viewer quick-look webxr" ar-placement="floor" ar-scale="auto" camera-controls auto-rotate shadow-intensity="1" environment-image="neutral" alt="Relicario de vidrio y ramas doradas entrelazadas" loading="eager" style="width:100%;height:60svh;background:radial-gradient(circle,#66525a,#211924);">
   <button slot="ar-button" id="nativeARButton" type="button" class="native-launch">COLOCAR EN MI ESPACIO ↗</button>
 </model-viewer>
-<script type="module" src="./app.js?v=piso-13"></script>
+<script type="module" src="./app.js?v=piso-14"></script>
 </body></html>

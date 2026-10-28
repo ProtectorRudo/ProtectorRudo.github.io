@@ -193,12 +193,13 @@ export class RelicarioSpatialAR {
  rotate(){this.rotation+=Math.PI/12;if(this.root)this.root.rotation.y=this.rotation;return Math.round(this.rotation*180/Math.PI)%360;}
  async fix(){
   // Unlike previous builds, user can only fix after an actual horizontal XR hit-test pose.
-  if(this.stage!=='preview'||!this.latestHit||!this.modelReady||!this.drawCalls)return false;
+  const manual=this.stage==='manual-preview';
+  if((this.stage!=='preview'&&!manual)||(!manual&&!this.latestHit)||!this.modelReady||!this.drawCalls)return false;
   const hit=this.latestHit;
   this.worldPosition.copy(this.root.position);
   this.marker.visible=false;clearFloorGuide();
-  this._status('fixed','03 · RELICARIO FIJADO','La pieza permanecerá en este lugar. Podés caminar a su alrededor.');
-  if(typeof hit.createAnchor==='function'){
+  this._status('fixed',manual?'03 · RELICARIO FIJADO MANUALMENTE':'03 · RELICARIO FIJADO',manual?'Se mantiene en coordenadas AR, aunque el piso no fue detectado.':'La pieza permanecerá en este lugar. Podés caminar a su alrededor.');
+  if(!manual&&hit&&typeof hit.createAnchor==='function'){
    try{const anchor=await hit.createAnchor();if(this.stage==='fixed'&&this.session){this.anchor=anchor;
     this._status('fixed','03 · RELICARIO FIJADO','Anclaje espacial activo. Caminá a su alrededor.');
    }else anchor.delete?.();}catch(err){console.info('AR spatial anchor not supported',err)}
@@ -217,7 +218,7 @@ export class RelicarioSpatialAR {
    const viewer=space&&frame.getViewerPose(space);
    if(!viewer)return;
    this.frames++;
-   if(this.stage==='scan'||this.stage==='preview'){
+   if(this.stage==='scan'||this.stage==='preview'||this.stage==='manual-preview'){
     const hit=chooseFloorHit(frame,this.hitSource,space,viewer)||chooseFloorHit(frame,this.hitSourceDown,space,viewer);
     if(hit){
      const p=hit.pose.transform.position;
@@ -243,13 +244,15 @@ export class RelicarioSpatialAR {
       const dir=v3.set(0,0,-1).applyQuaternion(tmpQ).normalize();
       const scale=this.root.scale.x||.2;
       const localHeight=this.asset?.height||2.5;
-      this.root.position.set(p.x,p.y,p.z).addScaledVector(dir,.95);
+      this.root.position.set(p.x,p.y,p.z).addScaledVector(dir,1.25);
       this.root.position.y-=localHeight*scale*.5;
       this.root.rotation.y=this.rotation;
       this.root.visible=true;
      }
      this.lastSource='camera-preview';
-     if(this.stage!=='scan')this._status('scan','01 · BUSCÁ UNA MESA O EL PISO','Vista previa móvil · todavía NO está fijado. Apuntá al piso y mové lentamente el teléfono.');
+     // No plane detected: still allow a tracked local-space placement with honest status.
+     if(this.modelReady&&this.frames>30&&this.stage!=='manual-preview')this._status('manual-preview','02 · RELICARIO EN VISTA PREVIA','No se detectó el piso. Podés fijar la pieza manualmente o usar el visor nativo de ARCore.');
+     else if(!this.modelReady&&this.stage!=='scan')this._status('scan','01 · BUSCÁ UNA MESA O EL PISO','Preparando el modelo mientras buscás una superficie.');
     }
    }else if(this.stage==='fixed'&&this.anchor){
     const pose=frame.getPose(this.anchor.anchorSpace,space);

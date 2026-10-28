@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { RelicarioSpatialAR } from './relicario-xr.js?v=piso-13';
+import { RelicarioSpatialAR } from './relicario-xr.js?v=piso-14';
 
 /* TE HICE ESTO · EL LUGAR DONDE VIVE LO NUESTRO
  * Independent author concept. No data is written to production. 3D authored in code.
@@ -337,7 +337,7 @@ async function prepareNativeAR(){
  // A publicly addressable GLB is required by external Android Scene Viewer
  // and by iOS Quick Look USDZ conversion; a blob URL cannot be shared reliably.
  if(app.glbUrl)return app.glbUrl;
- const resource=new URL('./relicario.glb',import.meta.url).href;
+ const resource=new URL('./relicario-ar.glb',import.meta.url).href;
  app.glbUrl=resource;
  $('#iosARModel').setAttribute('src',resource);
  return resource;
@@ -346,7 +346,7 @@ async function prepareNativeAR(){
 let xrSupported=false;
 (async()=>{try{xrSupported=!!(navigator.xr&&await navigator.xr.isSessionSupported('immersive-ar'))}catch{xrSupported=false}})();
 function showArDialog(){
- $('#arMessage').textContent='Vas a ver una vista previa mientras buscás el piso o una mesa. Cuando el sensor encuentre una superficie REAL, vas a poder fijar allí la escultura.';
+ $('#arMessage').textContent=/Android/i.test(navigator.userAgent)?'Usaremos el visor nativo ARCore de Android para colocar el relicario sobre el piso o una mesa. La versión experimental sigue disponible aparte.':'Abrí el visor AR de tu teléfono para colocar la pieza en tu espacio real.';
  $('#arDialog').hidden=false;void prepareNativeAR();
 }
 $('#arBtn').addEventListener('click',showArDialog);
@@ -372,10 +372,10 @@ const floorAR=new RelicarioSpatialAR({
   if(message)$('#arTip').textContent=message;
   if(detail)$('#arTracking').textContent=detail;
   if(diagnostic)$('#arDiagnostic').textContent=diagnostic;
-  const preview=stage==='preview',fixed=stage==='fixed';
+  const preview=stage==='preview'||stage==='manual-preview',fixed=stage==='fixed';
   $('#arPlace').hidden=fixed;
   $('#arPlace').disabled=!preview||!modelReady||draws<1;
-   $('#arPlace').textContent=preview?'03 · FIJAR RELICARIO SOBRE LA SUPERFICIE':'03 · ESPERANDO SUPERFICIE REAL';
+   $('#arPlace').textContent=stage==='preview'?'03 · FIJAR SOBRE SUPERFICIE REAL':stage==='manual-preview'?'03 · FIJAR AQUÍ (SIN PISO DETECTADO)':'03 · ESPERANDO SUPERFICIE REAL';
   $('#arReposition').hidden=!fixed;
   $('#arCenterMarker').hidden=fixed;
   $('#arTracking').dataset.stage=stage;
@@ -465,11 +465,14 @@ async function showNativeViewer(){
  try{
   const mv=$('#iosARModel');const host=$('#nativeViewerHost');
   host.appendChild(mv);mv.hidden=false;$('#arDialog').hidden=true;$('#nativeAR').hidden=false;
+  mv.setAttribute('ar-modes',/Android/i.test(navigator.userAgent)?'scene-viewer webxr':'quick-look webxr scene-viewer');
   mv.setAttribute('src',await prepareNativeAR());
+  // Native Scene Viewer sees a separately exported Y-up, 40cm GLB (no sideways sculpture).
   // Visible, full-size preview (not the former invisible 1px component).
   await import('https://cdn.jsdelivr.net/npm/@google/model-viewer@4.1.0/dist/model-viewer.min.js');
   await customElements.whenDefined('model-viewer');
   await mv.updateComplete;
+  $('#nativeViewerHint').textContent=mv.canActivateAR?'Tocá «COLOCAR EN MI ESPACIO» para abrir la cámara de ARCore. Mové el teléfono para reconocer el piso y colocar la pieza.':'Podés girar la escultura en 3D. Si no aparece el botón para colocarla, comprobá que Chrome y Servicios de Google Play para RA estén actualizados.';
   return true;
  }catch(e){console.warn('Native AR viewer load failed',e);$('#nativeAR').hidden=true;return false}
 }
@@ -478,14 +481,11 @@ $('#launchAR').addEventListener('click',async()=>{
  const btn=$('#launchAR');if(btn.disabled)return;
  btn.disabled=true;btn.textContent='PREPARANDO EL RELICARIO…';
  let started=false;
- // Android ARCore: the same WebXR hit-test and world anchoring technique as Modo Caos.
- // Chrome's transient user activation should be consumed by requestSession, not by a preflight await.
- if(xrSupported)started=await launchXR();
- // Safari/iOS: show an actual visible model-viewer with a native Quick Look launch action.
- if(!started){
-   const ios=/iPhone|iPad|iPod/i.test(navigator.userAgent);
-   if(ios)started=await showNativeViewer();
- }
+ // Native ARCore/Scene Viewer has its own surface detection and places the authored GLB.
+ // Prefer it on mobile rather than a custom WebXR floor tracker that can stall indefinitely.
+ const isPhone=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+ if(isPhone)started=await showNativeViewer();
+ if(!started&&xrSupported)started=await launchXR();
  // Universal fallback: even a phone without WebXR shows the actual 3D relic over camera.
  if(!started)started=await startCameraView();
  if(!started){
@@ -496,7 +496,20 @@ $('#launchAR').addEventListener('click',async()=>{
     toast('Este navegador bloqueó el acceso a la cámara o al visor AR.');
   }
  }
- btn.disabled=false;btn.textContent='ENTRAR EN REALIDAD AUMENTADA ↗';
+ btn.disabled=false;btn.textContent='COLOCAR EN MI ESPACIO · AR NATIVA ↗';
+});
+$('#webXRAdvanced').addEventListener('click',async()=>{
+  const btn=$('#webXRAdvanced');if(btn.disabled)return;
+  if(!xrSupported){toast('Este navegador no habilitó AR espacial. Probá la opción nativa de Android.');return;}
+  btn.disabled=true;
+  try{if(!await launchXR())await showNativeViewer()}
+  finally{btn.disabled=false}
+});
+$('#arNativeFallback').addEventListener('click',async()=>{
+  const btn=$('#arNativeFallback');if(btn.disabled)return;
+  btn.disabled=true;
+  try{await floorAR.end();if(!await showNativeViewer())toast('No se pudo iniciar el visor nativo.')}
+  finally{btn.disabled=false}
 });
 window.addEventListener('pagehide',()=>{stopCameraView();void floorAR.end()});
 // If WebGL cannot start, never trap visitors with a blank viewport.

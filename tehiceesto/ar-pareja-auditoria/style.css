@@ -16,6 +16,8 @@
 @media(prefers-reduced-motion:reduce){.ar-live-dot{animation:none}}
 
 .ar-toolbar #arCompatible{background:#d1af9699;border-color:#e3bd9c;color:#fff7f0;font-size:11px;letter-spacing:.09em;backdrop-filter:blur(12px)}.ar-toolbar #arCompatible:disabled{opacity:.48}
+.ar-toolbar #arNativeFallback{border:1px solid #f3d6b5;background:#eed5b8;color:#291e24;font-weight:800;font-size:12px;letter-spacing:.07em;box-shadow:0 5px 32px #4f321e55}
+.ar-native-fallback{min-height:54px;border-radius:7px}.native-ar #nativeViewerHint{max-width:540px;margin:18px auto;font-size:14px;line-height:1.6;text-align:center}
 
 /* Floor-first independent AR feedback */
 .ar-info #arDiagnostic{font-size:9px;line-height:1.65;letter-spacing:.03em;color:#e6c9b1d9;background:#18121b77;border:1px solid #d9bca933;padding:7px 11px;border-radius:5px;max-width:min(90vw,470px)}
