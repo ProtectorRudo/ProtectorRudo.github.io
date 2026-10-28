@@ -1,0 +1,27 @@
+name: Inspect installed Styloo skeleton bones
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/audit-styloo-bones.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - run: |
+          python - <<'PY'
+          import json,struct
+          from pathlib import Path
+          for name in ('archer','merchant','student','ninja'):
+           d=Path('Modo-caos/assets/styloo/'+name+'.glb').read_bytes()
+           size,chunk=struct.unpack_from('<II',d,12)
+           data=json.loads(d[20:20+size])
+           joints={j for sk in data.get('skins',[]) for j in sk.get('joints',[])}
+           print('MODEL',name,'SKINS',len(data.get('skins',[])),'BONES',len(joints))
+           print('JOINT_NAMES',[(i,data['nodes'][i].get('name','')) for i in sorted(joints) if any(k in data['nodes'][i].get('name','').lower() for k in ('arm','shoulder','hand','forearm','neck','head','spine'))][:95])
+           print('ANIMATION_NAMES',[a.get('name','') for a in data.get('animations',[])])
+          PY
