@@ -1,0 +1,94 @@
+name: Publicar TODAVÍA en GitHub Pages
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publicar-todavia.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: todavia-pages-release
+  cancel-in-progress: false
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Descargar sitio público actual
+        uses: actions/checkout@v4
+        with:
+          path: website
+          persist-credentials: true
+      - name: Descargar fuente original sin modificar Te Hice Esto
+        uses: actions/checkout@v4
+        with:
+          repository: ProtectorRudo/Tehiceesto
+          ref: ba400b38e1cd1b243191ebf889c5a41531ff127b
+          path: source
+          persist-credentials: false
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar dependencias de compilación
+        working-directory: source
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund esbuild@0.25.12
+      - name: Preparar entrada React independiente y enlaces al sitio principal
+        run: |
+          cat > source/todavia-link-shim.tsx <<'TSX'
+          import React from 'react';
+          export default function Link({href, children, ...props}: {href:string,children:React.ReactNode,[key:string]:unknown}) {
+            const target = href.startsWith('/') ? 'https://tehiceesto.com' + href : href;
+            return <a {...props} href={target}>{children}</a>;
+          }
+          TSX
+          cat > source/todavia-pages-entry.tsx <<'TSX'
+          import React from 'react';
+          import {createRoot} from 'react-dom/client';
+          import TodaviaExperience from './components/TodaviaExperience';
+          import './app/todavia/todavia.css';
+          createRoot(document.getElementById('root')!).render(<TodaviaExperience />);
+          TSX
+      - name: Compilar CSS y React para navegador sin depender de Vercel
+        working-directory: source
+        run: |
+          ./node_modules/.bin/esbuild todavia-pages-entry.tsx \
+            --bundle --minify --format=iife --target=es2020 \
+            --alias:next/link=./todavia-link-shim.tsx \
+            --outdir=../dist --entry-names=todavia --log-level=info
+      - name: Crear entrada estática y auditar archivos
+        run: |
+          cat > dist/index.html <<'HTML'
+          <!doctype html>
+          <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>TODAVÍA — Te Hice Esto</title><meta name="description" content="El museo de los recuerdos que aún no vivimos. Una experiencia romántica interactiva."><meta name="theme-color" content="#081212"><link rel="stylesheet" href="./todavia.css"></head><body style="margin:0;background:#081212"><div id="root"></div><script defer src="./todavia.js"></script></body></html>
+          HTML
+          test -s dist/index.html
+          test -s dist/todavia.css
+          test -s dist/todavia.js
+          node <<'JS'
+          const fs = require('fs');
+          const js = fs.readFileSync('dist/todavia.js','utf8');
+          const css = fs.readFileSync('dist/todavia.css','utf8');
+          for (const label of ['TODAVÍA','GUARDAR NUESTRO BOLETO','LA ÚLTIMA SALA','PERSONALIZAR']) {
+            if (!js.includes(label)) throw Error('Falta una etapa del recorrido: '+label);
+          }
+          if (!css.includes('td-gallery') || !css.includes('td-final')) throw Error('Faltan estilos cinematográficos');
+          console.log('Auditoría: React, 5 escenas, personalización y estilos presentes. Tamaños:',js.length,css.length);
+          JS
+      - name: Publicar exclusivamente la ruta /todavia
+        run: |
+          mkdir -p website/todavia
+          cp dist/index.html dist/todavia.js dist/todavia.css website/todavia/
+          touch website/.nojekyll
+          git -C website config user.name 'github-actions[bot]'
+          git -C website config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C website add todavia .nojekyll
+          if ! git -C website diff --cached --quiet; then
+            git -C website commit -m 'deploy: TODAVIA interactive romantic museum'
+            git -C website push origin HEAD:main
+          fi
+          test -s website/todavia/index.html
+          echo 'Publicación: https://protectorrudo.github.io/todavia/'
