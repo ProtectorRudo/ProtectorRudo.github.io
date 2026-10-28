@@ -21,6 +21,7 @@ const palette=['#25d9ef','#ffae3c','#ad75f7','#5ad980'];
 const RIG_HEIGHT=80;
 const gltfLoader=new GLTFLoader();
 const sourceAssets=new Array(models.length).fill(null),instances=new Map();
+let mainGameVisible=false;
 window.Paper3DReady=Object.create(null);
 window.PaperVSReady=false;
 window.PaperMenuReady=false;
@@ -156,9 +157,12 @@ function sync(dt){
  const state=getState();
  if(state&&(state.playing||state.previewing||state.menuing))startLoading();
  if(!state||!state.playing){
-  for(const p of instances.values())p.root.visible=false;
-  renderer.clear();return;
+  // Avoid a second full-screen WebGL clear every VS frame on mobile devices.
+  // One clear is enough when leaving the match, freeing GPU for smooth dancing.
+  if(mainGameVisible){for(const p of instances.values())p.root.visible=false;renderer.clear();mainGameVisible=false;}
+  return;
  }
+ mainGameVisible=true;
  const w=state.screenW,h=state.screenH,zoom=Math.max(.5,state.zoom);
  adjustSize(w,h);
  camera.left=-w/(2*zoom);camera.right=w/(2*zoom);
