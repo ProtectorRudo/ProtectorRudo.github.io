@@ -9,13 +9,14 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+import {buildMascot,animateMascot,MASCOT_DATA} from './paper-mascots.mjs';
 
 const canvas=document.getElementById('characterStage');
 const getState=()=>typeof window.Paper3DState==='function'?window.Paper3DState():null;
-const relative='./assets/styloo/';
-const models=['archer.glb','merchant.glb','student.glb','ninja.glb'];
-const backupBase='https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/main/addons/kaykit_character_pack_adventures/Characters/gltf/';
-const backupModels=['Knight.glb','Barbarian.glb','Mage.glb','Rogue.glb'];
+const relative='./assets/mascots/';
+const models=MASCOT_DATA.map(x=>x.species+'.procedural');
+const backupBase='./assets/styloo/';
+const backupModels=['archer.glb','merchant.glb','student.glb','ninja.glb','archer.glb','merchant.glb','student.glb','ninja.glb'];
 const palette=['#25d9ef','#ffae3c','#ad75f7','#5ad980'];
 const RIG_HEIGHT=80;
 const gltfLoader=new GLTFLoader();
@@ -102,7 +103,8 @@ function instantiate(person){
  const hero=person.hero;
  const asset=sourceAssets[hero];if(!asset)return null;
  const root=new THREE.Group();root.name='Hero_'+person.id;
- const base=SkeletonUtils.clone(asset.scene);
+ const kit=asset.procedural?buildMascot(THREE,hero):null;
+ const base=kit?kit.root:SkeletonUtils.clone(asset.scene);
  const bounds=new THREE.Box3().setFromObject(base),size=bounds.getSize(new THREE.Vector3());
  if(!size.y||!Number.isFinite(size.y))return null;
  const factor=RIG_HEIGHT/size.y;
@@ -114,7 +116,8 @@ function instantiate(person){
  const run=chooseAnimation(asset,'run'),idle=chooseAnimation(asset,'idle'),emote=chooseAnimation(asset,'emote');
  const actions={};
  if(mixer)for(const [key,clip] of [['run',run],['idle',idle],['emote',emote]])if(clip){actions[key]=mixer.clipAction(clip);actions[key].setLoop(THREE.LoopRepeat);}
- const instance={root,base,mixer,actions,hero,outfit:'',lastEmote:0,phase:Math.random()*6,...findArmRig(base)};
+ const rig=findArmRig(base);
+ const instance={root,base,mixer,actions,hero,outfit:'',lastEmote:0,phase:Math.random()*6,...rig,restPose:captureRestPose(rig.arms,rig.forearms),mascotRig:kit?.rig||null};
  scene.add(root);instances.set(person.id,instance);
  window.Paper3DReady[person.id]=true;
  return instance;
@@ -130,17 +133,19 @@ function loadModel(index){
  return new Promise(resolve=>{
   gltfLoader.load(relative+models[index],gltf=>{sourceAssets[index]=gltf;resolve(true);},
    undefined,err=>{
-    console.warn('Styloo GLB unavailable; checking KayKit CC0 fallback:',models[index]);
+    console.warn('Animal GLB unavailable; checking Styloo CC0 fallback:',models[index]);
     gltfLoader.load(backupBase+backupModels[index],gltf=>{sourceAssets[index]=gltf;resolve(true);},
      undefined,error=>{console.warn('3D failed; canvas chibi stays available',index);resolve(false);});
    });
  });
 }
 function startLoading(){
- if(started||failed)return;started=true;
- // Four animated GLBs, loaded lazily once the user actually starts playing.
- for(let i=0;i<models.length;i++)loadModel(i).catch(()=>false);
+ if(started||failed)return;
+ started=true;
+ // Eight original models are generated locally: no missing mascot GLB URLs.
+ for(let i=0;i<MASCOT_DATA.length;i++)sourceAssets[i]={procedural:true,animations:[],scene:null};
 }
+
 function adjustSize(width,height){
  if(canvas.width!==Math.round(width*Math.min(devicePixelRatio||1,1.5))||canvas.height!==Math.round(height*Math.min(devicePixelRatio||1,1.5))){
   renderer.setSize(width,height,false);
@@ -179,7 +184,8 @@ function sync(dt){
     else if(action.isRunning())action.stop();
    }
   }else{item.root.position.y+=Math.sin(state.clock*9+item.phase)*1.8;}
-  if(p.id===0){updateOutfit(item,state.outfit);if(p.emoting&&p.emoteId==='emote_sixseven')danceBones(item,state.clock,false);}
+  if(item.mascotRig)animateMascot(item,state.clock,p.emoting&&p.emoteId==='emote_sixseven'?'dance':'run');
+  if(p.id===0){updateOutfit(item,state.outfit);if(!item.mascotRig&&p.emoting&&p.emoteId==='emote_sixseven')danceBones(item,state.clock,false);}
  }
  for(const id of instances.keys())if(!all.has(id))destroyInstance(id);
  renderer.render(scene,camera);
@@ -208,7 +214,9 @@ function vsCreate(){
 }
 function vsActor(hero){
  if(!sourceAssets[hero])return null;
- const asset=sourceAssets[hero],root=new THREE.Group(),mesh=SkeletonUtils.clone(asset.scene);
+ const asset=sourceAssets[hero],root=new THREE.Group();
+ const kit=asset.procedural?buildMascot(THREE,hero):null;
+ const mesh=kit?kit.root:SkeletonUtils.clone(asset.scene);
  const box=new THREE.Box3().setFromObject(mesh),size=box.getSize(new THREE.Vector3());
  if(size.y<=0||!Number.isFinite(size.y))return null;
  const factor=RIG_HEIGHT/size.y;mesh.scale.setScalar(factor);
@@ -219,31 +227,40 @@ function vsActor(hero){
  const action=mixer&&clip?mixer.clipAction(clip):null;
  if(action)action.play();
  const {arms,forearms}=findArmRig(mesh);
- return {hero,root,mesh,mixer,action,arms,forearms,phase:Math.random()*6};
+ return {hero,root,mesh,mixer,action,arms,forearms,dimensions:{x:size.x*factor,y:size.y*factor,z:size.z*factor},restPose:captureRestPose(arms,forearms),phase:Math.random()*6,mascotRig:kit?.rig||null};
 }
 function clearVSActors(){
  for(const item of vsCharacters)if(item){if(item.mixer)item.mixer.stopAllAction();vsScene?.remove(item.root);}
  vsCharacters=[];
 }
+// Store a bind/rest orientation once per model. Never multiply incremental angles
+// into last frame's quaternion: that accumulates rotations and makes arms spin.
+function captureRestPose(arms,forearms){
+ const pose={arms:{},forearms:{}};
+ for(const kind of ['arms','forearms']){
+  const map=kind==='arms'?arms:forearms;
+  for(const side of ['left','right'])if(map[side])pose[kind][side]=map[side].quaternion.clone();
+ }
+ return pose;
+}
 function danceBones(item,seconds,mirror){
- const {arms,forearms}=item;
- const tempo=item.hero===3?8.6:item.hero===1?6.3:7.1;
- const motion=seconds*tempo+(mirror?Math.PI*.6:0);
- const axis=new THREE.Vector3(0,0,1);
- for(const [key,bone] of Object.entries(arms)){
-  if(!bone)continue;
-  const side=key==='left'?-1:1;
-  // Both palms balance as if weighing options: opposite rises and falls.
-  const wave=Math.sin(motion+(side===1?Math.PI:0));
-  const angle=side*(1.48+wave*.44);
-  // Lift each upper arm through a full visible arc relative to the rigged idle pose.
-  // The non-axial shoulder twist exposes palms to the camera.
-  const lift=new THREE.Quaternion().setFromEuler(new THREE.Euler(.23+wave*.18,side*.15,angle,'XYZ'));
-  bone.quaternion.premultiply(lift);
-  const elbow=forearms[key];
-  if(elbow){
-   const wrist=new THREE.Quaternion().setFromEuler(new THREE.Euler(-.12,0,-side*(.45+wave*.17)));
-   elbow.quaternion.premultiply(wrist);
+ if(!item.restPose)return;
+ // Six-Seven: alternating palms, smooth slow up/down, no full rotations.
+ const tempo=2*Math.PI*(item.hero===3?.88:.78);
+ const phase=seconds*tempo+(mirror?.45:0);
+ const ease=(1-Math.cos(Math.min(1,Math.max(0,seconds/.5))*Math.PI))*.5;
+ for(const side of ['left','right']){
+  const bone=item.arms?.[side],baseline=item.restPose.arms[side];
+  if(!bone||!baseline)continue;
+  const sign=side==='left'?-1:1,beat=Math.sin(phase+(sign===1?Math.PI:0));
+  const shoulder=new THREE.Quaternion().setFromEuler(new THREE.Euler(.16,sign*.15,sign*(.38+.28*beat),'XYZ'));
+  const desired=baseline.clone().multiply(shoulder);
+  // Absolute orientation per frame, not premultiply from last frame.
+  bone.quaternion.copy(baseline).slerp(desired,ease);
+  const elbow=item.forearms?.[side],restElbow=item.restPose.forearms[side];
+  if(elbow&&restElbow){
+   const bend=new THREE.Quaternion().setFromEuler(new THREE.Euler(.08,0,-sign*(.18+.14*beat),'XYZ'));
+   elbow.quaternion.copy(restElbow).slerp(restElbow.clone().multiply(bend),ease);
   }
  }
 }
@@ -257,7 +274,7 @@ function syncMenu(state,dt){
  if(!state?.menuing)return;
  vsCreate();if(vsFailure||!vsRenderer)return;
  const hero=state.menuHero;
- if(!sourceAssets[hero]){window.PaperMenuReady=false;const portrait=document.getElementById('menuHeroPortrait');if(portrait)portrait.style.opacity='1';return;}
+ if(!sourceAssets[hero]){window.PaperMenuReady=false;document.getElementById('menuHeroStage')?.classList.remove('model-loaded');const portrait=document.getElementById('menuHeroPortrait');if(portrait)portrait.style.opacity='1';return;}
  try{
   attachShowcase('menuHeroStage','menuPosition');
   const previous=vsCharacters[0];
@@ -279,9 +296,11 @@ function syncMenu(state,dt){
   actor.root.rotation.y=Math.sin(t*.9)*.2;
   actor.root.rotation.z=Math.sin(t*1.8)*.015;
   if(actor.mixer)actor.mixer.update(Math.min(dt,.04));
+  if(actor.mascotRig)animateMascot(actor,t,'idle');
   updateOutfit(actor,state.outfit);
   vsRenderer.render(vsScene,vsCamera);
   window.PaperMenuReady=true;
+  document.getElementById('menuHeroStage')?.classList.add('model-loaded');
   vsCanvas.style.opacity='1';
   const portrait=document.getElementById('menuHeroPortrait');if(portrait)portrait.style.opacity='0';
   const status=document.getElementById('menu3dStatus');
@@ -308,17 +327,22 @@ function syncVS(state,dt){
   if(vsCanvas.width!==Math.round(width*dpr)||vsCanvas.height!==Math.round(height*dpr))vsRenderer.setSize(width,height,false);
   vsCamera.left=-width/2;vsCamera.right=width/2;vsCamera.top=height/2;vsCamera.bottom=-height/2;
   vsCamera.updateProjectionMatrix();
-  const sizeFactor=(height*.61)/RIG_HEIGHT;
+  // Keep each animal inside its half, regardless of the model's proportions.
+  const maxVisualWidth=width*.42,maxVisualHeight=height*.66;
   const arrival=Math.max(0,1-state.vsSeconds/.6);
   for(let i=0;i<2;i++){
    const actor=vsCharacters[i];
    const side=i===0?-1:1;
+   const sizeFactor=Math.min(3.4,maxVisualWidth/Math.max(32,actor.dimensions.x),maxVisualHeight/Math.max(45,actor.dimensions.y));
    actor.root.scale.setScalar(sizeFactor);
-   actor.root.position.set(side*(width*.27+arrival*width*.36),-height*.18+Math.sin(state.vsSeconds*7+i)*3,0);
+   actor.root.position.set(side*(width*.245+arrival*width*.37),-height*.22+Math.sin(state.vsSeconds*3.4+i)*1.6,0);
    actor.root.rotation.y=(i===0?-.13:.13)+Math.sin(state.vsSeconds*3.5+i)*.12;
-   actor.root.rotation.z=Math.sin(state.vsSeconds*(actor.hero===3?9:6.6)+i)*.045;
+   // Gentle whole-body six-seven sway; never accumulate limb rotations.
+   actor.root.rotation.z=Math.sin(state.vsSeconds*2.1+i*Math.PI)*.045;
+   actor.root.rotation.x=Math.sin(state.vsSeconds*1.9+i)*.025;
    if(actor.mixer)actor.mixer.update(Math.min(dt,.05));
-   danceBones(actor,state.vsSeconds,i===1);
+   if(actor.mascotRig)animateMascot(actor,state.vsSeconds,'dance',i===1);
+   else danceBones(actor,state.vsSeconds,i===1);
    if(i===0)updateOutfit(actor,state.outfit);
   }
   window.PaperVSReady=true;vsCanvas.style.opacity='1';

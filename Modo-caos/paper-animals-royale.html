@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#eafff6">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2327c7d7'/%3E%3Ccircle cx='23' cy='26' r='6' fill='white'/%3E%3Ccircle cx='43' cy='26' r='6' fill='white'/%3E%3Cpath d='M21 43 Q32 52 43 43' stroke='white' stroke-width='5' fill='none'/%3E%3C/svg%3E">
-<title>Territory Loop · Modo Caos</title>
+<title>CVDOM · Modo Caos</title>
 <style>
 :root{font-family:system-ui,-apple-system,Arial,sans-serif;color:#21455a}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -372,7 +372,7 @@ input[type=text]:focus{border-color:#42bcca}
 #menuHeroStage.model-loaded #menuFallbackCanvas{opacity:0!important;visibility:hidden!important}
 #menuHeroStage:not(.model-loaded) #menuFallbackCanvas{opacity:1;visibility:visible}
 </style>
-<link rel="stylesheet" href="./paper-animals.css?v=3"></head>
+<link rel="stylesheet" href="./paper-animals.css?v=cvdom20261028"></head>
 <body>
 <canvas id="game" aria-label="Juego de conquista de territorio"></canvas>
 <canvas id="characterStage" aria-hidden="true"></canvas>
@@ -393,13 +393,13 @@ input[type=text]:focus{border-color:#42bcca}
 </div>
 <section id="versus" class="overlay hidden" aria-label="Presentación de rivales antes de la partida">
   <div class="versusPanel">
-    <div class="vsTopline"><span class="vsGameTag">TERRITORY LOOP <b>SHOWDOWN</b></span><span class="vsFightTag">ANTES DEL COMBATE</span></div>
-    <div class="versusHeader"><h2>¡DUELO DE MASCOTAS!</h2><p>Dos campeones. Un mapa. Una coreografía original.</p></div>
+    <div class="vsTopline"><span class="vsGameTag">CVDOM <b>SHOWDOWN</b></span><span class="vsFightTag">ANTES DEL COMBATE</span></div>
+    <div class="versusHeader"><h2>¡DOS CAMPEONES, UN TERRITORIO!</h2><p>Tu personaje frente a su próximo rival. ¡Que empiece el show!</p></div>
     <div id="versusStage" class="versusStage">
       <canvas id="versusCanvas" width="760" height="790" aria-label="Presentación animada Six Seven"></canvas>
- <div id="vsPortraits" class="vsPortraits" aria-label="Personajes originales Styloo">
-  <img id="vsPortraitPlayer" src="./assets/styloo/portraits/archer.png" alt="Tu personaje Styloo" width="230" height="300">
-  <img id="vsPortraitOpponent" src="./assets/styloo/portraits/merchant.png" alt="Rival Styloo" width="230" height="300">
+ <div id="vsPortraits" class="vsPortraits" aria-label="Personajes originales CVDOM">
+  <img id="vsPortraitPlayer" src="" alt="Tu mascota campeona" width="230" height="300">
+  <img id="vsPortraitOpponent" src="" alt="Mascota rival" width="230" height="300">
  </div><canvas id="versus3dCanvas" aria-hidden="true"></canvas>
       <div class="vsNamePlate vsNameLeft"><small>TU PERSONAJE</small><strong id="vsPlayerName">NOVA</strong><span id="vsPlayerRole">La audaz</span></div>
       <div class="vsNamePlate vsNameRight"><small>RIVAL DESTACADO</small><strong id="vsRivalName">BOMBO</strong><span id="vsRivalRole">El bromista</span></div>
@@ -414,19 +414,19 @@ input[type=text]:focus{border-color:#42bcca}
   </div>
 </section>
 <section id="home" class="overlay"><div class="panel">
- <div class="brand">✦ MODO CAOS · EDICIÓN MASCOTAS ✦</div><h1>♛ TERRITORY <em>LOOP</em></h1><div class="lobbyTag">CONQUISTÁ · DOMINÁ · FESTEJÁ</div>
- <p class="description">Ocho mascotas. Ocho personalidades. Un solo campeón del mapa.</p>
+ <div class="brand">♛ MODO CAOS · NUEVA GENERACIÓN ♛</div><h1 class="cvdomLogo">CV<em>DOM</em><span class="logoCrown">♛</span></h1><div class="lobbyTag">CLAIM. CONQUER. DOMINATE.</div>
+ <p class="description">Ocho campeones. Ocho personalidades. Un mapa para conquistar.</p>
  <div id="menuHeroStage" class="menuHeroStage">
  <div class="menuSparks" aria-hidden="true"><span>✦</span><span>✧</span><span>✦</span><span>✧</span></div>
  <canvas id="menuFallbackCanvas" width="500" height="390" aria-label="Vista previa del personaje seleccionado"></canvas>
- <img id="menuHeroPortrait" src="./assets/styloo/portraits/archer.png" alt="NOVA, modelo Styloo original en 3D" width="260" height="260" fetchpriority="high">
+ <img id="menuHeroPortrait" src="" alt="Vista previa del personaje original en 3D" width="260" height="260" fetchpriority="high">
  <div id="menuModelLoader" class="menuModelLoader"><span class="loaderPulse"></span>PREPARANDO TU PERSONAJE 3D</div>
  <span class="menuFloor" aria-hidden="true"></span>
  <div class="menuHeroStamp"><strong id="menuCharacterLabel">NOVA</strong><small id="menuCharacterTagline">¡A por todo!</small></div>
  <span id="menu3dStatus" class="menuStatus">VISTA PREVIA ANIMADA</span>
 </div>
  <input id="nick" maxlength="16" type="text" placeholder="Tu nombre" value="VOS" aria-label="Nombre de jugador">
- <div class="colors" id="colors"></div><div class="heroRosterHead">ELEGÍ TU CAMPEÓN · COLECCIÓN DE 8</div><div class="heroRoster" id="heroPicker"></div><div id="heroDetails"></div><div class="walletBar"><span>🪙 MONEDAS</span><b id="homeCoins">0</b></div><button class="storeButton" id="openShopHome">✦ TIENDA DE ROPA, GESTOS Y FESTEJOS</button>
+ <div class="colors" id="colors"></div><div class="heroRosterHead">ELEGÍ TU CAMPEÓN · 8 AVATARES ORIGINALES</div><div class="heroRoster" id="heroPicker"></div><div id="heroDetails"></div><div class="walletBar"><span>🪙 MONEDAS</span><b id="homeCoins">0</b></div><button class="storeButton" id="openShopHome">✦ TIENDA DE ROPA, GESTOS Y FESTEJOS</button>
  <button class="primary" id="start">▶ JUGAR AHORA</button>
  <div class="best" id="best"></div><div class="mini-label">PERSONAJE SELECCIONADO: <b id="heroName">NOVA</b></div><div class="subline">Vos contra 11 rivales IA · movimiento continuo · móvil y PC · sin descargas</div>
  <div class="rowbtn"><button class="secondary" id="mutebtn">🔊 Sonido activado</button><button class="secondary" id="homeback">↩ Modo Caos</button></div>
@@ -438,7 +438,7 @@ input[type=text]:focus{border-color:#42bcca}
  <p class="coinMessage" id="matchCoins">🪙 Ganaste 0 monedas</p><button class="primary" id="again">↻ VOLVER A JUGAR</button><div class="rowbtn"><button class="secondary" id="share">COMPARTIR</button><button class="secondary" id="tohome">MENÚ</button></div><div class="walletBar"><span>🪙 MONEDAS</span><b id="endCoins">0</b></div><button class="storeButton" id="openShopResult">🛍️ COMPRAR ROPA Y FESTEJOS</button>
 </div></section>
 <section id="shop" class="overlay hidden"><div class="panel">
- <div class="shopHead"><div><div class="brand">TERRITORY LOOP</div><h2>LA TIENDA ✦</h2></div><button class="shopClose" id="closeShop" aria-label="Cerrar tienda">×</button></div>
+ <div class="shopHead"><div><div class="brand">CVDOM</div><h2>LA TIENDA ✦</h2></div><button class="shopClose" id="closeShop" aria-label="Cerrar tienda">×</button></div>
  <div class="walletBar"><span>🪙 TUS MONEDAS</span><b id="shopCoins">0</b></div>
  <div class="shopTabs" id="shopTabs"></div>
  <div class="shopGrid" id="shopGrid"></div>
@@ -446,7 +446,7 @@ input[type=text]:focus{border-color:#42bcca}
  <button class="secondary" id="backFromShop">VOLVER AL JUEGO</button>
 </div></section>
 <section id="paused" class="overlay hidden"><div class="panel">
- <div class="brand">TERRITORY LOOP</div><h2>EN PAUSA</h2><p class="description">Tu territorio está a salvo mientras la partida está pausada.</p><button class="primary" id="resume">▶ CONTINUAR</button><div class="rowbtn"><button class="secondary" id="restart">REINICIAR</button><button class="secondary" id="leave">SALIR</button></div>
+ <div class="brand">CVDOM</div><h2>EN PAUSA</h2><p class="description">Tu territorio está a salvo mientras la partida está pausada.</p><button class="primary" id="resume">▶ CONTINUAR</button><div class="rowbtn"><button class="secondary" id="restart">REINICIAR</button><button class="secondary" id="leave">SALIR</button></div>
 </div></section>
 <script>
 (function(){
@@ -469,14 +469,14 @@ const colorToRGB=hex=>[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),p
 let screenW=innerWidth, screenH=innerHeight, dpr=1,game=null,mode='home',clock=0,camX=CX,camY=CY,zoom=1,desiredAngle=null,keys={},pointer=null,lastHud=-1,msgTime=0,muted=false,ac=null,settingColor=0,selectedSkin=0,particles=[],bursts=[],rewardToastUntil=0;
 
 const HEROES=[
- {id:'momo',name:'MOMO',species:'MARMOTA',role:'Estratega tranquilo',bio:'Conquista con calma: siempre parece dormido, pero nunca pierde el rumbo.',motto:'Todo bajo control.',color:'#b28a5b',model:'marmot'},
- {id:'zuri',name:'ZURI',species:'ZORRO',role:'Rápida y astuta',bio:'Una sonrisa traviesa antes de conquistar tu territorio.',motto:'¡Te vi venir!',color:'#f18a41',model:'fox'},
- {id:'platy',name:'PLATY',species:'ORNITORRINCO',role:'Caos adorable',bio:'Su aspecto tierno esconde el festejo más disparatado.',motto:'¡Sorpresa!',color:'#ee83b5',model:'platypus'},
- {id:'pingo',name:'PINGO',species:'PINGÜINO',role:'Competidor implacable',bio:'Frío para competir; explosivo al ganar.',motto:'¡Sangre fría!',color:'#4b99f1',model:'penguin'},
- {id:'otto',name:'OTTO',species:'NUTRIA',role:'Pícaro ingenioso',bio:'Tiene un plan para todas tus estelas.',motto:'Me lo llevo.',color:'#ab70d9',model:'seaotter'},
- {id:'kuma',name:'KUMA',species:'KOALA',role:'El rey del descanso',bio:'Parece relajado hasta que te roba medio mapa.',motto:'Cinco minutitos más.',color:'#9bbc7c',model:'koala'},
- {id:'coco',name:'COCO',species:'CORGI',role:'Patitas supersónicas',bio:'Pequeño, travieso e increíblemente rápido.',motto:'¡No me alcanzás!',color:'#f6b638',model:'corgi'},
- {id:'tora',name:'TORA',species:'TIGRE',role:'Fuerza y lealtad',bio:'Feroz cuando compite, adorable cuando festeja.',motto:'¡A conquistar!',color:'#ff7a47',model:'tiger'}
+ {id:'capy',name:'CAPY',species:'CAPIBARA',role:'Estratega tranquilo',bio:'Nunca pierde la calma, ni cuando le cortan la estela.',motto:'Todo bajo control.',color:'#b78c60',model:'capybara'},
+ {id:'ruby',name:'RUBY',species:'PANDA ROJO',role:'Rápida y astuta',bio:'Parece tierna, pero siempre te sorprende con una jugada inesperada.',motto:'¡Te vi venir!',color:'#df7947',model:'redpanda'},
+ {id:'axi',name:'AXI',species:'AJOLOTE',role:'Caos adorable',bio:'La más simpática del mapa, experta en festejos gigantes.',motto:'¡Sorpresa!',color:'#f69bc6',model:'axolotl'},
+ {id:'pingo',name:'PINGO',species:'PINGÜINO',role:'Competidor implacable',bio:'Serio antes de jugar y absolutamente imparable al ganar.',motto:'¡Sangre fría!',color:'#4b99f1',model:'penguin'},
+ {id:'rocky',name:'ROCKY',species:'MAPACHE',role:'Pícaro ingenioso',bio:'Siempre se las ingenia para robar territorio en el último segundo.',motto:'Me lo llevo.',color:'#948caf',model:'raccoon'},
+ {id:'brinco',name:'BRINCO',species:'RANA',role:'Alegre y saltarín',bio:'Una sonrisa contagiosa y un baile para cada victoria.',motto:'¡No pares!',color:'#83ce4f',model:'frog'},
+ {id:'fenix',name:'FÉNIX',species:'ZORRO',role:'Líder audaz',bio:'Rápido, seguro y competitivo. Siempre va un paso adelante.',motto:'¡Voy por todo!',color:'#ec8338',model:'fox'},
+ {id:'oso',name:'OSO',species:'OSITO',role:'Fuerte y leal',bio:'Parece una mascota de peluche. En el campo es un gigante.',motto:'¡Eso es equipo!',color:'#b18a55',model:'bear'}
 ];
 const SHOP_ITEMS=[
  {id:'outfit_base',category:'outfit',name:'Look original',icon:'◈',price:0,desc:'El traje con el que nace cada personaje'},
@@ -540,12 +540,18 @@ function refreshWallet(){
 }
 // Vector portraits created for Territory Loop. Real animal GLBs load in parallel.
 function portraitURL(i){
+ // Locally generated SVG thumbnails: each represents the SAME species as the live 3D model.
  const h=HEROES[i]||HEROES[0],kind=h.model,c=h.color;
- const ears=kind==='fox'?'<path d="M29 66L14 14Q40 21 53 45H81Q104 10 119 14L105 67Z" fill="#e87734" stroke="#5e3540" stroke-width="4"/>':kind==='koala'?'<circle cx="20" cy="62" r="26" fill="#94adb0" stroke="#5b7382" stroke-width="5"/><circle cx="112" cy="62" r="26" fill="#94adb0" stroke="#5b7382" stroke-width="5"/>':kind==='penguin'||kind==='platypus'?'':'<circle cx="29" cy="64" r="18" fill="'+c+'" stroke="#55435b" stroke-width="3"/><circle cx="103" cy="64" r="18" fill="'+c+'" stroke="#55435b" stroke-width="3"/>';
- const snout=kind==='penguin'?'<path d="M51 92L66 108 83 92Z" fill="#ffc248" stroke="#bb7535" stroke-width="2"/>':kind==='platypus'?'<ellipse cx="66" cy="97" rx="29" ry="12" fill="#e9b36f" stroke="#8c654d" stroke-width="3"/>':'<ellipse cx="66" cy="96" rx="23" ry="14" fill="#f9e8d2"/><path d="M58 88Q66 83 74 88L66 96Z" fill="#433944"/>';
- const stripes=kind==='tiger'?'<path d="M42 53L32 69 45 71M92 53L102 69 88 71M66 34L56 53 75 53Z" fill="#52392c"/>':'';
- const face=kind==='penguin'?'#253856':kind==='koala'?'#b8c4c8':kind==='platypus'?'#b7adcf':c;
- const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 160"><defs><radialGradient id="g" cx=".2" cy=".16" r=".9"><stop stop-color="#fff" stop-opacity=".62"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><ellipse cx="66" cy="150" rx="40" ry="6" fill="#041b3e" opacity=".23"/><path d="M35 117Q66 105 97 117L104 158H28Z" fill="'+c+'" stroke="#263451" stroke-width="3"/><path d="M42 122L66 137 90 122" fill="none" stroke="#fff" stroke-width="6"/>'+ears+'<ellipse cx="66" cy="78" rx="52" ry="52" fill="'+face+'" stroke="#273651" stroke-width="4"/>'+stripes+'<ellipse cx="66" cy="78" rx="52" ry="52" fill="url(#g)"/><ellipse cx="46" cy="76" rx="8" ry="11" fill="#1b283e"/><ellipse cx="86" cy="76" rx="8" ry="11" fill="#1b283e"/><circle cx="43" cy="72" r="3" fill="#fff"/><circle cx="83" cy="72" r="3" fill="#fff"/>'+snout+'<path d="M58 109Q66 114 74 109" fill="none" stroke="#6d4550" stroke-width="3" stroke-linecap="round"/></svg>';
+ const roundEars=['capybara','raccoon','bear'].includes(kind);
+ const triangleEars=['redpanda','fox'].includes(kind);
+ let ears=roundEars?'<circle cx="30" cy="53" r="19" fill="'+c+'" stroke="#3b435e" stroke-width="3"/><circle cx="102" cy="53" r="19" fill="'+c+'" stroke="#3b435e" stroke-width="3"/>':triangleEars?'<path d="M29 66L14 8Q43 19 54 43H78Q98 8 121 8L105 67Z" fill="'+c+'" stroke="#3d435c" stroke-width="3"/>':'';
+ if(kind==='axolotl')ears='<g fill="#e67bac" stroke="#aa4e8b" stroke-width="2"><rect x="3" y="34" width="37" height="12" rx="6" transform="rotate(-22 3 34)"/><rect x="2" y="52" width="35" height="12" rx="6"/><rect x="4" y="73" width="36" height="12" rx="6" transform="rotate(18 4 73)"/><rect x="93" y="34" width="37" height="12" rx="6" transform="rotate(22 93 34)"/><rect x="96" y="52" width="35" height="12" rx="6"/><rect x="94" y="73" width="36" height="12" rx="6" transform="rotate(-18 94 73)"/></g>';
+ if(kind==='frog')ears='<circle cx="36" cy="38" r="20" fill="'+c+'" stroke="#457b45" stroke-width="3"/><circle cx="96" cy="38" r="20" fill="'+c+'" stroke="#457b45" stroke-width="3"/>';
+ const muzzle=kind==='penguin'?'<path d="M48 96L66 111 84 96Z" fill="#ffc354" stroke="#ad7e3f" stroke-width="2"/>':kind==='frog'?'<path d="M40 100Q66 118 92 100" fill="none" stroke="#277e32" stroke-width="5" stroke-linecap="round"/>':kind==='axolotl'?'<path d="M48 100Q66 113 84 100" fill="none" stroke="#c96592" stroke-width="4"/>':'<ellipse cx="66" cy="94" rx="25" ry="18" fill="#f9e7d8"/><path d="M58 88Q66 84 74 88L66 98Z" fill="#4b3541"/>';
+ const mask=kind==='raccoon'?'<ellipse cx="42" cy="78" rx="23" ry="20" fill="#485064"/><ellipse cx="90" cy="78" rx="23" ry="20" fill="#485064"/>':kind==='redpanda'?'<ellipse cx="39" cy="80" rx="24" ry="26" fill="#ffe8c9"/><ellipse cx="93" cy="80" rx="24" ry="26" fill="#ffe8c9"/>':'';
+ const cheeks=kind==='fox'?'<ellipse cx="33" cy="102" rx="18" ry="15" fill="#fff0db"/><ellipse cx="99" cy="102" rx="18" ry="15" fill="#fff0db"/>':'';
+ const face=kind==='penguin'?'#203954':c;
+ const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 160"><defs><radialGradient id="headGlow" cx=".2" cy=".15" r=".95"><stop stop-color="#ffffff" stop-opacity=".7"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient><linearGradient id="suit" x2="1" y2="1"><stop stop-color="#ffffff" stop-opacity=".8"/><stop offset=".36" stop-color="'+h.color+'"/><stop offset="1" stop-color="#163b88"/></linearGradient></defs><ellipse cx="66" cy="154" rx="42" ry="5" fill="#010b24" opacity=".35"/><path d="M31 119Q66 102 101 119L108 158H24Z" fill="url(#suit)" stroke="#243b79" stroke-width="3"/><path d="M48 122L66 140 83 122" fill="none" stroke="#ffffff" stroke-width="4"/>'+ears+'<ellipse cx="66" cy="79" rx="52" ry="50" fill="'+face+'" stroke="#273853" stroke-width="3"/>'+mask+cheeks+'<ellipse cx="66" cy="77" rx="52" ry="50" fill="url(#headGlow)"/><ellipse cx="45" cy="77" rx="8" ry="11" fill="#17283c"/><ellipse cx="87" cy="77" rx="8" ry="11" fill="#17283c"/><circle cx="42" cy="73" r="3" fill="#fff"/><circle cx="84" cy="73" r="3" fill="#fff"/>'+muzzle+'</svg>';
  return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
 }
 function renderHeroPicker(){
@@ -1071,19 +1077,25 @@ function paintMascotCanvas(p,hero,color){
  c.fillStyle=color;c.strokeStyle='#28446a';c.lineWidth=2;c.beginPath();c.roundRect(-15,-8,30,24,10);c.fill();c.stroke();
  c.fillStyle='#fff2ce';for(const xx of [-14,14]){c.beginPath();c.arc(xx,1,5,0,7);c.fill();}
  c.fillStyle='#283c59';for(const xx of [-7,7]){c.beginPath();c.ellipse(xx,17,5,3,0,0,7);c.fill();}
- if(animal==='fox'||animal==='tiger'){
+ if(animal==='fox'||animal==='redpanda'){
   c.fillStyle=color;c.beginPath();c.moveTo(-19,-28);c.lineTo(-13,-49);c.lineTo(-1,-34);c.moveTo(19,-28);c.lineTo(13,-49);c.lineTo(1,-34);c.fill();
- }else if(animal==='koala'||animal==='marmot'||animal==='seaotter'||animal==='corgi'){
+ }else if(animal==='capybara'||animal==='raccoon'||animal==='bear'){
   c.fillStyle=color;c.beginPath();c.arc(-17,-30,10,0,7);c.arc(17,-30,10,0,7);c.fill();
  }
  c.beginPath();c.ellipse(0,-29,23,23,0,0,7);
- c.fillStyle=animal==='penguin'?'#243650':animal==='koala'?'#afc2c3':k.color;c.strokeStyle='#2c4167';c.fill();c.stroke();
- if(animal==='tiger'){
+ c.fillStyle=animal==='penguin'?'#243650':animal==='raccoon'?'#85939d':k.color;c.strokeStyle='#2c4167';c.fill();c.stroke();
+ if(animal==='raccoon'){
   c.fillStyle='#533929';c.beginPath();c.moveTo(-18,-41);c.lineTo(-8,-28);c.lineTo(-18,-30);c.moveTo(18,-41);c.lineTo(8,-28);c.lineTo(18,-30);c.moveTo(0,-49);c.lineTo(-6,-38);c.lineTo(7,-38);c.fill();
  }
- c.fillStyle='#111b36';c.beginPath();c.ellipse(-9,-30,4,6,0,0,7);c.ellipse(9,-30,4,6,0,0,7);c.fill();
+ if(animal==='axolotl'){
+  c.fillStyle='#ef80b2';for(const side of [-1,1])for(const yy of [-44,-33,-22]){c.beginPath();c.ellipse(side*24,yy,12,4,side*.20,0,7);c.fill();}
+ }
+ if(animal==='frog'){
+  c.fillStyle=k.color;c.beginPath();c.arc(-14,-47,10,0,7);c.arc(14,-47,10,0,7);c.fill();
+ }
+  c.fillStyle='#111b36';c.beginPath();c.ellipse(-9,-30,4,6,0,0,7);c.ellipse(9,-30,4,6,0,0,7);c.fill();
  c.fillStyle='#fff';c.beginPath();c.arc(-10,-33,2,0,7);c.arc(8,-33,2,0,7);c.fill();
- c.fillStyle=animal==='platypus'||animal==='penguin'?'#f7b449':'#f4ded2';c.beginPath();c.ellipse(0,-20,animal==='platypus'?16:11,7,0,0,7);c.fill();
+ c.fillStyle=animal==='axolotl'||animal==='penguin'?'#f7b449':'#f4ded2';c.beginPath();c.ellipse(0,-20,animal==='axolotl'?16:11,7,0,0,7);c.fill();
  c.strokeStyle='#563d4e';c.lineWidth=1.8;c.beginPath();c.arc(0,-20,4,0,Math.PI);c.stroke();
  if(p.id===0){c.fillStyle='#fff5a4';c.beginPath();c.arc(17,-45,3,0,7);c.fill();}
  c.restore();
@@ -1111,8 +1123,9 @@ function drawUnit(p){
  // anatomically legible, animated original chibi people — never robot cubes.
  const hero=p.id===0?selectedSkin:p.id===1?vsRival:p.id%HEROES.length;
  const has3D=!!(window.Paper3DReady&&window.Paper3DReady[p.id]);
- // Keep a visible, cheap mascot under the 3D character in case WebGL compositing stalls.
- c.save();c.globalAlpha=has3D?.72:1;paintMascotCanvas(p,hero,col);c.restore();
+ // Render the original 2D fallback ONLY when WebGL has not loaded a mascot.
+ // The previous 72% overlap made old avatars appear underneath the new 3D actors.
+ if(!has3D)paintMascotCanvas(p,hero,col);
 
  // Text stays readable without putting a huge comic heading over the actor.
  c.font='900 14px system-ui';c.textAlign='center';c.lineWidth=3.6;c.strokeStyle='#153da7';
@@ -1295,7 +1308,7 @@ function drawVersus(ms){
   ctx.fillStyle=i%2?'#ffffff20':'#b6f4ff38';ctx.beginPath();ctx.arc(x,y,1.3+(i%4),0,7);ctx.fill();
  }
  const pulse=Math.sin(sec*8),arriving=Math.min(1,sec/.55);
- // Official Styloo portraits appear first and transition to their identical live 3D models.
+ // Illustrated character fallback portraits appear first and transition to their identical live 3D models.
  // Keep the character portraits animating as fallback until 3D pixel coverage is proven.
  $('vsPortraits').style.opacity='1';
  // VS badge, bounce each other beat.
@@ -1373,6 +1386,6 @@ if(new URLSearchParams(location.search).has('qa'))Object.defineProperty(window,'
 </script>
 <!-- Pinned ES modules: if CDN is blocked the original chibi canvas game still plays. -->
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
-<script type="module" src="./paper-animals-3d.mjs?v=2"></script>
+<script type="module" src="./paper-3d.mjs"></script>
 </body>
 </html>

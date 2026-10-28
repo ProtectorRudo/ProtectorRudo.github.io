@@ -83,3 +83,38 @@ canvas#characterStage{position:fixed!important;top:0!important;left:0!important;
  to{translate:0 -8px;rotate:4deg;scale:1.04}
 }
 @media(prefers-reduced-motion:reduce){#versus #vsPortraits img{animation:none}}
+
+
+/* CVDOM CHAMPIONS — coherent eight-mascot collectible selection.
+   Style follows the user's visual direction without copying its illustration. */
+#home{background:radial-gradient(ellipse at 54% 5%,#274d8d 0%,#112e62 38%,#071735 78%,#030b1d 100%)!important;position:relative}
+#home:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.15;background-image:radial-gradient(#9dbfe0 1.5px,transparent 2px);background-size:12px 12px;mask-image:radial-gradient(ellipse at 50% 30%,black,transparent 65%)}
+#home .panel{position:relative;isolation:isolate}
+#home h1.cvdomLogo{font-size:clamp(47px,13vw,79px)!important;letter-spacing:-4px!important;line-height:1.02!important;margin:10px 0 0!important;font-style:italic;color:#ffca43;background:linear-gradient(180deg,#fff2b9 1%,#ffca43 38%,#ee9f14 88%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(3px 4px 0 #092b69);position:relative;align-self:center}
+#home .cvdomLogo em{font-style:italic!important;background:linear-gradient(#fff 10%,#e8f1ff 40%,#9cb9e9 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+#home .cvdomLogo .logoCrown{position:absolute;right:18px;top:-15px;font-size:27px;color:#ffdb51;-webkit-text-fill-color:#ffdb51;filter:drop-shadow(1px 2px #a46b21);transform:rotate(12deg)}
+#home .lobbyTag{font-size:11px!important;color:#e1e7ff!important;letter-spacing:2px!important;margin:5px 0 9px!important}
+#home .description{font-size:12px!important;color:#d4e0fd!important}
+#home .heroRosterHead{font-size:12px!important;color:#ffe1a4!important}
+#home .heroRoster{gap:7px!important;margin-top:7px!important;margin-bottom:12px!important}
+#home .heroChoice{min-height:150px!important;padding:8px 4px 6px!important;background:linear-gradient(180deg,#284f82,#172a50)!important;box-shadow:inset 0 1px #ffffff42,0 5px 0 #040d23!important;border:2px solid #537bc1!important;transition:transform .16s,border-color .16s,box-shadow .16s}
+#home .heroChoice.selected{transform:translateY(-4px);border-color:#ffd462!important;box-shadow:0 0 0 2px #ffcd4f2e,0 7px 0 #956628,0 10px 18px #07132faa!important}
+#home .heroChoice .hero3DThumbnail{width:100%!important;height:96px!important;max-height:96px!important;object-fit:contain!important;filter:drop-shadow(0 5px 3px #060f296b)}
+#home .heroChoice b{font-size:12px!important;color:#fff!important;line-height:1.15;letter-spacing:.3px}
+#home .heroChoice small{font-size:8px!important;line-height:1.2;color:#d1deef!important}
+#home #menuHeroStage{height:clamp(210px,30dvh,320px)!important;background:radial-gradient(ellipse at 50% 65%,#355f9b,#15264c 72%)!important;border:2px solid #7495cc!important;box-shadow:inset 0 0 40px #07163a,0 6px 16px #02091e8c;border-radius:20px!important}
+#home #menuHeroStage .menuFloor{background:radial-gradient(ellipse,#65c3fc44,transparent 70%)}
+#home #menuHeroStage .menuHeroStamp strong{font-size:22px}
+#home #heroDetails{background:#142a50!important;border:1px solid #527ac2!important}
+#home #start{background:linear-gradient(145deg,#ffe984,#fcb43d)!important;color:#102d64!important}
+#versus{background:radial-gradient(ellipse at 50% 35%,#1b407c,#071636 83%,#030b1c)!important}
+#versus .vsTopline .vsGameTag{font-size:13px;letter-spacing:1.1px;color:#ffe28a}
+#versus .versusHeader h2{font-size:clamp(25px,6.4vw,40px)!important;letter-spacing:-1px;color:#fff3ae!important}
+#versus .versusHeader p{font-size:12px;color:#c2d4f8}
+#versus .versusStage{background:radial-gradient(ellipse at 50% 46%,#4267a8,#142d62 65%,#091b43)!important;border:2px solid #6e94dd!important}
+#versus .vsNamePlate{border:1.5px solid #ffed98a8!important}
+#versus .vsNamePlate strong{font-size:24px}
+#versus .vsPlayNow{font-size:18px!important}
+#versus #vsPortraits img{object-fit:contain}
+@media(max-width:400px){#home .heroRoster{gap:5px!important}#home .heroChoice{min-height:126px!important;padding:5px 1px!important}#home .heroChoice .hero3DThumbnail{height:70px!important;max-height:70px!important}#home .heroChoice b{font-size:10px!important}#home .heroChoice small{font-size:7px!important}#home #menuHeroStage{height:clamp(195px,25dvh,245px)!important}}
+@media(max-height:650px){#home .heroChoice{min-height:112px!important}#home .heroChoice .hero3DThumbnail{height:61px!important;max-height:61px!important}}
