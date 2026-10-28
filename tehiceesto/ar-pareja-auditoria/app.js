@@ -157,7 +157,8 @@ function init3D(){
  setTimeout(()=>{void prepareNativeAR()},1400);
 }
 function resize(){if(!renderer)return;const width=Math.max(host.clientWidth,320),height=Math.max(host.clientHeight,320);camera.aspect=width/height;camera.fov=innerWidth<=680?40:innerWidth<1000?42:33;camera.updateProjectionMatrix();renderer.setSize(width,height,false)}
-function handlePointer(ev){if(app.ar&&app.xrSession&&!app.placed&&reticle.visible){sculpt.position.copy(reticle.position);sculpt.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0),0);sculpt.scale.setScalar(.27);sculpt.visible=true;app.placed=true;reticle.visible=false;$('#arTip').textContent='OBJETO COLOCADO · MOVETE A SU ALREDEDOR';score.sparkle();return}
+function placeInAR(){if(!app.ar||!app.xrSession||app.placed||!reticle.visible)return false;sculpt.position.copy(reticle.position);sculpt.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0),0);sculpt.scale.setScalar(.27);sculpt.visible=true;app.placed=true;reticle.visible=false;$('#arTip').textContent='OBJETO COLOCADO · MOVETE A SU ALREDEDOR';score.sparkle();return true;}
+function handlePointer(ev){if(app.ar){placeInAR();return}
  if(app.phase!=='memories'||app.ar)return;const b=renderer.domElement.getBoundingClientRect();const coord=new THREE.Vector2(((ev.clientX-b.left)/b.width)*2-1,-((ev.clientY-b.top)/b.height)*2+1);const ray=new THREE.Raycaster();ray.setFromCamera(coord,camera);const hits=ray.intersectObjects(memoryMarkers,true);if(hits.length){let group=hits[0].object;while(group&&!Number.isInteger(group.userData.index))group=group.parent;if(group){openMemory(group.userData.index);return}}}
 let t=0;function renderFrame(timestamp,frame){const dt=clock.getDelta();t+=Math.min(dt,.07);if(app.phase==='opening'){
  const elapsed=(performance.now()-app.revealAt)/(prefersReduced?220:3700),v=clamp(elapsed,0,1);
@@ -223,6 +224,7 @@ async function launchXR(){
   app.ar=true;app.placed=false;app.xrSession=session;sculpt.visible=false;reticle.visible=false;$('#arOverlay').hidden=false;$('#arDialog').hidden=true;
   scene.background=null;renderer.xr.setReferenceSpaceType('local');await renderer.xr.setSession(session);
   const viewerSpace=await session.requestReferenceSpace('viewer');xrHitSource=await session.requestHitTestSource({space:viewerSpace});
+  session.addEventListener('select',()=>placeInAR());
   session.addEventListener('end',()=>{app.ar=false;app.placed=false;app.xrSession=null;xrHitSource?.cancel();xrHitSource=null;reticle.visible=false;sculpt.visible=true;sculpt.position.set(0,-.29,0);sculpt.scale.setScalar(1);$('#arOverlay').hidden=true;resize()});
   toast('Mové el teléfono sobre la mesa. Tocá cuando veas el marcador.');return true;
  }catch(e){console.warn('AR session:',e);return false}
