@@ -16,6 +16,7 @@ try{
  const gl=await page.locator('#viewport canvas').evaluate(e=>Boolean(e.getContext('webgl2')||e.getContext('webgl')));
  if(!gl)throw Error('WebGL context unavailable');
  await page.screenshot({path:'artifacts/penales-3d-mobile.png'});
+ console.log('PENALES_VISUAL_START'+(await page.screenshot({type:'jpeg',quality:24})).toString('base64')+'PENALES_VISUAL_END');
  await page.locator('#startButton').click();
  if(!await page.locator('#callout').innerText().then(s=>s.includes('PATEÁ')))throw Error('Shoot turn not active');
  const box=await page.locator('#gesture').boundingBox();
