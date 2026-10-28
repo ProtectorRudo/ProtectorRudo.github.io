@@ -223,10 +223,36 @@ input[type=text]:focus{border-color:#42bcca}
 
 #hud #emoteButton{position:absolute;right:60px;bottom:max(19px,env(safe-area-inset-bottom) + 8px);pointer-events:auto;width:42px;height:42px;border:2px solid #4a65b9;border-radius:13px;background:linear-gradient(#ffffffef,#d9f4ffdf);box-shadow:0 2px 0 #3257a287,0 3px 10px #234da12a;font-size:22px;cursor:pointer;display:grid;place-items:center}
 #hud #emoteButton:active{transform:translateY(2px);box-shadow:0 1px 0 #3257a287}
+
+/* Character renderer: 3D rigged models enhance this canvas; fallback art is fully animated chibi. */
+#game{position:relative;z-index:0}
+#characterStage{position:fixed;inset:0;z-index:2;pointer-events:none;display:block;user-select:none}
+#hud{z-index:5}
+.overlay{z-index:10}
+#shop{z-index:13}
+
+/* Human-like body previews, four distinctive large-headed doll silhouettes. */
+.heroMini{width:52px;height:65px;position:relative;display:block;margin:-2px auto 0}
+.heroMini .miniFace{position:absolute;z-index:3;top:12px;left:7px;width:38px;height:36px;border-radius:48% 48% 45% 45%;border:1.8px solid #345ba7;background:radial-gradient(circle at 32% 20%,#fff,#edf5fc 67%,#c4d8f2);box-shadow:inset 2px 3px 5px #fff,1px 3px 3px #587ca555}
+.heroMini .miniEyes:before,.heroMini .miniEyes:after{content:"";position:absolute;top:16px;width:6px;height:9px;background:#29395c;border-radius:50%}
+.heroMini .miniEyes:before{left:9px}.heroMini .miniEyes:after{right:9px}
+.heroMini .miniTorso{position:absolute;z-index:2;left:12px;top:39px;width:28px;height:22px;background:linear-gradient(120deg,#fff9,var(--hero) 35%,#265db5);border:1.5px solid #2856a9;border-radius:9px}
+.heroMini .miniTorso:before,.heroMini .miniTorso:after{content:"";position:absolute;top:2px;width:7px;height:16px;background:var(--hero);border:1px solid #3670aa;border-radius:7px}
+.heroMini .miniTorso:before{left:-6px;transform:rotate(12deg)}.heroMini .miniTorso:after{right:-6px;transform:rotate(-12deg)}
+.heroMini .miniFeet{position:absolute;left:16px;bottom:1px;width:8px;height:9px;border-radius:3px;background:#31578e;box-shadow:13px 0 #31578e}
+.heroMini .miniHat{position:absolute;z-index:4;top:7px;left:10px;width:32px;height:10px;background:var(--hero);border:1.5px solid #2059ae;border-radius:12px 12px 3px 3px}
+.heroMini1 .miniHat{top:8px;height:13px;border-radius:50% 50% 25% 25%;background:#f8ad47}
+.heroMini2 .miniHat{top:-7px;left:16px;width:20px;height:30px;clip-path:polygon(50% 0,100% 100%,0 100%);background:#683aac;border-radius:0}
+.heroMini2:before{content:"";position:absolute;z-index:5;top:18px;left:3px;width:46px;height:7px;border-radius:50%;background:#7136b7;border:1px solid #d8b1fb}
+.heroMini3 .miniHat{background:#2c684c;height:16px;border-radius:50% 50% 20% 20%}
+.heroMini3 .miniFace{background:radial-gradient(circle at 35% 20%,#e9ffe3,#c1f8dc 70%,#60bb8e)}
+.heroMini3 .miniEyes:before,.heroMini3 .miniEyes:after{background:#79ffb9;border:1px solid #2b635a}
+@media(max-height:740px){.heroMini{height:50px;transform:scale(.75);transform-origin:center top;margin-bottom:-13px}}
 </style>
 </head>
 <body>
 <canvas id="game" aria-label="Juego de conquista de territorio"></canvas>
+<canvas id="characterStage" aria-hidden="true"></canvas>
 <div id="hud">
  <div id="progressRail" aria-label="Recompensas por conquista hasta 25% del mapa">
   <div class="railTrack"><div id="railFill"></div></div>
@@ -356,7 +382,7 @@ function refreshWallet(){
 }
 function renderHeroPicker(){
  const h=HEROES[wardrobe.hero];
- $('heroPicker').innerHTML=HEROES.map((x,i)=>'<button class="heroChoice '+(i===wardrobe.hero?'selected':'')+'" data-hero="'+i+'" aria-label="Seleccionar '+x.name+'"><span class="heroGlyph" style="--hero:'+x.color+'">'+x.face+'</span><b>'+x.name+'</b><small>'+x.role+'</small></button>').join('');
+ $('heroPicker').innerHTML=HEROES.map((x,i)=>'<button class="heroChoice '+(i===wardrobe.hero?'selected':'')+'" data-hero="'+i+'" aria-label="Seleccionar '+x.name+'"><span class="heroMini heroMini'+i+'" style="--hero:'+x.color+'"><i class="miniHat"></i><i class="miniFace"><em class="miniEyes"></em></i><i class="miniTorso"></i><i class="miniFeet"></i></span><b>'+x.name+'</b><small>'+x.role+'</small></button>').join('');
  $('heroDetails').innerHTML='<strong>'+h.name+' · '+h.role+'</strong><span>'+h.bio+'</span><i>“'+h.motto+'”</i>';
  $('heroName').textContent=h.name;
 }
@@ -415,20 +441,20 @@ function drawOutfit(p){
  const id=wardrobe.equipped.outfit;
  c.save();c.lineJoin='round';
  if(id==='outfit_cap'){
-  c.fillStyle='#fa4e79';c.strokeStyle='#f8ffcd';c.lineWidth=1.2;c.beginPath();c.roundRect(-11,-19,22,9,4);c.fill();c.stroke();c.fillRect(-9,-12,22,3);
+  c.fillStyle='#fa4e79';c.strokeStyle='#f8ffcd';c.lineWidth=1.2;c.beginPath();c.roundRect(-15,-65,30,10,4);c.fill();c.stroke();c.fillRect(-12,-58,28,4);
  }else if(id==='outfit_shades'){
   c.fillStyle='#16234d';c.strokeStyle='#fcfcfc';c.lineWidth=1;
-  c.beginPath();c.roundRect(-9,-3,8,6,1);c.roundRect(1,-3,8,6,1);c.fill();c.stroke();c.fillRect(-1,-2,2,2);
+  c.beginPath();c.roundRect(-14,-47,12,8,2);c.roundRect(2,-47,12,8,2);c.fill();c.stroke();c.fillRect(-2,-45,4,3);
  }else if(id==='outfit_scarf'){
-  c.fillStyle='#fe605f';c.strokeStyle='#fff';c.lineWidth=1.1;c.beginPath();c.roundRect(-11,9,22,5,2);c.fill();c.stroke();
-  c.beginPath();c.moveTo(9,11);c.lineTo(17,18+Math.sin(clock*7)*3);c.lineTo(11,14);c.closePath();c.fill();
+  c.fillStyle='#fe605f';c.strokeStyle='#fff';c.lineWidth=1.1;c.beginPath();c.roundRect(-15,-31,30,8,3);c.fill();c.stroke();
+  c.beginPath();c.moveTo(10,-26);c.lineTo(23,-11+Math.sin(clock*7)*4);c.lineTo(9,-16);c.closePath();c.fill();
  }else if(id==='outfit_armor'){
-  c.fillStyle='#ffdf63';c.strokeStyle='#b47416';c.lineWidth=1.4;c.beginPath();c.roundRect(-10,-9,20,22,3);c.fill();c.stroke();
-  c.fillStyle='#6daeff';c.beginPath();c.arc(0,1,5,0,7);c.fill();c.stroke();
+  c.fillStyle='#ffdf63';c.strokeStyle='#b47416';c.lineWidth=1.4;c.beginPath();c.roundRect(-13,-28,26,24,5);c.fill();c.stroke();
+  c.fillStyle='#6daeff';c.beginPath();c.arc(0,-17,6,0,7);c.fill();c.stroke();
  }else if(id==='outfit_ears'){
   c.fillStyle='#ffecff';c.strokeStyle='#de83df';c.lineWidth=1.4;
-  c.beginPath();c.ellipse(-7,-19,3.3,11,-.25,0,7);c.ellipse(7,-19,3.3,11,.25,0,7);c.fill();c.stroke();
-  c.fillStyle='#ef9cdb';c.beginPath();c.ellipse(-7,-19,1.4,7,-.25,0,7);c.ellipse(7,-19,1.4,7,.25,0,7);c.fill();
+  c.beginPath();c.ellipse(-10,-76,5,15,-.25,0,7);c.ellipse(10,-76,5,15,.25,0,7);c.fill();c.stroke();
+  c.fillStyle='#ef9cdb';c.beginPath();c.ellipse(-10,-76,2.2,10,-.25,0,7);c.ellipse(10,-76,2.2,10,.25,0,7);c.fill();
  }
  c.restore();
 }
@@ -779,6 +805,86 @@ function drawMini(){
  mc.beginPath();mc.moveTo(0,-10);mc.lineTo(7,8);mc.lineTo(-7,8);mc.closePath();mc.fill();mc.stroke();
  mc.restore();mc.restore();
 }
+function paintChibi(p,hero,col){
+ const t=clock*7+p.id*.7,bob=Math.sin(t)*1.7,step=Math.sin(t*1.4)*4,blush=hero===1?'#efac94':'#f6c4bb';
+ c.save();c.translate(p.x,p.y+bob);
+ const zoomHero=p.id===0?1.16:1.0;c.scale(zoomHero,zoomHero);
+ // Shadow grounds the sprite at its actual collider location.
+ c.fillStyle='#38535e2c';c.beginPath();c.ellipse(0,9,16,7,0,0,Math.PI*2);c.fill();
+ // Legs / boots independently sway as the character runs.
+ for(const side of [-1,1]){
+  c.save();c.translate(side*6,-1);c.rotate(side*step*.03);
+  c.fillStyle=hero===3?'#23433a':hero===2?'#58368a':hero===1?'#a85524':'#1d62b7';
+  c.beginPath();c.roundRect(-4,-4,8,18,3);c.fill();
+  c.fillStyle='#263651';c.beginPath();c.ellipse(0,13,5,4,0,0,Math.PI*2);c.fill();c.restore();
+ }
+ // Garments with light-catching volumes and differentiated silhouettes.
+ const outfitColor=['#46c9e6','#ffad54','#9767d4','#50d788'][hero];
+ let grad=c.createLinearGradient(-15,-24,16,4);
+ grad.addColorStop(0,'#ffffff');grad.addColorStop(.18,outfitColor);grad.addColorStop(.78,col);grad.addColorStop(1,'#3659a0');
+ c.fillStyle=grad;c.strokeStyle='#243f8099';c.lineWidth=1.5;
+ c.beginPath();c.roundRect(-14,-30,28,31,9);c.fill();c.stroke();
+ if(hero===2){ // Kira has a long mystic coat / witch outfit
+  c.fillStyle='#542895';c.beginPath();c.moveTo(-12,-14);c.lineTo(-19,3);c.lineTo(19,3);c.lineTo(12,-14);c.closePath();c.fill();
+  c.strokeStyle='#b98efa';c.stroke();
+ }
+ if(hero===3){c.strokeStyle='#1c7a5e';c.lineWidth=3;c.beginPath();c.moveTo(-9,-17);c.lineTo(10,-7);c.stroke();}
+ for(const side of [-1,1]){
+  c.save();c.translate(side*15,-24);c.rotate(side*(Math.sin(t)*.36+.15));
+  c.fillStyle=outfitColor;c.beginPath();c.roundRect(-5,0,10,20,5);c.fill();
+  c.fillStyle='#fff4e6';c.beginPath();c.ellipse(0,20,5,6,0,0,7);c.fill();c.restore();
+ }
+ // Giant, distinct head: soft rim, dimensional mask, big expressive eyes.
+ c.fillStyle='#263d73aa';c.beginPath();c.ellipse(0,-42,21,20,0,0,7);c.fill();
+ grad=c.createRadialGradient(-9,-52,2,0,-43,22);
+ grad.addColorStop(0,'#fff');grad.addColorStop(.55,'#fff9f5');grad.addColorStop(1,hero===3?'#b8eccc':'#c4d5f2');
+ c.fillStyle=grad;c.strokeStyle='#315aa4';c.lineWidth=2;
+ c.beginPath();c.ellipse(0,-43,20,20,0,0,7);c.fill();c.stroke();
+ // Each one's face communicates personality, without requiring the name label.
+ c.fillStyle='#1d3157';
+ if(hero===0){ // Nova: alert, enthusiastic
+  c.beginPath();c.ellipse(-7,-44,4.8,6.5,0,0,7);c.ellipse(7,-44,4.8,6.5,0,0,7);c.fill();
+  c.fillStyle='#fff';c.beginPath();c.arc(-8.5,-46,1.5,0,7);c.arc(5.6,-46,1.5,0,7);c.fill();
+  c.strokeStyle='#e7768b';c.lineWidth=2;c.beginPath();c.arc(0,-36,5,.1,Math.PI-.1);c.stroke();
+ }else if(hero===1){ // Bombo: sleepy mischievous wink
+  c.beginPath();c.ellipse(-6,-44,5,5.5,0,0,7);c.fill();
+  c.strokeStyle='#182b54';c.lineWidth=2.3;c.beginPath();c.moveTo(4,-45);c.quadraticCurveTo(8,-49,12,-44);c.stroke();
+  c.strokeStyle='#bd5662';c.beginPath();c.arc(0,-34,4.5,-.1,Math.PI+.1);c.stroke();
+ }else if(hero===2){ // Kira: clever eyes, composed mouth
+  c.beginPath();c.ellipse(-7,-44,4,6,0,0,7);c.ellipse(7,-44,4,6,0,0,7);c.fill();
+  c.strokeStyle='#532f95';c.lineWidth=2;c.beginPath();c.moveTo(-11,-52);c.lineTo(-4,-50);c.moveTo(4,-50);c.lineTo(11,-52);c.stroke();
+  c.fillStyle='#dd6c99';c.beginPath();c.ellipse(1,-34,3,1.5,0,0,7);c.fill();
+ }else{ // Rayo: determined ninja mask
+  c.fillStyle='#345b5a';c.beginPath();c.roundRect(-17,-48,34,13,5);c.fill();
+  c.fillStyle='#f7ffea';c.beginPath();c.ellipse(-7,-42,4,3,0,0,7);c.ellipse(7,-42,4,3,0,0,7);c.fill();
+  c.fillStyle='#1e3843';c.fillRect(-8,-43,2.4,3);c.fillRect(6,-43,2.4,3);
+ }
+ if(hero!==3){c.fillStyle=blush;c.globalAlpha=.54;c.beginPath();c.ellipse(-14,-36,3,2,0,0,7);c.ellipse(14,-36,3,2,0,0,7);c.fill();c.globalAlpha=1;}
+ // Silhouette-defining hats and headwear.
+ if(hero===0){
+  c.fillStyle='#3dd7ef';c.strokeStyle='#2257bc';c.lineWidth=2;c.beginPath();
+  c.moveTo(-17,-57);c.quadraticCurveTo(-2,-76,17,-57);c.lineTo(15,-51);c.quadraticCurveTo(0,-59,-15,-51);c.closePath();c.fill();c.stroke();
+  c.fillStyle='#fff1a4';c.beginPath();c.arc(0,-61,4,0,7);c.fill();
+ }else if(hero===1){
+  c.fillStyle='#ffa447';c.strokeStyle='#a65627';c.lineWidth=2;c.beginPath();
+  c.roundRect(-19,-61,38,11,5);c.fill();c.stroke();
+  c.beginPath();c.arc(0,-61,10,Math.PI,Math.PI*2);c.fill();
+  c.fillStyle='#fcdf92';c.fillRect(-12,-61,23,3);
+ }else if(hero===2){
+  c.fillStyle='#6943af';c.strokeStyle='#382a78';c.lineWidth=2;
+  c.beginPath();c.moveTo(-14,-57);c.lineTo(3,-89);c.lineTo(16,-56);c.closePath();c.fill();c.stroke();
+  c.beginPath();c.ellipse(0,-56,25,6,-.07,0,7);c.fill();c.stroke();
+  c.strokeStyle='#dcb165';c.lineWidth=3;c.beginPath();c.moveTo(-12,-58);c.lineTo(13,-58);c.stroke();
+ }else{
+  c.fillStyle='#334e41';c.strokeStyle='#1d373e';c.lineWidth=2;
+  c.beginPath();c.moveTo(-17,-56);c.lineTo(-13,-66);c.lineTo(0,-69);c.lineTo(14,-65);c.lineTo(17,-56);c.closePath();c.fill();c.stroke();
+  c.fillStyle='#9efa76';c.beginPath();c.arc(0,-64,4,0,7);c.fill();
+ }
+ // Wardrobe garments and props are attached to this human-like doll.
+ if(p.id===0)drawOutfit(p);
+ c.restore();
+}
+
 function drawUnit(p){
  if(!p.alive)return;
  const col=COLORS[(p.id+settingColor)%12];
@@ -797,57 +903,15 @@ function drawUnit(p){
    c.setLineDash([15,31]);c.lineDashOffset=-clock*80;c.stroke();c.restore();
   }
  }
- const theme=p.id===0?selectedSkin:p.id%4;
- const pulse=1+Math.sin(clock*6+p.id)*.06;
- c.save();c.translate(p.x,p.y);c.rotate(p.angle+Math.PI/2);c.scale(p.id===0?1.82:1.42,p.id===0?1.82:1.42);
- c.fillStyle='rgba(21,52,67,.19)';c.beginPath();c.ellipse(3,13,19,10,0,0,Math.PI*2);c.fill();
- // Six-point lens flare: drawn beneath the hero, not as a screen overlay.
- if(p.id===0){c.globalAlpha=.28+.14*Math.sin(clock*5);c.strokeStyle=col;c.lineWidth=2.3;c.beginPath();c.arc(0,0,18*pulse,0,Math.PI*2);c.stroke();c.globalAlpha=1;}
- // Extruded underside and cobalt outer frame.
- c.fillStyle='#1c3777';c.beginPath();c.roundRect(-14,-10,28,30,5);c.fill();
- c.fillStyle='#eef8ff';c.beginPath();c.roundRect(-15,-15,30,29,6);c.fill();
- c.fillStyle='#1837b0';c.beginPath();c.roundRect(-13,-13,26,25,4.6);c.fill();
- c.fillStyle=col;c.beginPath();c.roundRect(-10.5,-10.5,21,20,3.3);c.fill();
- // Metallic roof bevel and four gold hardware caps.
- c.fillStyle='rgba(255,255,255,.70)';c.beginPath();c.moveTo(-9,-9);c.lineTo(9,-9);c.lineTo(6,-5);c.lineTo(-6,-5);c.closePath();c.fill();
- c.fillStyle='#f9dc64';c.strokeStyle='#fffaaf';c.lineWidth=.65;
- for(const xx of [-10,10])for(const yy of [-10,9]){c.beginPath();c.roundRect(xx-2.5,yy-2.5,5,5,1);c.fill();c.stroke();}
- // Individual skins are original geometric machines, not copied character art.
- if(theme===0){
-  c.fillStyle='#c4ff77';c.beginPath();c.roundRect(-7,-6,14,14,3);c.fill();
-  c.strokeStyle='#2a9c6c';c.lineWidth=1.6;c.stroke();
-  c.fillStyle='#5aca38';c.beginPath();c.arc(0,0,4.4,0,Math.PI*2);c.fill();
-  c.fillStyle='#ffffffeb';c.beginPath();c.arc(-1.5,-1.8,1.5,0,Math.PI*2);c.fill();
-  c.fillStyle='#fe72bd';c.fillRect(-9,-3,2.4,5);c.fillRect(7,-3,2.4,5);
- }else if(theme===1){
-  c.fillStyle='#fff7bb';c.beginPath();c.roundRect(-8,-7,16,15,5);c.fill();
-  c.fillStyle='#2453cb';c.beginPath();c.arc(-3.2,-1,2.2,0,7);c.arc(3.2,-1,2.2,0,7);c.fill();
-  c.strokeStyle='#f2a545';c.lineWidth=1.5;c.beginPath();c.arc(0,2,4,-.2,Math.PI+.2);c.stroke();
- }else if(theme===2){
-  c.fillStyle='#ffdb74';c.beginPath();c.moveTo(0,-9);c.lineTo(7,-2);c.lineTo(3,8);c.lineTo(-6,2);c.closePath();c.fill();
-  c.fillStyle='#f7ffff';c.beginPath();c.arc(0,0,3.5,0,7);c.fill();
- }else{
-  c.fillStyle='#e0f9ff';c.beginPath();c.arc(0,0,8,0,7);c.fill();
-  c.strokeStyle='#39a4ff';c.lineWidth=2.2;c.stroke();
-  c.fillStyle='#1d69a1';c.fillRect(-4,-2,8,4);
- }
- // Crown unlock from 25% conquered area: exclusive, on-model, earned in this run.
- if(p.id===0&&game&&game.crowned){
-  c.save();c.translate(0,-19);c.fillStyle='#ffd74d';c.strokeStyle='#1f42b0';c.lineWidth=1.8;
-  c.beginPath();c.moveTo(-10,5);c.lineTo(-11,-4);c.lineTo(-5,0);c.lineTo(0,-10);c.lineTo(5,0);c.lineTo(11,-4);c.lineTo(10,5);c.closePath();c.fill();c.stroke();c.restore();
- }
- // Side stabilizers and rear jet on the player's craft.
- if(p.id===0){
-  c.fillStyle='#f4ffff';c.strokeStyle='#5ca8de';c.lineWidth=1.4;
-  for(const xx of [-1,1]){c.save();c.scale(xx,1);c.beginPath();c.moveTo(12,-7);c.lineTo(17,-3);c.lineTo(17,7);c.lineTo(12,9);c.closePath();c.fill();c.stroke();c.restore();}
-  c.fillStyle='#ffe768';c.beginPath();c.moveTo(-5,16);c.lineTo(0,21);c.lineTo(5,16);c.closePath();c.fill();
- }
- drawOutfit(p);
- if(p.id===0&&clock<p.boostUntil){c.strokeStyle='#fff1a6';c.lineWidth=2;c.beginPath();c.roundRect(-18,-18,36,35,6);c.stroke();}
- c.restore();
+ // Actual 3D actors take over when their GLB has loaded. Otherwise use
+ // anatomically legible, animated original chibi people — never robot cubes.
+ const hero=p.id===0?selectedSkin:p.id%4;
+ const has3D=!!(window.Paper3DReady&&window.Paper3DReady[hero]);
+ if(!has3D)paintChibi(p,hero,col);
+
  // Text stays readable without putting a huge comic heading over the actor.
  c.font='900 14px system-ui';c.textAlign='center';c.lineWidth=3.6;c.strokeStyle='#153da7';
- c.strokeText(p.name,p.x,p.y-(p.id===0?43:34));c.fillStyle='#fff';c.fillText(p.name,p.x,p.y-(p.id===0?43:34));
+ c.strokeText(p.name,p.x,p.y-(p.id===0?84:75));c.fillStyle='#fff';c.fillText(p.name,p.x,p.y-(p.id===0?84:75));
  if(p.id===0&&clock<emoteUntil){
   const yy=p.y-80,cx=p.x;
   c.save();c.fillStyle='#fffffff2';c.strokeStyle='#2c5dc0';c.lineWidth=2;c.beginPath();
@@ -931,9 +995,23 @@ fit();window.addEventListener('resize',fit);
 let last=performance.now(),acc=0;
 function frame(t){const dt=Math.min(.05,Math.max(0,(t-last)/1000));last=t;if(mode==='play'&&game){acc=Math.min(acc+dt,.13);let loops=0;while(acc>=RUN&&loops<7){step(RUN);acc-=RUN;loops++;}}else acc=0;render();requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
+// The 3D renderer is a separate, optional visual layer. Expose only the
+// lightweight read-only coordinates it needs; all gameplay stays unchanged.
+window.Paper3DState=()=>({
+ playing:!!game&&mode==='play',clock,camX,camY,zoom,screenW,screenH,
+ outfit:wardrobe.equipped.outfit,
+ people:game?game.people.map(p=>({
+  id:p.id,x:p.x,y:p.y,angle:p.angle,alive:p.alive,
+  hero:p.id===0?wardrobe.hero:p.id%4,
+  emoting:p.id===0&&clock<emoteUntil
+ })):[]
+});
 // Read-only diagnostics: ?qa=1 exposes counters to automated smoke tests.
 if(new URLSearchParams(location.search).has('qa'))Object.defineProperty(window,'territoryQA',{get:()=>game?{mode,area:game.people[0].score,alive:game.people[0].alive,players:game.people.filter(p=>p.alive).length,clock:clock,kills:game.kills,tiles:game.people[0].area,x:game.people[0].x,y:game.people[0].y,angle:game.people[0].angle,outside:game.people[0].outside,trail:game.people[0].trailCells.length,botTerritory:game.people.slice(1).reduce((n,p)=>n+p.area,0),defeated:game.defeated.size,rewards:game.rewards.size,epicTrail:game.epicTrail,crowned:game.crowned,edgeCharge:game.people[0].edgeCharge,boosting:clock<game.people[0].boostUntil,particleCount:particles.length}: {mode}});
 })();
 </script>
+<!-- Pinned ES modules: if CDN is blocked the original chibi canvas game still plays. -->
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<script type="module" src="./paper-3d.mjs"></script>
 </body>
 </html>
