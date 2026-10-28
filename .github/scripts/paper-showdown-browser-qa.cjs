@@ -21,7 +21,17 @@ const {chromium}=require('playwright');
   page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text().slice(0,200));});
   await page.goto(uri,{waitUntil:'domcontentloaded',timeout:70000});
 
-  await page.waitForFunction(()=>window.PaperMenuReady===true,{timeout:18000});
+  await page.waitForTimeout(2200);
+  console.log('MENU_PRECHECK',JSON.stringify(await page.evaluate(()=>({
+    path:location.pathname,
+    appMode:window.territoryQA?.mode,
+    menuStage:!!document.getElementById('menuHeroStage'),
+    menuReady:window.PaperMenuReady,
+    menuInfo:document.getElementById('menu3dStatus')?.textContent,
+    canvasParent:document.getElementById('versus3dCanvas')?.parentElement?.id
+  }))));
+  await page.screenshot({path:'/tmp/paper-menu-precheck-android.png'});
+  await page.waitForFunction(()=>window.PaperMenuReady===true,null,{timeout:22000});
   const menuDefault=await page.evaluate(()=>({
     hero:window.Paper3DState().menuHero,
     selected:document.getElementById('menuCharacterLabel').textContent,
@@ -34,7 +44,7 @@ const {chromium}=require('playwright');
   assert.equal(menuDefault.oldAvatar,false);
   await page.screenshot({path:'/tmp/paper-menu-android.png'});
   await page.locator('[data-hero="2"]').click();
-  await page.waitForFunction(()=>window.PaperMenuReady&&window.Paper3DState().menuHero===2,{timeout:12000});
+  await page.waitForFunction(()=>window.PaperMenuReady&&window.Paper3DState().menuHero===2,null,{timeout:15000});
   const menuChange=await page.evaluate(()=>({
     selected:document.getElementById('menuCharacterLabel').textContent,
     hero:window.Paper3DState().menuHero,
