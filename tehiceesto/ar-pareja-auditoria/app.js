@@ -7,7 +7,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
  */
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
-const app={phase:'sealed',visited:new Set(),audio:false,ar:false,placed:false,revealAt:0,shimmer:0,glbUrl:null,xrSession:null,exporterBusy:false};
+const app={phase:'sealed',visited:new Set(),audio:false,ar:false,placed:false,cameraMode:false,revealAt:0,shimmer:0,glbUrl:null,xrSession:null,exporterBusy:false};
 const mem=[
  {title:'El primer nosotros.',label:'EL DÍA QUE CAMBIÓ TODO',quote:'No sabía que ese día tan normal iba a convertirse en mi fecha favorita.',photo:'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=1600&q=84'},
  {title:'Lo extraordinario en lo simple.',label:'NUESTRO MUNDO MÁS PEQUEÑO',quote:'Con vos aprendí que la felicidad a veces es un café, un silencio y saber que no tengo que estar en ningún otro lugar.',photo:'https://images.unsplash.com/photo-1474552226712-ac0f0961a954?auto=format&fit=crop&w=1600&q=84'},
@@ -160,8 +160,87 @@ function init3D(){
  // Warm up glTF resources before a user invokes the native AR viewer.
  setTimeout(()=>{void prepareNativeAR()},1400);
 }
-function resize(){if(!renderer)return;const width=Math.max(host.clientWidth,320),height=Math.max(host.clientHeight,320);camera.aspect=width/height;camera.fov=innerWidth<=680?40:innerWidth<1000?42:33;camera.updateProjectionMatrix();renderer.setSize(width,height,false)}
-function placeInAR(){if(!app.ar||!app.xrSession||app.placed||!reticle.visible)return false;sculpt.position.copy(reticle.position);sculpt.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0),0);sculpt.scale.setScalar(.27);sculpt.visible=true;app.placed=true;reticle.visible=false;$('#arTip').textContent='OBJETO COLOCADO · MOVETE A SU ALREDEDOR';score.sparkle();return true;}
+function resize(){if(!renderer)return;const target=app.cameraMode?$('#cameraView'):host;const width=Math.max(target.clientWidth,320),height=Math.max(target.clientHeight,320);camera.aspect=width/height;camera.fov=app.cameraMode?47:(innerWidth<=680?40:innerWidth<1000?42:33);camera.updateProjectionMatrix();renderer.setSize(width,height,false)}
+// Modo Caos's placement pattern: preview is *always visible*, even before hit-test finds a plane.
+let xrHitResult=null,xrAnchor=null,xrTracking='booting',xrLastHit=0,arScale=.16,arYaw=0,arFrameCount=0;
+const xrP=new THREE.Vector3(),xrD=new THREE.Vector3();
+function arStatus(message,tracking){$('#arTip').textContent=message;if(tracking)$('#arTracking').textContent=tracking;}
+function updateARScale(delta){
+ arScale=THREE.MathUtils.clamp(arScale+delta,.085,.31);
+ if(app.ar)sculpt.scale.setScalar(arScale);
+ $('#arSizeLabel').textContent='TAMAÑO · '+Math.round(arScale/.16*40)+' CM';
+}
+function rotateAR(){
+ arYaw+=Math.PI/8;if(app.ar)sculpt.rotation.y=arYaw;
+}
+async function placeInAR(){
+ if(!app.ar||!app.xrSession||app.placed)return false;
+ app.placed=true;reticle.visible=false;$('#arPlace').hidden=true;$('#arReposition').hidden=false;
+ $('#arCenterMarker').hidden=true;
+ arStatus('YA ESTÁ EN TU MUNDO · CAMINÁ A SU ALREDEDOR',xrTracking==='plane'?'SUPERFICIE DETECTADA · RELICARIO FIJO':'POSICIÓN ESPACIAL APROXIMADA · REUBICABLE');
+ score.sparkle();
+ // Capture a real XR anchor when the runtime offers one; otherwise keep world-space position.
+ if(xrHitResult&&typeof xrHitResult.createAnchor==='function'){
+   try{const anchor=await xrHitResult.createAnchor();if(app.ar&&app.placed){xrAnchor=anchor;$('#arTracking').textContent='ANCLAJE ESPACIAL ACTIVO'}else anchor.delete?.()}catch(err){console.info('XR anchor unavailable, retaining local-space pose',err)}
+ }
+ return true;
+}
+function rePlaceAR(){
+ if(!app.ar)return;
+ xrAnchor?.delete?.();xrAnchor=null;app.placed=false;
+ $('#arPlace').hidden=false;$('#arReposition').hidden=true;$('#arCenterMarker').hidden=false;
+ arStatus('MOVÉ EL TELÉFONO · FIJÁ EL RELICARIO SOBRE UNA MESA','BUSCANDO SUPERFICIE');
+}
+function updateARPreview(time,frame){
+ if(!app.ar||!app.xrSession||!frame)return;
+ arFrameCount++;
+ const ref=renderer.xr.getReferenceSpace();
+ if(!ref)return;
+ if(app.placed){
+   if(xrAnchor){
+     const pose=frame.getPose(xrAnchor.anchorSpace,ref);
+     if(pose){sculpt.position.set(pose.transform.position.x,pose.transform.position.y,pose.transform.position.z);}
+   }
+   return;
+ }
+ let found=false;
+ if(xrHitSource){
+   try{
+     const results=frame.getHitTestResults(xrHitSource);
+     if(results.length){
+       const pose=results[0].getPose(ref);
+       if(pose){
+         sculpt.position.set(pose.transform.position.x,pose.transform.position.y,pose.transform.position.z);
+         xrHitResult=results[0];xrTracking='plane';xrLastHit=time;found=true;
+         reticle.visible=true;reticle.position.copy(sculpt.position);
+       }
+     }
+   }catch(e){if(arFrameCount%180===1)console.info('AR plane search',e)}
+ }
+ if(!found){
+   // Never hide the object! Camera-forward provisional pose if no floor/table is recognized.
+   // This is real XR world space, not a screen-space sprite. The user can fix it manually.
+   if(xrTracking!=='plane'||time-xrLastHit>900){
+     xrHitResult=null;xrTracking='manual';reticle.visible=false;
+     const cam=renderer.xr.getCamera();
+     if(cam){
+       cam.updateMatrixWorld(true);
+       cam.getWorldPosition(xrP);cam.getWorldDirection(xrD);
+       xrD.y=0;
+       if(xrD.lengthSq()<.001)xrD.set(0,0,-1);
+       xrD.normalize();
+       sculpt.position.copy(xrP).addScaledVector(xrD,.85);
+       sculpt.position.y=xrP.y-.34;
+     }
+   }
+ }
+ if(arFrameCount%18===0){
+   arStatus(found?'SUPERFICIE DETECTADA · AJUSTÁ Y FIJÁ EL RELICARIO':'EL RELICARIO ESTÁ DELANTE TUYO · PODÉS FIJARLO AQUÍ',
+     found?'SUPERFICIE REAL ✓ · POSICIÓN PRECISA':'SIN DETECCIÓN DE MESA · UBICACIÓN MANUAL');
+ }
+ sculpt.scale.setScalar(arScale);sculpt.rotation.y=arYaw;sculpt.visible=true;
+}
+
 function handlePointer(ev){if(app.ar){placeInAR();return}
  if(app.phase!=='memories'||app.ar)return;const b=renderer.domElement.getBoundingClientRect();const coord=new THREE.Vector2(((ev.clientX-b.left)/b.width)*2-1,-((ev.clientY-b.top)/b.height)*2+1);const ray=new THREE.Raycaster();ray.setFromCamera(coord,camera);const hits=ray.intersectObjects(memoryMarkers,true);if(hits.length){let group=hits[0].object;while(group&&!Number.isInteger(group.userData.index))group=group.parent;if(group){openMemory(group.userData.index);return}}}
 let t=0;function renderFrame(timestamp,frame){const dt=clock.getDelta();t+=Math.min(dt,.07);if(app.phase==='opening'){
@@ -176,9 +255,8 @@ let t=0;function renderFrame(timestamp,frame){const dt=clock.getDelta();t+=Math.
  if(app.phase==='final'){art.rotation.y+=.00065;particleField.material.opacity=.26+.11*Math.sin(t*1.3)}
  else particleField.rotation.y+=.00008;
  motes.forEach(({obj,seed,baseY})=>{obj.position.y=baseY+Math.sin(t*.83+seed)*.025;obj.material.opacity=.32+.19*Math.sin(t+seed)});
- if(!app.ar){controls?.update();}else if(frame&&app.xrSession&&!app.placed){
-  const ref=renderer.xr.getReferenceSpace();if(ref&&xrHitSource){const results=frame.getHitTestResults(xrHitSource);if(results.length){const pose=results[0].getPose(ref);if(pose){reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix);reticle.matrix.decompose(reticle.position,reticle.quaternion,reticle.scale)}}else reticle.visible=false}
- }
+ if(!app.ar){if(!app.cameraMode)controls?.update();}
+ else updateARPreview(timestamp,frame);
  renderer.render(scene,camera);
 }
 // NARRATIVE
@@ -214,40 +292,144 @@ async function prepareNativeAR(){
  $('#iosARModel').setAttribute('src',resource);
  return resource;
 }
-let xrSupported=false;
-(async()=>{try{xrSupported=!!(navigator.xr&&await navigator.xr.isSessionSupported('immersive-ar'))}catch{};})();
-function showArDialog(){if(app.phase==='sealed')toast('Podés llevarlo a tu espacio. Primero, disfrutá la apertura.');$('#arDialog').hidden=false;void prepareNativeAR();}
+
+let xrSupported=false,xrHitSource=null;
+(async()=>{try{xrSupported=!!(navigator.xr&&await navigator.xr.isSessionSupported('immersive-ar'))}catch{xrSupported=false}})();
+function showArDialog(){
+ $('#arMessage').textContent='El relicario aparece en cuanto se abre AR. Ajustá el tamaño y tocá «Fijar» cuando encuentres el lugar.';
+ $('#arDialog').hidden=false;void prepareNativeAR();
+}
 $('#arBtn').addEventListener('click',showArDialog);
 $('#closeArDialog').addEventListener('click',()=>$('#arDialog').hidden=true);
 $('#keep3d').addEventListener('click',()=>$('#arDialog').hidden=true);
-async function launchXR(){
- if(!navigator.xr)return false;
- let supported=false;try{supported=await navigator.xr.isSessionSupported('immersive-ar')}catch{};if(!supported)return false;
- try{
-  const session=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay','local-floor'],domOverlay:{root:$('#arOverlay')}});
-  app.ar=true;app.placed=false;app.xrSession=session;sculpt.visible=false;reticle.visible=false;$('#arOverlay').hidden=false;$('#arDialog').hidden=true;
-  scene.background=null;renderer.xr.setReferenceSpaceType('local');await renderer.xr.setSession(session);
-  const viewerSpace=await session.requestReferenceSpace('viewer');xrHitSource=await session.requestHitTestSource({space:viewerSpace});
-  session.addEventListener('select',()=>placeInAR());
-  session.addEventListener('end',()=>{app.ar=false;app.placed=false;app.xrSession=null;xrHitSource?.cancel();xrHitSource=null;reticle.visible=false;sculpt.visible=true;sculpt.position.set(0,-.29,0);sculpt.scale.setScalar(1);$('#arOverlay').hidden=true;resize()});
-  toast('Mové el teléfono sobre la mesa. Tocá cuando veas el marcador.');return true;
- }catch(e){console.warn('AR session:',e);return false}
+function resetARControls(){
+ $('#arPlace').hidden=false;$('#arReposition').hidden=true;$('#arCenterMarker').hidden=false;
+ updateARScale(0);
 }
-async function launchNativeAR(){try{
- await prepareNativeAR();
- if(!app.glbUrl)return false;
- await import('https://cdn.jsdelivr.net/npm/@google/model-viewer@4.1.0/dist/model-viewer.min.js');
- await customElements.whenDefined('model-viewer');
- const mv=$('#iosARModel');if(!mv.canActivateAR)return false;
- mv.activateAR();return true;
-}catch(e){console.warn('Quick Look unavailable',e);return false}}
-$('#launchAR').addEventListener('click',async()=>{const btn=$('#launchAR');btn.disabled=true;btn.textContent='PREPARANDO TU ESPACIO…';
- let ok=false;
- if(xrSupported){ok=await launchXR();}
- if(!ok){ok=await launchNativeAR();if(ok)$('#arDialog').hidden=true;}
- if(!ok){$('#arMessage').textContent='Tu navegador no ofrece AR espacial compatible. La pieza sigue disponible en 3D, con las mismas animaciones, recuerdos e interacciones.';$('#arDisclaimer').textContent='Para AR espacial probá Chrome en Android con ARCore, o Safari en iPhone compatible con Quick Look.';toast('AR no disponible en este navegador. La experiencia 3D está lista.')}
+function resetXRState(){
+ app.ar=false;app.placed=false;app.xrSession=null;
+ xrHitSource?.cancel?.();xrHitSource=null;xrHitResult=null;
+ xrAnchor?.delete?.();xrAnchor=null;
+ xrTracking='booting';arFrameCount=0;reticle.visible=false;
+ sculpt.visible=true;sculpt.position.set(0,-.29,0);sculpt.scale.setScalar(1);sculpt.rotation.y=0;
+ $('#arOverlay').hidden=true;scene.background=null;controls.enabled=true;resetARControls();resize();
+}
+async function launchXR(){
+ if(!navigator.xr||!xrSupported)return false;
+ let session;
+ try{
+  // User activation MUST be used synchronously: don't await isSessionSupported here.
+  session=await navigator.xr.requestSession('immersive-ar',{
+    requiredFeatures:['hit-test'],
+    optionalFeatures:['dom-overlay','anchors','local-floor'],
+    domOverlay:{root:$('#arOverlay')}
+  });
+  app.ar=true;app.placed=false;app.xrSession=session;
+  arScale=.16;arYaw=0;resetARControls();
+  sculpt.visible=true;sculpt.scale.setScalar(arScale);
+  reticle.visible=false;xrHitResult=null;xrAnchor=null;xrTracking='booting';arFrameCount=0;
+  $('#arDialog').hidden=true;$('#arOverlay').hidden=false;controls.enabled=false;scene.background=null;
+  renderer.xr.setReferenceSpaceType('local');
+  await renderer.xr.setSession(session);
+  // Show a provisional object before the FIRST hit-test pose.
+  const cam=renderer.xr.getCamera();
+  cam?.updateMatrixWorld?.(true);
+  const viewerSpace=await session.requestReferenceSpace('viewer');
+  try{xrHitSource=await session.requestHitTestSource({space:viewerSpace});}
+  catch(err){xrHitSource=null;console.info('Hit-test unavailable: manual XR placement remains active',err)}
+  session.addEventListener('select',()=>{if(!app.placed)void placeInAR()});
+  session.addEventListener('end',resetXRState,{once:true});
+  arStatus('MIRÁ HACIA UNA MESA · EL RELICARIO ESTÁ DELANTE TUYO','BUSCANDO SUPERFICIE…');
+  return true;
+ }catch(err){
+  console.warn('Spatial AR startup',err);
+  if(session){try{await session.end()}catch{}}
+  resetXRState();
+  return false;
+ }
+}
+$('#arPlace').addEventListener('click',()=>void placeInAR());
+$('#arReposition').addEventListener('click',rePlaceAR);
+$('#arSmaller').addEventListener('click',()=>updateARScale(-.025));
+$('#arBigger').addEventListener('click',()=>updateARScale(.025));
+$('#arRotate').addEventListener('click',rotateAR);
+$('#exitAR').addEventListener('click',()=>{if(app.xrSession)void app.xrSession.end()});
+let cameraStream=null,cameraActiveBefore=null,cameraOriginalPos=null,cameraOriginalRot=null,cameraScale=1;
+async function startCameraView(){
+ if(!navigator.mediaDevices?.getUserMedia)return false;
+ try{
+  cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+  const video=$('#cameraFeed');video.srcObject=cameraStream;
+  try{await video.play()}catch(e){console.info('Waiting for camera media',e)}
+  app.cameraMode=true;$('#arDialog').hidden=true;$('#cameraAR').hidden=false;
+  cameraActiveBefore=renderer.domElement.parentNode;
+  cameraOriginalPos=camera.position.clone();cameraOriginalRot=camera.rotation.clone();
+  $('#cameraView').appendChild(renderer.domElement);
+  controls.enabled=false;sculpt.visible=true;
+  cameraScale=.45;sculpt.position.set(0,-.36,0);sculpt.scale.setScalar(cameraScale);
+  camera.position.set(2.0,1.85,4.45);camera.lookAt(0,1.45,0);
+  $('#cameraStatus').textContent='RELICARIO VISIBLE · AJUSTÁ TAMAÑO Y GIRO';
+  resize();return true;
+ }catch(e){
+  console.warn('Camera preview unavailable',e);
+  stopCameraView();
+  return false;
+ }
+}
+function stopCameraView(){
+ cameraStream?.getTracks?.().forEach(tr=>tr.stop());cameraStream=null;
+ const vid=$('#cameraFeed');if(vid)vid.srcObject=null;
+ if(app.cameraMode){
+   (cameraActiveBefore||host).appendChild(renderer.domElement);
+   app.cameraMode=false;$('#cameraAR').hidden=true;
+   sculpt.position.set(0,-.29,0);sculpt.scale.setScalar(1);sculpt.rotation.y=0;
+   if(cameraOriginalPos)camera.position.copy(cameraOriginalPos);
+   if(cameraOriginalRot)camera.rotation.copy(cameraOriginalRot);
+   controls.enabled=true;controls.target.set(0,1.58,0);controls.update();resize();
+ }
+}
+$('#closeCamera').addEventListener('click',stopCameraView);
+function cameraResize(delta){cameraScale=THREE.MathUtils.clamp(cameraScale+delta,.19,.9);sculpt.scale.setScalar(cameraScale);$('#camSizeLabel').textContent='TAMAÑO · '+Math.round(cameraScale/.45*40)+' CM'}
+$('#camSmaller').addEventListener('click',()=>cameraResize(-.06));
+$('#camBigger').addEventListener('click',()=>cameraResize(.06));
+$('#camRotate').addEventListener('click',()=>{sculpt.rotation.y+=Math.PI/6});
+async function showNativeViewer(){
+ try{
+  const mv=$('#iosARModel');const host=$('#nativeViewerHost');
+  host.appendChild(mv);$('#arDialog').hidden=true;$('#nativeAR').hidden=false;
+  mv.setAttribute('src',prepareNativeAR());
+  // Visible, full-size preview (not the former invisible 1px component).
+  await import('https://cdn.jsdelivr.net/npm/@google/model-viewer@4.1.0/dist/model-viewer.min.js');
+  await customElements.whenDefined('model-viewer');
+  await mv.updateComplete;
+  return true;
+ }catch(e){console.warn('Native AR viewer load failed',e);$('#nativeAR').hidden=true;return false}
+}
+$('#closeNative').addEventListener('click',()=>{$('#nativeAR').hidden=true});
+$('#launchAR').addEventListener('click',async()=>{
+ const btn=$('#launchAR');if(btn.disabled)return;
+ btn.disabled=true;btn.textContent='PREPARANDO EL RELICARIO…';
+ let started=false;
+ // Android ARCore: the same WebXR hit-test and world anchoring technique as Modo Caos.
+ // Chrome's transient user activation should be consumed by requestSession, not by a preflight await.
+ if(xrSupported)started=await launchXR();
+ // Safari/iOS: show an actual visible model-viewer with a native Quick Look launch action.
+ if(!started){
+   const ios=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+   if(ios)started=await showNativeViewer();
+ }
+ // Universal fallback: even a phone without WebXR shows the actual 3D relic over camera.
+ if(!started)started=await startCameraView();
+ if(!started){
+  started=await showNativeViewer();
+  if(!started){
+    $('#arMessage').textContent='No pudimos abrir la cámara ni el visor nativo. Podés seguir recorriendo el relicario en 3D.';
+    $('#arDisclaimer').textContent='Probá desde Chrome Android con Servicios de Google Play para RA, o Safari en iPhone compatible.';
+    toast('Este navegador bloqueó el acceso a la cámara o al visor AR.');
+  }
+ }
  btn.disabled=false;btn.textContent='ENTRAR EN REALIDAD AUMENTADA ↗';
 });
-$('#exitAR').addEventListener('click',()=>app.xrSession?.end());
+window.addEventListener('pagehide',()=>{stopCameraView();if(app.xrSession)void app.xrSession.end()});
 // If WebGL cannot start, never trap visitors with a blank viewport.
 try{init3D()}catch(e){console.error('WebGL scene error:',e);$('#sceneLoading').innerHTML='<strong>EL OBJETO NO PUDO CARGARSE</strong><small>Probá Chrome, Safari o activá la aceleración gráfica.</small>';$('#primaryBtn').disabled=true;toast('No se pudo iniciar el motor 3D en este navegador')}
