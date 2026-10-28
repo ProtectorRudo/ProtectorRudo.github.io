@@ -55,7 +55,7 @@ client.auth.onAuthStateChange((event,current)=>{session=current;if(event==="PASS
    attempted=true;
    let actualKind=kind;
    let result=await client.auth.verifyOtp({token_hash:token,type:kind});
-   if(result.error&&kind==="magiclink"&&["otp_expired","otp_disabled"].includes(String(result.error.code||""))){
+   if(result.error&&kind==="magiclink"){
       result=await client.auth.verifyOtp({token_hash:token,type:"recovery"});
       if(!result.error)actualKind="recovery";
    }
