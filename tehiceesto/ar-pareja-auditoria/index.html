@@ -63,8 +63,33 @@
 </div>
 <div id="finalOverlay" class="final-overlay" hidden><div class="final-overlay-inner"><span class="final-kicker">LA ÚLTIMA COSA QUE QUIERO DECIRTE</span><div class="quote-mark">“</div><h2 id="finalWords">Si pudiera volver a aquel primer día…</h2><p>JULIÁN, PARA EMMA <span class="small-heart">♥</span></p><button id="finalClose" type="button">VOLVER A CONTEMPLAR LA PIEZA ↗</button></div></div>
 <div id="arDialog" class="ar-dialog" role="dialog" aria-modal="true" aria-labelledby="arTitle" hidden><div class="ar-card"><button id="closeArDialog" class="ar-close" type="button">✕</button><span class="ar-kicker">LLEVAR A MI ESPACIO</span><h2 id="arTitle">Que esta historia tenga un lugar en tu mundo.</h2><p id="arMessage">En un teléfono compatible, podés colocar la escultura sobre una mesa y contemplarla a tu alrededor.</p><div class="ar-instructions"><span><b>01</b> Permití el uso de la cámara</span><span><b>02</b> Buscá una superficie iluminada</span><span><b>03</b> Tocá para colocar la pieza</span></div><div class="ar-actions"><button id="launchAR" class="ar-launch" type="button">ENTRAR EN REALIDAD AUMENTADA ↗</button><button id="keep3d" class="ar-secondary" type="button">QUEDARME EN LA EXPERIENCIA 3D</button></div><p class="ar-disclaimer" id="arDisclaimer">En iPhone se utiliza el visor AR de Apple si el dispositivo lo permite; la interacción narrativa se disfruta aquí, en la experiencia 3D.</p></div></div>
-<div id="arOverlay" class="ar-active-overlay" hidden><div class="ar-info"><b>TE HICE ESTO / AR</b><span id="arTip">MOVÉ EL TELÉFONO SOBRE UNA MESA · TOCÁ PARA COLOCAR</span></div><button id="exitAR" type="button">SALIR DE AR ✕</button></div>
+<div id="arOverlay" class="ar-active-overlay" hidden>
+  <div class="ar-info"><b>TE HICE ESTO <span class="ar-live-dot">●</span> AR ESPACIAL</b><span id="arTip">EL RELICARIO ESTÁ DELANTE TUYO · BUSCÁ UNA MESA</span><span id="arTracking">INICIANDO SEGUIMIENTO…</span></div>
+  <div class="ar-center-marker" id="arCenterMarker" aria-hidden="true"><span></span></div>
+  <div class="ar-toolbar">
+    <div class="ar-toolrow"><button id="arSmaller" type="button" aria-label="Achicar relicario">−</button><span id="arSizeLabel">TAMAÑO · 40 CM</span><button id="arBigger" type="button" aria-label="Agrandar relicario">+</button><button id="arRotate" type="button" aria-label="Girar relicario">↻</button></div>
+    <button id="arPlace" class="ar-fix" type="button">FIJAR RELICARIO EN ESTE LUGAR</button>
+    <button id="arReposition" type="button" hidden>REUBICAR EL RELICARIO</button>
+    <button id="exitAR" type="button">VOLVER AL RECORRIDO ✕</button>
+  </div>
+</div>
+<div id="cameraAR" class="camera-ar" hidden>
+  <video id="cameraFeed" autoplay muted playsinline aria-label="Cámara para visualizar el relicario"></video>
+  <div id="cameraView" class="camera-ar-canvas"></div>
+  <div class="camera-ar-top"><b>TE HICE ESTO · VISTA CON CÁMARA</b><span id="cameraStatus">LA PIEZA APARECERÁ SOBRE TU IMAGEN</span></div>
+  <div class="camera-ar-bottom"><p>Vista con cámara, sin seguimiento espacial. Para fijarlo al mundo real, usá AR espacial en un dispositivo compatible.</p>
+    <div class="ar-toolrow"><button id="camSmaller" type="button">−</button><span id="camSizeLabel">TAMAÑO</span><button id="camBigger" type="button">+</button><button id="camRotate" type="button">↻ GIRAR</button></div>
+    <button id="closeCamera" class="camera-exit" type="button">VOLVER AL RECORRIDO</button>
+  </div>
+</div>
+<div id="nativeAR" class="native-ar" hidden>
+  <div class="native-ar-top"><span>TE HICE ESTO · AR NATIVA</span><button id="closeNative" type="button">✕ SALIR</button></div>
+  <p>El relicario ya está listo. Tocá «Colocar en mi espacio» para abrir el visor nativo de tu teléfono.</p>
+  <div id="nativeViewerHost"></div>
+</div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<model-viewer id="iosARModel" ar ar-modes="quick-look scene-viewer webxr" ar-scale="auto" alt="Relicario de vidrio con dos árboles dorados entrelazados" style="position:fixed;left:-10000px;width:1px;height:1px;pointer-events:none;opacity:0" loading="eager"></model-viewer>
-<script type="module" src="./app.js?v=6"></script>
+<model-viewer id="iosARModel" ar ar-modes="quick-look scene-viewer webxr" ar-scale="auto" camera-controls auto-rotate shadow-intensity="1" environment-image="neutral" alt="Relicario de vidrio y ramas doradas entrelazadas" loading="eager" style="width:100%;height:60svh;background:radial-gradient(circle,#66525a,#211924);">
+  <button slot="ar-button" id="nativeARButton" type="button" class="native-launch">COLOCAR EN MI ESPACIO ↗</button>
+</model-viewer>
+<script type="module" src="./app.js?v=8"></script>
 </body></html>
