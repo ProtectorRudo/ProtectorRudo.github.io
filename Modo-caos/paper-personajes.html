@@ -1309,8 +1309,8 @@ function drawVersus(ms){
  }
  const pulse=Math.sin(sec*8),arriving=Math.min(1,sec/.55);
  // Illustrated character fallback portraits appear first and transition to their identical live 3D models.
- // Keep the character portraits animating as fallback until 3D pixel coverage is proven.
- $('vsPortraits').style.opacity='1';
+ // Never show flat portrait ghosts behind the live 3D mascots.
+ $('vsPortraits').style.opacity=window.PaperVSReady?'0':'1';
  // VS badge, bounce each other beat.
  const vy=308+Math.sin(sec*7)*5;
  ctx.save();ctx.translate(380,vy);ctx.rotate(Math.sin(sec*3)*.035);
