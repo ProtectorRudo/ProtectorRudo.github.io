@@ -1,0 +1,37 @@
+name: Native AR model export
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tehiceesto/ar-pareja-auditoria/build-native-glb.py"
+      - ".github/workflows/export-native-relicario.yml"
+      - "tehiceesto/ar-pareja-auditoria/relicario.glb"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Generate native vertical and correctly sized model
+        run: python3 tehiceesto/ar-pareja-auditoria/build-native-glb.py
+      - name: Publish binary model only if changed
+        run: |
+          git add tehiceesto/ar-pareja-auditoria/relicario-ar.glb
+          if git diff --cached --quiet; then
+            echo "Native model already up to date"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "build(ar): publish upright 40cm relicario for Android Scene Viewer"
+          git push origin HEAD:main
