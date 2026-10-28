@@ -33,7 +33,7 @@ await audit("Mobile camera fallback visibly renders the real relicario",async()=
  if(!props.canvas||!props.visible||props.video<2)throw Error("No camera/object output: "+JSON.stringify(props));
  if(props.original)throw Error("Renderer still in the former grid container, object cannot appear over camera");
  if(props.horizontal>8)throw Error("Overflow "+props.horizontal);
- await page.screenshot({path:"visual-smoke/relicario/AR-camera-open-mobile.png",fullPage:true});
+ await page.screenshot({path:"visual-smoke/relicario/AR-camera-open-mobile.png",fullPage:false});
  await page.locator("#camBigger").click();
  const size=await page.locator("#camSizeLabel").textContent();
  if(!size.includes("CM"))throw Error("Scale controls not wired");
