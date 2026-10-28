@@ -15,6 +15,9 @@ try{
  await page.locator('#viewport canvas').waitFor({state:'visible',timeout:40000});
  const gl=await page.locator('#viewport canvas').evaluate(e=>Boolean(e.getContext('webgl2')||e.getContext('webgl')));
  if(!gl)throw Error('WebGL context unavailable');
+ await page.waitForFunction(()=>['loaded','fallback'].includes(window.penalesRigStatus),null,{timeout:16000});
+ const premiumRig=await page.evaluate(()=>window.penalesRigStatus);
+ if(premiumRig!=='loaded')throw Error('Premium animated model did not load: '+premiumRig);
  await page.screenshot({path:'artifacts/penales-3d-mobile.png'});
  console.log('PENALES_VISUAL_START'+(await page.screenshot({type:'jpeg',quality:24})).toString('base64')+'PENALES_VISUAL_END');
  await page.locator('#startButton').click();
@@ -33,7 +36,7 @@ try{
  const round=await page.locator('#round').innerText();
  if(!round.includes('PENAL 2'))throw Error('Round 2 never activated: '+round);
  await page.screenshot({path:'artifacts/penales-after-first-kick.png'});
- console.log(JSON.stringify({status:'PASS',gl,score:newScore,round,shotHistory,savedHistory,errors},null,2));
+ console.log(JSON.stringify({status:'PASS',gl,premiumRig,score:newScore,round,shotHistory,savedHistory,errors},null,2));
  if(errors.length)throw Error('Browser diagnostics: '+errors.join(' | '));
 }finally{
  writeFileSync('artifacts/diagnostics.json',JSON.stringify({errors,url},null,2));
