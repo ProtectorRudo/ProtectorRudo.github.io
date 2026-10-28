@@ -267,7 +267,7 @@ function syncMenu(state,dt){
  if(!state?.menuing)return;
  vsCreate();if(vsFailure||!vsRenderer)return;
  const hero=state.menuHero;
- if(!sourceAssets[hero]){window.PaperMenuReady=false;const portrait=document.getElementById('menuHeroPortrait');if(portrait)portrait.style.opacity='1';return;}
+ if(!sourceAssets[hero]){window.PaperMenuReady=false;document.getElementById('menuHeroStage')?.classList.remove('model-loaded');const portrait=document.getElementById('menuHeroPortrait');if(portrait)portrait.style.opacity='1';return;}
  try{
   attachShowcase('menuHeroStage','menuPosition');
   const previous=vsCharacters[0];
@@ -292,6 +292,7 @@ function syncMenu(state,dt){
   updateOutfit(actor,state.outfit);
   vsRenderer.render(vsScene,vsCamera);
   window.PaperMenuReady=true;
+  document.getElementById('menuHeroStage')?.classList.add('model-loaded');
   vsCanvas.style.opacity='1';
   const portrait=document.getElementById('menuHeroPortrait');if(portrait)portrait.style.opacity='0';
   const status=document.getElementById('menu3dStatus');

@@ -559,6 +559,7 @@ function renderHeroPicker(){
  $('menuHeroPortrait').alt=h.name+' · '+h.species+' en 3D';
  $('menuHeroPortrait').style.opacity='1';
  $('menuHeroStage').classList.remove('model-loaded');
+ window.PaperMenuReady=false;
  $('menuModelLoader').classList.remove('loaded');
  if(window.PaperMenuHeroChanged)window.PaperMenuHeroChanged(h.id);
 }
@@ -1107,7 +1108,8 @@ function drawUnit(p){
  // anatomically legible, animated original chibi people — never robot cubes.
  const hero=p.id===0?selectedSkin:p.id===1?vsRival:p.id%HEROES.length;
  const has3D=!!(window.Paper3DReady&&window.Paper3DReady[p.id]);
- if(!has3D)paintMascotCanvas(p,hero,col);
+ // Keep a visible, cheap mascot under the 3D character in case WebGL compositing stalls.
+ c.save();c.globalAlpha=has3D?.72:1;paintMascotCanvas(p,hero,col);c.restore();
 
  // Text stays readable without putting a huge comic heading over the actor.
  c.font='900 14px system-ui';c.textAlign='center';c.lineWidth=3.6;c.strokeStyle='#153da7';

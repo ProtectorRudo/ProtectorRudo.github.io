@@ -49,3 +49,21 @@
 #home .heroChoice b{font-size:10px}
 #home .heroChoice small{font-size:7px}
 }
+
+/* Visual QA fixes, Android 393px: preserve readable portraits and full WebGL viewport. */
+canvas#characterStage{position:fixed!important;top:0!important;left:0!important;right:auto!important;bottom:auto!important;width:100vw!important;height:100dvh!important;z-index:3!important;pointer-events:none}
+#home .heroChoice{display:flex!important;flex-direction:column!important;justify-content:flex-start!important;align-items:center!important;gap:3px!important;overflow:hidden!important}
+#home .heroChoice .hero3DThumbnail{flex:0 0 auto!important;display:block!important;height:73px!important;max-height:73px!important;max-width:100%!important;object-fit:contain!important;margin:0 auto 4px!important}
+#home .heroChoice b{position:relative!important;z-index:3!important;display:block!important;flex:none!important;line-height:1.25!important;padding-top:3px!important;font-size:11px!important}
+#home .heroChoice small{display:block!important;position:relative!important;z-index:3!important;line-height:1.25!important;max-width:95%!important;font-size:8px!important}
+#home #menuHeroPortrait{pointer-events:none}
+#home #menuHeroStage:not(.model-loaded) #menuHeroPortrait{opacity:1!important}
+#home #menuHeroStage.model-loaded #menuHeroPortrait{opacity:.12!important}
+#versus #vsPortraits{opacity:.82!important}
+#versus .vsPortraits img{object-fit:contain!important}
+@media(max-width:390px){
+#home .heroChoice{min-height:119px}
+#home .heroChoice .hero3DThumbnail{height:69px!important;max-height:69px!important}
+#home .heroChoice b{font-size:10px!important}
+#home .heroChoice small{font-size:7px!important}
+}
