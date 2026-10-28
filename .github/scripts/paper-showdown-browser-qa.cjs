@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const {chromium}=require('playwright');
 (async()=>{
  const site='https://protectorrudo.github.io/Modo-caos/';
- const uri=site+'paper-showdown-v2.html?qa=1&vs=1';
+ const uri=site+'paper-showdown-v3.html?qa=1&vs=1';
  const errors=[],glbs=[],missing=[];
  let browser;
  try{
@@ -28,7 +28,7 @@ const {chromium}=require('playwright');
    emote:document.getElementById('vsCountdown').textContent
   }));
   assert.notEqual(startNames.you,startNames.opponent);
-  await page.waitForTimeout(3500);
+  await page.waitForTimeout(1700);
   const preview=await page.evaluate(()=>({
    ready:window.PaperVSReady===true,
    stageVisible:getComputedStyle(document.getElementById('versus')).display!=='none',
@@ -38,7 +38,7 @@ const {chromium}=require('playwright');
   assert.equal(preview.stageVisible,true);
   assert.equal(preview.ready,true,'The four imported Styloo hero GLBs should render on the actual 3D VS stage');
   await page.screenshot({path:'/tmp/paper-vs-android.png'});
-  await page.waitForTimeout(360);
+  await page.waitForTimeout(850);
   if((await page.evaluate(()=>window.territoryQA?.mode))==='versus')await page.screenshot({path:'/tmp/paper-vs-dance-second-android.png'});
   console.log('BROWSER_QA_PREVIEW',JSON.stringify({startNames,preview,assetHeads:glbs}));
   const before=await page.evaluate(()=>window.territoryQA?.mode);
