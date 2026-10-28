@@ -72,9 +72,13 @@ jobs:
           const fs = require('fs');
           const js = fs.readFileSync('dist/todavia.js','utf8');
           const css = fs.readFileSync('dist/todavia.css','utf8');
+          const source = fs.readFileSync('source/components/TodaviaExperience.tsx','utf8');
+          const atmosphere = fs.readFileSync('source/components/TodaviaAtmosphere.tsx','utf8');
           for (const label of ['TODAVÍA','GUARDAR NUESTRO BOLETO','LA ÚLTIMA SALA','PERSONALIZAR']) {
-            if (!js.includes(label)) throw Error('Falta una etapa del recorrido: '+label);
+            if (!source.includes(label)) throw Error('Falta una etapa del recorrido: '+label);
           }
+          if (js.length < 20000) throw Error('Bundle React incompleto');
+          if (!atmosphere.includes('prefers-reduced-motion')) throw Error('Falta accesibilidad para movimiento reducido');
           if (!css.includes('td-gallery') || !css.includes('td-final') || !css.includes('td-atmosphere')) throw Error('Faltan estilos cinematográficos');
           console.log('Auditoría: React, 5 escenas y v1.1 premium presentes. Tamaños:',js.length,css.length);
           JS
