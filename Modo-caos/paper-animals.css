@@ -1,0 +1,51 @@
+
+/* Territory Loop — original animal champion showcase. No borrowed graphics. */
+#home{background:radial-gradient(ellipse at 50% 4%,#16477f,#0b1e48 49%,#060f2c 96%);color:#fff;align-items:flex-start;overflow-y:auto}
+#home .panel{display:flex;flex-direction:column;width:min(100%,610px);max-height:none;overflow:visible;margin:auto;background:transparent;border:0;box-shadow:none;padding:17px 15px 28px;text-align:center;color:#fff}
+#home .brand{order:0;letter-spacing:1.4px;font-weight:950;color:#a5ccfa;font-size:10px;margin-top:6px}
+#home h1{order:1;margin:5px 0 0;line-height:1;letter-spacing:-2px;font-size:clamp(30px,8vw,53px);font-weight:1000;color:#ffcd4b;text-shadow:0 3px #6e4319,0 5px #071445}
+#home h1 em{font-style:normal;color:#f8fbff;text-shadow:0 3px #5272b5,0 5px #071445}
+#home .lobbyTag{order:2;font-size:11px;font-weight:1000;letter-spacing:1.5px;color:#f8d475;margin:8px 0 4px}
+#home .description{order:3;font-size:11px;color:#bdd6fb;line-height:1.4;margin:5px 0 12px}
+#home .heroRosterHead{order:4;margin:3px 0 8px!important;color:#e0f4ff;font-size:11px;letter-spacing:1px}
+#home .heroRoster{order:5;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:2px 0 8px}
+#home .heroChoice{background:linear-gradient(175deg,#245487,#152d5a)!important;border:2px solid #577cb0!important;border-radius:12px;box-shadow:inset 0 1px #a4cbff26,0 4px 0 #031334;min-height:138px;padding:6px 2px 5px;gap:0;align-content:center;color:#fff}
+#home .heroChoice.selected{background:linear-gradient(160deg,#366fb1,#204d8b)!important;border-color:#ffd660!important;box-shadow:0 0 0 2px #ffe27630,0 4px 0 #ad7c20}
+#home .heroChoice .hero3DThumbnail{width:100%;height:90px;object-fit:contain;filter:drop-shadow(0 7px 4px #030e2977);transition:transform .2s}
+#home .heroChoice.selected .hero3DThumbnail{transform:translateY(-3px) scale(1.09)}
+#home .heroChoice b{font-size:11px;font-weight:1000;color:#fff;letter-spacing:.4px}
+#home .heroChoice small{font-size:7px;color:#acd7f5;letter-spacing:.35px;font-weight:850;white-space:nowrap}
+#home #menuHeroStage{order:6;width:100%;height:clamp(170px,25dvh,220px);background:radial-gradient(ellipse at 50% 65%,#386aa3,#15264c 72%);border:1.5px solid #5b81b7;border-radius:15px;margin:7px 0}
+#home #menuHeroStage .menuHeroStamp{z-index:5;background:#102548c7;color:#fff;text-align:left;border:1px solid #6e94bd;border-radius:9px;padding:6px 10px}
+#home #menuHeroStage .menuHeroStamp strong{color:#fff}
+#home #menuHeroStage .menuStatus{color:#dfebff;background:#152d5599}
+#home #heroDetails{order:7;background:#102b52;border:1px solid #4c73a7;margin:5px 0 9px;padding:9px 12px;border-radius:12px}
+#home #heroDetails strong{color:#ffe58c;font-size:12px}
+#home #heroDetails span{color:#d0e0fa;font-size:10px}
+#home #heroDetails i{color:#a7dce9}
+#home #nick{order:8;background:#e7f6ff;border:1px solid #5e9ed1;color:#1f4f78;font-weight:900}
+#home .colors{order:9;transform:scale(.8);transform-origin:center;min-height:0;margin:0}
+#home .walletBar{order:10;background:#102d52;border:1px solid #5b6c9e;color:#ffe18b;margin:4px 0 6px}
+#home .walletBar b{color:#ffd54f}
+#home #openShopHome{order:11;background:linear-gradient(#ffe9a7,#f2bb49);border-color:#c89b34;color:#684314}
+#home #start{order:12;border-radius:14px;background:linear-gradient(145deg,#ffe76c,#ffb540);border:2px solid #fbedae;border-bottom:5px solid #bd7c25;color:#17386d;font-size:19px;font-weight:1000}
+#home .best{order:13;color:#f8de86;font-size:11px}
+#home .mini-label{order:14;color:#a9d8fa;font-size:10px}
+#home .subline{order:15;color:#99bad9;font-size:9px}
+#home .rowbtn{order:16}
+#home .rowbtn .secondary{border-color:#506b9c;background:#1a3566;color:#d3e5fd}
+#versus{background:radial-gradient(circle at 30% 32%,#294a89,#0a183e 64%,#060d25)}
+.versusHeader h2{color:#ffe38c!important;text-shadow:0 3px #a16a25,0 5px #061847;font-size:clamp(23px,6vw,34px)}
+#versus .versusStage{border:2px solid #a6c4f5;box-shadow:0 0 0 3px #173b82,0 12px 34px #02091e}
+#versus .vsNamePlate{border:1.5px solid #ffe396a0}
+#versus .vsGameTag b{background:#ffda57}
+#versus .vsPlayNow{background:linear-gradient(#ffe57d,#ffb642)}
+#versus .vsPortraits img{filter:drop-shadow(0 10px 5px #040d2f99)}
+@media(max-width:390px){
+#home .panel{padding:12px 9px 24px}
+#home .heroRoster{gap:5px}
+#home .heroChoice{min-height:119px;padding:4px 1px}
+#home .heroChoice .hero3DThumbnail{height:78px}
+#home .heroChoice b{font-size:10px}
+#home .heroChoice small{font-size:7px}
+}
