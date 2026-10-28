@@ -234,12 +234,15 @@ function danceBones(item,seconds,mirror){
   const side=key==='left'?-1:1;
   // Both palms balance as if weighing options: opposite rises and falls.
   const wave=Math.sin(motion+(side===1?Math.PI:0));
-  const angle=side*(.90+wave*.40);
-  // Pre-multiply to rotate in the visible screen plane, not along the bone axis.
-  bone.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(axis,angle));
+  const angle=side*(1.48+wave*.44);
+  // Lift each upper arm through a full visible arc relative to the rigged idle pose.
+  // The non-axial shoulder twist exposes palms to the camera.
+  const lift=new THREE.Quaternion().setFromEuler(new THREE.Euler(.23+wave*.18,side*.15,angle,'XYZ'));
+  bone.quaternion.premultiply(lift);
   const elbow=forearms[key];
   if(elbow){
-   elbow.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(axis,-side*(.20+wave*.14)));
+   const wrist=new THREE.Quaternion().setFromEuler(new THREE.Euler(-.12,0,-side*(.45+wave*.17)));
+   elbow.quaternion.premultiply(wrist);
   }
  }
 }

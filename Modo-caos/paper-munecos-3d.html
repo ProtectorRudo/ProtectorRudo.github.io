@@ -144,7 +144,7 @@ input[type=text]:focus{border-color:#42bcca}
 #rank .rankrow>*{position:relative;z-index:1}
 #rank .rankrow b{text-align:right;flex:none;color:#fff;font-size:13px;letter-spacing:-.5px;white-space:nowrap;text-shadow:-1px -1px #113ca2,1px -1px #113ca2,1px 1px #113ca2,-1px 1px #113ca2}
 /* Portrait, ranking number and username must remain visible. */
-#rank .rankrow .rankName,#rank .rankrow .rankPlace,#rank .rankrow .portraitMech{display:block}
+#rank .rankrow .rankName,#rank .rankrow .rankPlace,#rank .rankrow .portraitDoll{display:block}
 #rank .rankrow .rankAvatar{position:absolute;left:-1px;top:-3px;width:43px;height:43px;border-radius:10px;border:2.6px solid #1442b2;background:var(--rcolor);box-shadow:inset 0 0 0 2px #fff,1px 3px #1e54a544;display:grid;place-items:center;font-size:22px;color:#fff;text-shadow:1px 2px #2247aa;z-index:2}
 #rank .rankrow .rankPlace{position:absolute;left:-5px;bottom:-7px;color:#ffe65e;font-size:14px;-webkit-text-stroke:.8px #1443a5;z-index:3}
 #rank .rankrow.isMe{outline:2px solid #d8fd4d;outline-offset:0}
@@ -293,7 +293,7 @@ input[type=text]:focus{border-color:#42bcca}
 #rank .rankrow{padding:0 8px 0 47px;gap:3px}
 #rank .rankrow .rankName{display:block!important;flex:1 1 auto;margin:0 3px 0 0;max-width:58px;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
 #rank .rankrow b{display:block;flex:0 0 auto;margin-left:auto;font-size:13px;letter-spacing:-.8px}
-#rank .rankrow .portraitMech{display:block!important}
+#rank .rankrow .portraitDoll{display:block!important}
 #rank .rankrow .rankPlace{display:block!important}
 @media(max-width:390px){
  #hud #rank{width:146px}
@@ -301,6 +301,23 @@ input[type=text]:focus{border-color:#42bcca}
  #rank .rankrow .rankName{max-width:42px;font-size:9px}
  #rank .rankrow b{font-size:11px}
 }
+
+/* Chibi heads in rank list reflect the actual roster, not the retired square robots. */
+#rank .rankrow .portraitDoll{position:relative;display:block!important;flex:none;width:32px;height:30px;border-radius:49% 49% 45% 45%;border:1.5px solid #3551a0;background:radial-gradient(circle at 32% 22%,#fff,#e9eff8 72%,#b9c5de);box-shadow:0 2px #1a4c9c38;transform:none}
+#rank .rankrow .portraitDoll:before{content:"";position:absolute;z-index:3;left:-2px;top:-5px;width:33px;height:13px;border-radius:60% 60% 22% 22%;background:linear-gradient(120deg,#fff6ce,#edbd65);border:1px solid #c89a51}
+#rank .rankrow .portraitDoll:after{content:"";position:absolute;z-index:-1;bottom:-7px;left:5px;width:19px;height:8px;border-radius:5px;background:#5cd0f3;border:1px solid #376fbc}
+#rank .rankrow .portraitDoll .eyeL,#rank .rankrow .portraitDoll .eyeR{position:absolute;top:13px;width:7px;height:8px;border-radius:55%;background:#689951;border:1px solid #375869;z-index:3}
+#rank .rankrow .portraitDoll .eyeL{left:6px}#rank .rankrow .portraitDoll .eyeR{right:6px}
+#rank .rankrow .portraitDoll.skin1:before{background:linear-gradient(160deg,#f9d2b3,#bd7442);height:18px;top:-9px;transform:rotate(6deg);border-radius:52% 52% 13% 13%}
+#rank .rankrow .portraitDoll.skin1 .eyeL,#rank .rankrow .portraitDoll.skin1 .eyeR{background:#65b6e4}
+#rank .rankrow .portraitDoll.skin1:after{background:#fdb65d}
+#rank .rankrow .portraitDoll.skin2:before{background:linear-gradient(120deg,#d1a2dd,#6941ad);height:21px;top:-12px;clip-path:polygon(10% 95%,56% 0%,97% 95%)}
+#rank .rankrow .portraitDoll.skin2 .eyeL,#rank .rankrow .portraitDoll.skin2 .eyeR{background:#7551ba}
+#rank .rankrow .portraitDoll.skin2:after{background:#a66be2}
+#rank .rankrow .portraitDoll.skin3{background:linear-gradient(180deg,#e9f6fc 0 42%,#334c59 43% 86%,#d0e9ef 88%)}
+#rank .rankrow .portraitDoll.skin3:before{background:linear-gradient(120deg,#425d53,#233b32);height:12px;border-color:#14382d}
+#rank .rankrow .portraitDoll.skin3 .eyeL,#rank .rankrow .portraitDoll.skin3 .eyeR{background:#93d895}
+#rank .rankrow .portraitDoll.skin3:after{background:#61c77a}
 </style>
 </head>
 <body>
@@ -846,7 +863,7 @@ function showHud(){
  const ownRank=game.ordered.findIndex(q=>q.id===0);
  const arr=ownRank>=3?[...game.ordered.slice(0,3),game.people[0]]:game.ordered.slice(0,4);
  // CSS-drawn original character portraits; avoid arbitrary unicode placeholders.
- $('rank').innerHTML=arr.map((q)=>'<div class="rankrow '+(q.id===0?'isMe':'')+'" style="--rcolor:'+COLORS[(q.id+settingColor)%12]+'"><span class="rankAvatar '+(game.ordered[0].id===q.id?'crowned':'')+'"><span class="portraitMech skin'+(q.id===0?wardrobe.hero:q.id===1?vsRival:q.id%4)+'"><i class="eyeL"></i><i class="eyeR"></i></span></span><span class="rankPlace">'+(game.ordered.indexOf(q)+1)+'</span><span class="rankName">'+safe(q.name)+'</span><b>'+q.score.toFixed(2)+'%</b></div>').join('');
+ $('rank').innerHTML=arr.map((q)=>'<div class="rankrow '+(q.id===0?'isMe':'')+'" style="--rcolor:'+COLORS[(q.id+settingColor)%12]+'"><span class="rankAvatar '+(game.ordered[0].id===q.id?'crowned':'')+'"><span class="portraitDoll skin'+(q.id===0?wardrobe.hero:q.id===1?vsRival:q.id%4)+'"><i class="eyeL"></i><i class="eyeR"></i></span></span><span class="rankPlace">'+(game.ordered.indexOf(q)+1)+'</span><span class="rankName">'+safe(q.name)+'</span><b>'+q.score.toFixed(2)+'%</b></div>').join('');
  const best=Math.max(readBest(),game.record,p.score);
  $('recordPointer').style.left=clamp(best/25*100,8,92)+'%';
  drawMini();
@@ -1170,8 +1187,8 @@ function drawVersus(ms){
   const txt=Math.floor(sec*2)%2===0?'SIX':'SEVEN';
   ctx.strokeText(txt,380,390);ctx.fillText(txt,380,390);ctx.restore();
  }
- if(sec>4.15){ctx.save();ctx.textAlign='center';ctx.font='1000 35px system-ui';
-  ctx.fillStyle='#fdf2a3';ctx.fillText('¡QUE EMPIECE EL CAOS!',380,480);ctx.restore();}
+ if(sec>4.15&&!window.PaperVSReady){ctx.save();ctx.textAlign='center';ctx.font='1000 35px system-ui';
+  ctx.fillStyle='#fdf2a3';ctx.fillText('¡QUE EMPIECE EL CAOS!',380,210);ctx.restore();}
  $('vsCountdown').textContent=String(Math.max(1,Math.ceil((VS_DURATION-ms+vsStartedAt)/1000)));
  $('vsTrackFill').style.width=Math.min(100,sec/(VS_DURATION/1000)*100)+'%';
  const beat=Math.floor(sec*2.1);if(beat!==vsLastBeat){vsLastBeat=beat;if(beat<11&&navigator.vibrate&&beat%2===0)navigator.vibrate(12);}
