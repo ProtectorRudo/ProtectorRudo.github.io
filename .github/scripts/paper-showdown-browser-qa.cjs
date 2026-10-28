@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const {chromium}=require('playwright');
 (async()=>{
  const site='https://protectorrudo.github.io/Modo-caos/';
- const uri=site+'paper-showdown-v3.html?qa=1&vs=1';
+ const uri=site+'paper-menu-nuevo.html?qa=1&vs=1';
  const errors=[],glbs=[],missing=[];
  let browser;
  try{
@@ -20,6 +20,31 @@ const {chromium}=require('playwright');
   page.on('response',r=>{if(r.status()===404)missing.push(r.url());});
   page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text().slice(0,200));});
   await page.goto(uri,{waitUntil:'domcontentloaded',timeout:70000});
+
+  await page.waitForFunction(()=>window.PaperMenuReady===true,{timeout:18000});
+  const menuDefault=await page.evaluate(()=>({
+    hero:window.Paper3DState().menuHero,
+    selected:document.getElementById('menuCharacterLabel').textContent,
+    canvasParent:document.getElementById('versus3dCanvas').parentElement.id,
+    oldAvatar:!!document.querySelector('.avatarDemo'),
+    menu3d:window.PaperMenuReady===true
+  }));
+  assert.equal(menuDefault.canvasParent,'menuHeroStage');
+  assert.equal(menuDefault.selected,'NOVA');
+  assert.equal(menuDefault.oldAvatar,false);
+  await page.screenshot({path:'/tmp/paper-menu-android.png'});
+  await page.locator('[data-hero="2"]').click();
+  await page.waitForFunction(()=>window.PaperMenuReady&&window.Paper3DState().menuHero===2,{timeout:12000});
+  const menuChange=await page.evaluate(()=>({
+    selected:document.getElementById('menuCharacterLabel').textContent,
+    hero:window.Paper3DState().menuHero,
+    modelReady:window.PaperMenuReady,
+    originalRemoved:!document.querySelector('.avatarDemo')
+  }));
+  assert.equal(menuChange.selected,'KIRA');
+  assert.equal(menuChange.hero,2);
+  await page.screenshot({path:'/tmp/paper-menu-kira-android.png'});
+  console.log('BROWSER_QA_MENU',JSON.stringify({menuDefault,menuChange}));
   await page.locator('#start').click();
   await page.waitForFunction(()=>window.territoryQA?.mode==='versus',{timeout:8000});
   const startNames=await page.evaluate(()=>({
@@ -36,7 +61,8 @@ const {chromium}=require('playwright');
    countdown:document.getElementById('vsCountdown').textContent
   }));
   assert.equal(preview.stageVisible,true);
-  assert.equal(preview.ready,true,'The four imported Styloo hero GLBs should render on the actual 3D VS stage');
+  assert.equal(preview.ready,true,'The real Styloo chibi model must render in the VS stage');
+  assert.equal(await page.evaluate(()=>document.getElementById('versus3dCanvas').parentElement.id),'versusStage');
   await page.screenshot({path:'/tmp/paper-vs-android.png'});
   await page.waitForTimeout(850);
   if((await page.evaluate(()=>window.territoryQA?.mode))==='versus')await page.screenshot({path:'/tmp/paper-vs-dance-second-android.png'});
@@ -61,9 +87,9 @@ const {chromium}=require('playwright');
   else if(beforeReplay==='result')await page.locator('#again').click();
   else throw new Error('Unexpected state before restart: '+beforeReplay);
   await page.waitForFunction(()=>window.territoryQA?.mode==='versus',{timeout:8000});
-  console.log('BROWSER_QA',JSON.stringify({startNames,preview,state,assetHeads:glbs,missing,errors}));
+  console.log('BROWSER_QA',JSON.stringify({menuDefault,menuChange,startNames,preview,state,assetHeads:glbs,missing,errors}));
   assert.equal(errors.filter(e=>!/WebGL|GPU|console:/.test(e)).length,0,'Unexpected gameplay page errors: '+errors.join('; '));
-  console.log('PASS: Styloo assets are public, VS animates, game starts and restart shows VS');
+  console.log('PASS: real GLB hero appears on menu; selection changes the model; shared canvas moves to VS; game and restart function');
  }catch(e){console.error('BROWSER_QA_FAIL',e.stack||e);process.exitCode=1;}
  finally{if(browser)await browser.close();}
 })();
