@@ -469,35 +469,82 @@ async function showNativeViewer(){
   mv.setAttribute('src',await prepareNativeAR());
   // Native Scene Viewer sees a separately exported Y-up, 40cm GLB (no sideways sculpture).
   // Visible, full-size preview (not the former invisible 1px component).
-  await import('https://cdn.jsdelivr.net/npm/@google/model-viewer@4.1.0/dist/model-viewer.min.js');
-  await customElements.whenDefined('model-viewer');
-  await mv.updateComplete;
+  const timeout=(ms)=>new Promise((_,reject)=>setTimeout(()=>reject(new Error('El visor 3D tardó demasiado en responder')),ms));
+  await Promise.race([import('https://cdn.jsdelivr.net/npm/@google/model-viewer@4.1.0/dist/model-viewer.min.js'),timeout(10000)]);
+  await Promise.race([customElements.whenDefined('model-viewer'),timeout(5000)]);
+  await Promise.race([mv.updateComplete,timeout(5000)]);
   $('#nativeViewerHint').textContent=mv.canActivateAR?'Tocá «COLOCAR EN MI ESPACIO» para abrir la cámara de ARCore. Mové el teléfono para reconocer el piso y colocar la pieza.':'Podés girar la escultura en 3D. Si no aparece el botón para colocarla, comprobá que Chrome y Servicios de Google Play para RA estén actualizados.';
   return true;
  }catch(e){console.warn('Native AR viewer load failed',e);$('#nativeAR').hidden=true;return false}
 }
 $('#closeNative').addEventListener('click',()=>{$('#nativeAR').hidden=true;$('#iosARModel').hidden=true});
-$('#launchAR').addEventListener('click',async()=>{
- const btn=$('#launchAR');if(btn.disabled)return;
- btn.disabled=true;btn.textContent='PREPARANDO EL RELICARIO…';
- let started=false;
- // Native ARCore/Scene Viewer has its own surface detection and places the authored GLB.
- // Prefer it on mobile rather than a custom WebXR floor tracker that can stall indefinitely.
- const isPhone=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
- if(isPhone)started=await showNativeViewer();
- if(!started&&xrSupported)started=await launchXR();
- // Universal fallback: even a phone without WebXR shows the actual 3D relic over camera.
- if(!started)started=await startCameraView();
- if(!started){
-  started=await showNativeViewer();
-  if(!started){
-    $('#arMessage').textContent='No pudimos abrir la cámara ni el visor nativo. Podés seguir recorriendo el relicario en 3D.';
-    $('#arDisclaimer').textContent='Probá desde Chrome Android con Servicios de Google Play para RA, o Safari en iPhone compatible.';
-    toast('Este navegador bloqueó el acceso a la cámara o al visor AR.');
-  }
+// Android must start ARCore from a REAL user-activated link. Do not load model-viewer
+// first: it can hang or lose the browser's user-activation permission on mobile.
+// The public HTTPS GLB remains the same as the previously audited export.
+const isAndroidAR=/Android/i.test(navigator.userAgent);
+const arcoreModelURL=new URL('./relicario-ar.glb',import.meta.url).href;
+const arcoreFallbackURL=new URL('./?arcore=unavailable',import.meta.url).href;
+const directARCoreIntent='intent://arvr.google.com/scene-viewer/1.0?file='+
+ encodeURIComponent(arcoreModelURL)+'&mode=ar_only&title='+encodeURIComponent('Relicario · Te Hice Esto')+
+ '#Intent;scheme=https;package=com.google.ar.core;action=android.intent.action.VIEW;S.browser_fallback_url='+
+ encodeURIComponent(arcoreFallbackURL)+';end;';
+const nativeLaunchLink=$('#launchAR');
+if(isAndroidAR){
+ nativeLaunchLink.href=directARCoreIntent;
+ nativeLaunchLink.textContent='ABRIR ARCORE · COLOCAR EN MI ESPACIO ↗';
+} else {
+ nativeLaunchLink.href='#';
+ nativeLaunchLink.textContent='COLOCAR EN MI ESPACIO · VISOR AR ↗';
+}
+nativeLaunchLink.addEventListener('click',async ev=>{
+ if(isAndroidAR){
+  // Let Chrome follow the explicit intent as the DEFAULT action of this tap.
+  // Do not await anything, preventDefault, disable the link or redirect in JS.
+  $('#arMessage').textContent='Abriendo ARCore… Si no se inicia, usá «Ver con cámara» o abrí esta demo desde Chrome.';
+  setTimeout(()=>{
+   if(document.visibilityState==='visible' && !$('#arDialog').hidden){
+    $('#arMessage').textContent='¿No se abrió ARCore? Probá Chrome actualizado o «Ver con cámara». El visor nativo puede fallar en algunos Android.';
+   }
+  },4500);
+  return;
  }
- btn.disabled=false;btn.textContent='COLOCAR EN MI ESPACIO · AR NATIVA ↗';
+ ev.preventDefault();
+ if(nativeLaunchLink.getAttribute('aria-disabled')==='true')return;
+ nativeLaunchLink.setAttribute('aria-disabled','true');
+ nativeLaunchLink.textContent='PREPARANDO EL RELICARIO…';
+ try{
+  let started=await showNativeViewer();
+  if(!started&&xrSupported)started=await launchXR();
+  if(!started)started=await startCameraView();
+  if(!started){
+   $('#arDialog').hidden=false;
+   $('#arMessage').textContent='El visor AR no respondió. Podés seguir en 3D o elegir la vista con cámara.';
+  }
+ } finally{
+  nativeLaunchLink.removeAttribute('aria-disabled');
+  nativeLaunchLink.textContent='COLOCAR EN MI ESPACIO · VISOR AR ↗';
+ }
 });
+$('#arCameraFallback').addEventListener('click',async()=>{
+ const btn=$('#arCameraFallback');
+ if(btn.disabled)return;
+ btn.disabled=true;btn.textContent='ABRIENDO CÁMARA…';
+ try{
+  if(!await startCameraView()){
+   $('#arMessage').textContent='La cámara no respondió. Comprobá los permisos del navegador.';
+  }
+ }catch(e){
+  console.warn('Camera fallback',e);
+  $('#arMessage').textContent='No se pudo abrir la cámara. Podés regresar a la vista 3D.';
+ }finally{btn.disabled=false;btn.textContent='VER CON CÁMARA · SIN ANCLAJE REAL'}
+});
+if(new URLSearchParams(location.search).get('arcore')==='unavailable'){
+ setTimeout(()=>{
+  showArDialog();
+  $('#arMessage').textContent='ARCore no se pudo iniciar en este navegador o teléfono. Podés ver el relicario con la cámara o volver a la experiencia 3D.';
+  $('#arDisclaimer').textContent='Para realidad aumentada con superficie real, probá Chrome y los Servicios de Google Play para RA actualizados.';
+ },350);
+}
 $('#webXRAdvanced').addEventListener('click',async()=>{
   const btn=$('#webXRAdvanced');if(btn.disabled)return;
   if(!xrSupported){toast('Este navegador no habilitó AR espacial. Probá la opción nativa de Android.');return;}
@@ -506,10 +553,18 @@ $('#webXRAdvanced').addEventListener('click',async()=>{
   finally{btn.disabled=false}
 });
 $('#arNativeFallback').addEventListener('click',async()=>{
-  const btn=$('#arNativeFallback');if(btn.disabled)return;
-  btn.disabled=true;
-  try{await floorAR.end();if(!await showNativeViewer())toast('No se pudo iniciar el visor nativo.')}
-  finally{btn.disabled=false}
+ const btn=$('#arNativeFallback');if(btn.disabled)return;
+ btn.disabled=true;
+ try{
+  await floorAR.end();
+  if(isAndroidAR){
+   showArDialog();
+   $('#arMessage').textContent='Usá «ABRIR ARCORE» para iniciar la realidad aumentada nativa, sin el seguimiento experimental.';
+  } else if(!await showNativeViewer()){
+   showArDialog();
+   $('#arMessage').textContent='No pudimos abrir el visor nativo. Probá la vista con cámara.';
+  }
+ } finally{btn.disabled=false}
 });
 window.addEventListener('pagehide',()=>{stopCameraView();void floorAR.end()});
 // If WebGL cannot start, never trap visitors with a blank viewport.
