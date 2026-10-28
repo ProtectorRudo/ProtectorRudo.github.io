@@ -40,6 +40,15 @@ const {chromium}=require('playwright');
   await page.waitForFunction(()=>window.territoryQA?.mode==='versus',null,{timeout:7000});
   await page.waitForTimeout(1600);
   const showdown=await page.evaluate(()=>({player:document.getElementById('vsPlayerName').textContent,opponent:document.getElementById('vsRivalName').textContent,ready:window.PaperVSReady===true}));
+  const boxes=await page.evaluate(()=>({
+    stage:(()=>{const r=document.getElementById('versusStage').getBoundingClientRect();return{width:r.width,height:r.height};})(),
+    modelPresent:window.PaperVSReady===true,
+    playerAvatar:document.getElementById('vsPortraitPlayer').naturalWidth,
+    rivalAvatar:document.getElementById('vsPortraitOpponent').naturalWidth,
+    caption:document.querySelector('.versusHeader h2').textContent
+  }));
+  console.log('ANIMAL_VS_FIT',JSON.stringify(boxes));
+  assert.ok(boxes.stage.width>250&&boxes.playerAvatar>0&&boxes.rivalAvatar>0);
   await page.screenshot({path:'/tmp/paper-animal-vs.png'});
   assert.equal(showdown.player,'TORA');assert.notEqual(showdown.opponent,'TORA');
   const before=await page.evaluate(()=>window.territoryQA?.mode);
