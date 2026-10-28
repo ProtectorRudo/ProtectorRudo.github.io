@@ -76,8 +76,9 @@ function destroyInstance(id){
 function chooseAnimation(gltf,kind){
  const candidates=gltf.animations||[];
  if(!candidates.length)return null;
- const pattern=kind==='run'?/run|walk|move|sprint/i:kind==='emote'?/dance|cheer|wave|celebrat|push|jump/i:/idle|iddle|breath|stand/i;
- return candidates.find(a=>pattern.test(a.name))||candidates[0];
+ if(kind==='idle')return candidates.find(a=>/idle|iddle|breath|stand/i.test(a.name)&&!/crouch/i.test(a.name))||candidates[0];
+ if(kind==='emote')return candidates.find(a=>/dance|cheer|wave|celebrat|push/i.test(a.name))||candidates.find(a=>/jump|flip/i.test(a.name))||candidates[0];
+ return candidates.find(a=>/run|walk|move|sprint/i.test(a.name))||candidates[0];
 }
 function findArmRig(mesh){
  const arms={left:null,right:null},forearms={left:null,right:null};
