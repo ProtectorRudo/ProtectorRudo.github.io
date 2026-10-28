@@ -1,0 +1,39 @@
+<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width"/>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script></head><body><canvas id="portrait" width="512" height="512"></canvas><script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+const names=['archer','merchant','student','ninja'];
+const canvas=document.getElementById('portrait');
+const loader=new GLTFLoader();
+const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,preserveDrawingBuffer:true,premultipliedAlpha:false,powerPreference:'low-power'});
+renderer.setSize(512,512,false);renderer.setPixelRatio(1);
+renderer.setClearColor(0x000000,0);
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;
+const scene=new THREE.Scene();
+scene.add(new THREE.HemisphereLight(0xffffff,0x6881a6,3));
+const key=new THREE.DirectionalLight(0xffffff,3.6);key.position.set(-60,130,230);scene.add(key);
+const rim=new THREE.DirectionalLight(0x9fcaff,1.6);rim.position.set(100,70,120);scene.add(rim);
+const camera=new THREE.OrthographicCamera(-52,52,52,-52,.1,800);camera.position.set(0,57,270);camera.lookAt(0,43,0);
+camera.updateProjectionMatrix();
+window.avatarImages=[];window.avatarReady=false;window.avatarErrors=[];
+for(const name of names){
+ try{
+  const asset=await loader.loadAsync('./assets/styloo/'+name+'.glb');
+  const model=asset.scene;
+  const b=new THREE.Box3().setFromObject(model),size=b.getSize(new THREE.Vector3());
+  if(!size.y||!Number.isFinite(size.y))throw Error('Invalid bounding box '+name);
+  const factor=82/size.y;model.scale.setScalar(factor);
+  model.position.set(-(b.min.x+size.x/2)*factor,-b.min.y*factor,0);
+  scene.add(model);
+  // Tilt just enough to reveal facial depth, not away from the camera.
+  model.rotation.y=-.10;
+  renderer.clear();renderer.render(scene,camera);
+  const data=canvas.toDataURL('image/png');
+  if(data.length<10000)throw Error('Empty rendering: '+name);
+  window.avatarImages.push({name,data,size:[size.x,size.y,size.z]});
+  scene.remove(model);
+ }catch(e){window.avatarErrors.push(name+': '+e.message);}
+}
+window.avatarReady=true;
+</script></body></html>
