@@ -8,6 +8,7 @@ on:
       - 'scripts/relicario-audit.mjs'
       - 'scripts/relicario-ar-audit.mjs'
       - 'scripts/relicario-xr-geometry-audit.mjs'
+      - 'scripts/relicario-floor-audit.mjs'
   workflow_dispatch:
 permissions:
   contents: read
@@ -32,6 +33,8 @@ jobs:
         run: node scripts/relicario-ar-audit.mjs
       - name: Audit real XR pose projection and prevent invisible placement
         run: node scripts/relicario-xr-geometry-audit.mjs
+      - name: Audit actual GLB vertical orientation and real floor hit-test placement
+        run: node scripts/relicario-floor-audit.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
