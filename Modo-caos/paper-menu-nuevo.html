@@ -349,6 +349,24 @@ input[type=text]:focus{border-color:#42bcca}
 #rank .rankrow .portraitDoll.skin3:before{background:linear-gradient(120deg,#425d53,#233b32);height:12px;border-color:#14382d}
 #rank .rankrow .portraitDoll.skin3 .eyeL,#rank .rankrow .portraitDoll.skin3 .eyeR{background:#93d895}
 #rank .rankrow .portraitDoll.skin3:after{background:#61c77a}
+
+/* Genuine Styloo character art generated directly from the free official CC0 3D GLBs. */
+#home{overflow-y:auto}
+#home .panel{max-height:none;overflow:visible}
+#menuFallbackCanvas{display:none!important}
+#menuHeroPortrait{position:absolute;z-index:2;inset:0;object-fit:contain;object-position:center 57%;height:100%;width:100%;max-width:100%;max-height:100%;transition:opacity .2s;filter:drop-shadow(0 8px 6px #091b5f7a);pointer-events:none}
+#menuHeroStage .menuHeroStamp{z-index:5}
+#home .heroChoice{padding:6px 2px 5px;gap:2px;min-width:0}
+#home .heroChoice .heroMini{display:none!important}
+#home .heroChoice .hero3DThumbnail{width:100%;max-width:92px;height:94px;display:block;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 5px 3px #1e488a36);margin:0 auto -4px}
+#home .heroChoice.selected{background:linear-gradient(160deg,#e7fff8,#b5f6e6);border-color:#16c6bf}
+.vsPortraits{position:absolute;inset:0;z-index:1;pointer-events:none;display:flex;align-items:center;justify-content:space-around;transition:opacity .17s}
+.vsPortraits img{width:44%;height:70%;object-fit:contain;filter:drop-shadow(0 11px 6px #0b144cbb);animation:vsPortraitLift .83s ease-in-out infinite alternate}
+.vsPortraits img:nth-child(2){animation-delay:-.42s;transform:scaleX(-1)}
+@keyframes vsPortraitLift{from{translate:0 4px}to{translate:0 -8px}}
+#versus3dCanvas.vsPosition{z-index:2}
+.vsNamePlate{z-index:4}
+@media(max-width:370px){#home .heroChoice .hero3DThumbnail{height:76px}}
 </style>
 </head>
 <body>
@@ -374,7 +392,11 @@ input[type=text]:focus{border-color:#42bcca}
     <div class="vsTopline"><span class="vsGameTag">TERRITORY LOOP <b>SHOWDOWN</b></span><span class="vsFightTag">ANTES DEL COMBATE</span></div>
     <div class="versusHeader"><h2>¡CARA A CARA!</h2><p>Dos personajes. Un territorio. Muchos motivos para festejar.</p></div>
     <div id="versusStage" class="versusStage">
-      <canvas id="versusCanvas" width="760" height="790" aria-label="Dos personajes animados haciendo el gesto Six Seven"></canvas><canvas id="versus3dCanvas" aria-hidden="true"></canvas>
+      <canvas id="versusCanvas" width="760" height="790" aria-label="Presentación animada Six Seven"></canvas>
+ <div id="vsPortraits" class="vsPortraits" aria-label="Personajes originales Styloo">
+  <img id="vsPortraitPlayer" src="./assets/styloo/portraits/archer.png" alt="Tu personaje Styloo" width="230" height="300">
+  <img id="vsPortraitOpponent" src="./assets/styloo/portraits/merchant.png" alt="Rival Styloo" width="230" height="300">
+ </div><canvas id="versus3dCanvas" aria-hidden="true"></canvas>
       <div class="vsNamePlate vsNameLeft"><small>TU PERSONAJE</small><strong id="vsPlayerName">NOVA</strong><span id="vsPlayerRole">La audaz</span></div>
       <div class="vsNamePlate vsNameRight"><small>RIVAL DESTACADO</small><strong id="vsRivalName">BOMBO</strong><span id="vsRivalRole">El bromista</span></div>
     </div>
@@ -393,6 +415,7 @@ input[type=text]:focus{border-color:#42bcca}
  <div id="menuHeroStage" class="menuHeroStage">
  <div class="menuSparks" aria-hidden="true"><span>✦</span><span>✧</span><span>✦</span><span>✧</span></div>
  <canvas id="menuFallbackCanvas" width="500" height="390" aria-label="Vista previa del personaje seleccionado"></canvas>
+ <img id="menuHeroPortrait" src="./assets/styloo/portraits/archer.png" alt="NOVA, modelo Styloo original en 3D" width="260" height="260" fetchpriority="high">
  <div id="menuModelLoader" class="menuModelLoader"><span class="loaderPulse"></span>PREPARANDO TU PERSONAJE 3D</div>
  <span class="menuFloor" aria-hidden="true"></span>
  <div class="menuHeroStamp"><strong id="menuCharacterLabel">NOVA</strong><small id="menuCharacterTagline">¡A por todo!</small></div>
@@ -507,13 +530,18 @@ function refreshWallet(){
  const coins=String(wardrobe.coins);
  $('homeCoins').textContent=coins;$('shopCoins').textContent=coins;$('endCoins').textContent=coins;
 }
+const STYLOO_PORTRAITS=['archer','merchant','student','ninja'];
+function portraitURL(i){return './assets/styloo/portraits/'+STYLOO_PORTRAITS[i]+'.png';}
 function renderHeroPicker(){
  const h=HEROES[wardrobe.hero];
- $('heroPicker').innerHTML=HEROES.map((x,i)=>'<button class="heroChoice '+(i===wardrobe.hero?'selected':'')+'" data-hero="'+i+'" aria-label="Seleccionar '+x.name+'"><span class="heroMini heroMini'+i+'" style="--hero:'+x.color+'"><i class="miniHat"></i><i class="miniFace"><em class="miniEyes"></em></i><i class="miniTorso"></i><i class="miniFeet"></i></span><b>'+x.name+'</b><small>'+x.role+'</small></button>').join('');
+ $('heroPicker').innerHTML=HEROES.map((x,i)=>'<button class="heroChoice '+(i===wardrobe.hero?'selected':'')+'" data-hero="'+i+'" aria-label="Elegir '+x.name+'"><img class="hero3DThumbnail" src="'+portraitURL(i)+'" alt="'+x.name+' modelo Styloo real" width="100" height="115"><b>'+x.name+'</b><small>'+x.role+'</small></button>').join('');
  $('heroDetails').innerHTML='<strong>'+h.name+' · '+h.role+'</strong><span>'+h.bio+'</span><i>“'+h.motto+'”</i>';
  $('heroName').textContent=h.name;
  $('menuCharacterLabel').textContent=h.name;
  $('menuCharacterTagline').textContent=h.motto;
+ $('menuHeroPortrait').src=portraitURL(wardrobe.hero);
+ $('menuHeroPortrait').alt=h.name+' modelo Styloo original en 3D';
+ $('menuHeroPortrait').style.opacity='1';
  if(window.PaperMenuHeroChanged)window.PaperMenuHeroChanged(h.id);
 }
 function openShop(from='home'){
@@ -1105,6 +1133,9 @@ function showVS(){
  $('vsRivalName').textContent=rival.name;
  $('vsRivalRole').textContent=rival.role;
  $('vsCountdown').textContent='5';
+ $('vsPortraitPlayer').src=portraitURL(player);
+ $('vsPortraitOpponent').src=portraitURL(vsRival);
+ $('vsPortraits').style.opacity='1';
  $('vsTrackFill').style.width='0%';
  $('versus').classList.remove('hidden');
  $('home').classList.add('hidden');$('result').classList.add('hidden');$('paused').classList.add('hidden');$('shop').classList.add('hidden');
@@ -1191,19 +1222,9 @@ function versusActor(ctx,index,x,y,scale,elapsed,flipped,wear){
 }
 
 function drawMenuHeroFallback(ms){
- if(mode!=='home'||window.PaperMenuReady)return;
- const cv=$('menuFallbackCanvas'),ctx=cv.getContext('2d');if(!ctx)return;
- const w=cv.width,h=cv.height,seconds=ms*.001;
- ctx.clearRect(0,0,w,h);
- const radial=ctx.createRadialGradient(w/2,h*.53,8,w/2,h*.53,w*.4);
- radial.addColorStop(0,'#6ce4fd3a');radial.addColorStop(1,'#6ce4fd00');
- ctx.fillStyle=radial;ctx.fillRect(0,0,w,h);
- ctx.save();
- // Until the authentic GLB loads, show a full humanoid—not the retired square.
- versusActor(ctx,wardrobe.hero,w/2,h*.88,1.19,seconds,false,wardrobe.equipped.outfit);
- ctx.restore();
+ // Original Styloo 3D portrait remains visible until the live GLB actor is ready.
+ // Never display the older procedural character in the menu.
 }
-
 function drawVersus(ms){
  if(mode!=='versus')return;
  const cv=$('versusCanvas'),ctx=cv.getContext('2d');if(!ctx)return;
@@ -1227,10 +1248,8 @@ function drawVersus(ms){
   ctx.fillStyle=i%2?'#ffffff20':'#b6f4ff38';ctx.beginPath();ctx.arc(x,y,1.3+(i%4),0,7);ctx.fill();
  }
  const pulse=Math.sin(sec*8),arriving=Math.min(1,sec/.55);
- if(!window.PaperVSReady){
-  versusActor(ctx,wardrobe.hero,168+(1-arriving)*-240,570,2.02,sec,false,wardrobe.equipped.outfit);
-  versusActor(ctx,vsRival,592+(1-arriving)*240,570,2.02,sec+.36,true,'outfit_base');
- }
+ // Official Styloo portraits appear first and transition to their identical live 3D models.
+ $('vsPortraits').style.opacity=window.PaperVSReady?'0':'1';
  // VS badge, bounce each other beat.
  const vy=308+Math.sin(sec*7)*5;
  ctx.save();ctx.translate(380,vy);ctx.rotate(Math.sin(sec*3)*.035);

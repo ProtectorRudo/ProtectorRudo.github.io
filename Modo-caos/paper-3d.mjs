@@ -257,7 +257,7 @@ function syncMenu(state,dt){
  if(!state?.menuing)return;
  vsCreate();if(vsFailure||!vsRenderer)return;
  const hero=state.menuHero;
- if(!sourceAssets[hero]){window.PaperMenuReady=false;return;}
+ if(!sourceAssets[hero]){window.PaperMenuReady=false;const portrait=document.getElementById('menuHeroPortrait');if(portrait)portrait.style.opacity='1';return;}
  try{
   attachShowcase('menuHeroStage','menuPosition');
   const previous=vsCharacters[0];
@@ -283,6 +283,7 @@ function syncMenu(state,dt){
   vsRenderer.render(vsScene,vsCamera);
   window.PaperMenuReady=true;
   vsCanvas.style.opacity='1';
+  const portrait=document.getElementById('menuHeroPortrait');if(portrait)portrait.style.opacity='0';
   const status=document.getElementById('menu3dStatus');
   if(status)status.textContent='PERSONAJE 3D ORIGINAL';
   document.getElementById('menuModelLoader')?.classList.add('loaded');
