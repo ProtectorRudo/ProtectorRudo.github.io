@@ -58,9 +58,18 @@ async function auditBrowser(browser,base,viewport) {
   await page.locator('.td-editor').waitFor();
   await page.locator('.td-editor input').first().fill('Lucía');
   await page.locator('.td-editor input').nth(1).fill('Tomás');
+  const testPng=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9UupJ4QAAAAASUVORK5CYII=','base64');
+  await page.locator('.td-upload input[type=file]').first().setInputFiles({name:'recuerdo.png',mimeType:'image/png',buffer:testPng});
+  assert.match(await page.locator('.td-upload').first().innerText(),/FOTO CARGADA/);
   await page.locator('.td-save').click();
   await page.locator('.td-intro').waitFor();
   assert.match(await page.locator('.td-script-line').innerText(),/Lucía/);
+  await page.locator('.td-ticket').click();
+  await page.locator('.td-display').first().click();
+  await page.locator('.td-memory').waitFor();
+  const photoStyle=await page.locator('.td-photo-inside').getAttribute('style');
+  assert.match(photoStyle||'',/blob:/,'Locally uploaded memory photo did not render');
+  await page.locator('.td-memory-copy button').click();
   const overflow=await page.evaluate(() => ({
     viewport:document.documentElement.clientWidth,
     scroll:document.documentElement.scrollWidth,
@@ -68,7 +77,7 @@ async function auditBrowser(browser,base,viewport) {
   }));
   assert.ok(overflow.scroll <= overflow.viewport + 3,'Horizontal overflow: '+JSON.stringify(overflow));
   assert.deepEqual(errors,[],'React runtime errors: '+errors.join('; '));
-  console.log('PASS viewport='+viewport.width+'x'+viewport.height+' | scenes=5 | memories=3 | download=SVG | personalization=OK | overflow=OK | JS errors=0');
+  console.log('PASS viewport='+viewport.width+'x'+viewport.height+' | scenes=5 | memories=3 | download=SVG | photo-upload=OK | personalization=OK | overflow=OK | JS errors=0');
   await page.close();
 }
 (async()=>{
