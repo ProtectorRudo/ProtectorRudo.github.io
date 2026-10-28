@@ -1,0 +1,74 @@
+name: Install official Styloo chibi CC0 character models
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/install-styloo-chibi.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  install-chibi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout asset hosting repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: true
+      - name: Download author's free CC0 pack from official Godot Asset Store
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 3 --retry-delay 2 --connect-timeout 15 --max-time 150 \
+            'https://store.godotengine.org/asset/styloo/chibi/download/1373/' -o /tmp/chibi_characters.zip
+      - name: Safely inspect and install real GLB characters (no source code or executable extraction)
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile,struct,json,hashlib
+          target=Path('Modo-caos/assets/styloo')
+          target.mkdir(parents=True,exist_ok=True)
+          keep={
+           'archerpr.glb':'archer.glb',
+           'merchantpr.glb':'merchant.glb',
+           'studentpr.glb':'student.glb',
+           'ninjapr.glb':'ninja.glb',
+           'knightpr.glb':'knight.glb'
+          }
+          meta=[]
+          with zipfile.ZipFile('/tmp/chibi_characters.zip') as z:
+            members={Path(k.filename).name.lower():k for k in z.infolist() if not k.is_dir()}
+            assert set(keep).issubset(set(members)),f'Missing expected models: {set(keep)-set(members)}'
+            total=0
+            for origin,dest in keep.items():
+              entry=members[origin]
+              assert entry.file_size<12_000_000, f'Unexpectedly large asset: {origin}'
+              data=z.read(entry)
+              total+=len(data)
+              assert data[:4]==b'glTF',f'Not a GLB: {origin}'
+              magic,version,size=struct.unpack_from('<III',data)
+              assert version==2 and size==len(data),f'Invalid GLB header: {origin}'
+              chunk_size,chunk_type=struct.unpack_from('<II',data,12)
+              assert chunk_type==0x4e4f534a
+              doc=json.loads(data[20:20+chunk_size].decode('utf8'))
+              record={'name':dest,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest(),'animations':[a.get('name','unnamed') for a in doc.get('animations',[])],'nodes':len(doc.get('nodes',[])),'meshes':len(doc.get('meshes',[]))}
+              assert record['meshes'] and record['animations'],f'Asset lacks rigged/animated model content: {origin}'
+              (target/dest).write_bytes(data)
+              meta.append(record)
+              print('STYLOO_MODEL',json.dumps(record,ensure_ascii=False))
+          assert total<40_000_000
+          (target/'asset-manifest.json').write_text(json.dumps({'source':'https://store.godotengine.org/asset/styloo/chibi/','license':'CC0 1.0 Universal','author':'Styloo','models':meta},indent=2))
+          print('INSTALLED_BYTES',total)
+          PY
+      - name: Commit CC0 GLBs and license manifest to the game host
+        run: |
+          set -euo pipefail
+          git config user.name 'modo-caos-asset-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -- Modo-caos/assets/styloo/
+          if git diff --cached --quiet; then
+            echo 'All character models already present'
+          else
+            git commit -m 'assets(paper): install five real Styloo CC0 animated GLB chibi characters'
+            git push origin HEAD:main
+          fi
