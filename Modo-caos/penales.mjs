@@ -6,6 +6,7 @@ const $=id=>document.getElementById(id),clamp=C.clamp;
 let mode='cpu',difficulty=1,cup=null,match=null,scene=null,camera=null,renderer=null,world=null,keepers=null,shooter=null,ball=null,net=null,netRest=[],field=null;
 let stage='home',viewMode='3d',session=null,refSpace=null,hitSource=null,hitPose=null,hitResult=null,anchor=null,anchored=false,rotation=0,size=.78,zoom=0;
 let kick=null,lastTime=0,frameId=0,autoTimer=null,feedbackTimer=null,audio=null,sound=true;
+let cameraDestination=null,cameraLook=null,cameraLookDestination=null;
 let supabase=null,rooms=null,conn=null,room=null,me=null,roomCode='',mySide=0,online={},pollTimer=null,refreshing=false;
 const params=new URLSearchParams(location.search);
 const safeText=(id,t)=>$(id).textContent=t;
@@ -57,6 +58,7 @@ function buildScene(){
  if(renderer)return;
  scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(51,innerWidth/innerHeight,.01,100);
  camera.position.set(0,2.7,5.6);camera.lookAt(0,.7,-.4);
+ cameraDestination=new THREE.Vector3(0,2.7,5.6);cameraLook=new THREE.Vector3(0,.7,-.4);cameraLookDestination=cameraLook.clone();
  scene.add(new THREE.HemisphereLight(0xb9f6ff,0x1d4b44,2.2));
  const sun=new THREE.DirectionalLight(0xfff4d9,3.15);sun.position.set(-2,5,4);scene.add(sun);
  const rim=new THREE.DirectionalLight(0x4fceff,1.5);rim.position.set(3,2,-4);scene.add(rim);
@@ -98,6 +100,12 @@ function buildScene(){
  installPremiumRigs(keepers,shooter);
  addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 }
+function setPenaltyCamera(isShooting){
+ if(!cameraDestination||!cameraLookDestination||viewMode!=='3d')return;
+ cameraDestination.set(0,isShooting?2.7:2.45,isShooting?5.6:-3.0);
+ cameraLookDestination.set(0,isShooting?.7:.85,isShooting?-.4:1.1);
+ if(net?.children[0]?.material)net.children[0].material.opacity=isShooting?.52:.23;
+}
 function resetPose(){
  ball.position.set(0,.16,1.52);ball.rotation.set(0,0,0);
  resetRigs(keepers,shooter);
@@ -107,6 +115,12 @@ function resetPose(){
 function render(t,frame){
  const now=t*.001,dt=clamp(now-lastTime,0,.04);lastTime=now;frameId++;
  tickRigs(dt,keepers,shooter);
+ if(!session&&cameraDestination&&cameraLook){
+  const inertia=1-Math.exp(-9*dt);
+  camera.position.lerp(cameraDestination,inertia);
+  cameraLook.lerp(cameraLookDestination,inertia);
+  camera.lookAt(cameraLook);
+ }
  if(session&&frame&&refSpace){
   if(!anchored){
    if(!hitSource)return;
@@ -164,6 +178,7 @@ async function openStage(kind){
  buildScene();viewMode=kind;anchored=false;anchor=null;hitPose=null;kick=null;rotation=0;size=.78;
  $('home').style.display='none';$('stage').style.display='block';$('gameOver').style.display='none';
  world.position.set(0,-.02,0);world.scale.setScalar(1.0);world.rotation.y=0;resetPose();
+ camera.position.set(0,2.7,5.6);cameraLook?.set(0,.7,-.4);setPenaltyCamera(true);
  if(kind==='ar'){
   const ok=await startXR();if(!ok){$('stage').style.display='none';$('home').style.display='block';return;}
   phase('place');label('ENCONTRÁ EL PISO','Apuntá hacia una superficie plana. Colocá el arco y fijalo.');
@@ -214,6 +229,7 @@ function beginTurn(){
  if(!match||match.done)return;
  clearTimeout(autoTimer);kick=null;resetPose();phase('play');scoreView();
  const side=C.activeSide(match),localStriker=mode==='online'?side===mySide:side===0;
+ setPenaltyCamera(localStriker);
  if(localStriker){label('¡PATEÁ!','Deslizá desde cualquier parte de la cancha hacia donde querés colocar la pelota.');safeText('feedback','DESLIZÁ PARA APUNTAR Y DAR POTENCIA');}
  else {label('¡ATAJÁ!','El rival se prepara: deslizá hacia donde querés volar.');safeText('feedback','DESLIZÁ HACIA EL SECTOR DEL ARCO');}
  if(mode!=='online'&&side===1){autoTimer=setTimeout(()=>{if(stage==='play')localSave({x:0,y:.46})},2400);}
