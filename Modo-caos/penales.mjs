@@ -318,6 +318,7 @@ async function enterRoom(code,isHost){
  if(!roomCodeValid(code))throw Error('Necesitás el enlace completo del duelo.');
  if(conn)await conn.close();
  onlineState={isHost,ready:false,started:false,starting:false,connected:false,channel:null};
+ mySide=isHost?0:1;
  roomCode=code;room={id:code,code,players:[],hostUserId:null,status:'lobby'};
  $('roomInvite').style.display='block';
  safeText('roomCode',code.slice(0,8)+'…'+code.slice(-4));
