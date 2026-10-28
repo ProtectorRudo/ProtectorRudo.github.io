@@ -2,7 +2,7 @@ import {chromium} from 'playwright';
 import {writeFileSync,mkdirSync} from 'node:fs';
 const url='http://127.0.0.1:4173/Modo-caos/penales.html';
 const browser=await chromium.launch({headless:true,args:['--enable-webgl','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
-const c1=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true}),c2=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+const c1=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,permissions:['clipboard-read','clipboard-write']}),c2=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
 const host=await c1.newPage(),guest=await c2.newPage(),errors=[];
 for(const [name,page] of [['host',host],['guest',guest]]){page.on('pageerror',e=>errors.push(name+': '+e.message));}
 mkdirSync('artifacts',{recursive:true});
@@ -13,9 +13,13 @@ async function gesture(page,dx,dy){
 try{
  await host.goto(url);await host.locator('#friendMode').click();await host.locator('#playerName').fill('QA HOST');
  await host.locator('#createRoom').click();
- try{await host.waitForFunction(()=>/^[A-F0-9]{8}$/.test(document.querySelector('#roomCode')?.textContent||''),null,{timeout:25000});}
+ try{await host.waitForFunction(()=>document.querySelector('#roomDetails')?.textContent.includes('1 / 2'),null,{timeout:25000});}
  catch(e){throw Error('Create room failed: '+(await host.locator('#onlineNote').innerText()));}
- const code=await host.locator('#roomCode').innerText();console.log('ROOM_OK '+code);
+ await host.locator('#copyRoom').click();
+ const invite=await host.evaluate(()=>navigator.clipboard.readText());
+ const code=new URL(invite).searchParams.get('room');
+ if(!/^[A-F0-9]{32}$/.test(code||''))throw Error('Invalid shared invite token');
+ console.log('ROOM_CREATED token_length='+code.length);
  await guest.goto(url+'?room='+code);await guest.locator('#playerName').fill('QA GUEST');
  await guest.locator('#confirmJoin').click();
  await host.waitForFunction(()=>document.querySelector('#roomDetails')?.textContent.includes('2 / 2'),null,{timeout:22000});
@@ -33,7 +37,7 @@ try{
  const marks=[await host.locator('#dotsA').innerText(),await guest.locator('#dotsA').innerText()];
  if(marks[0]!==marks[1])throw Error('Tanda divergente '+marks);
  if(errors.length)throw Error('Browser errors: '+errors.join(' | '));
- console.log(JSON.stringify({result:'PASS',code,marks,errors}));
+ console.log(JSON.stringify({result:'PASS',roomTokenLength:code.length,marks,errors}));
 }finally{
  await host.screenshot({path:'artifacts/penales-online-host.png'}).catch(()=>{});
  await guest.screenshot({path:'artifacts/penales-online-guest.png'}).catch(()=>{});
