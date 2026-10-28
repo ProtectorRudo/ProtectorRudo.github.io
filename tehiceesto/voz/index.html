@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#261b24">
+<title>Una voz para alguien especial · Te Hice Esto</title>
+<style>
+:root{color-scheme:dark;--ink:#fff7f1;--muted:#bbaab1;--rose:#df9da8;--accent:#f6dac9}
+*{box-sizing:border-box}body{margin:0;min-height:100svh;background:radial-gradient(ellipse at 70% 8%,#5a3946 0,transparent 52%),radial-gradient(ellipse at 10% 95%,#422e41 0,transparent 60%),#231a25;color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;align-items:center;justify-content:center;padding:25px 15px}.frame{width:min(100%,535px);position:relative}.frame:before{content:"";display:block;position:absolute;inset:36px -5px -20px;background:#0003;filter:blur(35px);z-index:-1}.brand{text-align:center;margin-bottom:32px;color:#fff6ed;font-size:12px;letter-spacing:.26em;font-weight:750}.brand span{color:var(--rose);font-size:16px}.card{background:linear-gradient(145deg,#362835ed,#33232dec);border:1px solid #eed0c32b;border-radius:18px;box-shadow:0 30px 110px #0b091149;padding:clamp(25px,6vw,45px);text-align:center}.seal{margin:0 auto 23px;display:grid;place-items:center;width:75px;height:75px;border-radius:50%;border:1px solid #eab3ba68;background:#f8deda0e;font:normal 36px Georgia,serif;color:#f0b4c3;box-shadow:0 0 0 8px #fff5f30a}.eyebrow{color:#dfa7b4;letter-spacing:.23em;font-weight:700;font-size:10px}.title{font:400 clamp(37px,9vw,56px)/1.13 Georgia,serif;letter-spacing:-.04em;margin:17px 0}.title em{font-weight:400;color:#f3bec7}.lead{color:#d9c6cb;font-size:14px;line-height:1.9;margin:0 auto 22px;max-width:380px}.rule{width:50px;height:1px;background:#ce9da7;margin:25px auto}.voiceRecord{border:1px solid #f8e7e1;background:#f8e7df;color:#382b31;border-radius:999px;padding:16px 26px;font-size:14px;font-weight:750;min-height:56px;cursor:pointer;display:inline-flex;gap:11px;align-items:center;justify-content:center;max-width:100%}.voiceRecord:disabled{opacity:.55;cursor:wait}.dot{display:inline-block;color:#b54463;font-size:16px}.timer{display:flex;align-items:center;justify-content:center;gap:10px;color:#f3ccd1;font-size:15px;font-variant-numeric:tabular-nums;margin:22px auto}.timer .dot{animation:pulse 1.2s infinite}.actions{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:13px;margin-top:17px}.outline{padding:14px 20px;border:1px solid #f6dfd188;background:transparent;color:#ffe9e1;border-radius:999px;font-size:13px;cursor:pointer;min-height:50px}audio{display:block;width:100%;margin:21px auto 15px;max-width:370px}.form{margin:20px auto;max-width:380px;text-align:left}.form label{display:block;font-size:12px;color:#edd7d6;margin-bottom:7px}.form input{width:100%;background:#fffaf8;border:1px solid #fff4ec77;border-radius:9px;padding:14px;color:#372830;font-size:15px;outline:0}.form input:focus{box-shadow:0 0 0 3px #e4a9b86c}.hint{font-size:11px;line-height:1.8;color:#b9a8b2;margin:18px auto 0}.error{background:#6d2e3c;color:#ffe1e1;border:1px solid #cd7689;border-radius:8px;padding:12px;margin:20px 0 0;font-size:13px;line-height:1.7}.success h2{font:400 39px Georgia,serif;margin:20px 0}.success p{color:#e5cfcd;font-size:14px;line-height:1.8}.footer{text-align:center;color:#9e8b9a;font-size:11px;line-height:1.7;margin:26px auto 0}.only{font-size:11px;color:#d9b4b6;margin-top:24px}.loading{text-align:center;color:#e7c6cd;padding:65px 15px}.hidden,[hidden]{display:none!important}@keyframes pulse{50%{opacity:.3;transform:scale(.8)}}@media(prefers-reduced-motion:reduce){.timer .dot{animation:none}}@media(max-width:390px){.card{padding:24px 20px}.actions .voiceRecord{width:100%}}
+</style></head><body>
+<main class="frame"><div class="brand">TE HICE ESTO <span>♥</span></div>
+<section class="card">
+<div id="loading" class="loading">Preparando un lugar para tu voz…</div>
+<div id="invite" hidden>
+  <div class="seal" aria-hidden="true">♫</div>
+  <span class="eyebrow">UNA INVITACIÓN MUY ESPECIAL</span>
+  <h1 class="title">Hay palabras que merecen <em>escucharse.</em></h1>
+  <p class="lead">Alguien quiere guardar tu voz en un regalo único. Grabá un mensaje desde tu teléfono; esa persona lo recibirá como un recuerdo que podrá escuchar una y otra vez.</p>
+  <div class="rule"></div>
+  <div id="start-area"><button type="button" class="voiceRecord" id="start"><span class="dot">●</span> Empezar a grabar</button></div>
+  <div id="record-area" hidden><div class="timer"><span class="dot">●</span><span id="clock">Grabando · 00:00 / 03:00</span></div>
+    <div class="actions"><button class="voiceRecord" type="button" id="stop">■ Detener grabación</button><button class="outline" type="button" id="cancel">Cancelar</button></div></div>
+  <div id="review-area" hidden><span class="eyebrow">ESCUCHÁ TU MENSAJE</span><audio id="preview" controls preload="metadata"></audio>
+    <div class="form"><label for="speaker">¿Cómo te llamás? (opcional)</label><input id="speaker" maxlength="60" autocomplete="given-name" placeholder="Ejemplo: Tía Ana" /></div>
+    <div class="actions"><button type="button" class="voiceRecord" id="send">Enviar mi voz ♥</button><button type="button" class="outline" id="redo">Grabar otra vez</button></div></div>
+  <div id="alert" class="error" role="alert" hidden></div>
+  <p class="hint">Máximo 3 minutos. Solo se envía cuando tocás «Enviar mi voz». No necesitás crear una cuenta.</p>
+  <p class="only">Este enlace sirve únicamente para grabar y enviar un mensaje de voz.</p>
+</div>
+<div id="done" class="success" hidden><div class="seal" aria-hidden="true">♥</div><span class="eyebrow">MENSAJE ENVIADO</span><h2>Tu voz ya es parte de esta historia.</h2><p>Gracias por regalar algo tan personal. Tu mensaje quedó guardado en la experiencia de quien te invitó.</p></div>
+<div id="invalid" hidden><div class="seal" aria-hidden="true">♡</div><h1 class="title">Esta invitación ya no está disponible.</h1><p class="lead">Puede haber vencido, completado su cupo o haber sido desactivada. Pedile un nuevo enlace a quien te invitó.</p></div>
+</section><div class="footer">Un recuerdo que se escucha se queda un poquito más cerca.<br>© Te Hice Esto · Experiencias privadas</div>
+</main>
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+const BASE="https://efvvadfxuyieswdqnsjg.supabase.co";
+const KEY="sb_publishable_nzbFJECAwVxyMfQUuLXRXQ_gqYvGeYN";
+const client=createClient(BASE,KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+const $=id=>document.getElementById(id);
+let inviteToken="";
+let stream=null,recorder=null,chunks=[],previewUrl="",voiceFile=null,timer=null,startAt=0,discarded=false,sending=false;
+const show=id=>{$(id).hidden=false},hide=id=>{$(id).hidden=true};
+function err(msg){if(msg){$("alert").textContent=msg;show("alert")}else{hide("alert");$("alert").textContent=""}}
+function ui(name){["start-area","record-area","review-area"].forEach(hide);show(name)}
+function mimeType(){
+ if(typeof MediaRecorder==="undefined")return"";
+ for(const m of ["audio/mp4","audio/webm;codecs=opus","audio/webm","audio/ogg;codecs=opus","audio/ogg"]){
+  if(MediaRecorder.isTypeSupported(m))return m;
+ }return"";
+}
+function release(){if(timer){clearInterval(timer);timer=null}stream?.getTracks().forEach(t=>t.stop());stream=null}
+function reset(){
+ discarded=true;if(recorder?.state==="recording")recorder.stop();release();
+ if(previewUrl)URL.revokeObjectURL(previewUrl);
+ previewUrl="";voiceFile=null;chunks=[];$("preview").removeAttribute("src");$("preview").load();ui("start-area");err("");
+}
+async function post(action,payload={}){
+ const res=await fetch(BASE+"/functions/v1/guest-voice",{method:"POST",cache:"no-store",referrerPolicy:"no-referrer",
+ headers:{"apikey":KEY,"content-type":"application/json"},body:JSON.stringify({action,inviteToken,...payload})});
+ const body=await res.json().catch(()=>({}));
+ if(!res.ok || body.error){const x=new Error(String(body.error||"request_failed"));x.code=body.error;throw x;}
+ return body;
+}
+function messageFor(error){
+ const e=String(error?.code||"");
+ if(["invite_unavailable","owner_unauthorized"].includes(e))return "Este enlace venció o fue desactivado. Pedile otro a quien te invitó.";
+ if(e==="gift_full")return "Este regalo ya tiene el máximo de archivos. Avisale a quien te invitó.";
+ if(e==="invalid_audio")return "No pudimos procesar ese audio. Grabalo nuevamente.";
+ if(e==="too_many_attempts")return "Hubo demasiados intentos. Volvé a probar más tarde.";
+ return "No pudimos enviar tu voz. Revisá tu conexión e intentá de nuevo. La grabación sigue acá.";
+}
+function markInvalid(){hide("loading");hide("invite");show("invalid");inviteToken="";sessionStorage.removeItem("thi-guest-voice-token")}
+(async()=>{
+ const hash=new URLSearchParams(location.hash.replace(/^#/,""));
+ const fresh=hash.get("t");
+ if(fresh && /^[a-f0-9]{64}$/.test(fresh)){
+   inviteToken=fresh;sessionStorage.setItem("thi-guest-voice-token",fresh);
+ }else inviteToken=sessionStorage.getItem("thi-guest-voice-token")||"";
+ history.replaceState(null,"",location.pathname);
+ if(!/^[a-f0-9]{64}$/.test(inviteToken)){markInvalid();return}
+ try{await post("status");hide("loading");show("invite")}
+ catch{markInvalid()}
+})();
+$("start").onclick=async()=>{
+ if(sending)return;reset();discarded=false;
+ if(!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder==="undefined"){
+  err("Tu navegador no permite grabar audio. Abrí este enlace con Safari o Chrome en tu teléfono.");return;
+ }
+ try{
+  stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
+  const mt=mimeType();recorder=mt?new MediaRecorder(stream,{mimeType:mt}):new MediaRecorder(stream);
+  const active=recorder;
+  active.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+  active.onerror=()=>{reset();err("La grabación se interrumpió. Intentá nuevamente.")};
+  active.onstop=()=>{
+    release();if(discarded)return;
+    const kind=active.mimeType.split(";")[0]||"audio/webm";
+    const blob=new Blob(chunks,{type:kind});chunks=[];
+    if(!blob.size||blob.size>15*1024*1024){reset();err("El audio está vacío o supera el máximo permitido. Intentá nuevamente.");return}
+    const ext=kind.includes("mp4")?"m4a":kind.includes("ogg")?"ogg":"webm";
+    voiceFile=new File([blob],"mi-voz."+ext,{type:kind,lastModified:Date.now()});
+    previewUrl=URL.createObjectURL(voiceFile);
+    $("preview").src=previewUrl;ui("review-area");
+  };
+  active.start(1000);startAt=Date.now();ui("record-area");
+  timer=setInterval(()=>{
+   const elapsed=Math.min(180,Math.floor((Date.now()-startAt)/1000));
+   $("clock").textContent="Grabando · "+String(Math.floor(elapsed/60)).padStart(2,"0")+":"+String(elapsed%60).padStart(2,"0")+" / 03:00";
+   if(elapsed>=180&&active.state==="recording")active.stop();
+  },250);
+ }catch(e){reset();err(e.name==="NotAllowedError"?"Necesitamos permiso para usar el micrófono. Habilitalo e intentá nuevamente.":"No pudimos activar el micrófono. Abrí el enlace en Safari o Chrome.")}
+};
+$("stop").onclick=()=>{if(recorder?.state==="recording")recorder.stop()};
+$("cancel").onclick=reset;$("redo").onclick=reset;
+$("send").onclick=async()=>{
+ if(!voiceFile||sending)return;
+ sending=true;$("send").disabled=true;$("redo").disabled=true;err("");
+ try{
+   const file=voiceFile;
+   const prep=await post("prepare",{mimeType:file.type,size:file.size});
+   const {error}=await client.storage.from("gift-media").uploadToSignedUrl(prep.path,prep.token,file,{contentType:file.type,upsert:false});
+   if(error)throw error;
+   const sender=$("speaker").value.trim().slice(0,60);
+   await post("finish",{uploadId:prep.uploadId,speaker:sender});
+   release();if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl="";voiceFile=null;
+   hide("invite");show("done");
+ }catch(e){
+   if(e.code==="invite_unavailable"){markInvalid();return}
+   err(messageFor(e));
+ }finally{sending=false;$("send").disabled=false;$("redo").disabled=false}
+};
+window.addEventListener("pagehide",()=>release());
+</script></body></html>
