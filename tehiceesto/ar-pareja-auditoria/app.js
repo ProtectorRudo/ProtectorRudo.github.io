@@ -318,6 +318,9 @@ async function launchXR(){
  if(!navigator.xr||!xrSupported)return false;
  let session;
  try{
+  // Modo Caos shows the overlay before asking WebXR for dom-overlay permission.
+  // Otherwise some mobile runtimes start XR but suppress the placement controls.
+  $('#arOverlay').hidden=false;
   // User activation MUST be used synchronously: don't await isSessionSupported here.
   session=await navigator.xr.requestSession('immersive-ar',{
     requiredFeatures:['hit-test'],
