@@ -220,7 +220,7 @@ function vsActor(hero){
  const action=mixer&&clip?mixer.clipAction(clip):null;
  if(action)action.play();
  const {arms,forearms}=findArmRig(mesh);
- return {hero,root,mesh,mixer,action,arms,forearms,restPose:captureRestPose(arms,forearms),phase:Math.random()*6};
+ return {hero,root,mesh,mixer,action,arms,forearms,dimensions:{x:size.x*factor,y:size.y*factor,z:size.z*factor},restPose:captureRestPose(arms,forearms),phase:Math.random()*6};
 }
 function clearVSActors(){
  for(const item of vsCharacters)if(item){if(item.mixer)item.mixer.stopAllAction();vsScene?.remove(item.root);}
@@ -319,13 +319,15 @@ function syncVS(state,dt){
   if(vsCanvas.width!==Math.round(width*dpr)||vsCanvas.height!==Math.round(height*dpr))vsRenderer.setSize(width,height,false);
   vsCamera.left=-width/2;vsCamera.right=width/2;vsCamera.top=height/2;vsCamera.bottom=-height/2;
   vsCamera.updateProjectionMatrix();
-  const sizeFactor=(height*.61)/RIG_HEIGHT;
+  // Keep each animal inside its half, regardless of the model's proportions.
+  const maxVisualWidth=width*.34,maxVisualHeight=height*.43;
   const arrival=Math.max(0,1-state.vsSeconds/.6);
   for(let i=0;i<2;i++){
    const actor=vsCharacters[i];
    const side=i===0?-1:1;
+   const sizeFactor=Math.min(2.1,maxVisualWidth/Math.max(32,actor.dimensions.x),maxVisualHeight/Math.max(45,actor.dimensions.y));
    actor.root.scale.setScalar(sizeFactor);
-   actor.root.position.set(side*(width*.27+arrival*width*.36),-height*.18+Math.sin(state.vsSeconds*7+i)*3,0);
+   actor.root.position.set(side*(width*.245+arrival*width*.37),-height*.22+Math.sin(state.vsSeconds*6+i)*2.2,0);
    actor.root.rotation.y=(i===0?-.13:.13)+Math.sin(state.vsSeconds*3.5+i)*.12;
    // Gentle whole-body six-seven sway; never accumulate limb rotations.
    actor.root.rotation.z=Math.sin(state.vsSeconds*4.6+i*Math.PI)*.10;

@@ -951,7 +951,7 @@ function showHud(){
  const ownRank=game.ordered.findIndex(q=>q.id===0);
  const arr=ownRank>=3?[...game.ordered.slice(0,3),game.people[0]]:game.ordered.slice(0,4);
  // CSS-drawn original character portraits; avoid arbitrary unicode placeholders.
- $('rank').innerHTML=arr.map((q)=>'<div class="rankrow '+(q.id===0?'isMe':'')+'" style="--rcolor:'+COLORS[(q.id+settingColor)%12]+'"><span class="rankAvatar '+(game.ordered[0].id===q.id?'crowned':'')+'"><span class="portraitDoll skin'+(q.id===0?wardrobe.hero:q.id===1?vsRival:q.id%HEROES.length)+'"><i class="eyeL"></i><i class="eyeR"></i></span></span><span class="rankPlace">'+(game.ordered.indexOf(q)+1)+'</span><span class="rankName">'+safe(q.name)+'</span><b>'+q.score.toFixed(2)+'%</b></div>').join('');
+ $('rank').innerHTML=arr.map((q)=>'<div class="rankrow '+(q.id===0?'isMe':'')+'" style="--rcolor:'+COLORS[(q.id+settingColor)%12]+'"><span class="rankAvatar '+(game.ordered[0].id===q.id?'crowned':'')+'"><span class="rankAnimalHolder"><img class="rankAnimal" src="'+portraitURL(q.id===0?wardrobe.hero:q.id===1?vsRival:q.id%HEROES.length)+'" alt=""></span></span><span class="rankPlace">'+(game.ordered.indexOf(q)+1)+'</span><span class="rankName">'+safe(q.name)+'</span><b>'+q.score.toFixed(2)+'%</b></div>').join('');
  const best=Math.max(readBest(),game.record,p.score);
  $('recordPointer').style.left=clamp(best/25*100,8,92)+'%';
  drawMini();
@@ -1077,7 +1077,10 @@ function paintMascotCanvas(p,hero,color){
   c.fillStyle=color;c.beginPath();c.arc(-17,-30,10,0,7);c.arc(17,-30,10,0,7);c.fill();
  }
  c.beginPath();c.ellipse(0,-29,23,23,0,0,7);
- c.fillStyle=animal==='penguin'?'#243650':animal==='koala'?'#afc2c3':color;c.strokeStyle='#2c4167';c.fill();c.stroke();
+ c.fillStyle=animal==='penguin'?'#243650':animal==='koala'?'#afc2c3':k.color;c.strokeStyle='#2c4167';c.fill();c.stroke();
+ if(animal==='tiger'){
+  c.fillStyle='#533929';c.beginPath();c.moveTo(-18,-41);c.lineTo(-8,-28);c.lineTo(-18,-30);c.moveTo(18,-41);c.lineTo(8,-28);c.lineTo(18,-30);c.moveTo(0,-49);c.lineTo(-6,-38);c.lineTo(7,-38);c.fill();
+ }
  c.fillStyle='#111b36';c.beginPath();c.ellipse(-9,-30,4,6,0,0,7);c.ellipse(9,-30,4,6,0,0,7);c.fill();
  c.fillStyle='#fff';c.beginPath();c.arc(-10,-33,2,0,7);c.arc(8,-33,2,0,7);c.fill();
  c.fillStyle=animal==='platypus'||animal==='penguin'?'#f7b449':'#f4ded2';c.beginPath();c.ellipse(0,-20,animal==='platypus'?16:11,7,0,0,7);c.fill();
