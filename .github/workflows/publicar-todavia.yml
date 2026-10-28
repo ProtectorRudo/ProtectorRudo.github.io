@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ProtectorRudo/Tehiceesto
-          ref: ba400b38e1cd1b243191ebf889c5a41531ff127b
+          ref: 0c7d16412b44941b9211c106c9ee0c6486580e3a
           path: source
           persist-credentials: false
       - name: Configurar Node
@@ -75,8 +75,8 @@ jobs:
           for (const label of ['TODAVÍA','GUARDAR NUESTRO BOLETO','LA ÚLTIMA SALA','PERSONALIZAR']) {
             if (!js.includes(label)) throw Error('Falta una etapa del recorrido: '+label);
           }
-          if (!css.includes('td-gallery') || !css.includes('td-final')) throw Error('Faltan estilos cinematográficos');
-          console.log('Auditoría: React, 5 escenas, personalización y estilos presentes. Tamaños:',js.length,css.length);
+          if (!css.includes('td-gallery') || !css.includes('td-final') || !css.includes('td-atmosphere')) throw Error('Faltan estilos cinematográficos');
+          console.log('Auditoría: React, 5 escenas y v1.1 premium presentes. Tamaños:',js.length,css.length);
           JS
       - name: Publicar exclusivamente la ruta /todavia
         run: |
