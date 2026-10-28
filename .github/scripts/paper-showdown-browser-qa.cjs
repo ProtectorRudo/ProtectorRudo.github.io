@@ -40,7 +40,7 @@ const {chromium}=require('playwright');
   await page.screenshot({path:'/tmp/paper-vs-android.png'});
   console.log('BROWSER_QA_PREVIEW',JSON.stringify({startNames,preview,assetHeads:glbs}));
   const before=await page.evaluate(()=>window.territoryQA?.mode);
-  if(before==='versus')await page.locator('#vsPlayNow').click();
+  if(before==='versus')await page.evaluate(()=>document.getElementById('vsPlayNow').click());
   else assert.equal(before,'play','The game should auto-start if VS has already finished');
   await page.waitForFunction(()=>window.territoryQA?.mode==='play',{timeout:15000});
   await page.waitForTimeout(1100);
