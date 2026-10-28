@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const {chromium}=require('playwright');
 (async()=>{
  const site='https://protectorrudo.github.io/Modo-caos/';
- const uri=site+'paper-menu-nuevo.html?qa=1&vs=1';
+ const uri=site+'paper-menu-styloo.html?qa=1&vs=1';
  const errors=[],glbs=[],missing=[];
  let browser;
  try{
@@ -22,6 +22,15 @@ const {chromium}=require('playwright');
   await page.goto(uri,{waitUntil:'domcontentloaded',timeout:70000});
 
   await page.waitForTimeout(2200);
+  await page.waitForFunction(()=>Array.from(document.querySelectorAll('#heroPicker img.hero3DThumbnail')).length===4 && Array.from(document.querySelectorAll('#heroPicker img.hero3DThumbnail')).every(im=>im.complete&&im.naturalWidth>100),null,{timeout:25000});
+  const gallery=await page.evaluate(()=>({
+   portraits:Array.from(document.querySelectorAll('#heroPicker img.hero3DThumbnail')).map(im=>({src:im.getAttribute('src'),width:im.naturalWidth,height:im.naturalHeight})),
+   stagePortrait:document.getElementById('menuHeroPortrait').getAttribute('src'),
+   oldCSSFigures:document.querySelectorAll('#heroPicker .heroMini').length
+  }));
+  assert.equal(gallery.oldCSSFigures,0);
+  assert.equal(gallery.portraits.length,4);
+  console.log('BROWSER_QA_REAL_3D_GALLERY',JSON.stringify(gallery));
   console.log('MENU_PRECHECK',JSON.stringify(await page.evaluate(()=>({
     path:location.pathname,
     appMode:window.territoryQA?.mode,
@@ -63,6 +72,14 @@ const {chromium}=require('playwright');
    emote:document.getElementById('vsCountdown').textContent
   }));
   assert.notEqual(startNames.you,startNames.opponent);
+  await page.waitForFunction(()=>['vsPortraitPlayer','vsPortraitOpponent'].every(id=>document.getElementById(id).complete&&document.getElementById(id).naturalWidth>100),null,{timeout:10000});
+  const vsImages=await page.evaluate(()=>({
+   player:document.getElementById('vsPortraitPlayer').getAttribute('src'),
+   opponent:document.getElementById('vsPortraitOpponent').getAttribute('src'),
+   oldIntroSprites:!!document.querySelector('#versus .heroMini')
+  }));
+  assert.equal(vsImages.oldIntroSprites,false);
+  console.log('BROWSER_QA_REAL_VS_PORTRAITS',JSON.stringify(vsImages));
   await page.waitForTimeout(1700);
   const preview=await page.evaluate(()=>({
    ready:window.PaperVSReady===true,
