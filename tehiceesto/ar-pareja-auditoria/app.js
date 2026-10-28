@@ -425,7 +425,28 @@ let cameraStream=null,cameraActiveBefore=null,cameraOriginalPos=null,cameraOrigi
 async function startCameraView(){
  if(!navigator.mediaDevices?.getUserMedia)return false;
  try{
-  cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+  // A camera permission prompt can remain pending forever on some Android browsers.
+  // Return control to the visitor rather than showing an endless 'opening camera' state.
+  let cameraTimedOut=false;
+  let cameraTimer;
+  const pendingCamera=navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+  try{
+   cameraStream=await Promise.race([
+    pendingCamera.then(stream=>{
+     if(cameraTimedOut){
+      stream.getTracks().forEach(track=>track.stop());
+      throw new Error('La cámara respondió después del tiempo máximo');
+     }
+     return stream;
+    }),
+    new Promise((_,reject)=>{
+     cameraTimer=setTimeout(()=>{
+      cameraTimedOut=true;
+      reject(new Error('La cámara no respondió a tiempo'));
+     },8000);
+    })
+   ]);
+  }finally{clearTimeout(cameraTimer)}
   const video=$('#cameraFeed');video.srcObject=cameraStream;
   try{await video.play()}catch(e){console.info('Waiting for camera media',e)}
   app.cameraMode=true;$('#arDialog').hidden=true;$('#cameraAR').hidden=false;cameraOriginalOverflow=document.body.style.overflow;document.body.style.overflow='hidden';
