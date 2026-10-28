@@ -46,7 +46,35 @@ async function loadGifts(){if(!session)return;try{const {gifts}=await request("g
 async function open(gift){notice("account-feedback","");try{const access=await request("gift-account",{action:"open",code:gift.code},session.access_token);const data=await request("creator-api",{action:"openStudio",code:gift.code,editorToken:access.editorToken});studio={code:gift.code,token:access.editorToken};editingGift=data.gift;currentMedia=Array.isArray(data.media)?data.media:[];renderMedia();byId("edit-giver").value=data.gift.giver_name||"";byId("edit-recipient").value=data.gift.recipient_name||"";byId("edit-opening").value=data.gift.opening_text||"";byId("edit-letter").value=data.gift.letter_text||"";byId("edit-closing").value=data.gift.closing_text||"";renderSceneText();byId("library").hidden=true;byId("editor").hidden=false;byId("editor").scrollIntoView({behavior:"smooth"})}catch(e){notice("account-feedback",reason(e),true)}}
 byId("edit-form").onsubmit=async event=>{event.preventDefault();if(!studio)return;byId("save").disabled=true;try{const st=editingGift.story_data||{};await request("creator-api",{action:"saveStudioBasics",code:studio.code,editorToken:studio.token,giverName:byId("edit-giver").value,recipientName:byId("edit-recipient").value,openingText:byId("edit-opening").value,letterText:byId("edit-letter").value,closingText:byId("edit-closing").value,occasion:editingGift.occasion||"",feeling:editingGift.feeling||"",musicUrl:editingGift.music_url||"",keyDate:st.keyDate||"",anecdote:st.anecdote||"",relationship:st.relationship||""});notice("account-feedback","Cambios guardados correctamente.");loadGifts()}catch(e){notice("account-feedback",reason(e),true)}finally{byId("save").disabled=false}};
 client.auth.onAuthStateChange((event,current)=>{session=current;if(event==="PASSWORD_RECOVERY")byId("password-form").hidden=false;paintSession()});
-(async()=>{try{const hash=new URLSearchParams(location.hash.slice(1));if(hash.get("token_hash")&&["magiclink","recovery","email","signup"].includes(hash.get("type"))){const {error}=await client.auth.verifyOtp({token_hash:hash.get("token_hash"),type:hash.get("type")});history.replaceState(null,"",location.pathname+location.search);if(error)throw error;if(hash.get("type")==="recovery")byId("password-form").hidden=false;}const {data,error}=await client.auth.getSession();if(error)throw error;session=data.session;paintSession();}catch(e){notice("auth-feedback","El enlace venció o no es válido. Pedí uno nuevo.",true)}})();
+// The verified token type must match GoTrue's issued token (often recovery for an existing account).
+// Older emails accidentally labeled a recovery token as magiclink: retry once as recovery
+// before treating the link as expired. The token is kept in the URL fragment (not server logs).
+(async()=>{let attempted=false;try{
+ const hash=new URLSearchParams(location.hash.slice(1)),token=hash.get("token_hash"),kind=hash.get("type");
+ if(token&&["magiclink","recovery","email","signup","invite"].includes(kind)){
+   attempted=true;
+   let actualKind=kind;
+   let result=await client.auth.verifyOtp({token_hash:token,type:kind});
+   if(result.error&&kind==="magiclink"&&["otp_expired","otp_disabled"].includes(String(result.error.code||""))){
+      result=await client.auth.verifyOtp({token_hash:token,type:"recovery"});
+      if(!result.error)actualKind="recovery";
+   }
+   history.replaceState(null,"",location.pathname+location.search);
+   if(result.error)throw result.error;
+   session=result.data.session;
+   if(actualKind==="recovery")byId("password-form").hidden=false;
+   notice("account-feedback","Acceso verificado. Ya podés consultar tus regalos y configurar tu contraseña.");
+ }
+ const {data,error}=await client.auth.getSession();
+ if(error)throw error;
+ session=data.session||session;
+ paintSession();
+ if(attempted&&!session){setMode("email");notice("auth-feedback","No se pudo completar la sesión. Pedí un enlace nuevo.",true);}
+}catch(e){
+ history.replaceState(null,"",location.pathname+location.search);
+ setMode("email");
+ notice("auth-feedback","No pudimos validar ese enlace. Puede haber vencido o haber sido reemplazado por otro correo. Pedí un enlace nuevo y abrí solamente el más reciente.",true);
+}})();
 
 function studioScenes(){return Array.isArray(editingGift?.scene_recipe)?editingGift.scene_recipe:[]}
 function renderSceneText(){
