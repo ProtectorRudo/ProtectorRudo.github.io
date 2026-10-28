@@ -396,7 +396,7 @@ $('#camRotate').addEventListener('click',()=>{sculpt.rotation.y+=Math.PI/6});
 async function showNativeViewer(){
  try{
   const mv=$('#iosARModel');const host=$('#nativeViewerHost');
-  host.appendChild(mv);$('#arDialog').hidden=true;$('#nativeAR').hidden=false;
+  host.appendChild(mv);mv.hidden=false;$('#arDialog').hidden=true;$('#nativeAR').hidden=false;
   mv.setAttribute('src',prepareNativeAR());
   // Visible, full-size preview (not the former invisible 1px component).
   await import('https://cdn.jsdelivr.net/npm/@google/model-viewer@4.1.0/dist/model-viewer.min.js');
@@ -405,7 +405,7 @@ async function showNativeViewer(){
   return true;
  }catch(e){console.warn('Native AR viewer load failed',e);$('#nativeAR').hidden=true;return false}
 }
-$('#closeNative').addEventListener('click',()=>{$('#nativeAR').hidden=true});
+$('#closeNative').addEventListener('click',()=>{$('#nativeAR').hidden=true;$('#iosARModel').hidden=true});
 $('#launchAR').addEventListener('click',async()=>{
  const btn=$('#launchAR');if(btn.disabled)return;
  btn.disabled=true;btn.textContent='PREPARANDO EL RELICARIO…';
