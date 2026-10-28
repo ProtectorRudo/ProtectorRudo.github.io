@@ -354,20 +354,21 @@ $('#arSmaller').addEventListener('click',()=>updateARScale(-.025));
 $('#arBigger').addEventListener('click',()=>updateARScale(.025));
 $('#arRotate').addEventListener('click',rotateAR);
 $('#exitAR').addEventListener('click',()=>{if(app.xrSession)void app.xrSession.end()});
-let cameraStream=null,cameraActiveBefore=null,cameraOriginalPos=null,cameraOriginalRot=null,cameraScale=1;
+let cameraStream=null,cameraActiveBefore=null,cameraOriginalPos=null,cameraOriginalRot=null,cameraOriginalOverflow=null,cameraScale=1;
 async function startCameraView(){
  if(!navigator.mediaDevices?.getUserMedia)return false;
  try{
   cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
   const video=$('#cameraFeed');video.srcObject=cameraStream;
   try{await video.play()}catch(e){console.info('Waiting for camera media',e)}
-  app.cameraMode=true;$('#arDialog').hidden=true;$('#cameraAR').hidden=false;
+  app.cameraMode=true;$('#arDialog').hidden=true;$('#cameraAR').hidden=false;cameraOriginalOverflow=document.body.style.overflow;document.body.style.overflow='hidden';
   cameraActiveBefore=renderer.domElement.parentNode;
   cameraOriginalPos=camera.position.clone();cameraOriginalRot=camera.rotation.clone();
   $('#cameraView').appendChild(renderer.domElement);
   controls.enabled=false;sculpt.visible=true;
-  cameraScale=.45;sculpt.position.set(0,-.36,0);sculpt.scale.setScalar(cameraScale);
-  camera.position.set(2.0,1.85,4.45);camera.lookAt(0,1.45,0);
+  cameraScale=.5;sculpt.position.set(0,-.29,0);sculpt.scale.setScalar(cameraScale);
+  camera.position.set(1.55,1.75,3.6);camera.lookAt(0,.93,0);
+  $('#camSizeLabel').textContent='TAMAÑO · 40 CM';
   $('#cameraStatus').textContent='RELICARIO VISIBLE · AJUSTÁ TAMAÑO Y GIRO';
   resize();return true;
  }catch(e){
@@ -381,7 +382,7 @@ function stopCameraView(){
  const vid=$('#cameraFeed');if(vid)vid.srcObject=null;
  if(app.cameraMode){
    (cameraActiveBefore||host).appendChild(renderer.domElement);
-   app.cameraMode=false;$('#cameraAR').hidden=true;
+   app.cameraMode=false;$('#cameraAR').hidden=true;document.body.style.overflow=cameraOriginalOverflow??'';
    sculpt.position.set(0,-.29,0);sculpt.scale.setScalar(1);sculpt.rotation.y=0;
    if(cameraOriginalPos)camera.position.copy(cameraOriginalPos);
    if(cameraOriginalRot)camera.rotation.copy(cameraOriginalRot);
@@ -389,7 +390,7 @@ function stopCameraView(){
  }
 }
 $('#closeCamera').addEventListener('click',stopCameraView);
-function cameraResize(delta){cameraScale=THREE.MathUtils.clamp(cameraScale+delta,.19,.9);sculpt.scale.setScalar(cameraScale);$('#camSizeLabel').textContent='TAMAÑO · '+Math.round(cameraScale/.45*40)+' CM'}
+function cameraResize(delta){cameraScale=THREE.MathUtils.clamp(cameraScale+delta,.19,.9);sculpt.scale.setScalar(cameraScale);$('#camSizeLabel').textContent='TAMAÑO · '+Math.round(cameraScale/.5*40)+' CM'}
 $('#camSmaller').addEventListener('click',()=>cameraResize(-.06));
 $('#camBigger').addEventListener('click',()=>cameraResize(.06));
 $('#camRotate').addEventListener('click',()=>{sculpt.rotation.y+=Math.PI/6});
