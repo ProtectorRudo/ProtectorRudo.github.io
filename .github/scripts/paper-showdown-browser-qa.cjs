@@ -49,6 +49,8 @@ const {chromium}=require('playwright');
   await page.waitForFunction(()=>window.Paper3DReady?.[0]===true,null,{timeout:9000});
   const play=await page.evaluate(()=>({players:window.territoryQA.players,playing:window.Paper3DState().playing,hero:window.Paper3DState().people[0].hero}));
   assert.equal(play.players,12);assert.equal(play.playing,true);assert.equal(play.hero,2);
+  const lobby=await page.evaluate(()=>({display:getComputedStyle(document.querySelector('#home')).display,hidden:document.querySelector('#home').classList.contains('hidden')}));
+  assert.equal(lobby.hidden,true);assert.equal(lobby.display,'none','The hidden lobby must not intercept mobile gameplay');
   await page.screenshot({path:'/tmp/cvdom-game-mobile.png'});
   await page.locator('#pause').click();
   await page.locator('#restart').click();
