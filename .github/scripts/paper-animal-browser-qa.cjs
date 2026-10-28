@@ -22,6 +22,13 @@ const {chromium}=require('playwright');
   await page.waitForFunction(()=>[...document.querySelectorAll('#heroPicker img')].every(im=>im.complete&&im.naturalWidth>0),null,{timeout:10000});
   const first=await page.evaluate(()=>({name:document.getElementById('menuCharacterLabel').textContent,cards:document.querySelectorAll('#heroPicker .heroChoice').length,css:getComputedStyle(document.getElementById('home')).backgroundColor,mode:window.territoryQA?.mode}));
   assert.equal(first.cards,8);assert.equal(first.name,'MOMO');
+  const cards=await page.evaluate(()=>[...document.querySelectorAll('#heroPicker .heroChoice')].map(node=>{
+   const img=node.querySelector('img').getBoundingClientRect(),name=node.querySelector('b').getBoundingClientRect();
+   return {name:node.querySelector('b').textContent,portraitBottom:Math.round(img.bottom),labelTop:Math.round(name.top),overlap:Math.round(img.bottom-name.top)};
+  }));
+  console.log('ANIMAL_CARDS',JSON.stringify(cards));
+  assert.equal(cards.length,8);
+  assert.ok(cards.every(x=>x.overlap<=5),'Cards should not overlap portrait and name');
   await page.waitForTimeout(3200);
   const ready=await page.evaluate(()=>({ready:window.PaperMenuReady===true,stage:document.getElementById('versus3dCanvas').parentElement.id}));
   await page.screenshot({path:'/tmp/paper-animal-menu.png',fullPage:true});
@@ -41,6 +48,12 @@ const {chromium}=require('playwright');
   await page.waitForTimeout(1000);
   const game=await page.evaluate(()=>({players:window.territoryQA.players,hero:window.Paper3DState().people[0].hero,mode:window.territoryQA.mode}));
   assert.equal(game.players,12);assert.equal(game.hero,7);
+  const view=await page.evaluate(()=>{
+   const r=document.getElementById('characterStage').getBoundingClientRect();
+   return {width:r.width,height:r.height,viewportWidth:innerWidth,viewportHeight:innerHeight};
+  });
+  console.log('ANIMAL_WEBGL_VIEWPORT',JSON.stringify(view));
+  assert.ok(view.width>=view.viewportWidth-2&&view.height>=view.viewportHeight-3,'3D stage must cover full mobile viewport');
   await page.screenshot({path:'/tmp/paper-animal-game.png'});
   console.log('ANIMAL_E2E',JSON.stringify({first,ready,showdown,game,errors,failed}));
   assert.deepEqual(errors,[]);assert.deepEqual(failed,[]);
