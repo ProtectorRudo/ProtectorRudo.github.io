@@ -308,11 +308,15 @@ function refreshRoom(){
  $('beginRoom').disabled=!(room.players.length===2&&room.players.every(p=>p.ready))||onlineState.started;
  if(stage==='ready'&&mode==='online')$('startButton').textContent=onlineState.isHost?'▶ INICIAR DUELO':'✓ ESTOY LISTO';
  if(onlineState.started)startOnlineMatch();
+ else if(onlineState.isHost&&onlineState.ready&&stage==='wait'&&room.players.length===2&&room.players.every(p=>p.ready)&&!onlineState.starting){
+  onlineState.starting=true;
+  hostStart().catch(e=>toast(e.message||'No se pudo iniciar')).finally(()=>onlineState.starting=false);
+ }
 }
 async function enterRoom(code,isHost){
  if(!roomCodeValid(code))throw Error('Necesitás el enlace completo del duelo.');
  if(conn)await conn.close();
- onlineState={isHost,ready:false,started:false,connected:false,channel:null};
+ onlineState={isHost,ready:false,started:false,starting:false,connected:false,channel:null};
  roomCode=code;room={id:code,code,players:[],hostUserId:null,status:'lobby'};
  $('roomInvite').style.display='block';
  safeText('roomCode',code.slice(0,8)+'…'+code.slice(-4));
