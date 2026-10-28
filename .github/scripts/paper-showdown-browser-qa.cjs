@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict');
 const {chromium}=require('playwright');
 (async()=>{
- const uri='https://protectorrudo.github.io/Modo-caos/cvdom-v2.html?qa=1&vs=1';
+ const uri='https://protectorrudo.github.io/Modo-caos/cvdom-v3.html?qa=1&vs=1';
  const errors=[],missing=[];let browser;
  try{
   const exe=process.env.CHROME_BIN;
