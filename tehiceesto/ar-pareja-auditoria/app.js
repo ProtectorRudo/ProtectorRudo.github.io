@@ -1,0 +1,249 @@
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+
+/* TE HICE ESTO · EL LUGAR DONDE VIVE LO NUESTRO
+ * Independent author concept. No data is written to production. 3D authored in code.
+ * Three.js 0.180 / glTF 2.0 / optional immersive WebXR AR, native iOS Quick Look fallback.
+ */
+const $=s=>document.querySelector(s);
+const $$=s=>[...document.querySelectorAll(s)];
+const app={phase:'sealed',visited:new Set(),audio:false,ar:false,placed:false,revealAt:0,shimmer:0,glbUrl:null,xrSession:null,exporterBusy:false};
+const mem=[
+ {title:'El primer nosotros.',label:'EL DÍA QUE CAMBIÓ TODO',quote:'No sabía que ese día tan normal iba a convertirse en mi fecha favorita.',photo:'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=1600&q=84'},
+ {title:'Lo extraordinario en lo simple.',label:'NUESTRO MUNDO MÁS PEQUEÑO',quote:'Con vos aprendí que la felicidad a veces es un café, un silencio y saber que no tengo que estar en ningún otro lugar.',photo:'https://images.unsplash.com/photo-1474552226712-ac0f0961a954?auto=format&fit=crop&w=1600&q=84'},
+ {title:'El lugar al que volver.',label:'TODO LO QUE FALTA POR VIVIR',quote:'Si el futuro pudiera elegirse en una sola imagen, elegiría una donde todavía estemos caminando juntos.',photo:'https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=1600&q=84'},
+];
+const EASE=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const prefersReduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function toast(s){const el=$('#toast');el.textContent=s;el.classList.add('visible');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('visible'),3800)}
+function showAct(n){
+ ['#actA','#actB','#actC'].forEach((s,i)=>$(s).hidden=i!==n);
+ $$('[data-progress]').forEach((x,i)=>x.classList.toggle('active',i<=n));
+ const headings=[
+ ['Lo nuestro<br><em>no termina</em><br>en la pantalla<span class="period">.</span>','Hay recuerdos demasiado importantes para guardarlos en un teléfono. Este tiene un lugar reservado en el mundo.'],
+ ['Todo lo que<br><em>fuimos</em><br>todavía florece<span class="period">.</span>','Tres instantes viven dentro de esta pieza. Cada uno guarda una forma distinta de decir: «Gracias por existir conmigo».'],
+ ['Lo nuestro<br><em>tiene</em><br>un lugar aquí<span class="period">.</span>','Quizás el amor sea esto: seguir encontrando razones para elegir a la misma persona, incluso después de tantos días.'],
+ ];
+ $('#mainTitle').innerHTML=headings[n][0];$('#mainDescription').textContent=headings[n][1];
+ $('#memoryList').hidden=n!==1;
+ $('#primaryText').textContent=n===0?'ABRIR EL RELICARIO':n===1?(app.visited.size===3?'REVELAR NUESTRO PARA SIEMPRE':'DESCUBRIR LOS RECUERDOS'):'VOLVER A VIVIRLO';
+ $('#primaryBtn').disabled=n===1&&app.visited.size===0;
+ $('#flowNote').textContent=n===0?'LA PIEZA SE ABRE CUANDO ESTÉS LISTA.':n===1?`${app.visited.size} DE 3 INSTANTES DESCUBIERTOS · TOCÁ SUS LUCES`:'EL RECUERDO ES TUYO. EL MOMENTO TAMBIÉN.';
+}
+// SOUND: original generative ambience & gestures, no licensed melody.
+class Soundscape {
+ constructor(){this.ctx=null;this.master=null;this.timer=null;this.on=false;this.rot=0;}
+ init(){if(this.ctx)return;const C=window.AudioContext||window.webkitAudioContext;if(!C)return;this.ctx=new C();this.master=this.ctx.createGain();this.master.gain.value=.0001;this.master.connect(this.ctx.destination);this.lowpass=this.ctx.createBiquadFilter();this.lowpass.type='lowpass';this.lowpass.frequency.value=1900;this.lowpass.connect(this.master);}
+ tone(hz,at,dur=.7,vol=.055,type='sine'){
+  if(!this.ctx||!this.on)return;const o=this.ctx.createOscillator();const g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(hz,at);o.frequency.exponentialRampToValueAtTime(hz*.998,at+dur);g.gain.setValueAtTime(.0001,at);g.gain.exponentialRampToValueAtTime(vol,at+.04);g.gain.exponentialRampToValueAtTime(.0001,at+dur);o.connect(g);g.connect(this.lowpass);o.start(at);o.stop(at+dur+.06);
+ }
+ chord(){if(!this.on||!this.ctx)return;const chords=[[196,246.94,293.66,392],[174.61,220,261.63,349.23],[164.81,196,261.63,329.63],[146.83,196,246.94,293.66]];const chord=chords[(this.rot++)%chords.length];const now=this.ctx.currentTime;chord.forEach((n,i)=>this.tone(n/2,now+i*.27,4.6,.011,'sine'));this.tone(chord[2]*2,now+1.25,3.4,.008,'sine');}
+ async toggle(){this.init();if(!this.ctx){toast('Audio no disponible en este navegador');return}await this.ctx.resume();this.on=!this.on;app.audio=this.on;$('#audioBtn').classList.toggle('on',this.on);$('#audioBtnText').textContent=this.on?'SILENCIAR':'ACTIVAR SONIDO';if(this.on){this.master.gain.setTargetAtTime(.7,this.ctx.currentTime,.35);this.chord();this.timer=setInterval(()=>this.chord(),4600)}else{clearInterval(this.timer);this.master.gain.setTargetAtTime(.0001,this.ctx.currentTime,.24)}}
+ sparkle(){if(!this.on||!this.ctx)return;const t=this.ctx.currentTime;[523.25,659.25,783.99,1046.5].forEach((f,i)=>this.tone(f,t+i*.14,1.8,.025,'sine'))}
+ open(){if(!this.on||!this.ctx)return;const t=this.ctx.currentTime;[220,277.18,329.63,440,554.37].forEach((f,i)=>this.tone(f,t+i*.21,3.8,.035,'sine'))}
+}
+const score=new Soundscape();
+$('#audioBtn').addEventListener('click',()=>score.toggle());
+
+// 3D STAGE
+const host=$('#canvasHost');const scene=new THREE.Scene();scene.background=null;
+const camera=new THREE.PerspectiveCamera(33,1,.045,150);camera.position.set(5.2,3.85,9.25);
+let renderer,controls;const sculpt=new THREE.Group();scene.add(sculpt);sculpt.position.y=-.29;
+const art=new THREE.Group();sculpt.add(art);const foliage=new THREE.Group();art.add(foliage);
+const brass=new THREE.MeshPhysicalMaterial({color:0xc5a06d,metalness:.88,roughness:.22,clearcoat:.8,clearcoatRoughness:.13});
+const brightBrass=new THREE.MeshPhysicalMaterial({color:0xf0d0a0,metalness:.87,roughness:.18,clearcoat:.7});
+const antique=new THREE.MeshPhysicalMaterial({color:0x85735d,metalness:.72,roughness:.36});
+const marble=new THREE.MeshPhysicalMaterial({color:0x25232c,metalness:.11,roughness:.24,clearcoat:.95,clearcoatRoughness:.1});
+const innerMarble=new THREE.MeshStandardMaterial({color:0x393039,metalness:.3,roughness:.52});
+const glass=new THREE.MeshPhysicalMaterial({color:0xe3dfd9,transmission:.97,ior:1.47,thickness:.32,metalness:0,roughness:.06,transparent:true,opacity:.42,depthWrite:false,side:THREE.DoubleSide,clearcoat:1});
+const glassLine=new THREE.MeshPhysicalMaterial({color:0xffffff,metalness:.15,roughness:.06,transparent:true,opacity:.19,depthWrite:false});
+const porcelain=new THREE.MeshPhysicalMaterial({color:0xffe5d7,metalness:0,roughness:.31,clearcoat:.49});
+const rose=new THREE.MeshPhysicalMaterial({color:0xc48584,metalness:.05,roughness:.35,clearcoat:.6});
+const sage=new THREE.MeshPhysicalMaterial({color:0x899b83,metalness:.25,roughness:.49,side:THREE.DoubleSide});
+const glowMaterial=new THREE.MeshBasicMaterial({color:0xffddaf});
+const shadowMat=new THREE.MeshBasicMaterial({color:0x1c131d,transparent:true,opacity:.5,depthWrite:false});
+const goldDark=new THREE.MeshStandardMaterial({color:0x7d6550,metalness:.72,roughness:.36});
+const scratch=new THREE.MeshBasicMaterial({color:0xf4cca2});
+const sphere=new THREE.SphereGeometry(1,16,12);const petalGeo=new THREE.SphereGeometry(1,13,8);
+const rg=new THREE.TorusGeometry(1,.02,10,100);
+const pointLights=[];const motes=[];const memoryMarkers=[];
+function add(parent,g,m,position=[0,0,0],rotation=[0,0,0],scale=[1,1,1]){const mesh=new THREE.Mesh(g,m);mesh.position.set(...position);mesh.rotation.set(...rotation);mesh.scale.set(...scale);parent.add(mesh);return mesh}
+function goldRing(radius,y,tube=.018,material=brass){const mesh=add(art,new THREE.TorusGeometry(radius,tube,8,100),material,[0,y,0],[Math.PI/2,0,0]);return mesh;}
+function drum(radius,height,y,material,segments=96){return add(art,new THREE.CylinderGeometry(radius,radius,height,segments),material,[0,y,0]);}
+function glowTexture(){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');const grad=x.createRadialGradient(64,64,1,64,64,63);grad.addColorStop(0,'rgba(255,244,219,1)');grad.addColorStop(.14,'rgba(255,223,171,.86)');grad.addColorStop(.39,'rgba(243,171,127,.36)');grad.addColorStop(1,'rgba(255,175,100,0)');x.fillStyle=grad;x.fillRect(0,0,128,128);return new THREE.CanvasTexture(c)}
+const glowTex=glowTexture();function sprite(parent,pos,size=.19,opacity=.8){const mat=new THREE.SpriteMaterial({map:glowTex,transparent:true,depthWrite:false,opacity,blending:THREE.AdditiveBlending,color:0xffd4aa});const s=new THREE.Sprite(mat);s.position.set(...pos);s.scale.set(size,size,size);parent.add(s);return s}
+function makeLabel(text,sub){const c=document.createElement('canvas');c.width=1024;c.height=220;const ctx=c.getContext('2d');ctx.clearRect(0,0,1024,220);ctx.fillStyle='#e8cba8';ctx.textAlign='center';ctx.font='600 70px Georgia';ctx.fillText(text,512,97);ctx.font='34px Georgia';ctx.letterSpacing='10px';ctx.fillStyle='#be9882';ctx.fillText(sub,512,160);const texture=new THREE.CanvasTexture(c);texture.colorSpace=THREE.SRGBColorSpace;const mat=new THREE.MeshBasicMaterial({map:texture,transparent:true,side:THREE.DoubleSide,depthWrite:false});return add(art,new THREE.PlaneGeometry(1.7,.365),mat,[0,.33,1.18]);}
+function buildPedestal(){
+ drum(1.31,.08,.05,brightBrass);drum(1.25,.32,.24,marble);drum(1.29,.048,.413,brass);drum(1.20,.05,.464,innerMarble);
+ goldRing(1.274,.124,.018,brass);goldRing(1.26,.356,.019,brass);goldRing(1.19,.495,.01,brightBrass);
+ for(let i=0;i<38;i++){const a=i*Math.PI*2/38;add(art,new THREE.BoxGeometry(.012,.035,.018),brightBrass,[1.248*Math.cos(a),.248,1.248*Math.sin(a)],[0,-a,0])}
+ for(let i=0;i<18;i++){const a=i*Math.PI*2/18;add(art,sphere,brightBrass,[1.2*Math.cos(a),.477,1.2*Math.sin(a)],[0,0,0],[.017,.017,.017]);}
+ makeLabel('EMMA  ×  JULIÁN','14 · 02 · 2023');
+ const ground=new THREE.Mesh(new THREE.CircleGeometry(4.1,80),new THREE.MeshBasicMaterial({color:0x483340,transparent:true,opacity:.22,depthWrite:false}));ground.rotation.x=-Math.PI/2;ground.position.y=-.01;sculpt.add(ground);
+ for(let i=0;i<5;i++){const ring=add(sculpt,new THREE.TorusGeometry(1.4+i*.22,.003,3,90),goldDark,[0,.009,0],[Math.PI/2,0,0]);ring.material=ring.material.clone();ring.material.transparent=true;ring.material.opacity=.14*(1-i/6);}
+}
+let cloche,cap;
+function makeCloche(){const points=[];const N=44;for(let i=0;i<=N;i++){const t=i/N;const r=1.12*(1-.965*Math.pow(t,3.9));points.push(new THREE.Vector2(r,.52+2.72*t))}
+ cloche=new THREE.Group();art.add(cloche);
+ add(cloche,new THREE.LatheGeometry(points,110),glass);
+ add(cloche,new THREE.TorusGeometry(1.12,.032,12,128),brightBrass,[0,.55,0],[Math.PI/2,0,0]);
+ add(cloche,new THREE.TorusGeometry(1.112,.012,8,128),glassLine,[0,.61,0],[Math.PI/2,0,0]);
+ add(cloche,new THREE.SphereGeometry(.125,20,16),brightBrass,[0,3.28,0]);
+ add(cloche,new THREE.SphereGeometry(.036,14,8),antique,[0,3.405,0]);
+ cap=cloche;
+}
+function limb(parent,points,r,material,segments=55){const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));const line=new THREE.Mesh(new THREE.TubeGeometry(curve,segments,r,7,false),material);parent.add(line);return line;}
+const random=(seed)=>{let x=Math.sin(seed*127.1+78.233)*43758.5453123;return x-Math.floor(x)};
+function bloom(parent,x,y,z,scale=1,white=false){const group=new THREE.Group();group.position.set(x,y,z);parent.add(group);const count=5;for(let i=0;i<count;i++){const a=i*Math.PI*2/count;const petal=add(group,petalGeo,(white||i%2)?porcelain:rose,[Math.sin(a)*.069*scale,Math.cos(a)*.069*scale,0],[0,0,a],[.052*scale,.084*scale,.017*scale]);petal.rotation.z=-a;}
+ add(group,sphere,brightBrass,[0,0,.012],[0,0,0],[.019*scale,.019*scale,.019*scale]);group.rotation.x=random(x*11+y*19)*.3-.15;group.rotation.y=random(y*17)*Math.PI*2;
+ return group;}
+function buildBotanical(){
+ const left=new THREE.Group(),right=new THREE.Group();left.name='left';right.name='right';foliage.add(left,right);
+ for(let side of [-1,1]){
+  const branch=side===-1?left:right;
+  const stem=[];
+  for(let i=0;i<35;i++){let t=i/34;stem.push([side*(.36*(1-t)-.3*Math.sin(t*Math.PI)+.07*Math.sin(t*3*Math.PI)),.51+2.04*t,side*.08*Math.sin(t*Math.PI*2.7)]);}
+  limb(branch,stem,.041,side<0?brass:brightBrass,74);
+  for(let i=0;i<9;i++){
+   const t=.21+i*.082,src=stem[Math.floor(t*34)];const a=i*2.39+side*.4;
+   const len=.25+.18*random(i+side*23);const end=[src[0]+len*Math.cos(a),src[1]+len*.32,src[2]+len*Math.sin(a)];
+   const mid=[src[0]+(end[0]-src[0])*.52,src[1]+len*.36,src[2]+(end[2]-src[2])*.50];
+   limb(branch,[src,mid,end],.013,brass,18);
+   const leaf=add(branch,petalGeo,sage,[...end],[0,0,a],[.045,.12,.017]);leaf.rotation.y=a;
+   if(i%2===0){bloom(branch,end[0],end[1]+.045,end[2],.65,i%4===0);}
+  }
+ }
+ // Halo of delicate botanical ornaments; individually built in high-poly ceramic.
+ for(let i=0;i<32;i++){const a=i*2.39996,t=i/32,r=.29+.63*Math.sqrt(t);const x=r*Math.cos(a),z=r*Math.sin(a),y=2.18+.18*Math.sin(i*2.3)+.15*Math.cos(i*.7);
+  if(i%3===0)bloom(foliage,x,y,z,.9+(i%4)*.12,i%4===0);
+  else{const leaf=add(foliage,petalGeo,sage,[x,y,z],[0,a,i*.4],[.05,.14,.018]);leaf.rotation.y=a;}
+ }
+ // Tiny luminescent seeds inside the glass, held in real three-dimensional space.
+ for(let i=0;i<31;i++){const a=i*2.39996;const r=.18+.72*random(i*71);const y=.65+2.2*random(i*29+30);
+  const s=sprite(foliage,[r*Math.cos(a),y,r*Math.sin(a)],.11+.09*random(i),.32+.24*random(i+12));motes.push({obj:s,seed:i*1.27,baseY:y});
+ }
+ foliage.scale.set(1,.12,1);foliage.position.y=.45;
+}
+function buildMemoryMarkers(){
+ const ps=[[-.76,1.70,.73],[.75,2.03,.44],[0,2.48,.7]];
+ ps.forEach((p,i)=>{
+  const g=new THREE.Group();g.position.set(...p);art.add(g);
+  add(g,sphere,new THREE.MeshPhysicalMaterial({color:0xe6ba9f,metalness:.87,roughness:.16,emissive:0x5e3429,emissiveIntensity:.14}),[0,0,0],[0,0,0],[.085,.085,.085]);
+  add(g,new THREE.TorusGeometry(.15,.009,8,64),brightBrass,[0,0,0],[0,0,0]);
+  add(g,new THREE.TorusGeometry(.198,.003,6,80),brass,[0,0,0],[0,.24,0]);
+  const halo=sprite(g,[0,0,0],.69,.66);
+  g.userData.index=i;g.userData.halo=halo;g.visible=false;
+  memoryMarkers.push(g);
+ });
+}
+let particleField;function buildParticles(){const geometry=new THREE.BufferGeometry();const positions=[];for(let i=0;i<150;i++){const a=random(i+42)*Math.PI*2,r=1.3+random(i*3)*3.6,y=.2+random(i*11)*3.3;positions.push(r*Math.cos(a),y,r*Math.sin(a))}geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));const mat=new THREE.PointsMaterial({color:0xe1b3a0,size:.028,transparent:true,opacity:.22,sizeAttenuation:true,depthWrite:false,blending:THREE.AdditiveBlending});particleField=new THREE.Points(geometry,mat);scene.add(particleField)}
+let clock,reticle,xrHitSource=null,xrAsked=false;
+function init3D(){
+ renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance',preserveDrawingBuffer:false});renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.75;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.xr.enabled=true;renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));host.appendChild(renderer.domElement);
+ const hemisphere=new THREE.HemisphereLight(0xeed7c5,0x46303b,2.5);scene.add(hemisphere);
+ const key=new THREE.DirectionalLight(0xffdfbf,5.1);key.position.set(-3,7,5);scene.add(key);
+ const fill=new THREE.DirectionalLight(0xffd8bc,2.6);fill.position.set(5,3,1);scene.add(fill);
+ const rim=new THREE.DirectionalLight(0x9ba7d8,3.7);rim.position.set(2,4,-5);scene.add(rim);
+ for(const [p,color,intensity] of [[[0,2.2,0],0xf5b4a5,7],[[-2,3,-2],0xffdbb3,5],[[2,2,2],0xe9ada9,3]]) {const light=new THREE.PointLight(color,intensity,7,2);light.position.set(...p);scene.add(light)}
+ buildPedestal();makeCloche();buildBotanical();buildMemoryMarkers();buildParticles();
+ controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.055;controls.enablePan=false;controls.enableZoom=true;controls.autoRotate=false;controls.minDistance=5.7;controls.maxDistance=13;controls.minPolarAngle=.42;controls.maxPolarAngle=1.55;controls.target.set(0,1.58,0);controls.update();
+ camera.lookAt(0,1.6,0);clock=new THREE.Clock();
+ reticle=new THREE.Mesh(new THREE.RingGeometry(.11,.14,44),new THREE.MeshBasicMaterial({color:0xe8d3bd,side:THREE.DoubleSide}));reticle.rotation.x=-Math.PI/2;reticle.visible=false;scene.add(reticle);
+ renderer.domElement.addEventListener('pointerup',handlePointer);
+ resize();new ResizeObserver(resize).observe(host);
+ renderer.setAnimationLoop(renderFrame);$('#sceneLoading').classList.add('gone');setTimeout(()=>{$('#sceneLoading').hidden=true},750);
+ // Warm up glTF resources before a user invokes the native AR viewer.
+ setTimeout(()=>{void prepareNativeAR()},1400);
+}
+function resize(){if(!renderer)return;const width=Math.max(host.clientWidth,320),height=Math.max(host.clientHeight,320);camera.aspect=width/height;camera.fov=innerWidth<=680?40:innerWidth<1000?42:33;camera.updateProjectionMatrix();renderer.setSize(width,height,false)}
+function handlePointer(ev){if(app.ar&&app.xrSession&&!app.placed&&reticle.visible){sculpt.position.copy(reticle.position);sculpt.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0),0);sculpt.scale.setScalar(.27);sculpt.visible=true;app.placed=true;reticle.visible=false;$('#arTip').textContent='OBJETO COLOCADO · MOVETE A SU ALREDEDOR';score.sparkle();return}
+ if(app.phase!=='memories'||app.ar)return;const b=renderer.domElement.getBoundingClientRect();const coord=new THREE.Vector2(((ev.clientX-b.left)/b.width)*2-1,-((ev.clientY-b.top)/b.height)*2+1);const ray=new THREE.Raycaster();ray.setFromCamera(coord,camera);const hits=ray.intersectObjects(memoryMarkers,true);if(hits.length){let group=hits[0].object;while(group&&!Number.isInteger(group.userData.index))group=group.parent;if(group){openMemory(group.userData.index);return}}}
+let t=0;function renderFrame(timestamp,frame){const dt=clock.getDelta();t+=Math.min(dt,.07);if(app.phase==='opening'){
+ const elapsed=(performance.now()-app.revealAt)/(prefersReduced?220:3700),v=clamp(elapsed,0,1);
+ const cl=EASE(clamp(v/.66,0,1));cloche.position.y=cl*3.0;cloche.scale.setScalar(1+cl*.1);glass.opacity=.42*(1-cl)+.035;
+ const grow=EASE(clamp((v-.18)/.72,0,1));foliage.scale.y=.12+grow*.88;foliage.position.y=.45*(1-grow);
+ memoryMarkers.forEach((g,i)=>{g.visible=v>.63;g.scale.setScalar(clamp((v-.67)*6,0,1));});
+ if(v>=1){app.phase='memories';showAct(1);score.sparkle()}
+ }
+ if(app.phase==='sealed'){cloche.rotation.y=Math.sin(t*.19)*.03;foliage.scale.y=.55;foliage.position.y=.18}
+ if(app.phase==='memories'||app.phase==='final'){memoryMarkers.forEach((g,i)=>{g.visible=true;g.position.y+=Math.sin(t*1.35+i*2)*.0009;g.rotation.y+=.002;g.userData.halo.material.opacity=(app.visited.has(i)?.22:.48)+.12*Math.sin(t*2+i)});}
+ if(app.phase==='final'){art.rotation.y+=.00065;particleField.material.opacity=.26+.11*Math.sin(t*1.3)}
+ else particleField.rotation.y+=.00008;
+ motes.forEach(({obj,seed,baseY})=>{obj.position.y=baseY+Math.sin(t*.83+seed)*.025;obj.material.opacity=.32+.19*Math.sin(t+seed)});
+ if(!app.ar){controls?.update();}else if(frame&&app.xrSession&&!app.placed){
+  const ref=renderer.xr.getReferenceSpace();if(ref&&xrHitSource){const results=frame.getHitTestResults(xrHitSource);if(results.length){const pose=results[0].getPose(ref);if(pose){reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix);reticle.matrix.decompose(reticle.position,reticle.quaternion,reticle.scale)}}else reticle.visible=false}
+ }
+ renderer.render(scene,camera);
+}
+// NARRATIVE
+function enter(){const el=$('#entryOverlay');el.classList.add('closed');setTimeout(()=>el.remove(),1500);showAct(0);score.init();if(score.ctx&&!score.on)void score.toggle();score.sparkle();}
+function openRelic(){if(app.phase!=='sealed')return;app.phase='opening';app.revealAt=performance.now();score.open();$('#primaryBtn').disabled=true;$('#primaryText').textContent='DESCUBRIENDO LO NUESTRO…';setTimeout(()=>{$('#primaryBtn').disabled=false},4300)}
+function openMemory(i){if(app.phase!=='memories')return;const m=mem[i];app.visited.add(i);score.sparkle();const modal=$('#memoryModal');$('#memoryImage').style.backgroundImage=`url('${m.photo}')`;
+ $('#memoryCaption').textContent=`ARCHIVO PERSONAL / 0${i+1} · ${m.label}`;$('#memoryHeading').textContent=m.title;$('#memoryText').textContent=m.quote;modal.hidden=false;$('#nextMemory').textContent=app.visited.size===3?'VOLVER · EL ÚLTIMO MENSAJE TE ESPERA ↗':'VOLVER AL RELICARIO ↗';
+ $$('[data-memory]').forEach(e=>e.classList.toggle('seen',app.visited.has(Number(e.dataset.memory))));
+ showAct(1);$('#primaryBtn').disabled=false;}
+function closeMemory(){const modal=$('#memoryModal');modal.hidden=true;}
+function reveal(){if(app.phase==='opening')return;if(app.phase==='memories'&&app.visited.size<3){let next=0;while(app.visited.has(next))next++;openMemory(Math.min(next,2));return}if(app.phase!=='memories'&&app.phase!=='final')return;if(app.phase==='memories'){app.phase='final';showAct(2);score.open();cloche.visible=false;}
+ const overlay=$('#finalOverlay');overlay.hidden=false;
+ let steps=['Si pudiera volver a aquel primer día…','volvería a buscarte entre todas las personas.','Volvería a aprender tus gestos, a reírme de las mismas cosas,','y volvería a elegirte.','Una y todas las veces.'];
+ let i=0;const words=$('#finalWords');words.textContent=steps[0];let stamp=0;function next(){if(overlay.hidden)return;i++;if(i>=steps.length){words.textContent='Y si pudiera elegir de nuevo, volvería a encontrarte.';return}words.style.opacity='0';setTimeout(()=>{words.textContent=steps[i];words.style.opacity='1';if(i<steps.length)setTimeout(next,i===2?3600:2800)},550)};words.style.transition='opacity .5s';setTimeout(next,3700);
+}
+$('#enterBtn').addEventListener('click',enter);
+$('#primaryBtn').addEventListener('click',()=>{if(app.phase==='sealed')openRelic();else if(app.phase==='memories')reveal();else if(app.phase==='final')reveal()});
+$$('[data-memory]').forEach(x=>x.addEventListener('click',()=>openMemory(Number(x.dataset.memory))));
+$('#closeMemory').addEventListener('click',closeMemory);$('#nextMemory').addEventListener('click',closeMemory);
+$('#finalClose').addEventListener('click',()=>{$('#finalOverlay').hidden=true;score.sparkle()});
+$('#resetView').addEventListener('click',()=>{controls.reset();camera.position.set(5.2,3.85,9.25);controls.target.set(0,1.58,0);controls.update();toast('Vista centrada')});
+window.addEventListener('keydown',ev=>{if(ev.key==='Escape'){closeMemory();$('#finalOverlay').hidden=true;$('#arDialog').hidden=true}});
+// AR: Genuine immersive WebXR with hit testing on supporting Android devices.
+// In iOS we prepare a glTF model for Quick Look with Google's model-viewer.
+let nativeViewerReady=false;
+async function prepareNativeAR(){if(app.glbUrl||app.exporterBusy)return app.glbUrl;app.exporterBusy=true;
+ try{
+  const exportGroup=art.clone(true);const foliageCopy=exportGroup.getObjectByName('left')?.parent;
+  // Export a fully-grown sculpture (no ephemeral particles) for native AR.
+  exportGroup.traverse(o=>{if(o.isSprite)o.visible=false});
+  const cl=exportGroup.children.find(x=>x.type==='Group'&&x.children.some(y=>y.geometry?.type==='LatheGeometry'));if(cl)cl.position.y=0;
+  const botanical=exportGroup.children.find(x=>x.children.some(z=>z.name==='left'));if(botanical){botanical.scale.set(1,1,1);botanical.position.y=0}
+  const exporter=new GLTFExporter();const arr=await exporter.parseAsync(exportGroup,{binary:true,maxTextureSize:512});const blob=new Blob([arr],{type:'model/gltf-binary'});app.glbUrl=URL.createObjectURL(blob);
+  const mv=$('#iosARModel');mv.setAttribute('src',app.glbUrl);return app.glbUrl;
+ }catch(e){console.warn('AR export unavailable',e);return null}finally{app.exporterBusy=false}
+}
+let xrSupported=false;
+(async()=>{try{xrSupported=!!(navigator.xr&&await navigator.xr.isSessionSupported('immersive-ar'))}catch{};})();
+function showArDialog(){if(app.phase==='sealed')toast('Podés llevarlo a tu espacio. Primero, disfrutá la apertura.');$('#arDialog').hidden=false;void prepareNativeAR();}
+$('#arBtn').addEventListener('click',showArDialog);
+$('#closeArDialog').addEventListener('click',()=>$('#arDialog').hidden=true);
+$('#keep3d').addEventListener('click',()=>$('#arDialog').hidden=true);
+async function launchXR(){
+ if(!navigator.xr)return false;
+ let supported=false;try{supported=await navigator.xr.isSessionSupported('immersive-ar')}catch{};if(!supported)return false;
+ try{
+  const session=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay','local-floor'],domOverlay:{root:$('#arOverlay')}});
+  app.ar=true;app.placed=false;app.xrSession=session;sculpt.visible=false;reticle.visible=false;$('#arOverlay').hidden=false;$('#arDialog').hidden=true;
+  scene.background=null;renderer.xr.setReferenceSpaceType('local');await renderer.xr.setSession(session);
+  const viewerSpace=await session.requestReferenceSpace('viewer');xrHitSource=await session.requestHitTestSource({space:viewerSpace});
+  session.addEventListener('end',()=>{app.ar=false;app.placed=false;app.xrSession=null;xrHitSource?.cancel();xrHitSource=null;reticle.visible=false;sculpt.visible=true;sculpt.position.set(0,-.29,0);sculpt.scale.setScalar(1);$('#arOverlay').hidden=true;resize()});
+  toast('Mové el teléfono sobre la mesa. Tocá cuando veas el marcador.');return true;
+ }catch(e){console.warn('AR session:',e);return false}
+}
+async function launchNativeAR(){try{
+ await prepareNativeAR();
+ if(!app.glbUrl)return false;
+ await import('https://cdn.jsdelivr.net/npm/@google/model-viewer@4.1.0/dist/model-viewer.min.js');
+ await customElements.whenDefined('model-viewer');
+ const mv=$('#iosARModel');if(!mv.canActivateAR)return false;
+ mv.activateAR();return true;
+}catch(e){console.warn('Quick Look unavailable',e);return false}}
+$('#launchAR').addEventListener('click',async()=>{const btn=$('#launchAR');btn.disabled=true;btn.textContent='PREPARANDO TU ESPACIO…';
+ let ok=false;
+ if(xrSupported){ok=await launchXR();}
+ if(!ok){ok=await launchNativeAR();if(ok)$('#arDialog').hidden=true;}
+ if(!ok){$('#arMessage').textContent='Tu navegador no ofrece AR espacial compatible. La pieza sigue disponible en 3D, con las mismas animaciones, recuerdos e interacciones.';$('#arDisclaimer').textContent='Para AR espacial probá Chrome en Android con ARCore, o Safari en iPhone compatible con Quick Look.';toast('AR no disponible en este navegador. La experiencia 3D está lista.')}
+ btn.disabled=false;btn.textContent='ENTRAR EN REALIDAD AUMENTADA ↗';
+});
+$('#exitAR').addEventListener('click',()=>app.xrSession?.end());
+// If WebGL cannot start, never trap visitors with a blank viewport.
+try{init3D()}catch(e){console.error('WebGL scene error:',e);$('#sceneLoading').innerHTML='<strong>EL OBJETO NO PUDO CARGARSE</strong><small>Probá Chrome, Safari o activá la aceleración gráfica.</small>';$('#primaryBtn').disabled=true;toast('No se pudo iniciar el motor 3D en este navegador')}
