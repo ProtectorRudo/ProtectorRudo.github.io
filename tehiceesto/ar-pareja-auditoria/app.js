@@ -162,24 +162,55 @@ function init3D(){
 }
 function resize(){if(!renderer)return;const target=app.cameraMode?$('#cameraView'):host;const width=Math.max(target.clientWidth,320),height=Math.max(target.clientHeight,320);camera.aspect=width/height;camera.fov=app.cameraMode?47:(innerWidth<=680?40:innerWidth<1000?42:33);camera.updateProjectionMatrix();renderer.setSize(width,height,false)}
 // Modo Caos's placement pattern: preview is *always visible*, even before hit-test finds a plane.
-let xrHitResult=null,xrAnchor=null,xrTracking='booting',xrLastHit=0,arScale=.16,arYaw=0,arFrameCount=0;
-const xrP=new THREE.Vector3(),xrD=new THREE.Vector3();
+let xrHitResult=null,xrAnchor=null,xrTracking='booting',xrLastHit=0,arScale=.21,arYaw=0,arFrameCount=0;
+let xrPoseValid=false,xrModelOnScreen=false,xrLastPlacementOrigin='none',xrLastViewerPose=null;
+const xrP=new THREE.Vector3(),xrD=new THREE.Vector3(),xrQ=new THREE.Quaternion(),xrTarget=new THREE.Vector3(),xrCenter=new THREE.Vector3();
+const xrMatView=new THREE.Matrix4(),xrMatProj=new THREE.Matrix4(),xrClip=new THREE.Vector4();
+const RELIC_CENTER_LOCAL_Y=1.65,RELIC_PREVIEW_DISTANCE=.95;
+function previewPositionFromViewer(position,orientation,scale=arScale){
+  xrP.set(position.x,position.y,position.z);
+  xrQ.set(orientation.x,orientation.y,orientation.z,orientation.w).normalize();
+  xrD.set(0,0,-1).applyQuaternion(xrQ).normalize(); // Full XR pitch, NOT flattened onto horizontal plane.
+  return xrTarget.copy(xrP).addScaledVector(xrD,RELIC_PREVIEW_DISTANCE).addScaledVector(new THREE.Vector3(0,1,0),-RELIC_CENTER_LOCAL_Y*scale);
+}
+function isRelicarioInXRView(viewerPose,position,scale=arScale){
+  if(!viewerPose?.views?.length)return false;
+  xrCenter.copy(position).addScaledVector(new THREE.Vector3(0,1,0),RELIC_CENTER_LOCAL_Y*scale);
+  for(const view of viewerPose.views){
+    xrMatView.fromArray(view.transform.inverse.matrix);
+    xrMatProj.fromArray(view.projectionMatrix);
+    xrClip.set(xrCenter.x,xrCenter.y,xrCenter.z,1).applyMatrix4(xrMatView).applyMatrix4(xrMatProj);
+    if(xrClip.w>.025&&Math.abs(xrClip.x/xrClip.w)<.79&&Math.abs(xrClip.y/xrClip.w)<.79)return true;
+  }
+  return false;
+}
+function ensureARObjectVisible(){
+  // No hit-test or input event should ever permanently hide the artistic object.
+  sculpt.visible=true;
+  art.visible=true;
+  if(!cloche.visible && app.phase==='sealed')cloche.visible=true;
+}
 function arStatus(message,tracking){$('#arTip').textContent=message;if(tracking)$('#arTracking').textContent=tracking;}
 function updateARScale(delta){
  arScale=THREE.MathUtils.clamp(arScale+delta,.085,.31);
  if(app.ar)sculpt.scale.setScalar(arScale);
- $('#arSizeLabel').textContent='TAMAÑO · '+Math.round(arScale/.16*40)+' CM';
+ $('#arSizeLabel').textContent='TAMAÑO · '+Math.round(arScale/.21*40)+' CM';
 }
 function rotateAR(){
  arYaw+=Math.PI/8;if(app.ar)sculpt.rotation.y=arYaw;
 }
 async function placeInAR(){
- if(!app.ar||!app.xrSession||app.placed)return false;
+ // The original code accepted a touch even when the sculpture was behind the viewer.
+ // Never claim placement before receiving a camera pose AND checking projected visibility.
+ if(!app.ar||!app.xrSession||app.placed||!xrPoseValid||!xrModelOnScreen){
+   arStatus('TODAVÍA NO PUEDO FIJARLO · APUNTÁ AL CENTRO','ESPERANDO QUE EL RELICARIO SEA VISIBLE');
+   return false;
+ }
  app.placed=true;reticle.visible=false;$('#arPlace').hidden=true;$('#arReposition').hidden=false;
  $('#arCenterMarker').hidden=true;
- arStatus('YA ESTÁ EN TU MUNDO · CAMINÁ A SU ALREDEDOR',xrTracking==='plane'?'SUPERFICIE DETECTADA · RELICARIO FIJO':'POSICIÓN ESPACIAL APROXIMADA · REUBICABLE');
+ arStatus('RELICARIO FIJADO · CAMINÁ A SU ALREDEDOR',
+   xrTracking==='plane'?'SOBRE SUPERFICIE REAL · FIJO':'COLOCACIÓN MANUAL · SEGUIMIENTO LOCAL');
  score.sparkle();
- // Capture a real XR anchor when the runtime offers one; otherwise keep world-space position.
  if(xrHitResult&&typeof xrHitResult.createAnchor==='function'){
    try{const anchor=await xrHitResult.createAnchor();if(app.ar&&app.placed){xrAnchor=anchor;$('#arTracking').textContent='ANCLAJE ESPACIAL ACTIVO'}else anchor.delete?.()}catch(err){console.info('XR anchor unavailable, retaining local-space pose',err)}
  }
@@ -187,8 +218,8 @@ async function placeInAR(){
 }
 function rePlaceAR(){
  if(!app.ar)return;
- xrAnchor?.delete?.();xrAnchor=null;app.placed=false;
- $('#arPlace').hidden=false;$('#arReposition').hidden=true;$('#arCenterMarker').hidden=false;
+ xrAnchor?.delete?.();xrAnchor=null;app.placed=false;xrModelOnScreen=false;
+ $('#arPlace').hidden=false;$('#arPlace').disabled=true;$('#arReposition').hidden=true;$('#arCenterMarker').hidden=false;
  arStatus('MOVÉ EL TELÉFONO · FIJÁ EL RELICARIO SOBRE UNA MESA','BUSCANDO SUPERFICIE');
 }
 function updateARPreview(time,frame){
@@ -196,51 +227,70 @@ function updateARPreview(time,frame){
  arFrameCount++;
  const ref=renderer.xr.getReferenceSpace();
  if(!ref)return;
+ const viewer=frame.getViewerPose(ref);
+ if(!viewer || !viewer.transform){
+   xrPoseValid=false;xrModelOnScreen=false;$('#arPlace').disabled=true;
+   if(arFrameCount%20===0)arStatus('BUSCANDO LA CÁMARA AR…','ESPERANDO POSICIÓN DEL TELÉFONO');
+   return;
+ }
+ xrPoseValid=true;xrLastViewerPose=viewer;
  if(app.placed){
    if(xrAnchor){
      const pose=frame.getPose(xrAnchor.anchorSpace,ref);
-     if(pose){sculpt.position.set(pose.transform.position.x,pose.transform.position.y,pose.transform.position.z);}
+     if(pose)sculpt.position.set(pose.transform.position.x,pose.transform.position.y,pose.transform.position.z);
    }
+   // Permanently fixed in XR world coordinates; no camera-relative movement after placement.
+   ensureARObjectVisible();
    return;
  }
- let found=false;
+ let found=false,hitResult=null;
  if(xrHitSource){
    try{
-     const results=frame.getHitTestResults(xrHitSource);
-     if(results.length){
-       const pose=results[0].getPose(ref);
+     const hits=frame.getHitTestResults(xrHitSource);
+     if(hits.length){
+       const pose=hits[0].getPose(ref);
        if(pose){
-         sculpt.position.set(pose.transform.position.x,pose.transform.position.y,pose.transform.position.z);
-         xrHitResult=results[0];xrTracking='plane';xrLastHit=time;found=true;
-         reticle.visible=true;reticle.position.copy(sculpt.position);
+         const pos=pose.transform.position;
+         xrTarget.set(pos.x,pos.y,pos.z);
+         // ARCore sometimes returns a stale plane on a different part of the room.
+         if(isRelicarioInXRView(viewer,xrTarget)){
+           hitResult=hits[0];found=true;
+           xrTracking='plane';xrLastHit=time;
+           reticle.visible=true;reticle.position.copy(xrTarget);
+         }
        }
      }
-   }catch(e){if(arFrameCount%180===1)console.info('AR plane search',e)}
+   }catch(err){if(arFrameCount%180===1)console.info('AR plane detector',err)}
  }
  if(!found){
-   // Never hide the object! Camera-forward provisional pose if no floor/table is recognized.
-   // This is real XR world space, not a screen-space sprite. The user can fix it manually.
-   if(xrTracking!=='plane'||time-xrLastHit>900){
-     xrHitResult=null;xrTracking='manual';reticle.visible=false;
-     const cam=renderer.xr.getCamera();
-     if(cam){
-       cam.updateMatrixWorld(true);
-       cam.getWorldPosition(xrP);cam.getWorldDirection(xrD);
-       xrD.y=0;
-       if(xrD.lengthSq()<.001)xrD.set(0,0,-1);
-       xrD.normalize();
-       sculpt.position.copy(xrP).addScaledVector(xrD,.85);
-       sculpt.position.y=xrP.y-.34;
-     }
-   }
+   reticle.visible=false;
+   // Camera pose is the same authoritative XRFrame source Modo Caos uses.
+   // Include pitch: when looking at a floor, a horizontal-only offset lands ABOVE the viewport.
+   previewPositionFromViewer(viewer.transform.position,viewer.transform.orientation);
+   xrTracking='manual';
  }
- if(arFrameCount%18===0){
-   arStatus(found?'SUPERFICIE DETECTADA · AJUSTÁ Y FIJÁ EL RELICARIO':'EL RELICARIO ESTÁ DELANTE TUYO · PODÉS FIJARLO AQUÍ',
-     found?'SUPERFICIE REAL ✓ · POSICIÓN PRECISA':'SIN DETECCIÓN DE MESA · UBICACIÓN MANUAL');
+ sculpt.position.copy(xrTarget);
+ sculpt.scale.setScalar(arScale);sculpt.rotation.y=arYaw;
+ xrHitResult=hitResult;
+ ensureARObjectVisible();
+ xrModelOnScreen=isRelicarioInXRView(viewer,sculpt.position,arScale);
+ $('#arPlace').disabled=!xrModelOnScreen;
+ if(arFrameCount%16===0){
+   arStatus(xrModelOnScreen
+     ? found?'RELICARIO VISIBLE SOBRE LA MESA · TOCÁ FIJAR':'RELICARIO ENCUADRADO · TOCÁ FIJAR PARA DEJARLO AHÍ'
+     :'MOVÉ EL TELÉFONO DESPACIO · BUSCANDO LA PIEZA',
+     xrModelOnScreen
+       ? found?'SUPERFICIE REAL DETECTADA ✓':'VISTA PREVIA VISIBLE · COLOCACIÓN MANUAL'
+       :'LA POSICIÓN TODAVÍA NO ESTÁ LISTA');
  }
- sculpt.scale.setScalar(arScale);sculpt.rotation.y=arYaw;sculpt.visible=true;
 }
-
+// Diagnostic geometry calculations are deterministic; production XR still needs a physical-device test.
+window.__relicarioARGeometryTest={
+ compute:(position,orientation,scale=.21)=>{
+  const t=previewPositionFromViewer(position,orientation,scale);
+  return {x:t.x,y:t.y,z:t.z,centerY:t.y+RELIC_CENTER_LOCAL_Y*scale};
+ },visible:(pose,p,scale=.21)=>isRelicarioInXRView(pose,new THREE.Vector3(p.x,p.y,p.z),scale)
+};
 function handlePointer(ev){if(app.ar){placeInAR();return}
  if(app.phase!=='memories'||app.ar)return;const b=renderer.domElement.getBoundingClientRect();const coord=new THREE.Vector2(((ev.clientX-b.left)/b.width)*2-1,-((ev.clientY-b.top)/b.height)*2+1);const ray=new THREE.Raycaster();ray.setFromCamera(coord,camera);const hits=ray.intersectObjects(memoryMarkers,true);if(hits.length){let group=hits[0].object;while(group&&!Number.isInteger(group.userData.index))group=group.parent;if(group){openMemory(group.userData.index);return}}}
 let t=0;function renderFrame(timestamp,frame){const dt=clock.getDelta();t+=Math.min(dt,.07);if(app.phase==='opening'){
@@ -256,7 +306,7 @@ let t=0;function renderFrame(timestamp,frame){const dt=clock.getDelta();t+=Math.
  else particleField.rotation.y+=.00008;
  motes.forEach(({obj,seed,baseY})=>{obj.position.y=baseY+Math.sin(t*.83+seed)*.025;obj.material.opacity=.32+.19*Math.sin(t+seed)});
  if(!app.ar){if(!app.cameraMode)controls?.update();}
- else updateARPreview(timestamp,frame);
+ else {try{updateARPreview(timestamp,frame)}catch(e){if(arFrameCount%60===0)console.error('XR placement frame',e);xrModelOnScreen=false;$('#arPlace').disabled=true;}}
  renderer.render(scene,camera);
 }
 // NARRATIVE
@@ -303,14 +353,14 @@ $('#arBtn').addEventListener('click',showArDialog);
 $('#closeArDialog').addEventListener('click',()=>$('#arDialog').hidden=true);
 $('#keep3d').addEventListener('click',()=>$('#arDialog').hidden=true);
 function resetARControls(){
- $('#arPlace').hidden=false;$('#arReposition').hidden=true;$('#arCenterMarker').hidden=false;
+ $('#arPlace').hidden=false;$('#arPlace').disabled=true;$('#arReposition').hidden=true;$('#arCenterMarker').hidden=false;
  updateARScale(0);
 }
 function resetXRState(){
  app.ar=false;app.placed=false;app.xrSession=null;
  xrHitSource?.cancel?.();xrHitSource=null;xrHitResult=null;
  xrAnchor?.delete?.();xrAnchor=null;
- xrTracking='booting';arFrameCount=0;reticle.visible=false;
+ xrTracking='booting';arFrameCount=0;xrPoseValid=false;xrModelOnScreen=false;xrLastViewerPose=null;reticle.visible=false;
  sculpt.visible=true;sculpt.position.set(0,-.29,0);sculpt.scale.setScalar(1);sculpt.rotation.y=0;
  $('#arOverlay').hidden=true;scene.background=null;controls.enabled=true;resetARControls();resize();
 }
@@ -328,7 +378,7 @@ async function launchXR(){
     domOverlay:{root:$('#arOverlay')}
   });
   app.ar=true;app.placed=false;app.xrSession=session;
-  arScale=.16;arYaw=0;resetARControls();
+  arScale=.21;arYaw=0;xrPoseValid=false;xrModelOnScreen=false;resetARControls();
   sculpt.visible=true;sculpt.scale.setScalar(arScale);
   reticle.visible=false;xrHitResult=null;xrAnchor=null;xrTracking='booting';arFrameCount=0;
   $('#arDialog').hidden=true;$('#arOverlay').hidden=false;controls.enabled=false;scene.background=null;
@@ -340,7 +390,7 @@ async function launchXR(){
   const viewerSpace=await session.requestReferenceSpace('viewer');
   try{xrHitSource=await session.requestHitTestSource({space:viewerSpace});}
   catch(err){xrHitSource=null;console.info('Hit-test unavailable: manual XR placement remains active',err)}
-  session.addEventListener('select',()=>{if(!app.placed)void placeInAR()});
+  // DOM overlay buttons are the only placement action; native XR 'select' used to fix invisible objects.
   session.addEventListener('end',resetXRState,{once:true});
   arStatus('MIRÁ HACIA UNA MESA · EL RELICARIO ESTÁ DELANTE TUYO','BUSCANDO SUPERFICIE…');
   return true;
