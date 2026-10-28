@@ -58,8 +58,8 @@ canvas#characterStage{position:fixed!important;top:0!important;left:0!important;
 #home .heroChoice small{display:block!important;position:relative!important;z-index:3!important;line-height:1.25!important;max-width:95%!important;font-size:8px!important}
 #home #menuHeroPortrait{pointer-events:none}
 #home #menuHeroStage:not(.model-loaded) #menuHeroPortrait{opacity:1!important}
-#home #menuHeroStage.model-loaded #menuHeroPortrait{opacity:.12!important}
-#versus #vsPortraits{opacity:.82!important}
+#home #menuHeroStage.model-loaded #menuHeroPortrait{opacity:0!important}
+#versus #vsPortraits{transition:opacity .2s ease;opacity:1}
 #versus .vsPortraits img{object-fit:contain!important}
 @media(max-width:390px){
 #home .heroChoice{min-height:119px}
