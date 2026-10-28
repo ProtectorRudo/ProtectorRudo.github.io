@@ -36,8 +36,18 @@ try{
  await guest.waitForFunction(()=>document.querySelector('#dotsA')?.textContent!=='○○○○○',null,{timeout:16000});
  const marks=[await host.locator('#dotsA').innerText(),await guest.locator('#dotsA').innerText()];
  if(marks[0]!==marks[1])throw Error('Tanda divergente '+marks);
+ await guest.waitForFunction(()=>document.querySelector('#callout')?.textContent.includes('PATEÁ'),null,{timeout:15000});
+ await host.waitForFunction(()=>document.querySelector('#callout')?.textContent.includes('RIVAL APUNTA'),null,{timeout:15000});
+ await gesture(guest,92,-115);
+ await host.waitForFunction(()=>document.querySelector('#callout')?.textContent.includes('RIVAL PATEA'),null,{timeout:12000});
+ await gesture(host,-100,-95);
+ await host.waitForFunction(()=>document.querySelector('#dotsB')?.textContent!=='○○○○○',null,{timeout:16000});
+ await guest.waitForFunction(()=>document.querySelector('#dotsB')?.textContent!=='○○○○○',null,{timeout:16000});
+ const inverseMarks=[await host.locator('#dotsB').innerText(),await guest.locator('#dotsB').innerText()];
+ if(inverseMarks[0]!==inverseMarks[1])throw Error('Tanda segunda mano divergente '+inverseMarks);
+ await host.waitForFunction(()=>document.querySelector('#round')?.textContent.includes('PENAL 2'),null,{timeout:10000});
  if(errors.length)throw Error('Browser errors: '+errors.join(' | '));
- console.log(JSON.stringify({result:'PASS',roomTokenLength:code.length,marks,errors}));
+ console.log(JSON.stringify({result:'PASS',roomTokenLength:code.length,marks,inverseMarks,errors}));
 }finally{
  await host.screenshot({path:'artifacts/penales-online-host.png'}).catch(()=>{});
  await guest.screenshot({path:'artifacts/penales-online-guest.png'}).catch(()=>{});
