@@ -38,6 +38,8 @@ const {chromium}=require('playwright');
   assert.equal(preview.stageVisible,true);
   assert.equal(preview.ready,true,'The four imported Styloo hero GLBs should render on the actual 3D VS stage');
   await page.screenshot({path:'/tmp/paper-vs-android.png'});
+  await page.waitForTimeout(360);
+  if((await page.evaluate(()=>window.territoryQA?.mode))==='versus')await page.screenshot({path:'/tmp/paper-vs-dance-second-android.png'});
   console.log('BROWSER_QA_PREVIEW',JSON.stringify({startNames,preview,assetHeads:glbs}));
   const before=await page.evaluate(()=>window.territoryQA?.mode);
   if(before==='versus')await page.evaluate(()=>document.getElementById('vsPlayNow').click());
