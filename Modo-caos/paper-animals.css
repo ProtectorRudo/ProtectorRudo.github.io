@@ -87,7 +87,7 @@ canvas#characterStage{position:fixed!important;top:0!important;left:0!important;
 
 /* CVDOM CHAMPIONS — coherent eight-mascot collectible selection.
    Style follows the user's visual direction without copying its illustration. */
-#home{background:radial-gradient(ellipse at 54% 5%,#274d8d 0%,#112e62 38%,#071735 78%,#030b1d 100%)!important;position:relative}
+#home{position:fixed!important;inset:0!important;display:flex;overflow-y:auto;overscroll-behavior:contain;background:radial-gradient(ellipse at 54% 5%,#274d8d 0%,#112e62 38%,#071735 78%,#030b1d 100%)!important}
 #home:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.15;background-image:radial-gradient(#9dbfe0 1.5px,transparent 2px);background-size:12px 12px;mask-image:radial-gradient(ellipse at 50% 30%,black,transparent 65%)}
 #home .panel{position:relative;isolation:isolate}
 #home h1.cvdomLogo{font-size:clamp(47px,13vw,79px)!important;letter-spacing:-4px!important;line-height:1.02!important;margin:10px 0 0!important;font-style:italic;color:#ffca43;background:linear-gradient(180deg,#fff2b9 1%,#ffca43 38%,#ee9f14 88%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(3px 4px 0 #092b69);position:relative;align-self:center}
