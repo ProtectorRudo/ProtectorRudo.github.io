@@ -292,7 +292,7 @@ function getPeers(){
  const users=new Map();
  for(const item of entries){
   if(item&&/^[0-9a-f-]{36}$/i.test(item.id||'')&&['host','guest'].includes(item.role)&&typeof item.name==='string'){
-   users.set(item.id,{userId:item.id,role:item.role,name:item.name.slice(0,24),ready:!!item.ready});
+   users.set(item.id,{userId:item.id,role:item.role,name:item.name.slice(0,24),ready:!!item.ready,started:!!item.started});
   }
  }
  return [...users.values()].sort((a,b)=>(a.role==='host'?-1:1)-(b.role==='host'?-1:1));
@@ -302,6 +302,7 @@ function refreshRoom(){
  const peers=getPeers(),host=peers.find(x=>x.role==='host'),guest=peers.find(x=>x.role==='guest');
  room.players=[host,guest].filter(Boolean);
  room.hostUserId=host?.userId||null;
+ if(!onlineState.isHost&&host?.started){onlineState.started=true;room.status='playing';}
  safeText('roomDetails',room.players.length+' / 2 jugadores · '+room.players.map(x=>x.name+(x.ready?' ✓':'')).join(' · ')+(onlineState.started?' · EN JUEGO':''));
  $('readyRoom').textContent=onlineState.ready?'✓ LISTO':'✓ ESTOY LISTO';
  $('beginRoom').style.display=onlineState.isHost?'block':'none';
@@ -348,7 +349,7 @@ async function enterRoom(code,isHost){
    connected=status==='SUBSCRIBED';onlineState.connected=connected;
    safeText('onlineNote',connected?'🟢 Conectado · enlace de invitación temporal':'Estado de sala: '+status);
    if(connected){
-     try{await channel.track({id:me,name:onlineName(),role:isHost?'host':'guest',ready:onlineState.ready});}
+     try{await channel.track({id:me,name:onlineName(),role:isHost?'host':'guest',ready:onlineState.ready,started:onlineState.started});}
      catch(e){safeText('onlineNote','No se pudo registrar presencia: '+e.message)}
      refreshRoom();
    }
@@ -364,7 +365,7 @@ function showOnlineError(e){safeText('onlineNote',e.message||String(e));toast(e.
 async function toggleReady(){
  if(!conn?.connected)throw Error('Esperá a que la sala se conecte');
  onlineState.ready=!onlineState.ready;
- const res=await onlineState.channel.track({id:me,name:onlineName(),role:onlineState.isHost?'host':'guest',ready:onlineState.ready});
+ const res=await onlineState.channel.track({id:me,name:onlineName(),role:onlineState.isHost?'host':'guest',ready:onlineState.ready,started:onlineState.started});
  if(res!=='ok')throw Error('No se pudo actualizar la presencia');
  refreshRoom();
 }
@@ -373,7 +374,9 @@ async function hostStart(){
  refreshRoom();
  if(!onlineState.isHost||!onlineState.ready||room.players.length!==2||!room.players.every(p=>p.ready))throw Error('Los dos jugadores deben estar conectados y listos');
  await conn.sendGameEvent({game:'penales-ar',kind:'start',turn:0});
- onlineState.started=true;room.status='playing';startOnlineMatch();refreshRoom();
+ onlineState.started=true;room.status='playing';
+ await onlineState.channel.track({id:me,name:onlineName(),role:'host',ready:true,started:true});
+ startOnlineMatch();refreshRoom();
 }
 $('beginRoom').onclick=async()=>{try{await hostStart()}catch(e){showOnlineError(e)}};
 function startOnlineMatch(){
