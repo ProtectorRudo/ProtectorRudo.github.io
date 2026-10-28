@@ -1,0 +1,35 @@
+name: Audit Styloo CC0 chibi asset bundle
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-styloo-chibi.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit-styloo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Verify public Godot Asset Store download (CC0)
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 2 --retry-delay 2 --connect-timeout 15 --max-time 150 \
+            'https://store.godotengine.org/asset/styloo/chibi/download/1373/' \
+            -o /tmp/chibi_characters.zip
+          python - <<'PY'
+          import os,zipfile,hashlib
+          p='/tmp/chibi_characters.zip'
+          assert zipfile.is_zipfile(p),'Source did not return a valid zip'
+          print('DOWNLOAD_BYTES',os.path.getsize(p))
+          print('SHA256',hashlib.sha256(open(p,'rb').read()).hexdigest())
+          with zipfile.ZipFile(p) as z:
+            members=[x for x in z.infolist() if not x.is_dir()]
+            print('ARCHIVE_ENTRIES',len(members))
+            print('GLB_FILES')
+            for x in members:
+              if x.filename.lower().endswith(('.glb','.gltf','.fbx','.png','.webp')):
+                print(x.filename, x.file_size)
+          PY
