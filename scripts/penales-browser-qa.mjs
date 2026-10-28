@@ -21,13 +21,18 @@ try{
  const box=await page.locator('#gesture').boundingBox();
  const x=box.x+box.width*.44,y=box.y+box.height*.68;
  await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+108,y-136,{steps:7});await page.mouse.up();
- await page.waitForTimeout(2850);
+ await page.waitForFunction(() => document.getElementById('dotsA')?.textContent !== '○○○○○',null,{timeout:8500});
+ const shotHistory=await page.locator('#dotsA').innerText();
+ if(!/[●✕]/.test(shotHistory))throw Error('No se registró el primer penal');
+ await page.waitForFunction(() => document.getElementById('dotsB')?.textContent !== '○○○○○',null,{timeout:8500});
+ const savedHistory=await page.locator('#dotsB').innerText();
+ if(!/[●✕]/.test(savedHistory))throw Error('No se registró el penal de la CPU');
  const newScore=await page.locator('#numbers').innerText();
  if(!/^\d+ : \d+$/.test(newScore))throw Error('Invalid score '+newScore);
  const round=await page.locator('#round').innerText();
- if(!round.includes('PENAL'))throw Error('Round status missing');
+ if(!round.includes('PENAL 2'))throw Error('Round 2 never activated: '+round);
  await page.screenshot({path:'artifacts/penales-after-first-kick.png'});
- console.log(JSON.stringify({status:'PASS',gl,score:newScore,round,errors},null,2));
+ console.log(JSON.stringify({status:'PASS',gl,score:newScore,round,shotHistory,savedHistory,errors},null,2));
  if(errors.length)throw Error('Browser diagnostics: '+errors.join(' | '));
 }finally{
  writeFileSync('artifacts/diagnostics.json',JSON.stringify({errors,url},null,2));
