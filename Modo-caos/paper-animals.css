@@ -71,3 +71,15 @@ canvas#characterStage{position:fixed!important;top:0!important;left:0!important;
 /* Ranked mascots use the same genuine species identities as the hero roster. */
 #rank .rankrow .rankAnimalHolder{display:grid!important;place-items:center;width:34px;height:33px;overflow:hidden;border-radius:11px;background:#d5eaff;border:1px solid #355bae;position:relative}
 #rank .rankrow .rankAnimal{display:block;width:36px;height:36px;max-width:100%;object-fit:contain}
+
+/* Reliability: keep original species portraits visible in the VS until 3D pixel
+   coverage is confirmed in a future browser audit. Avoid blank fighters. */
+#versus #vsPortraits{opacity:1!important;z-index:2;pointer-events:none}
+#versus #vsPortraits img{animation:animalSway .85s ease-in-out infinite alternate;transform-origin:50% 78%;filter:drop-shadow(0 12px 9px #070f3177)}
+#versus #vsPortraits img:nth-child(2){animation-delay:-.42s}
+#versus #versus3dCanvas.vsPosition{z-index:3;pointer-events:none}
+@keyframes animalSway{
+ from{translate:0 7px;rotate:-4deg;scale:.98}
+ to{translate:0 -8px;rotate:4deg;scale:1.04}
+}
+@media(prefers-reduced-motion:reduce){#versus #vsPortraits img{animation:none}}
