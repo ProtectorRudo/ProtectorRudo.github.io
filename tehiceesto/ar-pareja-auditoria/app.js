@@ -407,6 +407,16 @@ $('#arSmaller').addEventListener('click',()=>updateARScale(-.025));
 $('#arBigger').addEventListener('click',()=>updateARScale(.025));
 $('#arRotate').addEventListener('click',rotateAR);
 $('#exitAR').addEventListener('click',()=>{if(app.xrSession)void app.xrSession.end()});
+$('#arCompatible').addEventListener('click',async()=>{
+  // A guaranteed visible camera compositing option even on AR runtimes where 3D rendering fails.
+  // It is clearly labeled non-spatial, never described as an anchored virtual object.
+  const btn=$('#arCompatible');btn.disabled=true;btn.textContent='PREPARANDO VISTA CON CÁMARA…';
+  try{
+    if(app.xrSession)await app.xrSession.end();
+    if(!await startCameraView())toast('La cámara está bloqueada. Habilitá el permiso y volvé a intentar.');
+  }catch(e){console.warn('Compatible camera mode',e);toast('No se pudo abrir la cámara compatible.');}
+  finally{btn.disabled=false;btn.textContent='VER CON CÁMARA · MODO COMPATIBLE'}
+});
 let cameraStream=null,cameraActiveBefore=null,cameraOriginalPos=null,cameraOriginalRot=null,cameraOriginalOverflow=null,cameraScale=1;
 async function startCameraView(){
  if(!navigator.mediaDevices?.getUserMedia)return false;
