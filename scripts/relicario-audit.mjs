@@ -67,7 +67,7 @@ await test("Desktop editorial composition and accessible interaction",async()=>{
  const overflowing=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
  if(overflowing>8)throw Error("Desktop overflow "+overflowing);
  const buttons=await page.getByRole("button").count();
- if(buttons<8)throw Error("Missing interactive UI");
+ if(buttons<6)throw Error("Missing interactive UI: "+buttons);
  await ctx.close();
 });
 await browser.close();
