@@ -5,6 +5,7 @@ on:
     paths:
       - 'tehiceesto/ar-pareja-auditoria/**'
       - '.github/workflows/relicario-audit.yml'
+      - 'scripts/relicario-audit.mjs'
   workflow_dispatch:
 permissions:
   contents: read
