@@ -182,7 +182,7 @@ export function animateMascot(actor,seconds,mode='idle',opponent=false){
   // Shoulders stay above the waist and within safe anatomical rotation limits.
   const wave=Math.sin(phase);
   const raiseLeft=-wave,raiseRight=wave;
-  const leadIn=Math.min(1,t/.32);
+  const leadIn=Math.min(1,t/.58);
   const blend=leadIn*leadIn*(3-2*leadIn);
   rig.left.rotation.z=-.16+blend*(-1.11+.27*raiseLeft);
   rig.right.rotation.z=.16+blend*(1.11+.27*raiseRight);
