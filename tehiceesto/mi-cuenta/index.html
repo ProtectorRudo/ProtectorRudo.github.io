@@ -28,7 +28,7 @@
   <span class="eyebrow">VOCECITAS QUE SE SUMAN AL REGALO</span>
   <h3>Invitá a alguien a dejar su voz</h3>
   <p>Compartí un enlace privado por WhatsApp. La persona solamente puede grabar, escuchar y enviarte su mensaje. <strong>No ve tus regalos, fotos ni textos y no puede editar nada.</strong></p>
-  <div class="voice-invite-actions"><button type="button" class="voice-btn" id="voice-invite-create">Crear enlace para invitar →</button><span id="voice-invite-status" role="status"></span></div>
+  <div class="voice-invite-actions"><button type="button" class="voice-btn" id="voice-invite-create">Crear enlace para invitar →</button><button type="button" class="secondary" id="voice-invite-refresh">Actualizar mensajes recibidos</button><span id="voice-invite-status" role="status"></span></div>
   <div id="voice-invite-result" hidden>
     <label for="voice-invite-url">Enlace privado para compartir</label>
     <input id="voice-invite-url" type="text" readonly aria-label="Enlace para invitados" />
@@ -322,6 +322,7 @@ byId("voice-invite-copy").onclick=async()=>{
   voiceInviteError("Copiá el enlace seleccionado manualmente.");
  }
 };
+byId("voice-invite-refresh").onclick=async()=>{const btn=byId("voice-invite-refresh");btn.disabled=true;try{await Promise.all([loadVoiceInvites(),refreshStudio()]);byId("voice-invite-status").textContent="Mensajes actualizados";}catch{voiceInviteError("No pudimos actualizar los mensajes. Intentá nuevamente.")}finally{btn.disabled=false}};
 byId("voice-invite-revoke").onclick=async()=>{
  if(!currentVoiceInviteId||!confirm("¿Desactivar este enlace? Ya no se podrán enviar nuevos audios mediante él."))return;
  try{
