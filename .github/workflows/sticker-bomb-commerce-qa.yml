@@ -1,0 +1,22 @@
+name: Sticker Bomb · demo, editor y checkout publicos
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tehiceesto/experiencias/sticker-bomb-amistad/**"
+      - ".github/workflows/sticker-bomb-commerce-qa.yml"
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - run: node tehiceesto/experiencias/sticker-bomb-amistad/qa-commerce.mjs
