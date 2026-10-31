@@ -1,0 +1,32 @@
+name: Pack 3 juegos · experiencia opcional 60% OFF
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tehiceesto/juegos/pack/**"
+      - ".github/workflows/pack-offer-qa.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checkout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install test browser
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Verify pack + gift, 60% discount, one checkout
+        run: node tehiceesto/juegos/pack/qa-offer.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pack-game-experience-mobile
+          path: /tmp/pack-offer-audit/*.png
+          retention-days: 7
+          if-no-files-found: ignore
