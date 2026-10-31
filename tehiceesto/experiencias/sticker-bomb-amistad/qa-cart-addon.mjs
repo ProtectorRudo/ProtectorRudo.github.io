@@ -8,8 +8,12 @@ try{
   const errors=[];page.on("pageerror",err=>errors.push(err.message));
   const response=await page.goto(URL,{waitUntil:"domcontentloaded",timeout:60000});
   assert.equal(response.status(),200);
-  const add=page.locator("#add-letter");
+  const add=page.locator("#add-pack");
   assert.equal(await add.getAttribute("aria-pressed"),"false","optional addon must be off by default");
+  assert.match(await page.locator(".extra").innerText(),/60% OFF/);
+  assert.match(await page.locator(".packPrice").innerText(),/25\.000/);
+  assert.match(await page.locator(".packPrice").innerText(),/10\.000/);
+
   assert.match(await page.locator("#total-price").innerText(),/25\.000/);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2),false,"horizontal overflow");
   await add.click();
@@ -29,11 +33,11 @@ try{
   await page.locator("#pay").click();
   await page.locator("#msg:visible").waitFor({state:"visible",timeout:10000});
   assert.equal(calls,1,"must create exactly one consolidated checkout");
-  assert.equal(payload.addSecretLetter,true,"selection must reach the backend");
+  assert.equal(payload.addGamesPack,true,"selection must reach the backend");
   assert.equal(payload.experienceSlug,"sticker-bomb-amistad");
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2),false);
   assert.deepEqual(errors,[],"browser JavaScript errors");
   await page.close();
  }
- console.log("STICKER_PRECHECKOUT_ADDON_PASS: option unselected by default, +10k, reversible, one consolidated request, mobile 320-430");
+ console.log("STICKER_PRECHECKOUT_PACK_PASS: option unselected by default, +10k, reversible, one consolidated request, mobile 320-430");
 }finally{await browser.close()}
