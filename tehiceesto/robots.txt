@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /mis-regalos
+Disallow: /r/
+Disallow: /escape-r/
+Disallow: /comprar/
+Disallow: /juegos/pack/completo
+Disallow: /juegos/pack/pedido
+Disallow: /experiencias/sticker-bomb-amistad/editar
+
+Sitemap: https://tehiceesto.com/sitemap.xml
