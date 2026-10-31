@@ -15,9 +15,8 @@ try{
  const editErrors=[];edit.on("pageerror",e=>editErrors.push(e.message));
  const r=await edit.goto(host+"/experiencias/sticker-bomb-amistad/editar",{waitUntil:"load",timeout:60000});
  assert.equal(r.status(),200,"editor path");
- await edit.waitForTimeout(2500);
+ await edit.locator("#login:not(.hidden)").waitFor({state:"visible",timeout:25000}).catch(async()=>{console.log("LOGIN_DIAGNOSTIC",JSON.stringify({status:await edit.locator("#status").innerText(),pageErrors:editErrors,ready:await edit.evaluate(()=>document.readyState),cdn:await edit.evaluate(()=>Boolean(window.supabase))}));throw Error("login_not_available")});
  assert.equal(await edit.locator("#studio:not(.hidden)").count(),0,"unauthenticated editor must be locked");
- assert.equal(await edit.locator("#login:not(.hidden)").count(),1,"login must be available");
  assert.equal(await edit.locator("#magic-button").count(),1);
  await edit.locator("#magic-button").click();
  assert.match(await edit.locator("#status").innerText(),/correo|Escrib/i);
