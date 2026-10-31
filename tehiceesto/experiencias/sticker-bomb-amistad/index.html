@@ -181,6 +181,18 @@ function stickerApply(data){
  if(started&&$('scene').hidden===false)renderScene();
  renderBoard();
 }
+(function stickerCommercialCTA(){
+ const q=new URLSearchParams(location.search);
+ if(q.has("gift")||q.get("preview")==="1")return;
+ const target=document.querySelector(".footer");
+ if(!target)return;
+ const link=document.createElement("a");
+ link.href="/comprar/sticker-bomb-amistad";
+ link.textContent="♡ Quiero regalar una experiencia así";
+ link.setAttribute("aria-label","Personalizar y comprar Sticker Bomb de amistad");
+ link.style.cssText="display:inline-flex;align-items:center;justify-content:center;margin:20px auto 10px;min-height:49px;border-radius:14px;background:#a94e77;color:white;padding:13px 20px;text-decoration:none;font:800 13px/1.4 'DM Sans',system-ui;box-shadow:0 9px 25px #a8527845";
+ target.append(link);
+})();
 (function stickerPersonalization(){
  const params=new URLSearchParams(location.search);
  const code=params.get("gift");
