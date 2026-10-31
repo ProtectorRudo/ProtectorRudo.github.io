@@ -10,13 +10,13 @@ try{
   assert.equal(response.status(),200);
   const add=page.locator("#add-letter");
   assert.equal(await add.getAttribute("aria-pressed"),"false","optional addon must be off by default");
-  assert.match(await page.locator("#total-price").innerText(),/25\\.000/);
+  assert.match(await page.locator("#total-price").innerText(),/25\.000/);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2),false,"horizontal overflow");
   await add.click();
   assert.equal(await add.getAttribute("aria-pressed"),"true");
-  assert.match(await page.locator("#total-price").innerText(),/35\\.000/);
+  assert.match(await page.locator("#total-price").innerText(),/35\.000/);
   await add.click();assert.equal(await add.getAttribute("aria-pressed"),"false");
-  assert.match(await page.locator("#total-price").innerText(),/25\\.000/);
+  assert.match(await page.locator("#total-price").innerText(),/25\.000/);
   await add.click();
   let payload=null,calls=0;
   await page.route("**/api/checkout",async route=>{
