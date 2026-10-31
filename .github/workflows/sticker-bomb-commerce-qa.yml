@@ -20,3 +20,4 @@ jobs:
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
       - run: node tehiceesto/experiencias/sticker-bomb-amistad/qa-commerce.mjs
+      - run: node tehiceesto/experiencias/sticker-bomb-amistad/qa-cart-addon.mjs
