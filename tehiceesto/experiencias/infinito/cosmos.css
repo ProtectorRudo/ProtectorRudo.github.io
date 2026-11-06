@@ -222,3 +222,14 @@ body:has(.ii-experience) > .recipient-menu { display:none!important; }
  .ii-experience *, .ii-experience *::before,.ii-experience *::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;}
  .ii-starfield{opacity:.55;}
 }
+
+/* A real client photograph is revealed as a keepsake; absent in generic demos. */
+.ii-polaroid{position:absolute;right:1%;top:12%;z-index:8;width:113px;padding:7px 7px 16px;background:#f9eee0;box-shadow:0 9px 25px #080918b0;transform:translate(0,15%) rotate(8deg) scale(.75);opacity:0;transition:transform .95s cubic-bezier(.19,.76,.21,1),opacity .6s;pointer-events:none;}
+.ii-polaroid-image{width:100%;aspect-ratio:1;background:#eacdbb;overflow:hidden;}
+.ii-polaroid-image img{width:100%;height:100%;object-fit:cover;display:block;}
+.ii-polaroid>span{display:block;margin:6px 0 0;color:#715566;font-size:7px;letter-spacing:.1em;font-weight:700;}
+.ii-revealed .ii-polaroid{opacity:1;transform:translate(16%,-28%) rotate(12deg) scale(1);}
+.ii-artwork[role="button"]{cursor:pointer;touch-action:manipulation;}
+.ii-artwork[role="button"]:focus-visible{outline:2px solid #e7c49b;outline-offset:5px;border-radius:50%;}
+.ii-artwork-galaxy[role="button"]{touch-action:pan-y;}
+@media(max-width:370px){.ii-polaroid{width:87px;}}
