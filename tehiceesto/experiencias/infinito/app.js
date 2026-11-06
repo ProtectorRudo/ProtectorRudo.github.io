@@ -51,7 +51,7 @@
     delay: ((index * 13) % 29) / 10 + "s",
     size: index % 9 === 0 ? "3px" : index % 3 === 0 ? "2px" : "1px",
   }));
-  const earthSVG = \`
+  const earthSVG = `
     <svg class="gal-planet-svg" viewBox="0 0 240 240" role="img" aria-label="Ilustración animada de la Tierra">
       <defs>
         <radialGradient id="gal-ocean" cx="34%" cy="28%" r="78%">
@@ -73,35 +73,35 @@
       </g>
       <circle cx="120" cy="120" r="100" fill="url(#gal-earth-highlight)"/>
       <ellipse cx="88" cy="90" rx="23" ry="9" fill="#fff" opacity=".26" transform="rotate(-35 88 90)"/>
-    </svg>\`;
-  const sun = \`<div class="gal-sun-wrap" role="img" aria-label="Sol radiante y animado">
+    </svg>`;
+  const sun = `<div class="gal-sun-wrap" role="img" aria-label="Sol radiante y animado">
     <div class="gal-sun-rays"></div><div class="gal-sun-disc"></div>
     <div class="gal-sun-spark gal-sun-spark-a"></div><div class="gal-sun-spark gal-sun-spark-b"></div>
-  </div>\`;
+  </div>`;
   function galaxy(small) {
-    return \`<div class="gal-galaxy\${small ? " gal-galaxy-small" : ""}" role="img" aria-label="Galaxia espiral luminosa">
+    return `<div class="gal-galaxy${small ? " gal-galaxy-small" : ""}" role="img" aria-label="Galaxia espiral luminosa">
       <span class="gal-galaxy-arm gal-galaxy-arm-a"></span><span class="gal-galaxy-arm gal-galaxy-arm-b"></span>
       <span class="gal-galaxy-arm gal-galaxy-arm-c"></span><span class="gal-galaxy-core"></span>
       <span class="gal-galaxy-spark gal-galaxy-spark-1"></span><span class="gal-galaxy-spark gal-galaxy-spark-2"></span>
       <span class="gal-galaxy-spark gal-galaxy-spark-3"></span><span class="gal-galaxy-spark gal-galaxy-spark-4"></span>
-    </div>\`;
+    </div>`;
   }
   function universe() {
-    return \`<div class="gal-universe" role="img" aria-label="Universo con múltiples galaxias de colores">
+    return `<div class="gal-universe" role="img" aria-label="Universo con múltiples galaxias de colores">
       <span class="gal-universe-orbit gal-universe-orbit-1"></span>
       <span class="gal-universe-orbit gal-universe-orbit-2"></span>
       <span class="gal-universe-orbit gal-universe-orbit-3"></span>
-      <div class="gal-universe-main">\${galaxy(false)}</div>
-      <div class="gal-universe-mini gal-universe-mini-a">\${galaxy(true)}</div>
-      <div class="gal-universe-mini gal-universe-mini-b">\${galaxy(true)}</div>
-      <div class="gal-universe-mini gal-universe-mini-c">\${galaxy(true)}</div>
+      <div class="gal-universe-main">${galaxy(false)}</div>
+      <div class="gal-universe-mini gal-universe-mini-a">${galaxy(true)}</div>
+      <div class="gal-universe-mini gal-universe-mini-b">${galaxy(true)}</div>
+      <div class="gal-universe-mini gal-universe-mini-c">${galaxy(true)}</div>
       <span class="gal-universe-star gal-universe-star-a">✦</span>
       <span class="gal-universe-star gal-universe-star-b">✧</span>
       <span class="gal-universe-star gal-universe-star-c">✦</span>
-    </div>\`;
+    </div>`;
   }
   function heart(discovered) {
-    return \`<div class="gal-heart-wrap\${discovered ? " gal-heart-wrap-open" : ""}">
+    return `<div class="gal-heart-wrap${discovered ? " gal-heart-wrap-open" : ""}">
       <svg viewBox="0 0 350 320" class="gal-heart-svg" role="img" aria-label="Corazón enorme que late">
         <defs>
           <radialGradient id="gal-heart-fill" cx="34%" cy="20%" r="92%">
@@ -113,14 +113,14 @@
         <path d="M175 292C155 272 27 177 27 107 27 54 62 29 107 29c30 0 56 17 68 42 12-25 38-42 68-42 45 0 80 25 80 78 0 70-128 165-148 185Z" fill="url(#gal-heart-fill)" stroke="#ffd6df" stroke-width="3"/>
         <path d="M55 101c4-34 28-51 58-49" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" opacity=".52"/>
         <path d="M140 70c11 5 18 12 22 18" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".18"/>
-        \${discovered ? \`<g fill="none" stroke="#76294d" stroke-width="5" stroke-linecap="round">
+        ${discovered ? `<g fill="none" stroke="#76294d" stroke-width="5" stroke-linecap="round">
           <path d="M120 143q17-18 34 0"/><path d="M197 143q17-18 34 0"/><path d="M159 182q17 26 35 0"/>
-        </g>\` : ""}
+        </g>` : ""}
       </svg>
       <span class="gal-heart-spark gal-heart-spark-a">✦</span>
       <span class="gal-heart-spark gal-heart-spark-b">♡</span>
       <span class="gal-heart-spark gal-heart-spark-c">✧</span>
-    </div>\`;
+    </div>`;
   }
   function object(stage, discovered) {
     return [null, earthSVG, sun, galaxy(false), universe(), heart(discovered)][stage];
@@ -128,60 +128,60 @@
   let stage = 0, discovered = false, finished = false, transitioning = false, touch = null, finalTimer = 0;
   const app = document.querySelector("#cosmos-app");
   if (!app) throw Error("Falta el contenedor de la experiencia");
-  const sky = \`<div class="gal-sky" aria-hidden="true">\${starPoints.map(p => \`<span class="gal-sky-star" style="left:\${p.left};top:\${p.top};width:\${p.size};height:\${p.size};animation-delay:\${p.delay}"></span>\`).join("")}
+  const sky = `<div class="gal-sky" aria-hidden="true">${starPoints.map(p => `<span class="gal-sky-star" style="left:${p.left};top:${p.top};width:${p.size};height:${p.size};animation-delay:${p.delay}"></span>`).join("")}
     <span class="gal-sky-haze gal-sky-haze-one"></span><span class="gal-sky-haze gal-sky-haze-two"></span>
-  </div>\`;
+  </div>`;
   function intro() {
-    return \`<section class="gal-intro">
+    return `<section class="gal-intro">
       <p class="gal-eyebrow">UNA HISTORIA POCO CIENTÍFICA</p>
       <div class="gal-intro-orbit" aria-hidden="true"><span class="gal-orbit-a"></span><span class="gal-orbit-b"></span><span class="gal-intro-heart">♥</span></div>
       <h1>¿Cuánto <em>te quiero?</em></h1>
       <p class="gal-intro-description">Quise averiguarlo usando cosas enormes del espacio. La ciencia no estaba preparada.</p>
       <button class="gal-primary" data-action="begin">Empezar a medir <span aria-hidden="true">↗</span></button>
       <p class="gal-intro-small">5 descubrimientos · 1 final muy nuestro</p>
-    </section>\`;
+    </section>`;
   }
   function chapter() {
     const c = STAGES[stage - 1];
-    const feedback = discovered ? \`<div class="gal-reveal">
-      \${stage === 4 ? '<span class="gal-error-label">ALERTA CÓSMICA · SIN ESCALA</span>' : ""}
-      \${stage === 5 ? '<span class="gal-error-label">MEDIDOR DE AMOR: ∞</span>' : ""}
-      <p>\${c.reveal}</p></div>\` : "";
-    const card = stage === 5 && finished ? \`<div class="gal-final-note">
-      <p>Para \${COPY.recipient}: \${COPY.closing}</p>
-      <span>\${COPY.signature} · \${COPY.giver} ♡</span>
-    </div>\` : "";
-    return \`<section class="gal-chapter" aria-labelledby="gal-title">
-      <div class="gal-chapter-copy"><p class="gal-eyebrow">\${c.eyebrow}</p><h1 id="gal-title">\${c.heading}</h1><p class="gal-chapter-intro">\${c.intro}</p></div>
-      <div class="gal-object-stage gal-object-stage-\${stage}">
+    const feedback = discovered ? `<div class="gal-reveal">
+      ${stage === 4 ? '<span class="gal-error-label">ALERTA CÓSMICA · SIN ESCALA</span>' : ""}
+      ${stage === 5 ? '<span class="gal-error-label">MEDIDOR DE AMOR: ∞</span>' : ""}
+      <p>${c.reveal}</p></div>` : "";
+    const card = stage === 5 && finished ? `<div class="gal-final-note">
+      <p>Para ${COPY.recipient}: ${COPY.closing}</p>
+      <span>${COPY.signature} · ${COPY.giver} ♡</span>
+    </div>` : "";
+    return `<section class="gal-chapter" aria-labelledby="gal-title">
+      <div class="gal-chapter-copy"><p class="gal-eyebrow">${c.eyebrow}</p><h1 id="gal-title">${c.heading}</h1><p class="gal-chapter-intro">${c.intro}</p></div>
+      <div class="gal-object-stage gal-object-stage-${stage}">
         <div class="gal-orbit-ambient" aria-hidden="true"></div>
-        <button class="gal-discover-object gal-discover-object-\${stage}\${discovered ? " gal-object-discovered" : ""}" data-action="reveal"
-          aria-label="\${c.hint}" aria-pressed="\${String(discovered)}">
-          \${object(stage, discovered)}
+        <button class="gal-discover-object gal-discover-object-${stage}${discovered ? " gal-object-discovered" : ""}" data-action="reveal"
+          aria-label="${c.hint}" aria-pressed="${String(discovered)}">
+          ${object(stage, discovered)}
         </button>
-        \${!discovered ? \`<p class="gal-touch-hint"><span aria-hidden="true">✧</span> \${c.hint}</p>\` : ""}
+        ${!discovered ? `<p class="gal-touch-hint"><span aria-hidden="true">✧</span> ${c.hint}</p>` : ""}
       </div>
-      <div class="gal-reveal-area" aria-live="polite">\${feedback}\${card}</div>
+      <div class="gal-reveal-area" aria-live="polite">${feedback}${card}</div>
       <div class="gal-controls">
-        \${stage > 1 ? '<button class="gal-back" data-action="back" aria-label="Volver al descubrimiento anterior">←</button>' : ""}
-        \${discovered && stage < 5 ? \`<button class="gal-primary" data-action="next">\${c.next} <span aria-hidden="true">↗</span></button>\` : ""}
-        \${finished && stage === 5 ? '<button class="gal-primary" data-action="restart">Volver a vivirlo <span aria-hidden="true">↺</span></button>' : ""}
+        ${stage > 1 ? '<button class="gal-back" data-action="back" aria-label="Volver al descubrimiento anterior">←</button>' : ""}
+        ${discovered && stage < 5 ? `<button class="gal-primary" data-action="next">${c.next} <span aria-hidden="true">↗</span></button>` : ""}
+        ${finished && stage === 5 ? '<button class="gal-primary" data-action="restart">Volver a vivirlo <span aria-hidden="true">↺</span></button>' : ""}
       </div>
-    </section>\`;
+    </section>`;
   }
   function render() {
-    app.innerHTML = \`<main class="gal-experience">
-      \${sky}
+    app.innerHTML = `<main class="gal-experience">
+      ${sky}
       <div class="gal-topbar">
         <a href="https://tehiceesto.com/" class="gal-brand" aria-label="Volver a Te Hice Esto">te hice esto <span>✳</span></a>
-        <span class="gal-progress" aria-live="polite">\${stage === 0 ? "UNA HISTORIA PARA VOS" : String(stage).padStart(2, "0") + " / 05"}</span>
+        <span class="gal-progress" aria-live="polite">${stage === 0 ? "UNA HISTORIA PARA VOS" : String(stage).padStart(2, "0") + " / 05"}</span>
       </div>
-      \${stage > 0 ? \`<div class="gal-step-trail" role="progressbar" aria-label="Progreso del viaje" aria-valuemin="0" aria-valuemax="5" aria-valuenow="\${stage}">
-        \${STAGES.map((c, index) => \`<span class="gal-step-dot\${index + 1 <= stage ? " gal-step-dot-on" : ""}"></span>\`).join("")}
-      </div>\` : ""}
-      <div class="gal-frame">\${stage === 0 ? intro() : chapter()}</div>
+      ${stage > 0 ? `<div class="gal-step-trail" role="progressbar" aria-label="Progreso del viaje" aria-valuemin="0" aria-valuemax="5" aria-valuenow="${stage}">
+        ${STAGES.map((c, index) => `<span class="gal-step-dot${index + 1 <= stage ? " gal-step-dot-on" : ""}"></span>`).join("")}
+      </div>` : ""}
+      <div class="gal-frame">${stage === 0 ? intro() : chapter()}</div>
       <div class="gal-bottom-brand">UN PEQUEÑO UNIVERSO HECHO PARA ALGUIEN <span>✦</span> TE HICE ESTO</div>
-    </main>\`;
+    </main>`;
     app.querySelectorAll("[data-action]").forEach(btn => {
       btn.addEventListener("click", () => {
         const action = btn.dataset.action;
