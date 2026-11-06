@@ -1,0 +1,50 @@
+name: QA mobile - TeHiceEsto Infinito
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tehiceesto/experiencias/infinito/**'
+      - 'scripts/qa-infinito.cjs'
+      - '.github/workflows/qa-infinito.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax validation
+        run: node --check tehiceesto/experiencias/infinito/app.js
+      - name: Install isolated browser tools
+        run: |
+          mkdir -p /tmp/infinito-qa
+          npm install --no-audit --no-fund --prefix /tmp/infinito-qa playwright@1.58.2
+          /tmp/infinito-qa/node_modules/.bin/playwright install --with-deps chromium
+      - name: Serve static website
+        run: |
+          python3 -m http.server 8787 --bind 127.0.0.1 > /tmp/infinito-http.log 2>&1 &
+          for i in $(seq 1 20); do
+            curl --fail --silent --output /dev/null http://127.0.0.1:8787/tehiceesto/experiencias/infinito/ && exit 0
+            sleep 1
+          done
+          cat /tmp/infinito-http.log
+          exit 1
+      - name: Test five stages and mobile interactions
+        env:
+          NODE_PATH: /tmp/infinito-qa/node_modules
+        run: node scripts/qa-infinito.cjs
+      - name: Keep QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tehiceesto-cosmos-mobile
+          path: /tmp/cosmos-*.png
+          if-no-files-found: ignore
+          retention-days: 3
