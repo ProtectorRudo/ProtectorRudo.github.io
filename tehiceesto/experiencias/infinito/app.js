@@ -25,7 +25,7 @@
     sun:"https://d2pn8kiwq2w21t.cloudfront.net/original_images/contentdamsciencepsdphotojournalpiapia26pia26681PIA26681.jpg",
     galaxy:"https://science.nasa.gov/wp-content/uploads/2023/04/hubble_m51-jpg-e1688472875538.webp"
   };
-  let index=-1, revealed=false, done=false, busy=false, startTouch=null, holdTimer=0, doneTimer=0, ctx=null, stars=[], lastTs=0, warpUntil=0;
+  let index=-1, revealed=false, done=false, busy=false, startTouch=null, holdTimer=0, doneTimer=0, ctx=null, stars=[], warpUntil=0, animationGeneration=0, voice=null;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   function esc(s){return String(s||"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
   function extraPhoto(){
@@ -53,7 +53,7 @@
     return '<div class="ii-artwork ii-artwork-letter" aria-label="Carta romántica con sello de cera">'+
       '<div class="ii-envelope-shadow"></div>'+
       '<div class="ii-letter-paper"><span>DEL UNIVERSO PARA</span><h3>'+esc(config.recipient)+'</h3><p>'+esc(config.finalLetter)+'</p><small>'+esc(config.signoff)+'</small></div>'+
-      '<div class="ii-envelope"><div class="ii-flap"></div><div class="ii-envelope-front"></div><span class="ii-seal">♡</span></div>'+
+      '<div class="ii-envelope"><div class="ii-flap"></div><div class="ii-envelope-front"></div><span class="ii-seal">♡</span></div>'+ (config.photoUrl ? '<div class="ii-polaroid"><div class="ii-polaroid-image">'+extraPhoto()+'</div><span>UN RECUERDO NUESTRO</span></div>' : '')+
       '<span class="ii-letter-dust ii-letter-dust-1">✦</span><span class="ii-letter-dust ii-letter-dust-2">✧</span><span class="ii-letter-dust ii-letter-dust-3">✦</span></div>';
   }
   function sceneArt(){return [orbitScene,sunScene,galaxyScene,universeScene,letterScene][index]();}
@@ -77,7 +77,7 @@
     } else if(index<4){
       controls='<button type="button" class="ii-cta" data-action="next">'+s.button+'<span aria-hidden="true">↗</span></button>';
     } else if(done){
-      controls='<div class="ii-final-controls"><button type="button" class="ii-cta" data-action="restart">Volver a vivirlo <span aria-hidden="true">↺</span></button><button type="button" class="ii-share" data-action="share">Compartir esta sorpresa ↗</button></div>';
+      controls='<div class="ii-final-controls"><button type="button" class="ii-cta" data-action="restart">Volver a vivirlo <span aria-hidden="true">↺</span></button><button type="button" class="ii-share" data-action="share">Compartir esta sorpresa ↗</button>'+(config.audioUrl?'<button type="button" class="ii-share" data-action="voice">Escuchar tu voz ♡</button>':'')+'</div>';
     }
     return '<article class="ii-chapter ii-chapter-'+index+(revealed?' ii-revealed':'')+'">'+
       '<div class="ii-chapter-top"><span class="ii-chapter-eyebrow">'+s.eyebrow+'</span><h1>'+s.title+'</h1><p>'+s.description+'</p></div>'+
@@ -100,8 +100,10 @@
       if(a==="reveal")discover();
       if(a==="restart")go(-1);
       if(a==="share")share();
+      if(a==="voice")playVoice();
     }));
     const body=root.querySelector('.ii-experience');
+    if(index>=0&&!revealed){const object=root.querySelector('.ii-artwork');if(object){object.tabIndex=0;object.setAttribute('role','button');object.setAttribute('aria-label',SCENES[index].hint);object.addEventListener('click',()=>discover());object.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();discover();}});}}
     if(index===1&&!revealed){
       const b=root.querySelector('.ii-touch-button');let triggered=false;
       const start=()=>{triggered=false;b.classList.add('is-holding');holdTimer=setTimeout(()=>{triggered=true;discover();},700);};
@@ -119,9 +121,16 @@
       slider.addEventListener('input',()=>{body.style.setProperty('--universe-zoom',slider.value/100);if(+slider.value>=88)discover();});
     }
     if(index===4&&revealed){
-      doneTimer=setTimeout(()=>{done=true;root.querySelector('.ii-experience')?.classList.add('ii-letter-finished');const actions=root.querySelector('.ii-actions');if(actions&&actions.childElementCount<=1){actions.insertAdjacentHTML('beforeend','<div class="ii-final-controls"><button type="button" class="ii-cta" data-action="restart">Volver a vivirlo <span aria-hidden="true">↺</span></button><button type="button" class="ii-share" data-action="share">Compartir esta sorpresa ↗</button></div>');actions.querySelector('[data-action="restart"]').addEventListener('click',()=>go(-1));actions.querySelector('[data-action="share"]').addEventListener('click',share);}},1050);
+      doneTimer=setTimeout(()=>{done=true;root.querySelector('.ii-experience')?.classList.add('ii-letter-finished');const actions=root.querySelector('.ii-actions');if(actions&&actions.childElementCount<=1){actions.insertAdjacentHTML('beforeend','<div class="ii-final-controls"><button type="button" class="ii-cta" data-action="restart">Volver a vivirlo <span aria-hidden="true">↺</span></button><button type="button" class="ii-share" data-action="share">Compartir esta sorpresa ↗</button></div>');actions.querySelector('[data-action="restart"]').addEventListener('click',()=>go(-1));actions.querySelector('[data-action="share"]').addEventListener('click',share);if(config.audioUrl){actions.querySelector('[data-action="voice"]').addEventListener('click',playVoice);}}},1050);
     }
     paintStars();
+  }
+  function playVoice(){
+    if(!config.audioUrl||!/^https?:/.test(config.audioUrl))return;
+    if(!voice)voice=new Audio(config.audioUrl);
+    const b=root.querySelector('[data-action="voice"]');
+    if(voice.paused){voice.play().then(()=>{if(b)b.textContent='Pausar tu voz Ⅱ';}).catch(()=>{if(b)b.textContent='No se pudo reproducir';});}
+    else{voice.pause();if(b)b.textContent='Escuchar tu voz ♡';}
   }
   async function share(){
     const url=window.location.href;
@@ -144,16 +153,16 @@
   }
   function paintStars(){
     const c=root.querySelector('canvas');
-    if(!c)return;const dpr=Math.min(2,window.devicePixelRatio||1);
+    if(!c)return;const generation=++animationGeneration;const dpr=Math.min(2,window.devicePixelRatio||1);
     const w=window.innerWidth,h=Math.max(window.innerHeight,root.getBoundingClientRect().height);
     c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);c.style.width=w+'px';c.style.height=h+'px';
     ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
     let seed=1729;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
     stars=Array.from({length:w<500?135:240},()=>({x:rand()*w,y:rand()*h,r:.35+rand()*1.2,z:.1+rand()*.9,phase:rand()*6.28,hue:rand()>.88?36:rand()>.82?210:0}));
-    drawStars(performance.now());
+    drawStars(performance.now(),generation);
   }
-  function drawStars(ts){
-    if(!ctx)return;const w=window.innerWidth,h=ctx.canvas.height/(Math.min(2,window.devicePixelRatio||1));
+  function drawStars(ts,generation){
+    if(!ctx||generation!==animationGeneration)return;const w=window.innerWidth,h=ctx.canvas.height/(Math.min(2,window.devicePixelRatio||1));
     ctx.clearRect(0,0,w,h);
     const warp=ts<warpUntil;
     stars.forEach(s=>{let opacity=reducedMotion?.65:(.28+Math.sin(ts*.0014*s.z+s.phase)*.23+.25*s.z);
@@ -162,7 +171,7 @@
       if(warp){ctx.fillRect(s.x,yy,s.r,Math.max(2,s.z*15));}
       else{ctx.beginPath();ctx.arc(s.x,yy,s.r,0,Math.PI*2);ctx.fill();}
     });
-    if(!reducedMotion)requestAnimationFrame(drawStars);
+    if(!reducedMotion)requestAnimationFrame(t=>drawStars(t,generation));
   }
   render();
   window.addEventListener('resize',()=>{if(root.querySelector('.ii-experience'))paintStars();},{passive:true});
