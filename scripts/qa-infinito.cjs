@@ -1,37 +1,48 @@
-const assert = require("node:assert/strict");
-const { chromium } = require("playwright");
-(async () => {
-  const browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] });
-  const problems = [];
+const assert=require("node:assert/strict");
+const { chromium }=require("playwright");
+(async()=>{
+  const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
   try {
-    const page = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
-    page.on("pageerror", error => problems.push(error.message));
-    const response = await page.goto("http://127.0.0.1:8787/tehiceesto/experiencias/infinito/", { waitUntil: "networkidle" });
-    assert.equal(response.status(), 200, "Static route must return 200");
-    assert.match(await page.locator("h1").innerText(), /Cuánto/);
-    await page.screenshot({ path: "/tmp/cosmos-entrada.png", fullPage: true });
-    await page.getByRole("button", { name: /Empezar a medir/ }).click();
-    await page.waitForTimeout(350);
-    for (let chapter = 1; chapter <= 5; chapter++) {
-      assert.match(await page.locator(".gal-progress").innerText(), new RegExp("0" + chapter + " / 05"));
-      const target = page.locator(".gal-discover-object");
-      await target.click({ timeout: 9000 });
-      assert.equal(await page.locator(".gal-reveal").count(), 1, "Reveal must be shown for chapter " + chapter);
-      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false, "No horizontal overflow on chapter " + chapter);
-      if (chapter < 5) {
-        await page.locator(".gal-controls .gal-primary").click();
+    for(const viewport of [{width:390,height:844},{width:360,height:740}]){
+      const page=await browser.newPage({viewport,isMobile:true,hasTouch:true});
+      const errors=[];
+      page.on("pageerror",e=>errors.push(String(e.message)));
+      const res=await page.goto("http://127.0.0.1:8787/tehiceesto/experiencias/infinito/",{waitUntil:"domcontentloaded",timeout:20000});
+      assert.equal(res.status(),200);
+      await page.locator(".ii-intro").waitFor();
+      await page.waitForTimeout(350);
+      assert.match(await page.locator(".ii-intro-title").innerText(),/cuánto te quiero/i);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,"intro overflow "+viewport.width);
+      if(viewport.width===390)await page.screenshot({path:"/tmp/infinito-premium-intro.png",fullPage:true});
+      await page.locator('[data-action="begin"]').click();
+      await page.locator('.ii-chapter-0').waitFor({timeout:10000});
+      for(let i=0;i<5;i++){
+        assert.equal(await page.locator(".ii-chapter-"+i).count(),1,"chapter "+i+" visible");
         await page.waitForTimeout(350);
+        const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);
+        assert.equal(overflow,false,"chapter "+i+" overflow "+viewport.width);
+        if(i===3){
+          await page.locator('#ii-scale').evaluate(el=>{el.value="100";el.dispatchEvent(new Event("input",{bubbles:true}));});
+        } else {
+          await page.locator('[data-action="reveal"]').click({timeout:9000});
+        }
+        await page.locator('.ii-discovery').waitFor({timeout:9000});
+        assert.equal(await page.locator('.ii-revealed').count(),1,"chapter "+i+" revealed");
+        if(i===4){
+          await page.waitForTimeout(1250);
+          assert.match(await page.locator('.ii-letter-paper p').innerText(),/universo/i);
+          assert.equal(await page.locator('[data-action="restart"]').count(),1);
+          if(viewport.width===390)await page.screenshot({path:"/tmp/infinito-premium-final.png",fullPage:true});
+        }else{
+          await page.locator('[data-action="next"]').click({timeout:9000});
+          await page.locator('.ii-chapter-'+(i+1)).waitFor({timeout:10000});
+        }
       }
+      await page.locator('[data-action="restart"]').click();
+      await page.locator('.ii-intro').waitFor();
+      assert.deepEqual(errors,[],"no JS errors on "+viewport.width);
+      console.log("PASS "+viewport.width+"x"+viewport.height+" — 5 chapters/reveal/letter/restart/no overflow");
+      await page.close();
     }
-    await page.waitForTimeout(1000);
-    assert.equal(await page.locator(".gal-final-note").count(), 1);
-    await page.screenshot({ path: "/tmp/cosmos-final.png", fullPage: true });
-    await page.getByRole("button", { name: /Volver a vivirlo/ }).click();
-    await page.waitForTimeout(350);
-    assert.match(await page.locator("h1").innerText(), /Cuánto/);
-    assert.deepEqual(problems, [], "No uncaught JavaScript errors allowed");
-    console.log("PASS: 5 stages, tactile revelations, final, restart, mobile overflow, no JS errors");
-  } finally {
-    await browser.close();
-  }
-})().catch(error => { console.error(error); process.exitCode = 1; });
+  } finally { await browser.close(); }
+})().catch(e=>{console.error(e);process.exitCode=1;});
