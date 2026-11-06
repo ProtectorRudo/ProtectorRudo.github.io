@@ -1,232 +1,169 @@
-/* TeHiceEsto · experimento de viaje cósmico. Vista previa HTML/JS sin servidor.
-   Código canónico del modelo: ProtectorRudo/Tehiceesto, PR #91.
-   Mantener cambios de diseño en la fuente y sincronizar esta vista previa después. */
+/* TeHiceEsto — Hasta el infinito v2. A portable model: visuals and behavior do not change with client data. */
 (() => {
   "use strict";
-  const COPY = {
+  const root = document.getElementById("infinito-app");
+  if (!root || root.dataset.loaded === "yes") return;
+  root.dataset.loaded = "yes";
+  const DEFAULTS = Object.freeze({
     recipient: "vos",
-    giver: "alguien que te quiere muchísimo",
-    closing: "No importa cuánto crezca el universo. Siempre voy a encontrar una forma de quererte un poquito más.",
-    signature: "Con todo mi amor",
-  };
-  const STAGES = [
-    {
-      name: "La Tierra", eyebrow: "MEDICIÓN 01 · PLANETA TIERRA",
-      heading: "Empecemos por algo chiquito.", intro: "Bueno… chiquito, chiquito, no.",
-      hint: "Tocá la Tierra para medir",
-      reveal: "12.742 km de diámetro. Nada mal. Aunque mis ganas de verte ya dieron como cinco vueltas.",
-      next: "Busquemos algo más grande"
-    },
-    {
-      name: "El Sol", eyebrow: "MEDICIÓN 02 · EL SOL",
-      heading: "Ah, bueno. Esto sí que es enorme.", intro: "Entra más de un millón de Tierras acá adentro.",
-      hint: "Tocá el Sol (no quema, prometido)",
-      reveal: "Igual se queda corto. Vos me hacés sonreír más fuerte que el Sol… y sin protector solar.",
-      next: "Necesitamos algo gigante"
-    },
-    {
-      name: "La galaxia", eyebrow: "MEDICIÓN 03 · VÍA LÁCTEA",
-      heading: "Probemos con toda una galaxia.", intro: "Estrellas, planetas y un montón de espacio.",
-      hint: "Tocá la galaxia para explorar",
-      reveal: "Calculé millones de estrellas. Pero ninguna explica bien lo que me pasa cuando te reís.",
-      next: "Creo que falta espacio"
-    },
-    {
-      name: "El universo", eyebrow: "MEDICIÓN 04 · UNIVERSO",
-      heading: "Ahora sí. Todo lo que existe.", intro: "Esto debería alcanzar. ¿No?",
-      hint: "Tocá el universo para comprobar",
-      reveal: "ERROR 404: medida del amor no encontrada. La calculadora renunció y Mercurio pidió vacaciones.",
-      next: "Queda una última cosa…"
-    },
-    {
-      name: "Lo nuestro", eyebrow: "MEDICIÓN 05 · RESULTADO FINAL",
-      heading: "Encontré algo más grande.", intro: "Y no aparece en ningún telescopio.",
-      hint: "Tocá el corazón para descubrirlo",
-      reveal: "Mi amor por vos no entra en el universo. Y mirá que espacio le sobra.", next: ""
-    },
+    giver: "alguien que te quiere hasta lo imposible",
+    finalLetter: "Si el universo tiene millones de lugares increíbles, yo igual volvería a elegir el mismo: ese ratito en el que estamos juntos. Sos mi lugar favorito.",
+    signoff: "Con un amor que no entra en ningún mapa",
+    photoUrl: "",
+    audioUrl: ""
+  });
+  const config = Object.assign({}, DEFAULTS, window.THI_INFINITO_CONFIG || {});
+  const SCENES = [
+    {name:"LA TIERRA", eyebrow:"CAPÍTULO I · EL PUNTO DE PARTIDA", title:"Arranquemos por<br><i>algo enorme.</i>", description:"O eso creía yo.", tag:"12.742 km de diámetro", funny:"Bastante espacio para perder las llaves. Poquísimo para guardar todo lo que te quiero.", hint:"Tocá nuestro planeta", button:"Necesitamos algo más grande", action:"earth"},
+    {name:"EL SOL", eyebrow:"CAPÍTULO II · SUBIMOS LA APUESTA", title:"Bueno, esto<br><i>ya es otra cosa.</i>", description:"Una estrella que lo ilumina todo.", tag:"Más de un millón de Tierras", funny:"Con esto podríamos iluminar todas nuestras charlas de madrugada. Aunque tus ojos ya hacen bastante.", hint:"Mantené presionado para encenderlo", button:"¿Más grande todavía?", action:"sun"},
+    {name:"LA GALAXIA", eyebrow:"CAPÍTULO III · SIN MEDIAS TINTAS", title:"Probemos con<br><i>una galaxia.</i>", description:"Miles de millones de estrellas. Una oportunidad.", tag:"Escala: absurdamente grande", funny:"Busqué entre miles de millones de estrellas y sigo pensando que la suerte me sonrió cuando te encontré.", hint:"Deslizá la galaxia o tocala", button:"Me parece que falta espacio", action:"galaxy"},
+    {name:"EL UNIVERSO", eyebrow:"CAPÍTULO IV · ÚLTIMO INTENTO", title:"Traje todo<br><i>el universo.</i>", description:"En serio, todo. No dejé ni una estrella.", tag:"CÁLCULO EN PROCESO", funny:"ERROR CÓSMICO: el medidor se quedó sin números. El universo pidió hablar con el encargado.", hint:"Deslizá la escala hasta el final", button:"Hay una última medida", action:"universe"},
+    {name:"ALGO MÁS GRANDE", eyebrow:"CAPÍTULO V · LA VERDADERA MEDIDA", title:"Hay algo que<br><i>no tiene medida.</i>", description:"Y no aparece en ningún telescopio.", tag:"RESULTADO FINAL · INFINITO", funny:"Después de medir la Tierra, el Sol y todo lo que existe, descubrí que el amor no se calcula. Se siente.", hint:"Tocá el sello y abrí tu carta", button:"", action:"letter"}
   ];
-  const starPoints = Array.from({ length: 55 }, (_, index) => ({
-    left: ((index * 73 + 19) % 97) + "%",
-    top: ((index * 41 + index * index * 7) % 96) + "%",
-    delay: ((index * 13) % 29) / 10 + "s",
-    size: index % 9 === 0 ? "3px" : index % 3 === 0 ? "2px" : "1px",
-  }));
-  const earthSVG = `
-    <svg class="gal-planet-svg" viewBox="0 0 240 240" role="img" aria-label="Ilustración animada de la Tierra">
-      <defs>
-        <radialGradient id="gal-ocean" cx="34%" cy="28%" r="78%">
-          <stop offset="0" stop-color="#b4f0ff"/><stop offset=".40" stop-color="#328bc6"/><stop offset="1" stop-color="#0b285a"/>
-        </radialGradient>
-        <clipPath id="gal-earth-clip"><circle cx="120" cy="120" r="100"/></clipPath>
-        <radialGradient id="gal-earth-highlight" cx="25%" cy="18%" r="85%">
-          <stop offset="0" stop-color="#fff" stop-opacity=".53"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#050a3b" stop-opacity=".38"/>
-        </radialGradient>
-      </defs>
-      <circle cx="120" cy="120" r="108" fill="#4fbbff" opacity=".12"/>
-      <circle cx="120" cy="120" r="100" fill="url(#gal-ocean)" stroke="#9fe9ff" stroke-opacity=".48" stroke-width="2"/>
-      <g clip-path="url(#gal-earth-clip)" fill="#7ece9f">
-        <path d="M46 53 73 27l30 17 6 20 21 8 5 22-18 13-9 27-17 6-19-20-26-2-18-27Z"/>
-        <path d="m100 152 34 12 9 27-10 21-17 32-18-6-1-31-15-20 8-22Z"/>
-        <path d="m159 37 32 15 21 28-4 19-19 8-9 27-17-6-18-29-22-5-5-24 22-10Z"/>
-        <path d="m189 159 26 2 17 20-9 27-36 9-12-19 7-24Z"/>
-        <path d="m35 145 25 1 10 19-18 18-28-7Z"/>
-      </g>
-      <circle cx="120" cy="120" r="100" fill="url(#gal-earth-highlight)"/>
-      <ellipse cx="88" cy="90" rx="23" ry="9" fill="#fff" opacity=".26" transform="rotate(-35 88 90)"/>
-    </svg>`;
-  const sun = `<div class="gal-sun-wrap" role="img" aria-label="Sol radiante y animado">
-    <div class="gal-sun-rays"></div><div class="gal-sun-disc"></div>
-    <div class="gal-sun-spark gal-sun-spark-a"></div><div class="gal-sun-spark gal-sun-spark-b"></div>
-  </div>`;
-  function galaxy(small) {
-    return `<div class="gal-galaxy${small ? " gal-galaxy-small" : ""}" role="img" aria-label="Galaxia espiral luminosa">
-      <span class="gal-galaxy-arm gal-galaxy-arm-a"></span><span class="gal-galaxy-arm gal-galaxy-arm-b"></span>
-      <span class="gal-galaxy-arm gal-galaxy-arm-c"></span><span class="gal-galaxy-core"></span>
-      <span class="gal-galaxy-spark gal-galaxy-spark-1"></span><span class="gal-galaxy-spark gal-galaxy-spark-2"></span>
-      <span class="gal-galaxy-spark gal-galaxy-spark-3"></span><span class="gal-galaxy-spark gal-galaxy-spark-4"></span>
-    </div>`;
+  const ART = {
+    earth:"https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/1/1-bluemarble_west.jpg/jcr:content/renditions/cq5dam.web.1280.1280.jpeg",
+    sun:"https://d2pn8kiwq2w21t.cloudfront.net/original_images/contentdamsciencepsdphotojournalpiapia26pia26681PIA26681.jpg",
+    galaxy:"https://science.nasa.gov/wp-content/uploads/2023/04/hubble_m51-jpg-e1688472875538.webp"
+  };
+  let index=-1, revealed=false, done=false, busy=false, startTouch=null, holdTimer=0, doneTimer=0, ctx=null, stars=[], lastTs=0, warpUntil=0;
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function esc(s){return String(s||"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+  function extraPhoto(){
+    if (!config.photoUrl || !/^https?:|^data:image\//.test(config.photoUrl)) return '<div class="ii-photo-constellation">✧<b>vos + yo</b><small>un universo entero</small></div>';
+    return '<img src="'+esc(config.photoUrl)+'" alt="Recuerdo especial" loading="lazy">';
   }
-  function universe() {
-    return `<div class="gal-universe" role="img" aria-label="Universo con múltiples galaxias de colores">
-      <span class="gal-universe-orbit gal-universe-orbit-1"></span>
-      <span class="gal-universe-orbit gal-universe-orbit-2"></span>
-      <span class="gal-universe-orbit gal-universe-orbit-3"></span>
-      <div class="gal-universe-main">${galaxy(false)}</div>
-      <div class="gal-universe-mini gal-universe-mini-a">${galaxy(true)}</div>
-      <div class="gal-universe-mini gal-universe-mini-b">${galaxy(true)}</div>
-      <div class="gal-universe-mini gal-universe-mini-c">${galaxy(true)}</div>
-      <span class="gal-universe-star gal-universe-star-a">✦</span>
-      <span class="gal-universe-star gal-universe-star-b">✧</span>
-      <span class="gal-universe-star gal-universe-star-c">✦</span>
-    </div>`;
+  function meta(){
+    return '<div class="ii-top"><a class="ii-logo" href="https://tehiceesto.com/" aria-label="Ir a Te Hice Esto">te hice esto <span>✳</span></a><div class="ii-top-right"><span>EDICIÓN <strong>∞</strong></span><span class="ii-top-divider">/</span><span>PARA ALGUIEN ESPECIAL</span></div></div>';
   }
-  function heart(discovered) {
-    return `<div class="gal-heart-wrap${discovered ? " gal-heart-wrap-open" : ""}">
-      <svg viewBox="0 0 350 320" class="gal-heart-svg" role="img" aria-label="Corazón enorme que late">
-        <defs>
-          <radialGradient id="gal-heart-fill" cx="34%" cy="20%" r="92%">
-            <stop offset="0" stop-color="#ffe5db"/><stop offset=".42" stop-color="#ff92a8"/><stop offset="1" stop-color="#ce477e"/>
-          </radialGradient>
-          <filter id="gal-heart-shadow" x="-35%" y="-35%" width="170%" height="170%"><feGaussianBlur stdDeviation="11"/></filter>
-        </defs>
-        <path d="M175 299C157 281 20 182 20 105 20 44 61 23 105 23c29 0 55 15 70 41 15-26 41-41 70-41 44 0 85 21 85 82 0 77-137 176-155 194Z" fill="#f75d99" opacity=".32" filter="url(#gal-heart-shadow)"/>
-        <path d="M175 292C155 272 27 177 27 107 27 54 62 29 107 29c30 0 56 17 68 42 12-25 38-42 68-42 45 0 80 25 80 78 0 70-128 165-148 185Z" fill="url(#gal-heart-fill)" stroke="#ffd6df" stroke-width="3"/>
-        <path d="M55 101c4-34 28-51 58-49" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" opacity=".52"/>
-        <path d="M140 70c11 5 18 12 22 18" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".18"/>
-        ${discovered ? `<g fill="none" stroke="#76294d" stroke-width="5" stroke-linecap="round">
-          <path d="M120 143q17-18 34 0"/><path d="M197 143q17-18 34 0"/><path d="M159 182q17 26 35 0"/>
-        </g>` : ""}
-      </svg>
-      <span class="gal-heart-spark gal-heart-spark-a">✦</span>
-      <span class="gal-heart-spark gal-heart-spark-b">♡</span>
-      <span class="gal-heart-spark gal-heart-spark-c">✧</span>
-    </div>`;
+  function orbitScene(){
+    return '<div class="ii-artwork ii-artwork-earth" aria-label="La Tierra fotografiada desde el espacio"><span class="ii-planet-aura"></span><span class="ii-planet-circle"><img src="'+ART.earth+'" alt="" draggable="false"></span><span class="ii-orbital ii-orbital-1"></span><span class="ii-orbital ii-orbital-2"></span><span class="ii-orbital-point">✦</span><span class="ii-art-caption">TERCER PLANETA DESDE EL SOL <b>✦</b> 01/05</span><span class="ii-measure ii-measure-earth">12.742 KM <small>DIÁMETRO</small></span></div>';
   }
-  function object(stage, discovered) {
-    return [null, earthSVG, sun, galaxy(false), universe(), heart(discovered)][stage];
+  function sunScene(){
+    return '<div class="ii-artwork ii-artwork-sun" aria-label="Imagen solar de NASA"><span class="ii-corona ii-corona-a"></span><span class="ii-corona ii-corona-b"></span><span class="ii-solar-disc"><img src="'+ART.sun+'" alt="" draggable="false"></span><span class="ii-solar-glimmer"></span><span class="ii-art-caption">UNA ESTRELLA, MUCHAS GANAS <b>✦</b> 02/05</span><span class="ii-measure ii-measure-sun">1.392.700 KM <small>APROX. DIÁMETRO</small></span></div>';
   }
-  let stage = 0, discovered = false, finished = false, transitioning = false, touch = null, finalTimer = 0;
-  const app = document.querySelector("#cosmos-app");
-  if (!app) throw Error("Falta el contenedor de la experiencia");
-  const sky = `<div class="gal-sky" aria-hidden="true">${starPoints.map(p => `<span class="gal-sky-star" style="left:${p.left};top:${p.top};width:${p.size};height:${p.size};animation-delay:${p.delay}"></span>`).join("")}
-    <span class="gal-sky-haze gal-sky-haze-one"></span><span class="gal-sky-haze gal-sky-haze-two"></span>
-  </div>`;
-  function intro() {
-    return `<section class="gal-intro">
-      <p class="gal-eyebrow">UNA HISTORIA POCO CIENTÍFICA</p>
-      <div class="gal-intro-orbit" aria-hidden="true"><span class="gal-orbit-a"></span><span class="gal-orbit-b"></span><span class="gal-intro-heart">♥</span></div>
-      <h1>¿Cuánto <em>te quiero?</em></h1>
-      <p class="gal-intro-description">Quise averiguarlo usando cosas enormes del espacio. La ciencia no estaba preparada.</p>
-      <button class="gal-primary" data-action="begin">Empezar a medir <span aria-hidden="true">↗</span></button>
-      <p class="gal-intro-small">5 descubrimientos · 1 final muy nuestro</p>
-    </section>`;
+  function galaxyScene(){
+    return '<div class="ii-artwork ii-artwork-galaxy" aria-label="Galaxia en espiral fotografiada por el telescopio Hubble"><span class="ii-galaxy-halo"></span><span class="ii-galaxy-disc"><img src="'+ART.galaxy+'" alt="" draggable="false"></span><span class="ii-galaxy-wisp ii-galaxy-wisp-a">✦</span><span class="ii-galaxy-wisp ii-galaxy-wisp-b">✧</span><span class="ii-galaxy-wisp ii-galaxy-wisp-c">✦</span><span class="ii-art-caption">NADA DE ESTO ME ALCANZA <b>✦</b> 03/05</span><span class="ii-measure ii-measure-galaxy">MIL MILLONES DE HISTORIAS <small>Y UNA FAVORITA</small></span></div>';
   }
-  function chapter() {
-    const c = STAGES[stage - 1];
-    const feedback = discovered ? `<div class="gal-reveal">
-      ${stage === 4 ? '<span class="gal-error-label">ALERTA CÓSMICA · SIN ESCALA</span>' : ""}
-      ${stage === 5 ? '<span class="gal-error-label">MEDIDOR DE AMOR: ∞</span>' : ""}
-      <p>${c.reveal}</p></div>` : "";
-    const card = stage === 5 && finished ? `<div class="gal-final-note">
-      <p>Para ${COPY.recipient}: ${COPY.closing}</p>
-      <span>${COPY.signature} · ${COPY.giver} ♡</span>
-    </div>` : "";
-    return `<section class="gal-chapter" aria-labelledby="gal-title">
-      <div class="gal-chapter-copy"><p class="gal-eyebrow">${c.eyebrow}</p><h1 id="gal-title">${c.heading}</h1><p class="gal-chapter-intro">${c.intro}</p></div>
-      <div class="gal-object-stage gal-object-stage-${stage}">
-        <div class="gal-orbit-ambient" aria-hidden="true"></div>
-        <button class="gal-discover-object gal-discover-object-${stage}${discovered ? " gal-object-discovered" : ""}" data-action="reveal"
-          aria-label="${c.hint}" aria-pressed="${String(discovered)}">
-          ${object(stage, discovered)}
-        </button>
-        ${!discovered ? `<p class="gal-touch-hint"><span aria-hidden="true">✧</span> ${c.hint}</p>` : ""}
-      </div>
-      <div class="gal-reveal-area" aria-live="polite">${feedback}${card}</div>
-      <div class="gal-controls">
-        ${stage > 1 ? '<button class="gal-back" data-action="back" aria-label="Volver al descubrimiento anterior">←</button>' : ""}
-        ${discovered && stage < 5 ? `<button class="gal-primary" data-action="next">${c.next} <span aria-hidden="true">↗</span></button>` : ""}
-        ${finished && stage === 5 ? '<button class="gal-primary" data-action="restart">Volver a vivirlo <span aria-hidden="true">↺</span></button>' : ""}
-      </div>
-    </section>`;
+  function universeScene(){
+    const positions=[["-21%","-30%","-22deg",".5"],["60%","-27%","23deg",".32"],["-43%","44%","15deg",".22"],["74%","56%","-26deg",".34"],["19%","78%","49deg",".30"]];
+    const galaxyTiles=positions.map((p,i)=>'<span class="ii-universe-galaxy ii-universe-galaxy-'+i+'" style="left:'+p[0]+';top:'+p[1]+';--rot:'+p[2]+';opacity:'+p[3]+'"><img src="'+ART.galaxy+'" alt=""></span>').join("");
+    return '<div class="ii-artwork ii-artwork-universe" aria-label="Un universo inmenso de galaxias"><span class="ii-universe-nebula"></span>'+galaxyTiles+'<span class="ii-universe-center"><img src="'+ART.galaxy+'" alt="" draggable="false"></span><span class="ii-universe-scope"></span><span class="ii-universe-coordinate">∞ <small>FUERA DE ESCALA</small></span><span class="ii-art-caption">TODOS LOS CIELOS JUNTOS <b>✦</b> 04/05</span></div>';
   }
-  function render() {
-    app.innerHTML = `<main class="gal-experience">
-      ${sky}
-      <div class="gal-topbar">
-        <a href="https://tehiceesto.com/" class="gal-brand" aria-label="Volver a Te Hice Esto">te hice esto <span>✳</span></a>
-        <span class="gal-progress" aria-live="polite">${stage === 0 ? "UNA HISTORIA PARA VOS" : String(stage).padStart(2, "0") + " / 05"}</span>
-      </div>
-      ${stage > 0 ? `<div class="gal-step-trail" role="progressbar" aria-label="Progreso del viaje" aria-valuemin="0" aria-valuemax="5" aria-valuenow="${stage}">
-        ${STAGES.map((c, index) => `<span class="gal-step-dot${index + 1 <= stage ? " gal-step-dot-on" : ""}"></span>`).join("")}
-      </div>` : ""}
-      <div class="gal-frame">${stage === 0 ? intro() : chapter()}</div>
-      <div class="gal-bottom-brand">UN PEQUEÑO UNIVERSO HECHO PARA ALGUIEN <span>✦</span> TE HICE ESTO</div>
-    </main>`;
-    app.querySelectorAll("[data-action]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const action = btn.dataset.action;
-        if (action === "begin") changeStage(1);
-        if (action === "reveal") reveal();
-        if (action === "back") changeStage(stage - 1);
-        if (action === "next") changeStage(stage + 1);
-        if (action === "restart") changeStage(0);
-      });
-    });
-    app.querySelector(".gal-experience").addEventListener("touchstart", e => {
-      const t = e.changedTouches[0];
-      touch = { x: t.clientX, y: t.clientY };
-    }, { passive: true });
-    app.querySelector(".gal-experience").addEventListener("touchend", e => {
-      if (!touch) return;
-      const t = e.changedTouches[0], dx = t.clientX - touch.x, dy = t.clientY - touch.y;
-      touch = null;
-      if (Math.abs(dx) < 95 || Math.abs(dy) > 65) return;
-      if (dx < 0 && stage > 0 && stage < 5 && discovered) changeStage(stage + 1);
-      if (dx > 0 && stage > 1) changeStage(stage - 1);
-    }, { passive: true });
+  function letterScene(){
+    return '<div class="ii-artwork ii-artwork-letter" aria-label="Carta romántica con sello de cera">'+
+      '<div class="ii-envelope-shadow"></div>'+
+      '<div class="ii-letter-paper"><span>DEL UNIVERSO PARA</span><h3>'+esc(config.recipient)+'</h3><p>'+esc(config.finalLetter)+'</p><small>'+esc(config.signoff)+'</small></div>'+
+      '<div class="ii-envelope"><div class="ii-flap"></div><div class="ii-envelope-front"></div><span class="ii-seal">♡</span></div>'+
+      '<span class="ii-letter-dust ii-letter-dust-1">✦</span><span class="ii-letter-dust ii-letter-dust-2">✧</span><span class="ii-letter-dust ii-letter-dust-3">✦</span></div>';
   }
-  function changeStage(next) {
-    if (transitioning || next < 0 || next > 5) return;
-    transitioning = true;
-    clearTimeout(finalTimer);
-    const frame = app.querySelector(".gal-frame");
-    if (frame) frame.classList.add("gal-frame-exit");
-    setTimeout(() => {
-      stage = next;
-      discovered = false;
-      finished = false;
-      transitioning = false;
-      render();
-    }, 250);
+  function sceneArt(){return [orbitScene,sunScene,galaxyScene,universeScene,letterScene][index]();}
+  function intro(){
+    return '<div class="ii-intro">'+
+      '<p class="ii-overline">TE HICE ESTO PRESENTA · UN PEQUEÑO VIAJE</p>'+
+      '<div class="ii-seal-large" aria-hidden="true"><span class="ii-seal-line ii-line-a"></span><span class="ii-seal-line ii-line-b"></span><span>∞</span></div>'+
+      '<div class="ii-intro-title">Quise medir<br><em>cuánto te quiero.</em></div>'+
+      '<p class="ii-intro-description">Empecé por la Tierra. Después me fui un poquito de tema.</p>'+
+      '<div class="ii-intro-ticket"><span>ADMISIÓN PARA UNO</span><span>DESTINO · ALGO INMENSO</span></div>'+
+      '<button type="button" class="ii-cta ii-cta-intro" data-action="begin">Abrir nuestro universo <span aria-hidden="true">↗</span></button>'+
+      '<span class="ii-footnote">CINCO PARADAS, UNA VERDAD EXTRAORDINARIA</span>'+
+    '</div>';
   }
-  function reveal() {
-    if (discovered || transitioning) return;
-    discovered = true;
-    if (navigator.vibrate) navigator.vibrate(stage === 5 ? [35, 55, 35] : 24);
-    render();
-    if (stage === 5) {
-      finalTimer = setTimeout(() => { finished = true; render(); }, 850);
+  function scene(){
+    const s=SCENES[index];
+    let controls='';
+    if(!revealed){
+      if(index===3)controls='<div class="ii-slider-wrap"><input aria-label="Expandir la escala" id="ii-scale" type="range" min="0" max="100" value="0"><div class="ii-slider-labels"><span>PLANETA</span><span>UNIVERSO ENTERO</span></div></div><button type="button" data-action="reveal" class="ii-quiet-link">O descubrilo con un toque ↗</button>';
+      else controls='<button type="button" class="ii-touch-button" data-action="reveal"><span class="ii-touch-icon">'+(index===1?'◎':index===2?'↔':index===4?'♡':'✧')+'</span><span>'+s.hint+'</span><span class="ii-touch-pulse"></span></button>';
+    } else if(index<4){
+      controls='<button type="button" class="ii-cta" data-action="next">'+s.button+'<span aria-hidden="true">↗</span></button>';
+    } else if(done){
+      controls='<div class="ii-final-controls"><button type="button" class="ii-cta" data-action="restart">Volver a vivirlo <span aria-hidden="true">↺</span></button><button type="button" class="ii-share" data-action="share">Compartir esta sorpresa ↗</button></div>';
     }
+    return '<article class="ii-chapter ii-chapter-'+index+(revealed?' ii-revealed':'')+'">'+
+      '<div class="ii-chapter-top"><span class="ii-chapter-eyebrow">'+s.eyebrow+'</span><h1>'+s.title+'</h1><p>'+s.description+'</p></div>'+
+      '<div class="ii-art-wrapper">'+sceneArt()+'</div>'+
+      '<div class="ii-chapter-bottom">'+(revealed?'<div class="ii-discovery"><div class="ii-discovery-label"><span>✧</span> '+s.tag+'</div><p>'+s.funny+'</p></div>':'<div class="ii-waiting"><span>UNA PEQUEÑA PISTA</span><p>'+s.hint+'</p></div>')+
+      '<div class="ii-actions">'+(index>0?'<button type="button" class="ii-back" data-action="back" aria-label="Volver a la etapa anterior">←</button>':'')+controls+'</div>'+
+      '</div></article>';
+  }
+  function footer(){
+    return '<footer class="ii-footer"><span>TE HICE ESTO</span><div class="ii-progress" role="progressbar" aria-label="Progreso del recorrido" aria-valuemin="0" aria-valuemax="5" aria-valuenow="'+(index+1)+'">'+SCENES.map((s,i)=>'<span class="'+(i<=index?'is-active':'')+'"></span>').join('')+'</div><span>'+(index<0?'PRÓXIMO DESTINO: LA TIERRA':index===4?'FIN DEL UNIVERSO · INICIO DE TODO':String(index+1).padStart(2,'0')+' / 05')+'</span></footer>';
+  }
+  function render(){
+    document.title="Hasta el infinito · Te Hice Esto";
+    root.innerHTML='<main class="ii-experience" data-scene="'+index+'" data-revealed="'+(revealed?'yes':'no')+'"><canvas class="ii-starfield" aria-hidden="true"></canvas><div class="ii-lightgrain" aria-hidden="true"></div><div class="ii-edges" aria-hidden="true"></div><div class="ii-page">'+meta()+(index<0?intro():scene())+footer()+'</div><div class="ii-warp" aria-hidden="true"></div></main>';
+    root.querySelectorAll('[data-action]').forEach(btn=>btn.addEventListener('click',()=> {
+      const a=btn.dataset.action;
+      if(a==="begin")go(0);
+      if(a==="back")go(index-1);
+      if(a==="next")go(index+1);
+      if(a==="reveal")discover();
+      if(a==="restart")go(-1);
+      if(a==="share")share();
+    }));
+    const body=root.querySelector('.ii-experience');
+    if(index===1&&!revealed){
+      const b=root.querySelector('.ii-touch-button');let triggered=false;
+      const start=()=>{triggered=false;b.classList.add('is-holding');holdTimer=setTimeout(()=>{triggered=true;discover();},700);};
+      const stop=()=>{clearTimeout(holdTimer);if(b.isConnected)b.classList.remove('is-holding');};
+      b.addEventListener('pointerdown',start);["pointerup","pointercancel","pointerleave"].forEach(e=>b.addEventListener(e,stop));
+      b.addEventListener('click',()=>{if(!triggered)discover();});
+    }
+    if(index===2&&!revealed){
+      const art=root.querySelector('.ii-galaxy-disc');
+      art.addEventListener('pointerdown',e=>{startTouch=e.clientX;});
+      art.addEventListener('pointerup',e=>{if(startTouch!==null&&Math.abs(e.clientX-startTouch)>50)discover();startTouch=null;});
+    }
+    if(index===3&&!revealed){
+      const slider=root.querySelector('#ii-scale');
+      slider.addEventListener('input',()=>{body.style.setProperty('--universe-zoom',slider.value/100);if(+slider.value>=88)discover();});
+    }
+    if(index===4&&revealed){
+      doneTimer=setTimeout(()=>{done=true;root.querySelector('.ii-experience')?.classList.add('ii-letter-finished');const actions=root.querySelector('.ii-actions');if(actions&&actions.childElementCount<=1){actions.insertAdjacentHTML('beforeend','<div class="ii-final-controls"><button type="button" class="ii-cta" data-action="restart">Volver a vivirlo <span aria-hidden="true">↺</span></button><button type="button" class="ii-share" data-action="share">Compartir esta sorpresa ↗</button></div>');actions.querySelector('[data-action="restart"]').addEventListener('click',()=>go(-1));actions.querySelector('[data-action="share"]').addEventListener('click',share);}},1050);
+    }
+    paintStars();
+  }
+  async function share(){
+    const url=window.location.href;
+    try{if(navigator.share)await navigator.share({title:document.title,url});else if(navigator.clipboard){await navigator.clipboard.writeText(url);const b=root.querySelector('.ii-share');if(b)b.textContent="Enlace copiado ✓";}}catch{}
+  }
+  function discover(){
+    if(busy||revealed||index<0)return;
+    clearTimeout(holdTimer);revealed=true;warpUntil=performance.now()+650;
+    if(navigator.vibrate)navigator.vibrate(index===4?[25,55,45]:24);
+    const currentY=window.scrollY;
+    render();
+    if(currentY>0)window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function go(n){
+    if(busy||n<-1||n>4)return;
+    busy=true;clearTimeout(holdTimer);clearTimeout(doneTimer);
+    const scene=root.querySelector('.ii-experience');if(scene)scene.classList.add('ii-departing');
+    warpUntil=performance.now()+1150;
+    window.setTimeout(()=>{index=n;revealed=false;done=false;busy=false;render();window.scrollTo({top:0,behavior:"instant"});},reducedMotion?0:530);
+  }
+  function paintStars(){
+    const c=root.querySelector('canvas');
+    if(!c)return;const dpr=Math.min(2,window.devicePixelRatio||1);
+    const w=window.innerWidth,h=Math.max(window.innerHeight,root.getBoundingClientRect().height);
+    c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);c.style.width=w+'px';c.style.height=h+'px';
+    ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+    let seed=1729;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+    stars=Array.from({length:w<500?135:240},()=>({x:rand()*w,y:rand()*h,r:.35+rand()*1.2,z:.1+rand()*.9,phase:rand()*6.28,hue:rand()>.88?36:rand()>.82?210:0}));
+    drawStars(performance.now());
+  }
+  function drawStars(ts){
+    if(!ctx)return;const w=window.innerWidth,h=ctx.canvas.height/(Math.min(2,window.devicePixelRatio||1));
+    ctx.clearRect(0,0,w,h);
+    const warp=ts<warpUntil;
+    stars.forEach(s=>{let opacity=reducedMotion?.65:(.28+Math.sin(ts*.0014*s.z+s.phase)*.23+.25*s.z);
+      ctx.fillStyle=s.hue===36?'rgba(255,212,163,'+opacity+')':s.hue===210?'rgba(157,197,255,'+opacity+')':'rgba(250,242,230,'+opacity+')';
+      const yy=(s.y+(warp?(warpUntil-ts)*s.z*.06:0))%h;
+      if(warp){ctx.fillRect(s.x,yy,s.r,Math.max(2,s.z*15));}
+      else{ctx.beginPath();ctx.arc(s.x,yy,s.r,0,Math.PI*2);ctx.fill();}
+    });
+    if(!reducedMotion)requestAnimationFrame(drawStars);
   }
   render();
+  window.addEventListener('resize',()=>{if(root.querySelector('.ii-experience'))paintStars();},{passive:true});
 })();
