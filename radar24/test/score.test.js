@@ -51,3 +51,24 @@ test('collect calls exact 24h TikTok filter and follows previously known URL',as
  assert.equal(called[0].body.videoSearchDateFilter,'PAST_24_HOURS');
  assert.ok(called.some(c=>c.body.postURLs?.includes(video.url)));
 });
+
+test('discovery searches multiple themes within last 24h by top likes, not latest',async()=>{
+ const requests=[];
+ const fetchImpl=async(url,options)=>{requests.push({url,input:JSON.parse(options.body)});return {ok:true,json:async()=>[]};};
+ const cfg={apifyToken:'test',market:'AR',perQuery:20,tiktokQueries:['humor','curiosidades','trending','transformacion'],instagramTags:['reelsargentina','viralreels']};
+ const r=await collect(cfg,{tiktok:[],instagram:[]},fetchImpl);
+ assert.deepEqual(r.errors,[]);
+ const tik=requests.filter(x=>x.url.includes('tiktok-scraper'));
+ assert.equal(tik.length,1);
+ assert.equal(tik[0].input.searchQueries.length,4);
+ assert.equal(tik[0].input.videoSearchSorting,'MOST_LIKED');
+ assert.equal(tik[0].input.videoSearchDateFilter,'PAST_24_HOURS');
+ assert.equal(tik[0].input.resultsPerPage,20);
+});
+test('weak posts do not receive distinguished viral quality, high-reach posts can',()=>{
+ const weak=enrich({...video,views:120,likes:8,shares:0},[snap('2026-11-23T12:00:00Z',120)],now);
+ assert.equal(weak.quality,'en observación');
+ const strong=enrich({...video,views:240000,likes:14000,shares:1200},[{...snap('2026-11-23T12:00:00Z',240000),likes:14000,shares:1200}],now);
+ assert.equal(strong.quality,'destacado');
+ assert.ok(strong.score>weak.score);
+});
