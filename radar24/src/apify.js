@@ -14,46 +14,39 @@ async function runActor(actor,input,token,fetchImpl=fetch) {
 }
 export async function collect(config,tracked={tiktok:[],instagram:[]},fetchImpl=fetch) {
   if (!config.apifyToken) throw new Error('Falta APIFY_TOKEN');
-  const errors=[],videos=[];
+  const errors=[],videos=[],jobs=[];
   const market=config.market;
-  // Exact 24-hour search is provided by the third-party TikTok actor; final date filtering also runs server-side.
+  // Execute independent platform requests concurrently. Serial synchronous calls made
+  // a two-platform attempt take up to six minutes and obscured which source failed.
+  function schedule(source,actor,input,normalize) {
+    jobs.push(runActor(actor,input,config.apifyToken,fetchImpl)
+      .then(rows => { videos.push(...rows.map(x=>normalize(x,market)).filter(Boolean)); })
+      .catch(error => { errors.push(`${source}: ${error.message}`); }));
+  }
   for (const query of config.tiktokQueries) {
-    try {
-      const data=await runActor('clockworks~tiktok-scraper',{
-        searchQueries:[query], searchSection:'/video',videoSearchSorting:'LATEST',videoSearchDateFilter:'PAST_24_HOURS',
-        resultsPerPage:config.perQuery,proxyCountryCode:market==='AR'?'AR':'None',
-        shouldDownloadVideos:false, downloadSubtitlesOptions:'NEVER_DOWNLOAD_SUBTITLES'
-      },config.apifyToken,fetchImpl);
-      videos.push(...data.map(x=>normalizeTikTok(x,market)).filter(Boolean));
-    } catch(e){errors.push(`TikTok (${query}): ${e.message}`);}
+    schedule(`TikTok (${query})`,'clockworks~tiktok-scraper',{
+      searchQueries:[query], searchSection:'/video',videoSearchSorting:'LATEST',videoSearchDateFilter:'PAST_24_HOURS',
+      resultsPerPage:config.perQuery,proxyCountryCode:market==='AR'?'AR':'None',
+      shouldDownloadVideos:false, downloadSubtitlesOptions:'NEVER_DOWNLOAD_SUBTITLES'
+    },normalizeTikTok);
   }
   for(const tag of config.instagramTags){
-    try {
-      const data=await runActor('apify~instagram-scraper',{
-        resultsType:'posts', search:'#'+tag,searchType:'hashtag',searchLimit:1,
-        resultsLimit:config.perQuery, onlyPostsNewerThan:'1 day'
-      },config.apifyToken,fetchImpl);
-      videos.push(...data.map(x=>normalizeInstagram(x,market)).filter(Boolean));
-    } catch(e){errors.push(`Instagram (#${tag}): ${e.message}`);}
+    schedule(`Instagram (#${tag})`,'apify~instagram-scraper',{
+      resultsType:'posts', search:'#'+tag,searchType:'hashtag',searchLimit:1,
+      resultsLimit:config.perQuery, onlyPostsNewerThan:'1 day'
+    },normalizeInstagram);
   }
-  // Recheck previously discovered videos, including those now older than 24h. This is
-  // necessary to detect a fresh 24h growth surge on a previously published video.
   for (const group of chunk(tracked.tiktok || [], 10)) {
-    try {
-      const data=await runActor('clockworks~tiktok-scraper',{
-        postURLs:group,resultsPerPage:1,shouldDownloadVideos:false,
-      },config.apifyToken,fetchImpl);
-      videos.push(...data.map(x=>normalizeTikTok(x,market)).filter(Boolean));
-    } catch(e){errors.push(`Seguimiento TikTok: ${e.message}`);}
+    schedule('Seguimiento TikTok','clockworks~tiktok-scraper',{
+      postURLs:group,resultsPerPage:1,shouldDownloadVideos:false,
+    },normalizeTikTok);
   }
   for (const group of chunk(tracked.instagram || [], 10)) {
-    try {
-      const data=await runActor('apify~instagram-scraper',{
-        resultsType:'posts',directUrls:group,resultsLimit:1,
-      },config.apifyToken,fetchImpl);
-      videos.push(...data.map(x=>normalizeInstagram(x,market)).filter(Boolean));
-    } catch(e){errors.push(`Seguimiento Instagram: ${e.message}`);}
+    schedule('Seguimiento Instagram','apify~instagram-scraper',{
+      resultsType:'posts',directUrls:group,resultsLimit:1,
+    },normalizeInstagram);
   }
+  await Promise.all(jobs);
   const cutoff=Date.now()-24*3600*1000;
   const previouslyTracked=new Set([...(tracked.tiktok||[]),...(tracked.instagram||[])]);
   const valid=videos.filter(x=>Date.parse(x.postedAt)<=Date.now()+3600000 &&
