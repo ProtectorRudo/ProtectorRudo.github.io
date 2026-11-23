@@ -33,16 +33,16 @@ function safeImage(raw) {
 export function normalizeTikTok(v, market = 'AR') {
   if (!v || typeof v !== 'object') return null;
   const author = v.authorMeta || {};
-  const id = String(v.id || v.aweme_id || v.videoId || '');
-  const handle = String(author.name || author.uniqueId || v.author?.uniqueId || '').replace(/^@/, '');
+  const id = String(v.id || v.aweme_id || v.videoId || (String(v.url||'').match(/\/video\/(\d+)/)?.[1]||''));
+  const handle = String(author.name || author.uniqueId || v.author?.uniqueId || v.creator || v.creatorName || '').replace(/^@/, '');
   const url = safeVideoUrl(v.webVideoUrl || v.url || `https://www.tiktok.com/@${encodeURIComponent(handle)}/video/${id}`, 'tiktok');
-  const postedAt = timestamp(v.createTimeISO || v.createTime || v.create_time || v.timestamp);
+  const postedAt = timestamp(v.postedAt || v.createTimeISO || v.createTime || v.create_time || v.timestamp);
   if (!id || !url || !postedAt) return null;
   return { id: 'tiktok:' + id, platform: 'tiktok', externalId: id, url, postedAt, author: handle || 'Creador',
-    caption: String(v.text || v.desc || '').slice(0, 1500), thumbnail: safeImage(v.videoMeta?.coverUrl || v.coverUrl || v.video?.cover),
-    views: count(v.playCount, v.stats?.playCount, v.stats?.play_count), likes: count(v.diggCount, v.stats?.diggCount, v.stats?.likeCount),
-    comments: count(v.commentCount, v.stats?.commentCount), shares: count(v.shareCount, v.stats?.shareCount),
-    followers: count(author.fans, author.followerCount), market, };
+    caption: String(v.caption || v.text || v.desc || '').slice(0, 1500), thumbnail: safeImage(v.cover || v.videoMeta?.coverUrl || v.coverUrl || v.video?.cover),
+    views: count(v.plays, v.playCount, v.stats?.playCount, v.stats?.play_count), likes: count(v.likes, v.diggCount, v.stats?.diggCount, v.stats?.likeCount),
+    comments: count(v.comments, v.commentCount, v.stats?.commentCount), shares: count(v.shares, v.shareCount, v.stats?.shareCount),
+    followers: count(v.followers, author.fans, author.followerCount), market, };
 }
 export function normalizeInstagram(v, market = 'AR') {
   if (!v || typeof v !== 'object') return null;
