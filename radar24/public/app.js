@@ -37,12 +37,26 @@ function renderCards(){
 }
 async function load(){try{const [status,data]=await Promise.all([api('/api/status'),api(`/api/videos?mode=${state.mode}&platform=${state.platform}`)]);
   state.configured=status.configured;state.ai=status.aiConfigured;state.videos=data.videos;
-  $('#stat-new').textContent=pretty(status.counts.new24);$('#stat-accelerated').textContent=pretty(status.counts.accelerated24);
-  $('#stat-tracked').textContent=pretty(status.counts.tracked);$('#stat-total').textContent=pretty(status.counts.total);
-  $('#setup').hidden=status.configured;$('#last-sync').textContent='Último escaneo: '+date(status.lastRun?.completed_at);
+  const starting=!!(status.initialScanPending||(status.running&&status.counts.total===0));
+  const statValue=n=>starting?'…':pretty(n);
+  $('#stat-new').textContent=statValue(status.counts.new24);$('#stat-accelerated').textContent=statValue(status.counts.accelerated24);
+  $('#stat-tracked').textContent=statValue(status.counts.tracked);$('#stat-total').textContent=statValue(status.counts.total);
+  $('#setup').hidden=status.configured;
+  $('#history-note').hidden=!!status.historyPersistent;
+  $('#last-sync').textContent=starting?'Buscando videos reales…':'Último escaneo: '+date(status.lastRun?.completed_at);
   $('#sidebar-status').textContent=status.running?'Explorando tendencias…':status.configured?'Fuente conectada':'Fuente sin conectar';
   document.querySelector('.dot').classList.toggle('ok',status.configured);
   document.querySelector('.ping').classList.toggle('ok',status.configured);
+  if(starting){
+    $('#result-count').textContent='Buscando…';
+    renderEmpty('Explorando TikTok','Render acaba de iniciar el radar. Estamos recuperando o buscando videos reales; todavía no terminó la primera medición.');
+    return;
+  }
+  if(status.lastRun?.status==='error'&&!status.counts.total){
+    $('#result-count').textContent='Sin resultados';
+    renderEmpty('Falló la búsqueda de videos','La fuente externa no entregó resultados válidos. No los reemplazamos por contenido inventado.');
+    return;
+  }
   renderCards();
   }catch(e){renderEmpty('No pudimos cargar el radar',e.message);$('#last-sync').textContent='Error de conexión';}}
 function chart(history){const wrap=dom('div','chart-box');wrap.append(dom('div','chart-label',`Historial de reproducciones · ${history.length} mediciones`));
