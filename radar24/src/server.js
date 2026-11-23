@@ -26,7 +26,8 @@ const runRefresh=async()=>{
   running=true;
   const started=new Date().toISOString();
   try {
-    const {videos,errors}=await collect(cfg,store.trackedUrls());
+    const {videos,errors,diagnostics=[]}=await collect(cfg,store.trackedUrls());
+    console.log('Radar: diagnostico por fuente',JSON.stringify(diagnostics));
     const accepted=store.add(videos,new Date().toISOString());
     const sample=store.list({mode:'new24',limit:100});
     console.log('Radar: resumen de candidatos',JSON.stringify({
