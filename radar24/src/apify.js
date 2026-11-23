@@ -37,8 +37,11 @@ export async function collect(config,tracked={tiktok:[],instagram:[]},fetchImpl=
         try { return await runActor(actor,latest,config.apifyToken,fetchImpl); }
         catch(second){
           if(!second.message.includes('HTTP 400') || !(input.searchQueries?.length>1)) throw second;
-          const settled=await Promise.allSettled(input.searchQueries.map(query=>
-            runActor(actor,{...latest,searchQueries:[query]},config.apifyToken,fetchImpl)));
+          const settled=[];
+          for(const query of input.searchQueries){
+            try { settled.push({status:'fulfilled',value:await runActor(actor,{...latest,searchQueries:[query]},config.apifyToken,fetchImpl)}); }
+            catch(reason){ settled.push({status:'rejected',reason}); }
+          }
           const successful=settled.filter(x=>x.status==='fulfilled').flatMap(x=>x.value);
           const failed=settled.filter(x=>x.status==='rejected');
           if(!successful.length && failed.length) throw failed[0].reason;
