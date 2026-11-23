@@ -60,7 +60,7 @@ async function handler(req,res){
       if(running)return json(res,409,{error:'Búsqueda ya en ejecución'});
       if(!cfg.apifyToken)return json(res,422,{error:'Falta APIFY_TOKEN'});
       if(store.runsToday()>=cfg.maxRunsPerDay)return json(res,429,{error:'Límite diario de escaneos alcanzado'});
-      void runRefresh().then(result=>console.log('Radar: exploración manual',result.status));
+      void runRefresh().then(result=>console.log('Radar: exploración manual',result.status,'videos=',result.accepted ?? 0,'errores=',result.errors?.join(' | ')||result.error||'ninguno'));
       return json(res,202,{status:'queued',message:'Búsqueda iniciada. El estado se actualizará al finalizar.'});
     }
     const match=u.pathname.match(/^\/api\/videos\/(tiktok|instagram):([a-zA-Z0-9_-]+)(\/insight)?$/);
@@ -91,8 +91,8 @@ async function handler(req,res){
 const server=http.createServer(handler);
 server.listen(cfg.port,'0.0.0.0',()=>console.log(`VIRAL LAB Radar 24H escuchando en puerto ${cfg.port}; autoscaneo=${cfg.autoScan && !!cfg.apifyToken}`));
 if(cfg.autoScan&&cfg.apifyToken){
-  setTimeout(()=>runRefresh().then(r=>console.log('Radar: primera exploración',r.status)),3000).unref();
-  setInterval(()=>runRefresh().then(r=>console.log('Radar: exploración programada',r.status)),cfg.pollMinutes*60000).unref();
+  setTimeout(()=>runRefresh().then(r=>console.log('Radar: primera exploración',r.status,'videos=',r.accepted ?? 0,'errores=',r.errors?.join(' | ')||r.error||'ninguno')),3000).unref();
+  setInterval(()=>runRefresh().then(r=>console.log('Radar: exploración programada',r.status,'videos=',r.accepted ?? 0,'errores=',r.errors?.join(' | ')||r.error||'ninguno')),cfg.pollMinutes*60000).unref();
 }
 const shutdown=()=>{server.close();store.close();};
 process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);
