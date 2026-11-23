@@ -23,10 +23,15 @@ export async function collect(config,tracked={tiktok:[],instagram:[]},fetchImpl=
       .then(rows => { videos.push(...rows.map(x=>normalize(x,market)).filter(Boolean)); })
       .catch(error => { errors.push(`${source}: ${error.message}`); }));
   }
-  for (const query of config.tiktokQueries) {
-    schedule(`TikTok (${query})`,'clockworks~tiktok-scraper',{
-      searchQueries:[query], searchSection:'/video',videoSearchSorting:'LATEST',videoSearchDateFilter:'PAST_24_HOURS',
-      resultsPerPage:config.perQuery,proxyCountryCode:market==='AR'?'AR':'None',
+  // A single actor run can search several topics. Prefer the highest-liked
+  // videos in the last 24h, not merely the latest low-performing uploads.
+  // This increases candidate quality while avoiding one paid actor per keyword.
+  if (config.tiktokQueries.length) {
+    schedule('TikTok destacados 24H','clockworks~tiktok-scraper',{
+      searchQueries:config.tiktokQueries, searchSection:'/video',
+      videoSearchSorting:'MOST_LIKED', videoSearchDateFilter:'PAST_24_HOURS',
+      resultsPerPage:config.perQuery,
+      proxyCountryCode:market==='AR'?'AR':'None',
       shouldDownloadVideos:false, downloadSubtitlesOptions:'NEVER_DOWNLOAD_SUBTITLES'
     },normalizeTikTok);
   }
