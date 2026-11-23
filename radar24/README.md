@@ -4,6 +4,14 @@ Módulo funcional de monitorización de tendencias para **TikTok** e **Instagram
 
 > **Estado de entrega:** código y tests funcionales; requiere `APIFY_TOKEN` y despliegue para descubrir tendencias reales. Se diseñó como aplicación independiente integrable mediante un enlace o proxy dentro del editor de VIRAL LAB. No modifica la aplicación preexistente en Render.
 
+## Persistencia: solución al panel en cero tras reinicios
+
+Los servicios web gratuitos de Render eliminan archivos SQLite cuando reinician. El radar admite `RADAR_DATABASE_URL` con una **URL interna PostgreSQL privada**, conectada a la base independiente `viral-lab-radar24-history`. Al arrancar, recupera el inventario SQLite; después de cada escaneo guarda una copia de la base completa (videos, instantáneas, rondas y análisis). Los backups son automáticos. Si no se configura la URL, el panel informa que el historial es temporal y no presenta el cero inicial como una búsqueda finalizada.
+
+Para conectar: Render → PostgreSQL → `viral-lab-radar24-history` → **Internal Database URL** (copiar la URL completa sin mostrarla en el chat). En Render → Web Service → `viral-lab-radar24` → Environment → añadir `RADAR_DATABASE_URL` con ese valor, guardar y comprobar que los logs digan `Radar: historial externo listo`. El código no imprime credenciales ni las expone al frontend. El escaneo se evita después de reinicios si hay una ronda guardada en las últimas 24 horas.
+
+**Límite:** la base PostgreSQL gratuita de Render expira el **23 de diciembre de 2026**. Antes de esa fecha hay que migrar a un Postgres duradero (por ejemplo Supabase dedicado o Render de pago). No es una solución permanente más allá de la caducidad del plan gratuito.
+
 ## Ejecutar
 
 ```bash
