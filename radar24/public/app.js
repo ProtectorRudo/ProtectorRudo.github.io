@@ -1,5 +1,5 @@
 const $=s=>document.querySelector(s);
-const state={mode:'new24',platform:'all',videos:[],configured:false,ai:false};
+const state={mode:'new24',platform:'all',videos:[],configured:false,ai:false,onlyTop:true,sort:'score'};
 const nf=new Intl.NumberFormat('es-AR',{notation:'compact',maximumFractionDigits:1});
 const pretty=n=>n===null||n===undefined?'—':nf.format(n);
 const date=iso=>iso?new Date(iso).toLocaleString('es-AR',{dateStyle:'short',timeStyle:'short'}):'Nunca';
@@ -9,21 +9,27 @@ function renderEmpty(message,detail){const wrap=dom('div','empty-state');wrap.ap
 function metric(label,value,accent=false){const w=dom('div','metric');w.append(dom('label','',label),dom('strong',accent?'accent':'',value));return w}
 function renderCards(){
   if(!state.videos.length){
+    $('#result-count').textContent='0 videos';
     const map={new24:['Todavía no hay videos nuevos','Este espacio mostrará videos publicados en las últimas 24 horas. La búsqueda empieza cuando conectás el proveedor y se completa la primera exploración.'],accelerated24:['Aún no hay aceleraciones comprobadas','Se necesitan varias mediciones del mismo video para detectar cambios de velocidad. No confundimos reproducciones acumuladas con crecimiento reciente.'],all:['Todavía no hay datos reales','Una vez conectado el proveedor y realizada la primera búsqueda aparecerán videos verificables, sus métricas y el enlace original.']};
     renderEmpty(...map[state.mode]);return;
   }
   const target=$('#results');target.replaceChildren();
-  for(const v of state.videos){
+  const matched=state.onlyTop?state.videos.filter(v=>v.quality==='destacado'):state.videos;
+  $('#result-count').textContent=matched.length+' de '+state.videos.length+' videos';
+  if(!matched.length){renderEmpty('No hay videos destacados en esta muestra','Probá Todos los encontrados. Evitamos marcar como viral contenido que todavía no tiene suficientes señales reales.');return;}
+  const ranked=[...matched].sort((a,b)=>state.sort==='views'?b.views-a.views:b.score-a.score);
+  for(const v of ranked){
     const card=dom('article','result-card');const top=dom('div','card-top');
     const thumbnail=v.thumbnail?dom('img','thumb'):dom('div','thumb',v.platform==='tiktok'?'♪':'◎');
     if(v.thumbnail){thumbnail.src=v.thumbnail;thumbnail.loading='lazy';thumbnail.alt='Miniatura del video';thumbnail.referrerPolicy='no-referrer';thumbnail.onerror=()=>{thumbnail.replaceWith(dom('div','thumb','◉'))}};
     const info=dom('div','card-info');const line=dom('div','meta-line');const pl=dom('span','platform-pill '+v.platform,v.platform==='tiktok'?'TikTok':'Instagram');
     line.append(pl,dom('span','',`${pretty(v.ageHours)} h desde publicación`));info.append(line);
     info.append(dom('div','result-title',v.caption?.trim()||'Video sin descripción disponible'),dom('div','author','@'+v.author));
-    info.append(dom('div','confidence '+(v.confidence!=='inicial'?'verified':''),`${v.status} · Confianza ${v.confidence}`));
+    info.append(dom('div','confidence '+(v.confidence!=='inicial'?'verified':''),`${v.quality==='destacado'?'★ Destacado · ':''}${v.status} · Confianza ${v.confidence}`));
     top.append(thumbnail,info);card.append(top);
     const metrics=dom('div','card-metrics');metrics.append(metric('Reproducciones',pretty(v.views)),metric('Vistas ganadas',v.viewsGained===null?'Sin historial':'+'+pretty(v.viewsGained),v.viewsGained>0),metric('Radar Score',v.score+'/100'));
     card.append(metrics);
+    card.append(dom('div','quick-interactions',`♥ ${pretty(v.likes)}  ·  💬 ${pretty(v.comments)}  ·  ↗ ${pretty(v.shares)} compartidos`));
     const bottom=dom('div','card-bottom');const btn=dom('button','btn btn-primary','Ver análisis');btn.type='button';btn.addEventListener('click',()=>showVideo(v));
     const link=dom('a','','Ver original ↗');link.href=v.url;link.target='_blank';link.rel='noopener noreferrer';
     bottom.append(btn,link);card.append(bottom);target.append(card);
@@ -50,7 +56,9 @@ function chart(history){const wrap=dom('div','chart-box');wrap.append(dom('div',
 async function showVideo(v){
  const d=$('#video-dialog');const container=$('#dialog-content');container.replaceChildren(dom('h2','modal-h2',v.caption?.trim()||'Video sin descripción'),dom('div','author','@'+v.author+' · '+(v.platform==='tiktok'?'TikTok':'Instagram')+' · publicado '+date(v.postedAt)));
  const stats=dom('div','modal-stats');const stat=(label,val)=>{const c=dom('div','');c.append(dom('span','',label),dom('strong','',val));return c};
- stats.append(stat('Visualizaciones',pretty(v.views)),stat('Velocidad / h',v.velocity===null?'Sin datos':pretty(v.velocity)),stat('Aceleración',v.acceleration===null?'Sin datos':(v.acceleration>0?'+':'')+v.acceleration+'%'));container.append(stats);
+ stats.append(stat('Visualizaciones',pretty(v.views)),stat('Likes',pretty(v.likes)),stat('Comentarios',pretty(v.comments)),
+ stat('Compartidos',pretty(v.shares)),stat('Velocidad / h',v.velocity===null?'Sin datos':pretty(v.velocity)),
+ stat('Aceleración',v.acceleration===null?'Sin datos':(v.acceleration>0?'+':'')+v.acceleration+'%'));container.append(stats);
  container.append(dom('p','modal-p',v.confidence==='inicial'?'Solo hay una observación suficiente para estimar un puntaje preliminar. Hace falta continuar monitoreando para verificar aceleración.':`Se registraron ${v.observations} observaciones. Las vistas ganadas desde la primera medición disponible de las últimas 24 horas son ${pretty(v.viewsGained)} durante ${v.observedHours} horas.`));
  d.showModal();
  try{const [detail,ins]=await Promise.all([api(`/api/videos/${encodeURIComponent(v.id)}`),api(`/api/videos/${encodeURIComponent(v.id)}/insight`)]);container.append(chart(detail.history));
@@ -64,6 +72,24 @@ async function showVideo(v){
 }
 for(const el of document.querySelectorAll('[data-mode]'))el.addEventListener('click',()=>{state.mode=el.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>{x.classList.toggle('active',x===el);x.setAttribute('aria-selected',String(x===el))});load()});
 for(const el of document.querySelectorAll('[data-platform]'))el.addEventListener('click',()=>{state.platform=el.dataset.platform;document.querySelectorAll('[data-platform]').forEach(x=>x.classList.toggle('active',x===el));load()});
+function selectQuality(onlyTop){
+  state.onlyTop=onlyTop;
+  for(const [id,selected] of [['quality-top',onlyTop],['quality-all',!onlyTop]]){
+    const element=$('#'+id);element.classList.toggle('active',selected);element.setAttribute('aria-pressed',String(selected));
+  }
+  renderCards();
+}
+function selectSort(sort){
+  state.sort=sort;
+  for(const [id,selected] of [['sort-score',sort==='score'],['sort-views',sort==='views']]){
+    const element=$('#'+id);element.classList.toggle('active',selected);element.setAttribute('aria-pressed',String(selected));
+  }
+  renderCards();
+}
+$('#quality-top').addEventListener('click',()=>selectQuality(true));
+$('#quality-all').addEventListener('click',()=>selectQuality(false));
+$('#sort-score').addEventListener('click',()=>selectSort('score'));
+$('#sort-views').addEventListener('click',()=>selectSort('views'));
 $('#close-dialog').addEventListener('click',()=>$('#video-dialog').close());$('#refresh-btn').addEventListener('click',()=>$('#admin-dialog').showModal());$('#close-admin').addEventListener('click',()=>$('#admin-dialog').close());
 $('#execute-refresh').addEventListener('click',async()=>{
  const key=$('#admin-key').value;$('#admin-key').value='';if(!key){$('#admin-result').textContent='Ingresá la clave.';return}
