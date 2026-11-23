@@ -88,3 +88,22 @@ test('recovers from unsupported multi-query popularity filter without faking tre
  assert.equal(requests[1].videoSearchSorting,'LATEST');
  assert.ok(r.diagnostics.some(x=>x.mode==='fallback latest'));
 });
+
+test('TikTok Explore uses documented categories, does not download videos and reports global market',async()=>{
+ const calls=[];
+ const fetchImpl=async(url,opts)=>{
+   calls.push({url,input:JSON.parse(opts.body)});
+   return {ok:true,json:async()=>[
+     {id:'777888999',webVideoUrl:'https://www.tiktok.com/@trend/video/777888999',createTimeISO:new Date().toISOString(),playCount:100000,diggCount:10000,authorMeta:{name:'trend'}}
+   ]};
+ };
+ const cfg={apifyToken:'test',market:'AR',perQuery:10,tiktokQueries:[],instagramTags:[],exploreEnabled:true,explorePerCategory:15};
+ const r=await collect(cfg,{},fetchImpl);
+ assert.deepEqual(r.errors,[]);
+ assert.equal(calls.length,1);
+ assert.ok(calls[0].url.includes('tiktok-explore-scraper'));
+ assert.equal(calls[0].input.resultsPerPage,15);
+ assert.equal(calls[0].input.shouldDownloadVideos,false);
+ assert.ok(calls[0].input.exploreCategoryTypes.includes('pc_web_explorePage_all'));
+ assert.equal(r.videos[0].market,'GLOBAL');
+});
