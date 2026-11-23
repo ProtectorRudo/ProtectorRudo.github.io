@@ -72,3 +72,19 @@ test('weak posts do not receive distinguished viral quality, high-reach posts ca
  assert.equal(strong.quality,'destacado');
  assert.ok(strong.score>weak.score);
 });
+
+test('recovers from unsupported multi-query popularity filter without faking trends',async()=>{
+ const requests=[];
+ const fetchImpl=async(url,opts)=>{
+   const input=JSON.parse(opts.body);requests.push(input);
+   if(input.videoSearchSorting==='MOST_LIKED')return {ok:false,status:400,text:async()=>JSON.stringify({error:{message:'Invalid filter combination'}})};
+   return {ok:true,json:async()=>[{id:'1234567890123456789',webVideoUrl:video.url,createTimeISO:video.postedAt,playCount:50000,diggCount:4000,authorMeta:{name:'creator'}}]};
+ };
+ const cfg={apifyToken:'dummy',market:'AR',perQuery:20,tiktokQueries:['humor','curiosidades'],instagramTags:[]};
+ const r=await collect(cfg,{tiktok:[],instagram:[]},fetchImpl);
+ assert.deepEqual(r.errors,[]);
+ assert.equal(r.videos.length,1);
+ assert.equal(requests[0].videoSearchSorting,'MOST_LIKED');
+ assert.equal(requests[1].videoSearchSorting,'LATEST');
+ assert.ok(r.diagnostics.some(x=>x.mode==='fallback latest'));
+});
