@@ -3,3 +3,11 @@
 @media(max-width:1050px){.sidebar{width:200px}.content{padding:28px 24px}.stats{gap:9px}.stat-card{padding:15px}.topbar{padding:0 24px}.results{gap:10px}.thumb{flex-basis:75px;height:108px}}
 @media(max-width:750px){.sidebar{position:relative;width:100%;height:auto;flex-direction:row;padding:13px 16px;align-items:center;border-right:0;border-bottom:1px solid #222b40}.app-shell{display:block}.brand{padding:0}.brand-mark{width:35px;height:35px;font-size:21px}.brand small,.side-label,.sidebar-bottom{display:none}.sidebar nav{margin-left:auto;display:flex}.nav-link{padding:9px;font-size:11px}.nav-link span:first-child,.nav-link span:last-child,.new-tag{display:none}.topbar{height:60px;padding:0 18px}.top-actions .last-sync{display:none}.content{padding:18px 14px}.hero{padding:22px 20px;min-height:213px}.hero h1{font-size:30px}.hero-decoration{opacity:.25}.stats{grid-template-columns:repeat(2,1fr);gap:10px;margin:13px 0 27px}.stat-card{min-height:131px}.stat-card strong{font-size:25px}.stat-icon{margin-bottom:8px}.section-heading h2{font-size:19px}.section-heading .btn{padding:9px}.toolbar{gap:9px}.tabs,.platform-tabs{width:100%;overflow-x:auto}.tab,.platform{flex:1;white-space:nowrap;font-size:11px;padding:10px 8px}.results{grid-template-columns:1fr}footer{padding:18px;display:block}footer span{display:block;margin-top:6px}.card-top{gap:13px}.thumb{flex-basis:100px;height:122px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+
+.quality-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin:-3px 0 17px}
+.quality-label{font-size:11px;font-weight:800;letter-spacing:.08em;color:#7f8ca7}
+.quality-controls{display:flex;flex-wrap:wrap;gap:6px}
+.quality-option{border:1px solid #38425b;background:#141d2e;border-radius:8px;padding:9px 11px;color:#acb8d2;font-size:11px;font-weight:700}
+.quality-option.active{background:#382a5e;border-color:#7661ad;color:#ead8ff}
+.quick-interactions{font-size:11px;color:#a8b4cb;margin-top:13px;line-height:1.7}
+@media(max-width:750px){.quality-toolbar{display:block}.quality-controls{margin-top:10px}.quality-option{flex:1}}
