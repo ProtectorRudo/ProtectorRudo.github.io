@@ -25,7 +25,7 @@ export async function collect(config,tracked={tiktok:[],instagram:[]},fetchImpl=
   if (!config.apifyToken) throw new Error('Falta APIFY_TOKEN');
   const errors=[],videos=[],jobs=[],diagnostics=[];
   const market=config.market;
-  function schedule(source,actor,input,normalize,{fallback=false}={}) {
+  function schedule(source,actor,input,normalize,{fallback=false,marketOverride=null}={}) {
     async function requestRows(){
       try { return await runActor(actor,input,config.apifyToken,fetchImpl); }
       catch(error) {
@@ -48,10 +48,25 @@ export async function collect(config,tracked={tiktok:[],instagram:[]},fetchImpl=
       }
     }
     jobs.push(requestRows().then(rows=>{
-      const normalized=rows.map(x=>normalize(x,market)).filter(Boolean);
+      const normalized=rows.map(x=>normalize(x,marketOverride||market)).filter(Boolean);
       diagnostics.push({source,fetched:rows.length,normalized:normalized.length});
       videos.push(...normalized);
     }).catch(error=>{errors.push(`${source}: ${error.message}`);}));
+  }
+  // TikTok Explore is a curated topic feed, independent from keyword search.
+  // Its category keys are documented by the provider. Limit volume to manage cost;
+  // source dates are verified against the same 24-hour cutoff below.
+  if(config.exploreEnabled){
+    schedule('TikTok Explore','clockworks~tiktok-explore-scraper',{
+      exploreCategoryTypes:[
+        'pc_web_explorePage_all',
+        'pc_web_explorePage_topics_comedy',
+        'pc_web_explorePage_topics_daily_life'
+      ],
+      resultsPerPage:config.explorePerCategory||20,
+      shouldDownloadVideos:false,shouldDownloadCovers:false,
+      shouldDownloadSubtitles:false,proxyCountryCode:'None'
+    },normalizeTikTok,{marketOverride:'GLOBAL'});
   }
   // A single actor run can search several topics. Prefer the highest-liked
   // videos in the last 24h, not merely the latest low-performing uploads.
