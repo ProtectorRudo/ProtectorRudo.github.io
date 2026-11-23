@@ -7,21 +7,51 @@ async function runActor(actor,input,token,fetchImpl=fetch) {
     method:'POST',headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'},
     body:JSON.stringify(input),signal:timeout
   });
-  if (!response.ok) throw new Error(`Proveedor ${actor}: HTTP ${response.status}`);
+  if (!response.ok) {
+    let reason='';
+    try {
+      const payload=await response.text();
+      const body=JSON.parse(payload);
+      reason=String(body?.error?.message||body?.message||'').slice(0,320);
+    } catch { reason='Respuesta no interpretable'; }
+    reason=reason.replaceAll(token,'[REDACTED]').replace(/token=[^&\\s]+/ig,'token=[REDACTED]');
+    throw new Error(`Proveedor ${actor}: HTTP ${response.status}${reason?' — '+reason:''}`);
+  }
   const data=await response.json();
   if (!Array.isArray(data)) throw new Error(`Proveedor ${actor}: respuesta inesperada`);
   return data;
 }
 export async function collect(config,tracked={tiktok:[],instagram:[]},fetchImpl=fetch) {
   if (!config.apifyToken) throw new Error('Falta APIFY_TOKEN');
-  const errors=[],videos=[],jobs=[];
+  const errors=[],videos=[],jobs=[],diagnostics=[];
   const market=config.market;
-  // Execute independent platform requests concurrently. Serial synchronous calls made
-  // a two-platform attempt take up to six minutes and obscured which source failed.
-  function schedule(source,actor,input,normalize) {
-    jobs.push(runActor(actor,input,config.apifyToken,fetchImpl)
-      .then(rows => { videos.push(...rows.map(x=>normalize(x,market)).filter(Boolean)); })
-      .catch(error => { errors.push(`${source}: ${error.message}`); }));
+  function schedule(source,actor,input,normalize,{fallback=false}={}) {
+    async function requestRows(){
+      try { return await runActor(actor,input,config.apifyToken,fetchImpl); }
+      catch(error) {
+        if (!fallback || !error.message.includes('HTTP 400')) throw error;
+        // Some scraper versions reject combined sorting + date filters.
+        // Fall back to latest search, then split queries if the batch is unsupported.
+        diagnostics.push({source,mode:'fallback latest',reason:error.message.slice(0,140)});
+        const latest={...input,videoSearchSorting:'LATEST'};
+        try { return await runActor(actor,latest,config.apifyToken,fetchImpl); }
+        catch(second){
+          if(!second.message.includes('HTTP 400') || !(input.searchQueries?.length>1)) throw second;
+          const settled=await Promise.allSettled(input.searchQueries.map(query=>
+            runActor(actor,{...latest,searchQueries:[query]},config.apifyToken,fetchImpl)));
+          const successful=settled.filter(x=>x.status==='fulfilled').flatMap(x=>x.value);
+          const failed=settled.filter(x=>x.status==='rejected');
+          if(!successful.length && failed.length) throw failed[0].reason;
+          diagnostics.push({source,mode:'individual queries',failed:failed.length});
+          return successful;
+        }
+      }
+    }
+    jobs.push(requestRows().then(rows=>{
+      const normalized=rows.map(x=>normalize(x,market)).filter(Boolean);
+      diagnostics.push({source,fetched:rows.length,normalized:normalized.length});
+      videos.push(...normalized);
+    }).catch(error=>{errors.push(`${source}: ${error.message}`);}));
   }
   // A single actor run can search several topics. Prefer the highest-liked
   // videos in the last 24h, not merely the latest low-performing uploads.
@@ -33,7 +63,7 @@ export async function collect(config,tracked={tiktok:[],instagram:[]},fetchImpl=
       resultsPerPage:config.perQuery,
       proxyCountryCode:market==='AR'?'AR':'None',
       shouldDownloadVideos:false, downloadSubtitlesOptions:'NEVER_DOWNLOAD_SUBTITLES'
-    },normalizeTikTok);
+    },normalizeTikTok,{fallback:true});
   }
   for(const tag of config.instagramTags){
     schedule(`Instagram (#${tag})`,'apify~instagram-scraper',{
@@ -56,5 +86,5 @@ export async function collect(config,tracked={tiktok:[],instagram:[]},fetchImpl=
   const previouslyTracked=new Set([...(tracked.tiktok||[]),...(tracked.instagram||[])]);
   const valid=videos.filter(x=>Date.parse(x.postedAt)<=Date.now()+3600000 &&
     (Date.parse(x.postedAt)>=cutoff || previouslyTracked.has(x.url)));
-  return {videos:[...new Map(valid.map(v=>[v.id,v])).values()],errors};
+  return {videos:[...new Map(valid.map(v=>[v.id,v])).values()],errors,diagnostics};
 }
