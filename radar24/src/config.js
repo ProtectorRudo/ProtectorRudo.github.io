@@ -13,10 +13,10 @@ export function config(env = process.env) {
     openAiModel: String(env.OPENAI_MODEL || 'gpt-4.1-mini'),
     autoScan: env.RADAR_AUTO_SCAN === 'true',
     pollMinutes: clamp(env.RADAR_POLL_MINUTES, 60, 1440, 360),
-    perQuery: clamp(env.RADAR_RESULTS_PER_QUERY, 1, 40, 12),
+    perQuery: clamp(env.RADAR_RESULTS_PER_QUERY, 1, 50, 20),
     maxRunsPerDay: clamp(env.RADAR_MAX_RUNS_PER_DAY, 1, 12, 4),
-    tiktokQueries: tokens(env.RADAR_TIKTOK_QUERIES, 'argentina,humor argentino,emprendedores', 4),
-    instagramTags: tokens(env.RADAR_INSTAGRAM_TAGS, 'argentina,emprendedores,humorargentino', 4),
+    tiktokQueries: tokens(env.RADAR_TIKTOK_QUERIES, 'humor argentino,curiosidades,antes y despues,tendencias virales', 4),
+    instagramTags: tokens(env.RADAR_INSTAGRAM_TAGS, 'reelsargentina,humorargentino,curiosidades', 4),
     market: String(env.RADAR_MARKET || 'AR'),
   };
 }
