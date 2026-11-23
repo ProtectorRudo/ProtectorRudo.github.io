@@ -92,7 +92,7 @@ async function handler(req,res){
     if(!filename)return json(res,404,{error:'Página inexistente'});
     const file=await readFile(resolve(here,filename));
     const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8'}[extname(filename)]||'application/octet-stream';
-    res.writeHead(200,{'Content-Type':mime,'Cache-Control':filename==='index.html'?'no-store':'public, max-age=3600','X-Content-Type-Options':'nosniff',
+    res.writeHead(200,{'Content-Type':mime,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',
       'Content-Security-Policy':"default-src 'self'; img-src 'self' https: data:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; object-src 'none'"});
     if(req.method==='HEAD')return res.end();res.end(file);
   }catch(e){json(res,500,{error:'No se pudo completar la solicitud',detail:process.env.NODE_ENV==='production'?undefined:e.message});}
