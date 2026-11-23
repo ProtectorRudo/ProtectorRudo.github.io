@@ -7,6 +7,7 @@ export function config(env = process.env) {
   return {
     port: clamp(env.PORT, 1, 65535, 3000),
     dbPath: resolve(env.RADAR_DB_PATH || './data/radar.sqlite'),
+    databaseUrl: String(env.RADAR_DATABASE_URL || ''),
     adminKey: String(env.RADAR_ADMIN_KEY || ''),
     apifyToken: String(env.APIFY_TOKEN || ''),
     openAiKey: String(env.OPENAI_API_KEY || ''),
