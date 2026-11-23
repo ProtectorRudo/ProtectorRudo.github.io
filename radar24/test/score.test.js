@@ -45,7 +45,7 @@ test('collect calls exact 24h TikTok filter and follows previously known URL',as
       return [{shortCode:'reel1',url:'https://www.instagram.com/reel/reel1/',type:'Video',timestamp:'2026-11-23T09:00:00Z',videoViewCount:100}]
    }};
  };
- const cfg={apifyToken:'test',market:'AR',tiktokQueries:['argentina'],instagramTags:['argentina'],perQuery:3};
+ const cfg={apifyToken:'test',market:'AR',tiktokProvider:'clockworks',tiktokQueries:['argentina'],instagramTags:['argentina'],perQuery:3};
  const r=await collect(cfg,{tiktok:[video.url],instagram:[]},fetchImpl);
  assert.equal(r.errors.length,0);assert.equal(r.videos.length,2);
  assert.equal(called[0].body.videoSearchDateFilter,'PAST_24_HOURS');
@@ -55,7 +55,7 @@ test('collect calls exact 24h TikTok filter and follows previously known URL',as
 test('discovery searches multiple themes within last 24h by top likes, not latest',async()=>{
  const requests=[];
  const fetchImpl=async(url,options)=>{requests.push({url,input:JSON.parse(options.body)});return {ok:true,json:async()=>[]};};
- const cfg={apifyToken:'test',market:'AR',perQuery:20,tiktokQueries:['humor','curiosidades','trending','transformacion'],instagramTags:['reelsargentina','viralreels']};
+ const cfg={apifyToken:'test',market:'AR',tiktokProvider:'clockworks',perQuery:20,tiktokQueries:['humor','curiosidades','trending','transformacion'],instagramTags:['reelsargentina','viralreels']};
  const r=await collect(cfg,{tiktok:[],instagram:[]},fetchImpl);
  assert.deepEqual(r.errors,[]);
  const tik=requests.filter(x=>x.url.includes('tiktok-scraper'));
@@ -80,7 +80,7 @@ test('recovers from unsupported multi-query popularity filter without faking tre
    if(input.videoSearchSorting==='MOST_LIKED')return {ok:false,status:400,text:async()=>JSON.stringify({error:{message:'Invalid filter combination'}})};
    return {ok:true,json:async()=>[{id:'1234567890123456789',webVideoUrl:video.url,createTimeISO:video.postedAt,playCount:50000,diggCount:4000,authorMeta:{name:'creator'}}]};
  };
- const cfg={apifyToken:'dummy',market:'AR',perQuery:20,tiktokQueries:['humor','curiosidades'],instagramTags:[]};
+ const cfg={apifyToken:'dummy',market:'AR',tiktokProvider:'clockworks',perQuery:20,tiktokQueries:['humor','curiosidades'],instagramTags:[]};
  const r=await collect(cfg,{tiktok:[],instagram:[]},fetchImpl);
  assert.deepEqual(r.errors,[]);
  assert.equal(r.videos.length,1);
@@ -106,4 +106,40 @@ test('TikTok Explore uses documented categories, does not download videos and re
  assert.equal(calls[0].input.shouldDownloadVideos,false);
  assert.ok(calls[0].input.exploreCategoryTypes.includes('pc_web_explorePage_all'));
  assert.equal(r.videos[0].market,'GLOBAL');
+});
+
+test('DeepMine flat video fields become authentic engagement metrics',()=>{
+  const item=normalizeTikTok({
+    url:'https://www.tiktok.com/@somecreator/video/1234567890123456789',
+    postedAt:new Date().toISOString(),creator:'somecreator',
+    caption:'Un video real',plays:480000,likes:25000,
+    comments:1320,shares:4100,followers:37000,
+    cover:'https://example.org/cover.jpg'
+  });
+  assert.equal(item.id,'tiktok:1234567890123456789');
+  assert.equal(item.views,480000);
+  assert.equal(item.likes,25000);
+  assert.equal(item.comments,1320);
+  assert.equal(item.shares,4100);
+  assert.equal(item.followers,37000);
+  assert.equal(item.author,'somecreator');
+});
+test('DeepMine search uses a single low-memory run with most-viewed candidates',async()=>{
+ const calls=[];
+ const nowIso=new Date().toISOString();
+ const fetchImpl=async(url,opts)=>{
+  const input=JSON.parse(opts.body); calls.push({url,input});
+  return {ok:true,json:async()=>[{url:'https://www.tiktok.com/@user/video/1234567890123456789',postedAt:nowIso,plays:150000,likes:9000,comments:300,shares:500,creator:'user'}]};
+ };
+ const cfg={apifyToken:'dummy',market:'AR',tiktokProvider:'deepmine',
+  perQuery:25,tiktokQueries:['humor argentino','curiosidades','antes y despues','tendencias'],instagramTags:[]};
+ const result=await collect(cfg,{tiktok:[],instagram:[]},fetchImpl);
+ assert.equal(calls.length,1);
+ assert.ok(calls[0].url.includes('deepmine~tiktok-scraper'));
+ assert.equal(calls[0].input.resultsPerInput,25);
+ assert.equal(calls[0].input.sortOrder,'mostViews');
+ assert.equal(calls[0].input.postedAfter,'1 day');
+ assert.equal(result.errors.length,0);
+ assert.equal(result.videos.length,1);
+ assert.equal(result.videos[0].views,150000);
 });
