@@ -25,17 +25,26 @@ export function enrich(video, snapshots, now = new Date()) {
     }
   }
   const relative = video.followers ? last.views / video.followers : null;
+  // Log scaling values strong view velocity, while retaining measurable social
+  // engagement; weak posts cannot lead solely on an extreme like percentage.
+  const logScore = (value, reference) => Math.min(1, Math.log1p(Math.max(0,value))/Math.log1p(reference));
+  const sharesPerView = last.shares / Math.max(1,last.views);
+  const rawEngagement = (last.likes + last.comments + last.shares)/Math.max(1,last.views);
   const score = Math.round(100 * (
-    .35 * bounded(velocity === null ? recentViewsPerHour : velocity, 20000) +
-    .25 * (acceleration === null ? .15 : bounded(Math.max(0, acceleration), 200)) +
-    .20 * bounded(safeNumber(relative), 7) +
-    .10 * bounded(rate, .12) +
-    .10 * bounded(last.shares / Math.max(1, last.views), .03)));
+    .36 * logScore(velocity === null ? recentViewsPerHour : velocity, 30000) +
+    .24 * logScore(last.views, 500000) +
+    .18 * bounded(rawEngagement, .12) +
+    .10 * bounded(sharesPerView, .02) +
+    .07 * bounded(safeNumber(relative),5) +
+    .05 * (acceleration === null ? 0 : bounded(Math.max(0,acceleration),150))
+  ));
+  const quality = ((last.views >= 10000 && score >= 50) || (last.views >= 100000 && score >= 40))
+    ? 'destacado' : last.views >= 3000 && score >= 36 ? 'prometedor' : 'en observación';
   const confidence = last24.length >= 3 && hoursObserved >= 2 ? 'alta' : (last24.length >= 2 && hoursObserved >= .5 ? 'media' : 'inicial');
   const new24 = ageHours <= 24 && ageHours >= 0;
   const accelerated24 = !new24 && velocity !== null && acceleration !== null && acceleration >= 50 && gained >= 100;
   return {
-    ...video, score, confidence, ageHours: Math.round(ageHours * 10) / 10,
+    ...video, score, quality, confidence, ageHours: Math.round(ageHours * 10) / 10,
     new24, accelerated24, viewsGained: gained, observedHours: Math.round(hoursObserved * 10) / 10,
     velocity: velocity === null ? null : Math.round(velocity),
     acceleration: acceleration === null ? null : Math.round(acceleration),
