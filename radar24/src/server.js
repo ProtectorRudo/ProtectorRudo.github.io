@@ -28,6 +28,15 @@ const runRefresh=async()=>{
   try {
     const {videos,errors}=await collect(cfg,store.trackedUrls());
     const accepted=store.add(videos,new Date().toISOString());
+    const sample=store.list({mode:'new24',limit:100});
+    console.log('Radar: resumen de candidatos',JSON.stringify({
+      tiktok:sample.filter(v=>v.platform==='tiktok').length,
+      instagram:sample.filter(v=>v.platform==='instagram').length,
+      destacados:sample.filter(v=>v.quality==='destacado').length,
+      prometedores:sample.filter(v=>v.quality==='prometedor').length,
+      maxViews:Math.max(0,...sample.map(v=>v.views)),
+      highestScore:Math.max(0,...sample.map(v=>v.score))
+    }));
     const status=errors.length ? (accepted?'partial':'error'):'ok';
     store.addRun(status,accepted,errors.length?errors.join(' | ').slice(0,1800):null,started);
     return {status,accepted,errors};
