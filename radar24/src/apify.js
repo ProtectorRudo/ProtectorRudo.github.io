@@ -75,13 +75,23 @@ export async function collect(config,tracked={tiktok:[],instagram:[]},fetchImpl=
   // videos in the last 24h, not merely the latest low-performing uploads.
   // This increases candidate quality while avoiding one paid actor per keyword.
   if (config.tiktokQueries.length) {
-    schedule('TikTok destacados 24H','clockworks~tiktok-scraper',{
+    if(config.tiktokProvider==='clockworks') {
+      schedule('TikTok destacados 24H','clockworks~tiktok-scraper',{
       searchQueries:config.tiktokQueries, searchSection:'/video',
       videoSearchSorting:'MOST_LIKED', videoSearchDateFilter:'PAST_24_HOURS',
       resultsPerPage:config.perQuery,
       proxyCountryCode:market==='AR'?'AR':'None',
       shouldDownloadVideos:false, downloadSubtitlesOptions:'NEVER_DOWNLOAD_SUBTITLES'
     },normalizeTikTok,{fallback:true});
+    } else {
+      schedule('TikTok viral 24H','deepmine~tiktok-scraper',{
+        searchQueries:config.tiktokQueries,
+        resultsPerInput:config.perQuery,
+        sortOrder:'mostViews',
+        datePosted:'thisWeek',
+        postedAfter:'1 day'
+      },normalizeTikTok);
+    }
   }
   for(const tag of config.instagramTags){
     schedule(`Instagram (#${tag})`,'apify~instagram-scraper',{
@@ -90,9 +100,15 @@ export async function collect(config,tracked={tiktok:[],instagram:[]},fetchImpl=
     },normalizeInstagram);
   }
   for (const group of chunk(tracked.tiktok || [], 10)) {
-    schedule('Seguimiento TikTok','clockworks~tiktok-scraper',{
-      postURLs:group,resultsPerPage:1,shouldDownloadVideos:false,
-    },normalizeTikTok);
+    if(config.tiktokProvider==='clockworks'){
+      schedule('Seguimiento TikTok','clockworks~tiktok-scraper',{
+        postURLs:group,resultsPerPage:1,shouldDownloadVideos:false,
+      },normalizeTikTok);
+    } else {
+      schedule('Seguimiento TikTok','deepmine~tiktok-scraper',{
+        startUrls:group,resultsPerInput:1
+      },normalizeTikTok);
+    }
   }
   for (const group of chunk(tracked.instagram || [], 10)) {
     schedule('Seguimiento Instagram','apify~instagram-scraper',{
