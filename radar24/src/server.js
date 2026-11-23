@@ -4,12 +4,16 @@ import { resolve, extname } from 'node:path';
 import { timingSafeEqual } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { RadarStore } from './storage.js';
+import { RadarArchive } from './archive.js';
 import { config } from './config.js';
 import { collect } from './apify.js';
 import { createInsight } from './analysis.js';
 
 const cfg=config();
+const archive=new RadarArchive(cfg.dbPath,cfg.databaseUrl);
+await archive.connectAndRestore();
 const store=new RadarStore(cfg.dbPath);
+if(archive.ready) console.log('Radar: historial externo listo; restaurado='+archive.restored);
 const here=resolve(fileURLToPath(new URL('..',import.meta.url)),'public');
 let running=false;
 const json=(res,status,obj)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(obj));};
@@ -40,6 +44,7 @@ const runRefresh=async()=>{
     }));
     const status=errors.length ? (accepted?'partial':'error'):'ok';
     store.addRun(status,accepted,errors.length?errors.join(' | ').slice(0,1800):null,started);
+    await archive.save(store);
     return {status,accepted,errors};
   }catch(e){store.addRun('error',0,e.message,started);return {status:'error',error:e.message};}
   finally{running=false;}
@@ -56,6 +61,8 @@ async function handler(req,res){
     if(u.pathname==='/healthz')return json(res,200,{ok:true,module:'radar24'});
     if(u.pathname==='/api/status'&&req.method==='GET')return json(res,200,{
       configured:!!cfg.apifyToken,aiConfigured:!!cfg.openAiKey,autoScan:cfg.autoScan,
+      historyPersistent:archive.ready, historyConfigured:!!cfg.databaseUrl, historyRestored:archive.restored,
+      initialScanPending:cfg.autoScan && !!cfg.apifyToken && !store.lastRun(),
       runsLeft:Math.max(0,cfg.maxRunsPerDay-store.runsToday()), pollMinutes:cfg.pollMinutes,
       running, lastRun:store.lastRun(), counts:store.counts(), sources:['TikTok','Instagram'],
       market:cfg.market, notes:'24H mide fecha de publicación; aceleración exige mediciones históricas. La muestra no representa todo el contenido de cada plataforma.'
@@ -82,7 +89,9 @@ async function handler(req,res){
         if(!isAdmin(req))return json(res,401,{error:'Se requiere clave de administrador'});
         if(!cfg.openAiKey)return json(res,503,{error:'Falta OPENAI_API_KEY'});
         const analysis=await createInsight(video,cfg);
-        store.saveInsight(id,analysis);return json(res,200,{insight:{analysis,createdAt:new Date().toISOString()}});
+        store.saveInsight(id,analysis);
+        await archive.save(store);
+        return json(res,200,{insight:{analysis,createdAt:new Date().toISOString()}});
       }
       if(!match[3]&&req.method==='GET')return json(res,200,{video,history:store.snapshotHistory(id)});
     }
@@ -101,8 +110,11 @@ async function handler(req,res){
 const server=http.createServer(handler);
 server.listen(cfg.port,'0.0.0.0',()=>console.log(`VIRAL LAB Radar 24H escuchando en puerto ${cfg.port}; autoscaneo=${cfg.autoScan && !!cfg.apifyToken}`));
 if(cfg.autoScan&&cfg.apifyToken){
-  setTimeout(()=>runRefresh().then(r=>console.log('Radar: primera exploración',r.status,'videos=',r.accepted ?? 0,'errores=',r.errors?.join(' | ')||r.error||'ninguno')),3000).unref();
+  setTimeout(()=>{
+    if(store.runsToday()>0){console.log('Radar: historial recuperado, se evita nueva consulta paga tras reinicio');return;}
+    runRefresh().then(r=>console.log('Radar: primera exploración',r.status,'videos=',r.accepted ?? 0,'errores=',r.errors?.join(' | ')||r.error||'ninguno'));
+  },3000).unref();
   setInterval(()=>runRefresh().then(r=>console.log('Radar: exploración programada',r.status,'videos=',r.accepted ?? 0,'errores=',r.errors?.join(' | ')||r.error||'ninguno')),cfg.pollMinutes*60000).unref();
 }
-const shutdown=()=>{server.close();store.close();};
+const shutdown=()=>{server.close();store.close();void archive.close().catch(()=>{});};
 process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);
